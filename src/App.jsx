@@ -8,6 +8,7 @@ import MpcImportModal from './components/MpcImportModal';
 import ArtPickerModal from './components/ArtPickerModal';
 import CookieBanner from './components/CookieBanner';
 import ConfirmDialog from './components/ConfirmDialog';
+import ExportProgress from './components/ExportProgress';
 import Toast from './components/Toast';
 import MobileLayout from './components/MobileLayout';
 import { useIsMobile } from './hooks/useIsMobile';
@@ -103,13 +104,15 @@ export default function App() {
     pendingRevokesRef.current.forEach(url => URL.revokeObjectURL(url));
   }, []);
 
-  // Chiude il menu "+" della sidebar al click fuori
+  // Chiude il menu "+" della sidebar al click fuori o con Esc (stesso contratto degli overlay)
   const addMenuRef = useRef(null);
   useEffect(() => {
     if (!addMenuOpen) return;
     const onDoc = (e) => { if (addMenuRef.current && !addMenuRef.current.contains(e.target)) setAddMenuOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setAddMenuOpen(false); };
     document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
   }, [addMenuOpen]);
 
   // Auto-chiusura del toast (tap per chiudere prima). I toast con azione (es. Undo)
@@ -479,23 +482,8 @@ export default function App() {
                 <IconPlus size={18} /> Add cards
               </button>
             </div>
-            {loading ? (
-              <div className="gen-progress">
-                <button className="btn-generate" disabled>
-                  <span className="spinner" />
-                  {genProgress ? `Rendering ${genProgress.done}/${genProgress.total}…` : 'Generating…'}
-                </button>
-                <div className="gen-bar" role="progressbar" aria-label="Export progress"
-                  aria-valuenow={genProgress?.done || 0} aria-valuemin={0} aria-valuemax={genProgress?.total || 0}>
-                  <div className="gen-bar-fill" style={{ transform: `scaleX(${genProgress?.total ? genProgress.done / genProgress.total : 0})` }} />
-                </div>
-                <button type="button" className="btn-secondary gen-cancel" onClick={handleCancelGenerate}>Cancel export</button>
-              </div>
-            ) : (
-              <button className="btn-generate" onClick={handleGenerate} disabled={images.length === 0}>
-                <IconFile size={18} /> Generate PDF
-              </button>
-            )}
+            <ExportProgress loading={loading} progress={genProgress} disabled={images.length === 0}
+              onGenerate={handleGenerate} onCancel={handleCancelGenerate} />
             <div className="export-row">
               <button className="btn-secondary btn-save" onClick={handleSaveProject} disabled={images.length === 0}>
                 <IconList size={15} /> Save list

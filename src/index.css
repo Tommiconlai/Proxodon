@@ -283,9 +283,12 @@ h3 {
   color: var(--text-secondary); /* era --text-muted: <4.5:1 a 11px, falliva AA */
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  /* Resta ancorata in cima scrollando: non si perde di vista il gruppo corrente.
-     Sfondo a tutta larghezza (annulla il padding 20px del contenitore) per coprire
-     il contenuto che ci scorre sotto. */
+}
+
+/* Solo sidebar desktop: header di gruppo sticky. I margini negativi compensano il
+   padding 20px di .sidebar-scroll — NON applicare altrove (la .mobile-page-body ha
+   padding 14px: sborderebbe di 6px per lato). */
+.sidebar-scroll .sidebar-section h2 {
   position: sticky;
   top: 0;
   z-index: 1;

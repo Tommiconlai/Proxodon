@@ -96,7 +96,24 @@ Tokens at the top of `src/index.css`. Also recorded in this project's Claude mem
 
 ## Done recently
 
-- **Fifth critique → full 4-batch sweep (most recent):** a fresh multi-agent `/impeccable critique` (6 isolated
+- **Post-sweep code review (most recent):** 10-angle multi-agent `/code-review` of the 4-batch range
+  (34 raw candidates → 5 confirmed after refute-by-default verify + gap sweep). Fixed:
+  - **MpcImportModal 0-import read as success** — the "✓ 0 images imported" bug fixed in Scryfall was
+    missed in MPC; now 0 downloads + failures → error box (same logic).
+  - **Desktop add-menu now closes on Esc** (App.jsx effect gained a keydown listener beside click-outside).
+  - **Mobile stacked-Esc** — the MobileLayout inline Esc effect for addOpen/helpOpen now bails when a
+    `page`/`sel` overlay is on top, so one Esc closes only the topmost layer (verified: help stays open
+    when Esc closes the Settings page; second Esc closes help).
+  - **`ExportProgress` component** (`src/components/ExportProgress.jsx`) — the duplicated Generate/progress/
+    Cancel block extracted from App.jsx + MobileLayout.jsx (single source).
+  - **Sticky h2 overflow on mobile** — the sticky `.sidebar-section h2` (-20px margins sized to
+    `.sidebar-scroll`'s 20px padding) leaked 6px per side inside `.mobile-page-body` (14px padding);
+    rule now scoped to `.sidebar-scroll .sidebar-section h2`, mobile headers are plain/static.
+  - Refuted (not bugs, with proof): disabled-loading parity on Generate (branch renders only when !loading);
+    "hooks before early return" claims (that IS the rule); conv double-close on abort (throw skips the outer
+    close); AbortError wrapping; post-unmount double-revoke (spec'd no-op). Deferred by choice: options-object
+    refactor of the 13/16-param export signatures; `:has()` fallback; toast glyph→SVG icon.
+- **Fifth critique → full 4-batch sweep:** a fresh multi-agent `/impeccable critique` (6 isolated
   lenses + adversarial verify of every finding; **41 raw → 29 confirmed, 12 refuted**) scored **30/40** "Good"
   and is the **first persisted snapshot** (`.impeccable/critique/2026-06-25T13-02-03Z__src-app-jsx.md`; earlier
   HANDOFF critiques were never saved to `.impeccable/`, so the score isn't directly comparable). Detector clean

@@ -3,6 +3,7 @@ import { Logo, IconFile, IconDownload, IconList, IconTrash, IconPlus, IconImage,
 import PageSettings from './PageSettings';
 import PagePreview from './PagePreview';
 import CardActionSheet from './CardActionSheet';
+import ExportProgress from './ExportProgress';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 
 // Icona "sliders" per Settings (inline; stesso stile della vecchia tab bar).
@@ -37,13 +38,14 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
   const [page, setPage] = useState(null); // null | 'settings' | 'export'
 
   // Esc chiude i due overlay inline (add-sheet, tooltip ?). Gli altri (CardActionSheet,
-  // MobilePage) hanno il loro useOverlayDismiss.
+  // MobilePage) hanno il loro useOverlayDismiss. Se una pagina/sheet è SOPRA (page/sel),
+  // l'Esc spetta a quella: qui non si chiude nulla, così un solo Esc non chiude due layer.
   useEffect(() => {
-    if (!addOpen && !helpOpen) return undefined;
+    if ((!addOpen && !helpOpen) || page || sel) return undefined;
     const onKey = (e) => { if (e.key === 'Escape') { setAddOpen(false); setHelpOpen(false); } };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [addOpen, helpOpen]);
+  }, [addOpen, helpOpen, page, sel]);
 
   return (
     <div className="mobile">
@@ -135,23 +137,8 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
               <div className="lowres-warn"><span className="lowres-mark" aria-hidden="true">!</span>
                 <span>{actions.lowResCount} card{actions.lowResCount > 1 ? 's' : ''} too low-res for {actions.dpi} DPI — lower the DPI or use higher-res art.</span></div>
             )}
-            {actions.loading ? (
-              <div className="gen-progress">
-                <button className="btn-generate" disabled>
-                  <span className="spinner" />
-                  {actions.genProgress ? `Rendering ${actions.genProgress.done}/${actions.genProgress.total}…` : 'Generating…'}
-                </button>
-                <div className="gen-bar" role="progressbar" aria-label="Export progress"
-                  aria-valuenow={actions.genProgress?.done || 0} aria-valuemin={0} aria-valuemax={actions.genProgress?.total || 0}>
-                  <div className="gen-bar-fill" style={{ transform: `scaleX(${actions.genProgress?.total ? actions.genProgress.done / actions.genProgress.total : 0})` }} />
-                </div>
-                <button type="button" className="btn-secondary gen-cancel" onClick={actions.onCancelGenerate}>Cancel export</button>
-              </div>
-            ) : (
-              <button className="btn-generate" onClick={actions.onGenerate} disabled={actions.count === 0}>
-                <IconFile size={18} /> Generate PDF
-              </button>
-            )}
+            <ExportProgress loading={actions.loading} progress={actions.genProgress} disabled={actions.count === 0}
+              onGenerate={actions.onGenerate} onCancel={actions.onCancelGenerate} />
             <p className="field-hint">Use <b>Save list</b> (bottom bar) to export your Scryfall cards as a reloadable deck list.</p>
             {actions.error && (
               <div className="info-box info-box-error">

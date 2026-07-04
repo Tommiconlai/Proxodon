@@ -37,7 +37,13 @@ export default function MpcImportModal({ open, onClose, onImport }) {
         try {
             const { files, notFound } = await fetchMpcImages(cards, (done, total) => setProgress({ done, total }));
             if (files.length) onImport(files);
-            setResult({ imported: files.length, notFound });
+            // 0 scaricate ma con falliti = fallimento totale: errore, non "✓ 0 imported"
+            // (stessa logica dell'import Scryfall).
+            if (!files.length && notFound.length) {
+                setError(`None of the ${notFound.length} download${notFound.length > 1 ? 's' : ''} succeeded — check your connection, or that the Drive files are still shared.`);
+            } else {
+                setResult({ imported: files.length, notFound });
+            }
         } catch (e) {
             setError(e.message || 'Error during import.');
         } finally {
