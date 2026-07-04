@@ -73,30 +73,51 @@ before restarting.
 | `src/index.css` | All styling + design tokens |
 | `public/` (favicons) | Proxoteca icon set: `favicon.svg/.ico`, `favicon-16/32/48/192/512.png`, `apple-touch-icon.png`, `site.webmanifest`. Linked in `index.html` with root-absolute paths → Vite rewrites to `./` via `base:'./'` (Pages-safe); manifest icon `src`s are relative. **`favicon.svg` is the gold-circle + white-burst mark** (matches the header). ⚠️ The **raster PNG/ico/apple-touch are still the old dark-`#16181D`-square** version — no local rasterizer (sharp won't install); re-export from the design tool to match. |
 
-## Design system
+## Design system — "Proxoteca Cyberpunk" (since 2026-07-04)
 
-Tokens at the top of `src/index.css`. Also recorded in this project's Claude memory
-(`design-identity`, `user-design-preferences`).
+Tokens at the top of `src/index.css`. Implemented from the user's claude.ai/design spec
+(`Proxoteca Cyberpunk.dc.html`, project 16e043bc-…, fetched via DesignSync; decoded copy
+was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't restore gold
+`#d4923f`, Bricolage/Hanken, or the green add-affordance. Memory `design-identity` updated.
 
-- **Dark OLED.** `--bg-base #0d0f14`.
-- **Accent: warm amber-gold** `--accent #d4923f` / `--accent-light #e6a85a`. On-gold text
-  is dark `#1f1606` for contrast. **Do NOT revert to the old indigo `#6c63ff`, and never
-  put white text on the gold button** (fails contrast — gold is light).
-- **Fonts:** Bricolage Grotesque (`h1/h2/h3`) + Hanken Grotesk (body), loaded in
-  `index.html`. `tabular-nums` on numeric data. Deliberately not Inter.
-- **Effects:** ambient warm bg glow, film-grain overlay (`body::before`), blue-tinted
-  shadows, "light-table" preview (white canvases get edge-ring + depth shadow on an
-  elevated panel), staggered fade-up entrance, `prefers-reduced-motion` guard.
-- **Warning badge** (`.badge-warning`, "immagini mancanti") = red-coral, kept distinct
-  from the gold accent.
-- **Add-cards button** (`.btn-add`, sidebar) is green `#2ecc71` — a deliberate add/create
-  affordance, intentionally distinct from the gold accent and the red delete/warning color.
-  Don't recolor it to gold. **Save list** (`.btn-save`) also hovers green (save/create); **Delete
-  all** and per-card delete use `--danger` (red).
+- **Palette:** `--bg-base #08070f` under a violet-tinted 155deg gradient (body) + radial
+  glows. Primary **magenta `--accent #ff2d95`** (actions, selection, slider, drag overlay,
+  Add-cards). Secondary **cyan `--cyan #00e5ff`** (focus rings, hovers on inputs/ghosts,
+  checkmarks, CMYK chip, chevrons, Save hover, toast-success). **Violet** `rgba(124,92,255,…)`
+  = borders/glass tint. **Acid `--acid #cfff56`** ONLY as Generate-CTA text. Danger `#ff4d6d`.
+- **Fonts:** Chakra Petch (`--font-display`: h1/h2/h3, CTA/Add buttons — letterspaced
+  uppercase) + Space Grotesk (`--font`) + **JetBrains Mono** (`--font-mono`: selects,
+  number inputs, summary values, cmyk-tag, help `?`).
+- **Signature elements:** `[ SECTION ]` sidebar headers (h2 `::before`/`::after` mono
+  brackets, cyan/magenta with glow); wordmark = solid `#f5f3ff` + **chromatic-aberration
+  text-shadow** (cyan left / magenta right) — deliberately NOT gradient-text, the slop
+  detector is now fully clean; crosshair `Logo` (icons.jsx — cyan/magenta rings + axes);
+  **Generate CTA** = animated gradient border via two-layer background
+  (`padding-box`/`border-box` + `px-sweep`), dark core, acid text — no wrapper element,
+  disabled = flat dark; cyan **pulsing CMYK chip** (`px-pulse`); compression slider =
+  magenta glow thumb + track fill via `--fill` set inline in PageSettings; cyan
+  `anim-check`; Summary = mono cyan values; ghost Save/Delete (cyan / red hovers);
+  **perspective-grid floor** + radial glow behind the sheet (`.preview-stage::before/::after`);
+  magenta→cyan **scrollbar**; magenta `::selection`; **scanlines** overlay (`body::before`,
+  replaced film grain).
+- **Empty state:** white radial platter (`.empty-cta-box`) + dashed magenta frame + cyan
+  TL/BR corner brackets + dark magenta CTA.
+- **Invariant:** the print sheet preview stays **pure white, never tinted** (print accuracy).
+- ⚠️ **Favicons still show the old gold mark** (svg + rasters) — re-export to the crosshair
+  when possible (no local rasterizer).
 
 ## Done recently
 
-- **Post-sweep code review (most recent):** 10-angle multi-agent `/code-review` of the 4-batch range
+- **Cyberpunk re-skin (most recent):** implemented the user's claude.ai/design spec
+  "Proxoteca Cyberpunk.dc.html" — full token + component restyle, zero functional changes
+  (see the "Design system" section above for the complete language). Touched:
+  `index.html` (fonts, theme-color), `src/index.css` (tokens + ~all component styles),
+  `src/components/icons.jsx` (new crosshair `Logo`), `PageSettings.jsx` (slider `--fill`
+  inline var), `PagePreview.jsx` (`.empty-cta-box` wrapper for the framed empty state).
+  Both gradient-text wordmarks replaced by solid+chromatic-shadow → **slop detector now
+  returns `[]`** (was 2 accepted hits). Verified live with screenshots (desktop empty +
+  populated, mobile 375px); contrast sweep 5.8–17:1 all AA+; lint + build green.
+- **Post-sweep code review:** 10-angle multi-agent `/code-review` of the 4-batch range
   (34 raw candidates → 5 confirmed after refute-by-default verify + gap sweep). Fixed:
   - **MpcImportModal 0-import read as success** — the "✓ 0 images imported" bug fixed in Scryfall was
     missed in MPC; now 0 downloads + failures → error box (same logic).
