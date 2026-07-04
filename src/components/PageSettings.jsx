@@ -257,6 +257,7 @@ export default function PageSettings({
                             value={Math.round(quality * 100)}
                             onChange={e => setQuality(parseInt(e.target.value, 10) / 100)}
                             aria-label="JPEG quality (compression)"
+                            style={{ '--fill': `${((Math.round(quality * 100) - 30) / 70) * 100}%` }}
                         />
                         <p className="field-hint">
                             {colorMode === 'cmyk'

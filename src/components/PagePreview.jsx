@@ -348,13 +348,15 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                     />
                     {images.length === 0 && !isDragActive && (
                         <div className="preview-empty-cta">
-                            <p className="empty-cta-title">No cards yet</p>
-                            <p className="empty-cta-sub">Drop card images here, or import from Scryfall / MPCFill.</p>
-                            {onAdd && (
-                                <button type="button" className="btn-add empty-cta-btn" onClick={onAdd}>
-                                    <IconPlus size={18} /> Add cards
-                                </button>
-                            )}
+                            <div className="empty-cta-box">
+                                <p className="empty-cta-title">No cards yet</p>
+                                <p className="empty-cta-sub">Drop card images here, or import from Scryfall / MPCFill.</p>
+                                {onAdd && (
+                                    <button type="button" className="btn-add empty-cta-btn" onClick={onAdd}>
+                                        <IconPlus size={18} /> Add cards
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     )}
                     {/* Foglio degenere: nessuna cella entra (foglio troppo piccolo o carta più
