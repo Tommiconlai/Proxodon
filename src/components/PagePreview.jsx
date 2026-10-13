@@ -634,8 +634,19 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                                         />
                                         <CardFrame />
                                         {lowRes && <>
-                                            {/* Chip HUD "!" (stesso del pannello laterale), solo preview: non va in stampa. */}
-                                            <span className="lowres-badge" aria-hidden="true">!</span>
+                                            {/* Chip HUD "!": all'hover (o focus della carta) si allarga quanto la carta
+                                                e spiega il problema. Solo preview, non va in stampa. Click/destro/pressione
+                                                lunga passano alla carta come se si cliccasse lei. */}
+                                            <span className="lowres-badge" aria-hidden="true"
+                                                onClick={(e) => handleCardClick(e, img.id)}
+                                                onContextMenu={(e) => openMenu(e, img.id)}
+                                                {...pressHandlers(img.id)}>
+                                                <span className="lowres-glyph">!</span>
+                                                <span className="lowres-label">Low res</span>
+                                                <span className="lowres-body"><span>
+                                                    ~{Math.round(img.w / (cardW / 25.4))} DPI here, {dpi} set. May print soft.
+                                                </span></span>
+                                            </span>
                                             <span className="sr-only">Low resolution for {dpi} DPI. May print soft.</span>
                                         </>}
                                     </div>

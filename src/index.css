@@ -458,38 +458,106 @@ h3 {
 }
 
 /* Chip "!" HUD: piastra scura, bordo e glifo --danger in mono, angolo smussato a 45°
-   (rima con squadrette e cornice delle carte), glifo con bagliore come gli altri elementi accesi.
-   Unico disegno per il marker sulla carta (.lowres-badge) e per il pannello (.lowres-mark). */
+   (rima con squadrette e cornice delle carte). Piastra comune al chip sulla carta
+   (.lowres-badge) e al marchio dell'avviso export mobile (.lowres-mark). */
 .lowres-badge,
 .lowres-warn .lowres-mark {
   flex-shrink: 0;
-  width: 17px;
-  height: 17px;
+  color: var(--danger);
+  /* Il clip-path taglia anche il bordo inset sullo smusso: la diagonale la ridisegna il gradiente
+     (linea x+y=5px → 3.5px lungo i 135°, vale a qualunque dimensione). Niente ombra esterna:
+     il clip la taglierebbe. */
+  background:
+    linear-gradient(135deg, transparent 3.5px, rgba(255, 77, 109, 0.75) 3.5px 4.5px, transparent 4.5px),
+    rgba(8, 7, 15, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(255, 77, 109, 0.75);
+  clip-path: polygon(5px 0, 100% 0, 100% 100%, 0 100%, 0 5px);
+}
+
+.lowres-warn .lowres-mark,
+.lowres-glyph {
   display: grid;
   place-items: center;
   font-family: var(--font-mono);
   font-weight: 700;
   font-size: 0.68rem;
   line-height: 1;
-  color: var(--danger);
-  /* Il clip-path taglia anche il bordo inset sullo smusso: la diagonale la ridisegna il gradiente
-     (linea x+y=5px → 3.5px lungo i 135°). Niente ombra esterna: il clip la taglierebbe. */
-  background:
-    linear-gradient(135deg, transparent 3.5px, rgba(255, 77, 109, 0.75) 3.5px 4.5px, transparent 4.5px),
-    rgba(8, 7, 15, 0.86);
-  box-shadow: inset 0 0 0 1px rgba(255, 77, 109, 0.75);
-  clip-path: polygon(5px 0, 100% 0, 100% 100%, 0 100%, 0 5px);
   text-shadow: 0 0 6px rgba(255, 77, 109, 0.8);
 }
 
-.lowres-warn .lowres-mark { margin-top: 1px; }
+.lowres-warn .lowres-mark { width: 17px; height: 17px; margin-top: 1px; }
 
-/* Sulla carta: angolo in alto a sinistra del taglio, sopra l'arte, sotto la cornice. */
+/* Sulla carta: angolo in alto a sinistra del taglio. A riposo è solo il "!" (17×17);
+   all'hover (o con la carta a fuoco da tastiera) si allarga quanto la carta e mostra
+   etichetta + spiegazione. Altezza fluida con grid-template-rows 0fr → 1fr. */
 .lowres-badge {
   position: absolute;
   top: 4px;
   left: 4px;
-  pointer-events: none;
+  width: 17px;
+  display: grid;
+  grid-template-columns: 17px minmax(0, 1fr);
+  grid-template-rows: 17px 0fr;
+  overflow: hidden;
+  cursor: help;
+  transition:
+    width 0.26s cubic-bezier(0.16, 1, 0.3, 1),
+    grid-template-rows 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lowres-label {
+  align-self: center;
+  padding-right: 7px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.lowres-body {
+  grid-column: 1 / -1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.lowres-body > span {
+  display: block;
+  padding: 1px 7px 6px;
+  font-size: 0.66rem;
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+
+/* Testo: sparisce subito alla chiusura, compare dopo che il chip si è allargato. */
+.lowres-label,
+.lowres-body {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.card-surface:focus-visible ~ .lowres-badge {
+  width: calc(100% - 8px);
+  grid-template-rows: 17px 1fr;
+}
+
+.card-surface:focus-visible ~ .lowres-badge :is(.lowres-label, .lowres-body) {
+  opacity: 1;
+  transition-delay: 0.12s;
+}
+
+/* Hover solo dove esiste (su touch resterebbe aperto dopo il tap). */
+@media (hover: hover) {
+  .lowres-badge:hover {
+    width: calc(100% - 8px);
+    grid-template-rows: 17px 1fr;
+  }
+
+  .lowres-badge:hover :is(.lowres-label, .lowres-body) {
+    opacity: 1;
+    transition-delay: 0.12s;
+  }
 }
 
 .lowres-warn b {

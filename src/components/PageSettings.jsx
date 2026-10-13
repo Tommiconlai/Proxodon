@@ -40,7 +40,7 @@ export default function PageSettings({
     cardType, setCardType, cardW, setCardW, cardH, setCardH,
     cropMarks, setCropMarks, cropStyle, setCropStyle,
     sheetUnit, setSheetUnit, sheetW, setSheetW, sheetH, setSheetH, customSheet,
-    lowResCount = 0, quality = 0.85, setQuality,
+    quality = 0.85, setQuality,
     colorMode = 'rgb', setColorMode, renderIntent = 'relative', setRenderIntent,
     iccProfileId = 'fogra39', setIccProfileId, uploadedIcc = null, onIccUpload, onIccClear,
     profileMismatchCount = 0,
@@ -227,17 +227,6 @@ export default function PageSettings({
                             </p>
                         )}
                     </div>
-
-                    {lowResCount > 0 && (
-                        <div className="lowres-warn">
-                            <span className="lowres-mark" aria-hidden="true">!</span>
-                            <span>
-                                {lowResCount} card{lowResCount > 1 ? 's' : ''} {lowResCount > 1 ? 'have' : 'has'} under half the pixels {dpi} DPI needs at
-                                card size. {lowResCount > 1 ? 'They' : 'It'}’ll print soft. Lower the DPI or use higher-res art.
-                                Flagged with a <b>!</b> on the card in the preview.
-                            </span>
-                        </div>
-                    )}
 
                     <SelectField label="Resolution" value={dpi} onChange={e => setDpi(parseInt(e.target.value, 10))}>
                         {DPI_OPTIONS.map(v => (

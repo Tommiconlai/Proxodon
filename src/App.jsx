@@ -402,7 +402,7 @@ export default function App() {
     formatKey, setFormatKey, bleedMm, setBleedMm, bleedStyle, setBleedStyle, dpi, setDpi,
     cardType, setCardType, cardW, setCardW, cardH, setCardH, cropMarks, setCropMarks,
     cropStyle, setCropStyle, sheetUnit, setSheetUnit, sheetW, setSheetW, sheetH, setSheetH,
-    customSheet, lowResCount, quality, setQuality,
+    customSheet, quality, setQuality,
     colorMode, setColorMode, renderIntent, setRenderIntent,
     iccProfileId, setIccProfileId, uploadedIcc, onIccUpload: handleIccUpload, onIccClear: handleIccClear,
     profileMismatchCount,
