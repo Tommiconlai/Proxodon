@@ -108,7 +108,12 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
 
 ## Done recently
 
-- **Removed empty-state CTA (most recent):** user asked to drop the centered "No cards yet"
+- **Sticky sidebar headers flush (most recent):** the sticky `.sidebar-section h2` had `top:0`,
+  but sticky respects the scroller's 24px `padding-top` → it parked 24px down and scrolled
+  content showed in the gap above it (plus through its 0.92-alpha bg). Now `top:-24px`
+  (= `.sidebar-scroll` padding — keep in sync) + opaque `rgb(10,9,18)` bg. Verified live:
+  stuck h2 top == scroller top.
+- **Removed empty-state CTA:** user asked to drop the centered "No cards yet"
   box and keep only the bottom-left **Add cards** button. Deleted the overlay JSX in
   `PagePreview.jsx`, the now-dead `onAdd` prop (App `previewProps`, MobileLayout), the
   `IconPlus` import, and the `.empty-cta-box`/`.empty-cta-btn` CSS. `.preview-empty-cta` +
