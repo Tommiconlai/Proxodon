@@ -69,7 +69,8 @@ export default function DeckSections({ deck, update, touch }) {
     const ids = menuRows.map((r) => r.id);
     const allMain = menuRows.every((r) => r.board === 'main');
     const allCmd = menuRows.every((r) => r.commander);
-    if (deck.format === 'commander' && allMain) {
+    // Al massimo 2 comandanti: "Set" solo su 1-2 righe, "Remove" su qualsiasi gruppo di comandanti.
+    if (deck.format === 'commander' && allMain && (allCmd || ids.length <= 2)) {
       items.push({ key: 'cmd', Icon: IconCrown, label: allCmd ? 'Remove as commander' : 'Set as commander', run: () => update((d) => setCommander(d, ids, !allCmd)) });
     }
     for (const b of ['main', 'side', 'maybe']) {

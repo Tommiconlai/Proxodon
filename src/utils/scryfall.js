@@ -290,7 +290,8 @@ async function fetchViaProxy(targetUrl) {
   let lastErr;
   for (const wrap of CORS_PROXIES) {
     try {
-      const r = await fetch(wrap(targetUrl));
+      // Un proxy che non risponde non deve bloccare l'import: dopo 15 s si passa al successivo.
+      const r = await fetch(wrap(targetUrl), { signal: AbortSignal.timeout(15000) });
       if (r.ok) return r;
       lastErr = new Error(`proxy responded ${r.status}`);
     } catch (e) { lastErr = e; }
