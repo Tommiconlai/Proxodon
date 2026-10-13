@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { getGridInfo, cropMarkSpan, drawCardWithBleed, resolveBleedMode, bleedLabel } from '../utils/pdfGenerator';
-import { IconX, IconCopy, IconFrame, IconPlus } from './icons';
+import { IconX, IconCopy, IconFrame } from './icons';
 
 // ── Carica un'immagine come HTMLImageElement (async) ─────────
 function loadImage(src) {
@@ -193,7 +193,7 @@ export function PageCanvas({ pageImages, formatKey, bleedMm, bleedStyle, dpi, ca
 }
 
 // ── Componente principale ─────────────────────────────────────
-export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop, cropStyle, customSheet, onRemove, onChangeArt, onToggleBleed, onDuplicate, isDragActive, missing, onCardTap, onAdd, onRemoveMany, onBleedMany }) {
+export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop, cropStyle, customSheet, onRemove, onChangeArt, onToggleBleed, onDuplicate, isDragActive, missing, onCardTap, onRemoveMany, onBleedMany }) {
     const [pageOffset, setPageOffset] = useState(0);
     const [box, setBox] = useState({ w: 0, h: 0 });
     const stageRef = useRef(null);
@@ -346,19 +346,6 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                         previewW={pageW}
                         empty={images.length === 0}
                     />
-                    {images.length === 0 && !isDragActive && (
-                        <div className="preview-empty-cta">
-                            <div className="empty-cta-box">
-                                <p className="empty-cta-title">No cards yet</p>
-                                <p className="empty-cta-sub">Drop card images here, or import from Scryfall / MPCFill.</p>
-                                {onAdd && (
-                                    <button type="button" className="btn-add empty-cta-btn" onClick={onAdd}>
-                                        <IconPlus size={18} /> Add cards
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    )}
                     {/* Foglio degenere: nessuna cella entra (foglio troppo piccolo o carta più
                         grande del foglio) → le carte sparirebbero su una pagina bianca senza spiegazione. */}
                     {images.length > 0 && info.perPage === 0 && (

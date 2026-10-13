@@ -1510,8 +1510,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   z-index: 5;
 }
 
-/* Stato vuoto: invito centrato sopra il foglio bianco (insegna l'azione).
-   Dal design: cornice tratteggiata magenta + squadrette ciano TL/BR (pseudo). */
+/* Overlay centrato sopra il foglio bianco (avviso "nessuna carta entra"). */
 .preview-empty-cta {
   position: absolute;
   inset: 0;
@@ -1524,44 +1523,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
   text-align: center;
   pointer-events: none; /* il drop sull'area resta gestito dal root dropzone */
   z-index: 4;
-}
-
-/* Piastra bianca con cornice tratteggiata magenta + squadrette ciano TL/BR */
-.empty-cta-box {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 32px 52px;
-  border: 1.5px dashed rgba(255, 45, 149, 0.55);
-  border-radius: 12px;
-  background: radial-gradient(72% 72% at 50% 50%, rgba(255, 255, 255, 0.97) 52%, rgba(255, 255, 255, 0.75) 100%);
-}
-
-.empty-cta-box::before,
-.empty-cta-box::after {
-  content: '';
-  position: absolute;
-  width: 15px;
-  height: 15px;
-  filter: drop-shadow(0 0 3px rgba(0, 229, 255, 0.7));
-}
-
-.empty-cta-box::before {
-  left: -7px;
-  top: -7px;
-  border-left: 2px solid var(--cyan);
-  border-top: 2px solid var(--cyan);
-  border-top-left-radius: 3px;
-}
-
-.empty-cta-box::after {
-  right: -7px;
-  bottom: -7px;
-  border-right: 2px solid var(--cyan);
-  border-bottom: 2px solid var(--cyan);
-  border-bottom-right-radius: 3px;
 }
 
 .preview-empty-cta .empty-cta-title {
@@ -1577,23 +1538,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
   max-width: 30ch;
   line-height: 1.55;
   color: #565165;
-}
-
-.preview-empty-cta .empty-cta-btn {
-  pointer-events: auto;
-  width: auto; /* il .btn-add della sidebar è full-width: qui no */
-  margin-top: 10px;
-  background: #100e1d;
-  border-color: rgba(255, 45, 149, 0.75);
-  color: #ffb0d5;
-  box-shadow: 0 0 16px rgba(255, 45, 149, 0.25), inset 0 0 10px rgba(255, 45, 149, 0.1);
-}
-
-.preview-empty-cta .empty-cta-btn:hover {
-  border-color: var(--accent);
-  color: #ffc4e0;
-  background: #100e1d;
-  box-shadow: 0 0 26px rgba(255, 45, 149, 0.45), inset 0 0 12px rgba(255, 45, 149, 0.16);
 }
 
 /* Avviso "nessuna carta entra nel foglio": stesso overlay, tono d'allerta. */

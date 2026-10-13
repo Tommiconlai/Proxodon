@@ -70,7 +70,7 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
 
       <main className="mobile-body">
         <div className="mobile-cards">
-          <PagePreview {...previewProps} onCardTap={setSel} onAdd={() => setAddOpen(true)} />
+          <PagePreview {...previewProps} onCardTap={setSel} />
           {/* Barra inferiore (sostituisce la tab bar): Settings · [Elimina · ＋ · Salva] · Export */}
           <div className="cards-toolbar">
             <button className="ct-nav" onClick={() => setPage('settings')} aria-label="Settings">

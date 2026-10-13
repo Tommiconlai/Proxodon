@@ -398,7 +398,7 @@ export default function App() {
   const previewProps = {
     images, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop: cropMarks, cropStyle,
     customSheet, onRemove: handleRemove, onChangeArt: setEditingId, onToggleBleed: handleToggleBleed,
-    onDuplicate: handleDuplicate, isDragActive, missing, onAdd: open,
+    onDuplicate: handleDuplicate, isDragActive, missing,
     onRemoveMany: handleRemoveMany, onBleedMany: handleBleedMany,
   };
 
