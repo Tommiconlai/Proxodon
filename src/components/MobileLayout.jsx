@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Logo, IconFile, IconDownload, IconList, IconTrash, IconPlus, IconImage, IconX } from './icons';
+import { Wordmark, IconFile, IconDownload, IconList, IconTrash, IconPlus, IconImage, IconX } from './icons';
 import PageSettings from './PageSettings';
 import PagePreview from './PagePreview';
 import ExportProgress from './ExportProgress';
@@ -48,8 +48,7 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
   return (
     <div className="mobile">
       <header className="mobile-header">
-        <Logo size={30} className="logo-mark" />
-        <h1>Proxoteca</h1>
+        <h1 className="brand"><Wordmark height={26} className="wordmark" /></h1>
         {/* Pulsante ? con tap-toggle su mobile, riusa lo stesso markup del desktop */}
         <div className={`help${helpOpen ? ' open' : ''}`}>
           <button type="button" className="help-btn" aria-label="How it works" onClick={() => setHelpOpen((o) => !o)}>?</button>

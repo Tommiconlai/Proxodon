@@ -150,34 +150,31 @@ h3 {
   pointer-events: none;
 }
 
-.logo-mark {
-  flex-shrink: 0;
+/* Wordmark "PROXOTECA" (header desktop + mobile): h1 contenitore neutro, il testo è nell'SVG
+   (role=img, aria-label). */
+.brand {
+  display: flex;
+  margin: 0;
+  line-height: 0;
 }
 
-/* Hover sul logo: sopra/sotto si ribaltano in orizzontale, destra/sinistra in verticale,
-   specchiati attorno al centro del marchio (origine 0,0 del viewBox), così i vertici restano
-   fermi e la girandola inverte il verso. Sfasamento orario in entrata, antiorario in uscita
-   (il ritardo di uscita è quello dello stato di base). */
-.logo-mark .arm {
+.wordmark { flex-shrink: 0; overflow: visible; }
+
+/* Hover sul wordmark: i bracci della X si ribaltano, sopra/sotto in orizzontale e
+   destra/sinistra in verticale, specchiati attorno al centro della X (73.25, 18.25 nel
+   viewBox), così i vertici restano fermi e la girandola inverte il verso. Sfasamento orario
+   in entrata, antiorario in uscita (il ritardo di uscita è quello dello stato di base). */
+.wordmark .arm {
   transform-box: view-box;
-  transform-origin: 0 0;
+  transform-origin: 73.25px 18.25px;
   transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1);
   transition-delay: calc((3 - var(--i)) * 45ms);
 }
 
 @media (hover: hover) {
-  .logo-mark:hover .arm { transition-delay: calc(var(--i) * 45ms); }
-  .logo-mark:hover .arm-h { transform: scaleX(-1); }
-  .logo-mark:hover .arm-v { transform: scaleY(-1); }
-}
-
-/* Wordmark: colore pieno + aberrazione cromatica ciano/magenta (niente gradient-text) */
-.app-header h1 {
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: #f5f3ff;
-  text-shadow: -1px 0 rgba(0, 229, 255, 0.38), 1px 0 rgba(255, 45, 149, 0.38), 0 0 16px rgba(124, 92, 255, 0.35);
+  .wordmark:hover .arm { transition-delay: calc(var(--i) * 45ms); }
+  .wordmark:hover .arm-h { transform: scaleX(-1); }
+  .wordmark:hover .arm-v { transform: scaleY(-1); }
 }
 
 /* Pulsante "?" + tooltip "come funziona" (hover/focus, CSS puro) */
@@ -2292,10 +2289,6 @@ body::before {
     rgba(0, 229, 255, 0.55) 84%, transparent);
   pointer-events: none;
 }
-/* Wordmark: stesso stile cromatico del desktop (niente gradient-text) */
-.mobile-header h1 { font-size: 1.05rem; font-weight: 700; letter-spacing: 0.06em;
-  color: #f5f3ff;
-  text-shadow: -1px 0 rgba(0, 229, 255, 0.38), 1px 0 rgba(255, 45, 149, 0.38), 0 0 16px rgba(124, 92, 255, 0.35); }
 /* il ? a destra; position:relative àncora il tooltip (altrimenti fugge al viewport) */
 .mobile-header .help { position: relative; margin-left: auto; }
 .mobile-body { flex: 1; min-height: 0; overflow-y: auto; position: relative; }

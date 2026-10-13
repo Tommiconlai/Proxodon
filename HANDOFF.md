@@ -68,7 +68,7 @@ before restarting.
 | `src/utils/pdfGenerator.js` | Grid math (`getGridInfo(formatKey, bleedMm, cardW=63, cardH=88, customSheet=null)`; `formatKey==='custom'` uses `customSheet` mm dims, else `PAPER_FORMATS`) + `generatePDF(items, formatKey, bleedMm, dpi, bleedStyle, cardW, cardH, cropMarks, cropStyle, customSheet)` (jspdf, dynamically imported) + `drawCardWithBleed` (stretch/mirror/black bleed) + `resolveBleedMode` (per-card mode × global style) + `drawCropMarks(…, style)` (`lines`/`corners`) + `cropMarkSpan` (clamped crop marks) |
 | `src/utils/scryfall.js` | `parseCardList` (text → `{qty,name,set,collector}`; collector keeps **original case**. Scryfall `/cards/collection` is case-sensitive on it, e.g. The List `TMP-294`) + `fetchScryfallImages` (`/cards/collection` batched, printing-pinned via name\|set\|collector keys, downloads PNGs as `File`; DFC → both faces) + `fetchPrints` + `downloadAsFile` + `fetchDeckList` (deck link → text, via `fetchViaProxy` = `CORS_PROXIES` fallback chain: allorigins → codetabs → corsproxy.io) + `scryfallFetch` (retry 429/5xx + network, clear error on Scryfall outage) + `deckLine(qty,name,set,cn)` (builds `qty Name (SET) cn` so deck links pin the **edition chosen in the deck**) + `buildDeckList(items)` (placed cards → deck-list text for "Save list"; front faces only, custom uploads excluded) |
 | `src/utils/scryfall.selfcheck.js` | `node`-runnable assert check for `parseCardList` (no framework). Run: `node src/utils/scryfall.selfcheck.js` |
-| `src/components/icons.jsx` | Custom lucide-style SVG icon set (currentColor), incl. `IconPlus`, `IconDownload`, `IconList` (Save list, distinct from the download/export arrows), `IconCopy`, `IconFrame` + `Logo` (Proxoteca brandmark: four rotated chevrons, `LOGO_ARMS` in logo-source px, viewBox ±208, clockwise from the top arm coloured **magenta `#ff2d95` / cyan `#00e5ff` alternating**; same geometry + colours as `public/favicon.svg`). **Hover animation** (`.logo-mark`, `@media (hover: hover)`): top/bottom arms (`.arm-h`) `scaleX(-1)`, right/left (`.arm-v`) `scaleY(-1)` around the logo centre (`transform-box: view-box; transform-origin: 0 0` = viewBox origin), 0.45s ease-in-out, staggered 45ms clockwise in (`--i`) and counter-clockwise out |
+| `src/components/icons.jsx` | Custom lucide-style SVG icon set (currentColor), incl. `IconPlus`, `IconDownload`, `IconList` (Save list, distinct from the download/export arrows), `IconCopy`, `IconFrame` + `Wordmark` (header lockup from the user's Figma "Portfolio-TG" node 4025:2465: "PRO" + "OTECA" as filled cyan `#00e5ff` letter paths, the **X is the brandmark**: four chevrons, stroke 3 round, top/bottom magenta `#ff2d95`, sides cyan, centre (73.25, 18.25) of the `0 0 180 37` viewBox; `role=img aria-label="Proxoteca"` inside `<h1 className="brand">`; 30px tall desktop, 26px mobile). **Hover animation** (`.wordmark`, `@media (hover: hover)`): top/bottom X arms (`.arm-h`) `scaleX(-1)`, right/left (`.arm-v`) `scaleY(-1)` around the X centre (`transform-box: view-box; transform-origin: 73.25px 18.25px`), 0.45s ease-in-out, staggered 45ms clockwise in (`--i`) and counter-clockwise out. The standalone mark only lives in `public/favicon.svg` now (the `Logo` component was removed) |
 | `src/index.css` | All styling + design tokens |
 | `public/` (favicons) | Proxoteca icon set: `favicon.svg/.ico`, `favicon-16/32/48/192/512.png`, `apple-touch-icon.png`, `site.webmanifest`. Linked in `index.html` with root-absolute paths → Vite rewrites to `./` via `base:'./'` (Pages-safe); manifest icon `src`s are relative. All icons = **magenta/cyan chevron mark on black** (same colour order as `Logo`): `favicon.svg` + 16/32/48/192/512 PNG + `.ico` (16/32/48) use a rounded square (`rx` 112 of 532, mark ~78% wide); `apple-touch-icon.png` is a full square with more padding (iOS rounds it). Rasters made with **Pillow** (8x supersample, lines + round caps/joins drawn from the same coordinates as `LOGO_PATH`, stroke 39). Manifest colours `#08070f`. |
 
@@ -88,9 +88,9 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
   uppercase) + Space Grotesk (`--font`) + **JetBrains Mono** (`--font-mono`: selects,
   number inputs, summary values, cmyk-tag, help `?`).
 - **Signature elements:** `[ SECTION ]` sidebar headers (h2 `::before`/`::after` mono
-  brackets, cyan/magenta with glow); wordmark = solid `#f5f3ff` + **chromatic-aberration
-  text-shadow** (cyan left / magenta right), deliberately NOT gradient-text, the slop
-  detector is now fully clean; `Logo` = four-chevron mark (icons.jsx), arms alternating magenta/cyan clockwise;
+  brackets, cyan/magenta with glow); wordmark = the Figma "PRO[X]OTECA" lockup (`Wordmark`,
+  cyan letter paths, the X = the magenta/cyan chevron mark, flips on hover), replacing the old
+  text wordmark with chromatic text-shadow; never gradient-text;
   **Generate CTA** = animated gradient border via two-layer background
   (`padding-box`/`border-box` + `px-sweep`), dark core, acid text, no wrapper element,
   disabled = flat dark; cyan **pulsing CMYK chip** (`px-pulse`); compression slider =
@@ -105,7 +105,14 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Logo flip on hover (most recent):** hovering the header logo flips the top and bottom
+- **Header wordmark from Figma (most recent):** the header (desktop + mobile) now shows the
+  "PROXOTECA" lockup from the user's Figma frame 4025:2465 (exact letter paths, the X drawn as
+  the four-chevron mark) instead of logo + text title. The hover flip carries over to the X,
+  mirrored around the X centre. `Logo`/`LOGO_ARMS` and the old `.app-header h1` /
+  `.mobile-header h1` text styles were removed; favicons unchanged. Verified live: 146×30 desktop,
+  126×26 mobile next to the "?", accessible name "Proxoteca", flipped arm boxes mirrored about
+  the X centre, `transitionstart` 0→3 in ~42ms steps, ends at ~0.45s.
+- **Logo flip on hover:** hovering the header logo flips the top and bottom
   chevrons horizontally and the right and left ones vertically, each mirrored around the logo
   centre so the vertices stay put and the pinwheel reverses its spin; leaving reverses it.
   Clockwise 45ms stagger in, counter-clockwise out. CSS transitions only (interrupting

@@ -15,7 +15,7 @@ import { useIsMobile } from './hooks/useIsMobile';
 import { generatePDF, getGridInfo, PAPER_FORMATS, nextBleedMode } from './utils/pdfGenerator';
 import { DEFAULT_PROFILE_ID, UPLOAD_ID, getProfileMeta, loadBundledProfileBytes } from './utils/iccProfiles';
 import { buildDeckList } from './utils/scryfall';
-import { IconFile, IconAlert, IconTrash, IconDownload, IconList, IconImage, IconPlus, IconX, Logo } from './components/icons';
+import { IconFile, IconAlert, IconTrash, IconDownload, IconList, IconImage, IconPlus, IconX, Wordmark } from './components/icons';
 
 // Lettura numerica da localStorage con default (null/NaN → default, 0 valido).
 const readNum = (k, d) => {
@@ -443,8 +443,7 @@ export default function App() {
     <div className="app">
       {/* ── Header ── */}
       <header className="app-header">
-        <Logo size={34} className="logo-mark" />
-        <h1>Proxoteca</h1>
+        <h1 className="brand"><Wordmark height={30} className="wordmark" /></h1>
         <div className={`help${helpOpen ? ' open' : ''}`} ref={helpRef}>
           <button type="button" className="help-btn" aria-label="How it works"
             aria-expanded={helpOpen}
