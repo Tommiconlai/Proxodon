@@ -71,7 +71,7 @@ before restarting.
 | `src/utils/scryfall.js` | `parseCardList` (text → `{qty,name,set,collector}`; collector keeps **original case**. Scryfall `/cards/collection` is case-sensitive on it, e.g. The List `TMP-294`) + `fetchScryfallImages` (`/cards/collection` batched, printing-pinned via name\|set\|collector keys, downloads PNGs as `File`; DFC → both faces) + `fetchPrints` + `downloadAsFile` + `fetchDeckList` (deck link → text, via `fetchViaProxy` = `CORS_PROXIES` fallback chain: allorigins → codetabs → corsproxy.io) + `scryfallFetch` (retry 429/5xx + network, clear error on Scryfall outage) + `deckLine(qty,name,set,cn)` (builds `qty Name (SET) cn` so deck links pin the **edition chosen in the deck**) + `buildDeckList(items)` (placed cards → deck-list text for "Save list"; front faces only, custom uploads excluded) |
 | `src/utils/upscale.js` | **AI upscale 2×** in the browser. `upscaleFile(file, onProgress)` lazy-imports `upscaler` + `@upscalerjs/esrgan-medium/2x` (one `Upscaler` instance, WebGL), tiles 128/pad 8 with `awaitNextFrame`, then re-applies the original alpha scaled 2× (`destination-in`) so Scryfall's transparent rounded corners don't turn black; returns `{ file: PNG same base name, width }`. `canUpscale(item, dpi, cardW)` = RGB (not `colorKind:'cmyk'`) and rounded effective DPI < chosen DPI. Measured on an RTX 4070: ~7 s per Scryfall PNG, first run ~16 s (shader compile + weights). Used by App `handleUpscale` (dedupes shared `File`s across duplicates, updates `file`/`preview`/`w`, persistent `kind:'progress'` toast with % then success/error) and the card menu item "Upscale 2× (AI)" (single + multi, disabled with a note: running / CMYK file / sharp at N DPI) |
 | `src/utils/scryfall.selfcheck.js` | `node`-runnable assert check for `parseCardList` (no framework). Run: `node src/utils/scryfall.selfcheck.js` |
-| `src/components/icons.jsx` | Custom lucide-style SVG icon set (currentColor), incl. `IconPlus`, `IconDownload`, `IconList` (Save list, distinct from the download/export arrows), `IconCopy`, `IconFrame` + `Wordmark` (header lockup from the user's Figma "Portfolio-TG" node 4025:2465: "PRO" + "OTECA" as filled cyan `#00e5ff` letter paths, the **X is the brandmark**: four chevrons, stroke 3 round, top/bottom magenta `#ff2d95`, sides cyan, centre (73.25, 18.25) of the `0 0 180 37` viewBox; `role=img aria-label="Proxoteca"` inside `<h1 className="brand">`; 30px tall desktop, 26px mobile). **Hover animation** (`.wordmark`, `@media (hover: hover)`): top/bottom X arms (`.arm-h`) `scaleX(-1)`, right/left (`.arm-v`) `scaleY(-1)` around the X centre (`transform-box: view-box; transform-origin: 73.25px 18.25px`), 0.45s ease-in-out, staggered 45ms clockwise in (`--i`) and counter-clockwise out. The standalone mark only lives in `public/favicon.svg` now (the `Logo` component was removed) |
+| `src/components/icons.jsx` | Custom lucide-style SVG icon set (currentColor), incl. `IconPlus`, `IconDownload`, `IconList` (Save list, distinct from the download/export arrows), `IconCopy`, `IconFrame` + `Wordmark` (header lockup from the user's Figma "Portfolio-TG" node 4025:2465, group 4034:2496: "PRO" + "OTECA" as filled cyan `#00e5ff` letter paths, the **X is the brandmark in 3 parts**: `.x-core` = cyan filled centre (two chevrons fused), `.x-v` = magenta `#ff2d95` V above and below (stroke 3 round); viewBox `0 0 143 30.5`, X centre (56.5, 15.25); `role=img aria-label="Proxoteca"` inside `<h1 className="brand">`; 30px tall desktop, 26px mobile). **Hover animation** (`.wordmark`, `@media (hover: hover)`): every `.x-part` flips `scaleX(-1)` around the X centre (`transform-box: view-box; transform-origin: 56.5px 15.25px`), 0.4s ease-in-out, **centre first, then the top/bottom V** (+0.3s); reversed on leave (V first). The standalone mark only lives in `public/favicon.svg` now (the `Logo` component was removed) |
 | `src/index.css` | All styling + design tokens |
 | `public/` (favicons) | Proxoteca icon set: `favicon.svg/.ico`, `favicon-16/32/48/192/512.png`, `apple-touch-icon.png`, `site.webmanifest`. Linked in `index.html` with root-absolute paths → Vite rewrites to `./` via `base:'./'` (Pages-safe); manifest icon `src`s are relative. All icons = **magenta/cyan chevron mark on black** (same colour order as `Logo`): `favicon.svg` + 16/32/48/192/512 PNG + `.ico` (16/32/48) use a rounded square (`rx` 112 of 532, mark ~78% wide); `apple-touch-icon.png` is a full square with more padding (iOS rounds it). Rasters made with **Pillow** (8x supersample, lines + round caps/joins drawn from the same coordinates as `LOGO_PATH`, stroke 39). Manifest colours `#08070f`. |
 
@@ -92,7 +92,7 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
   number inputs, summary values, help `?`).
 - **Signature elements:** `[ SECTION ]` sidebar headers (h2 `::before`/`::after` mono
   brackets, cyan/magenta with glow); wordmark = the Figma "PRO[X]OTECA" lockup (`Wordmark`,
-  cyan letter paths, the X = the magenta/cyan chevron mark, flips on hover), replacing the old
+  cyan letter paths, the X = cyan centre + magenta V above/below, flips on hover), replacing the old
   text wordmark with chromatic text-shadow; never gradient-text;
   **Generate CTA** = animated gradient border via two-layer background
   (`padding-box`/`border-box` + `px-sweep`), dark core, acid text, no wrapper element,
@@ -108,7 +108,13 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Pager arrows = logo chevrons, numbers = target pages (most recent):** user request.
+- **3-part logo X (most recent):** user request, Figma node 4025:2465 redrawn. The X is now a
+  cyan filled centre + magenta V above and below (was four chevrons), letters re-exported at the
+  new `0 0 143 30.5` viewBox. Hover = horizontal flip around the X centre, centre first then the
+  two V (+0.3s), reversed on leave. Favicons and the pager `IconChevron` still use the old
+  four-chevron geometry. Verified live: part bboxes match the Figma SVG (core centred at
+  56.5, 15.25), transform sampling shows the centre done at ~0.4s and the V at ~0.7s, lint + build.
+- **Pager arrows = logo chevrons, numbers = target pages:** user request.
   `IconChevron` (single + double) redrawn as the brandmark chevron (one arm twice the other,
   like the selected-card corners); the "next/last" side rotates it 180° so it is the logo's other
   side arm. The pager numbers now show where each button goes: previous page on the left, next

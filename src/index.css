@@ -156,21 +156,20 @@ h3 {
 
 .wordmark { flex-shrink: 0; overflow: visible; }
 
-/* Hover sul wordmark: i bracci della X si ribaltano, sopra/sotto in orizzontale e
-   destra/sinistra in verticale, specchiati attorno al centro della X (73.25, 18.25 nel
-   viewBox), così i vertici restano fermi e la girandola inverte il verso. Sfasamento orario
-   in entrata, antiorario in uscita (il ritardo di uscita è quello dello stato di base). */
-.wordmark .arm {
+/* Hover sul wordmark: la X si ribalta in orizzontale attorno al proprio centro (56.5, 15.25
+   nel viewBox), prima la parte centrale e poi le V sopra/sotto. In uscita l'ordine si inverte
+   (il ritardo di uscita è quello dello stato di base). */
+.wordmark .x-part {
   transform-box: view-box;
-  transform-origin: 73.25px 18.25px;
-  transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1);
-  transition-delay: calc((3 - var(--i)) * 45ms);
+  transform-origin: 56.5px 15.25px;
+  transition: transform 0.4s cubic-bezier(0.65, 0, 0.35, 1);
 }
+.wordmark .x-core { transition-delay: 0.3s; }
 
 @media (hover: hover) {
-  .wordmark:hover .arm { transition-delay: calc(var(--i) * 45ms); }
-  .wordmark:hover .arm-h { transform: scaleX(-1); }
-  .wordmark:hover .arm-v { transform: scaleY(-1); }
+  .wordmark:hover .x-part { transform: scaleX(-1); }
+  .wordmark:hover .x-core { transition-delay: 0s; }
+  .wordmark:hover .x-v { transition-delay: 0.3s; }
 }
 
 /* Pulsante "?" + tooltip "come funziona" (hover/focus, CSS puro) */
