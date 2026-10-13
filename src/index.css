@@ -1281,6 +1281,21 @@ input[type="range"]::-webkit-slider-thumb:hover {
   font-size: 0.78rem;
 }
 
+/* Ricerca nelle stampe del box "Cambia art" (stile input di import) + contatore. */
+.art-search-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.art-search-count {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Griglia stampe del box "Cambia art" */
 .art-grid {
   display: grid;

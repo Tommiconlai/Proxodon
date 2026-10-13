@@ -127,7 +127,7 @@ export async function fetchPrints(name) {
     .map((c) => {
       const face = c.card_faces?.find((f) => f.name?.toLowerCase() === target);
       const u = face?.image_uris || c.image_uris || c.card_faces?.[0]?.image_uris || {};
-      return { id: c.id, set: (c.set || '').toUpperCase(), collector: c.collector_number || '', setName: c.set_name || '', thumb: u.small || u.normal, png: u.png || u.large, fullArt: !!c.full_art, borderless: c.border_color === 'borderless' };
+      return { id: c.id, set: (c.set || '').toUpperCase(), collector: c.collector_number || '', setName: c.set_name || '', artist: c.artist || '', year: (c.released_at || '').slice(0, 4), thumb: u.small || u.normal, png: u.png || u.large, fullArt: !!c.full_art, borderless: c.border_color === 'borderless' };
     })
     .filter((p) => p.thumb && p.png);
 }
