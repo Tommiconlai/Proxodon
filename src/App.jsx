@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react';
 import './index.css';
 import { useDropzone } from 'react-dropzone';
 import PageSettings from './components/PageSettings';
@@ -15,8 +15,13 @@ import MobileLayout from './components/MobileLayout';
 import { useIsMobile } from './hooks/useIsMobile';
 import { generatePDF, getGridInfo, PAPER_FORMATS, nextBleedMode } from './utils/pdfGenerator';
 import { DEFAULT_PROFILE_ID, UPLOAD_ID, getProfileMeta, loadBundledProfileBytes } from './utils/iccProfiles';
-import { buildDeckList } from './utils/scryfall';
+import { buildDeckList, fetchScryfallImages } from './utils/scryfall';
 import { IconFile, IconAlert, IconTrash, IconDownload, IconList, IconImage, IconPlus, IconX, Wordmark } from './components/icons';
+import NavTabs from './components/NavTabs';
+import { useHashRoute, navigate } from './hooks/useHashRoute';
+
+// Area mazzi caricata solo quando serve (porta con sé Firebase): la stampa resta leggera.
+const DecksView = lazy(() => import('./decks/DecksView'));
 
 // Lettura numerica da localStorage con default (null/NaN → default, 0 valido).
 const readNum = (k, d) => {
@@ -429,6 +434,34 @@ export default function App() {
     : 0;
 
   const isMobile = useIsMobile();
+  const route = useHashRoute();
+  const inDecks = route.startsWith('/decks');
+  // Feedback dai mazzi (stabile: i listener Firestore lo hanno tra le dipendenze).
+  const notify = useCallback((msg, kind = 'success') => setToast({ kind, msg }), []);
+
+  // "Print deck": scarica le immagini, poi SOSTITUISCE la coda di stampa (la conferma la chiede
+  // l'editor) e apre la stampa. La coda vecchia resta intatta se il download fallisce.
+  const handlePrintDeck = async (entries) => {
+    setToast({ kind: 'progress', msg: 'Downloading card images…' });
+    try {
+      const { files, notFound } = await fetchScryfallImages(entries,
+        (done, total) => setToast({ kind: 'progress', msg: `Downloading card images ${done}/${total}` }));
+      setImages((prev) => { prev.forEach((i) => URL.revokeObjectURL(i.preview)); return []; });
+      addItems(files);
+      navigate('/print');
+      setToast(notFound.length
+        ? { kind: 'error', msg: `${files.length} images ready. Not found: ${notFound.slice(0, 5).join(', ')}${notFound.length > 5 ? ` and ${notFound.length - 5} more` : ''}` }
+        : { kind: 'success', msg: `${files.length} images ready to print` });
+    } catch (e) {
+      setToast({ kind: 'error', msg: e.message || 'Could not download the card images.' });
+    }
+  };
+
+  const decksNode = (
+    <Suspense fallback={<div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>}>
+      <DecksView route={route} notify={notify} printQueueCount={images.length} onPrintDeck={handlePrintDeck} />
+    </Suspense>
+  );
 
   // Bundle props condivisi: sia il ramo desktop sia MobileLayout (Tasks 2–4) li consumano.
   const settingsProps = {
@@ -460,6 +493,8 @@ export default function App() {
           // onFiles: il tasto Upload mobile è un <label><input type=file> nativo (gesto
           // reale → apre il picker su mobile, dove open() di react-dropzone è inaffidabile).
           addMenu={{ onFiles: handleImagesAdded, onImport: () => setImportOpen(true), onImportMpc: () => setMpcOpen(true) }}
+          tabs={<NavTabs decks={inDecks} />}
+          altBody={inDecks ? decksNode : null}
         />
         <ScryfallImportModal open={importOpen} onClose={() => setImportOpen(false)} onImport={addItems} />
         <MpcImportModal open={mpcOpen} onClose={() => setMpcOpen(false)} onImport={addItems} />
@@ -477,84 +512,89 @@ export default function App() {
       {/* ── Header ── */}
       <header className="app-header">
         <h1 className="brand"><Wordmark height={30} className="wordmark" /></h1>
-        <div className={`help${helpOpen ? ' open' : ''}`} ref={helpRef}>
-          <button type="button" className="help-btn" aria-label="How it works"
-            aria-expanded={helpOpen}
-            onClick={() => setHelpOpen((o) => !o)}>?</button>
-          <div className="help-tooltip" role="tooltip">
-            <strong>How it works</strong>
-            <ol>
-              <li><b>Add cards</b>. Upload images, or import from Scryfall (paste a card list or a deck link).</li>
-              <li><b>Set up</b>. Sheet &amp; card size, bleed and crop marks in the sidebar.</li>
-              <li><b>Tweak</b>. Select as many cards as you like, then use the menu: change art, duplicate, bleed, remove. With several cards selected the menu acts on all of them.</li>
-              <li><b>Export</b>. <b>Generate PDF</b> (print-ready). <b>Save list</b> exports your Scryfall cards as a reloadable deck list.</li>
-            </ol>
-            <p className="help-controls"><b>Click</b> select or deselect · <b>Right-click</b> options · <b>Drag</b> swap</p>
+        <NavTabs decks={inDecks} />
+        {!inDecks && (
+          <div className={`help${helpOpen ? ' open' : ''}`} ref={helpRef}>
+            <button type="button" className="help-btn" aria-label="How it works"
+              aria-expanded={helpOpen}
+              onClick={() => setHelpOpen((o) => !o)}>?</button>
+            <div className="help-tooltip" role="tooltip">
+              <strong>How it works</strong>
+              <ol>
+                <li><b>Add cards</b>. Upload images, or import from Scryfall (paste a card list or a deck link).</li>
+                <li><b>Set up</b>. Sheet &amp; card size, bleed and crop marks in the sidebar.</li>
+                <li><b>Tweak</b>. Select as many cards as you like, then use the menu: change art, duplicate, bleed, remove. With several cards selected the menu acts on all of them.</li>
+                <li><b>Export</b>. <b>Generate PDF</b> (print-ready). <b>Save list</b> exports your Scryfall cards as a reloadable deck list.</li>
+              </ol>
+              <p className="help-controls"><b>Click</b> select or deselect · <b>Right-click</b> options · <b>Drag</b> swap</p>
+            </div>
           </div>
-        </div>
+        )}
       </header>
 
       {/* ── Body ── */}
-      <div className="app-body">
+      {inDecks ? decksNode : (
+        <div className="app-body">
 
-        {/* Sidebar */}
-        <aside className="sidebar">
-          <div className="sidebar-scroll">
-          <PageSettings {...settingsProps} />
-          </div>
-          <div className="sidebar-section sidebar-export">
-            <div className="add-menu-wrap" ref={addMenuRef}>
-              {addMenuOpen && (
-                <div className="add-menu" role="menu">
-                  <button type="button" role="menuitem" onClick={() => { setAddMenuOpen(false); open(); }}>
-                    <IconImage size={15} /> Upload files
-                  </button>
-                  <button type="button" role="menuitem" onClick={() => { setAddMenuOpen(false); setImportOpen(true); }}>
-                    <IconDownload size={15} /> Import from Scryfall
-                  </button>
-                  <button type="button" role="menuitem" onClick={() => { setAddMenuOpen(false); setMpcOpen(true); }}>
-                    <IconFile size={15} /> Import from MPCFill
+          {/* Sidebar */}
+          <aside className="sidebar">
+            <div className="sidebar-scroll">
+            <PageSettings {...settingsProps} />
+            </div>
+            <div className="sidebar-section sidebar-export">
+              <div className="add-menu-wrap" ref={addMenuRef}>
+                {addMenuOpen && (
+                  <div className="add-menu" role="menu">
+                    <button type="button" role="menuitem" onClick={() => { setAddMenuOpen(false); open(); }}>
+                      <IconImage size={15} /> Upload files
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => { setAddMenuOpen(false); setImportOpen(true); }}>
+                      <IconDownload size={15} /> Import from Scryfall
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => { setAddMenuOpen(false); setMpcOpen(true); }}>
+                      <IconFile size={15} /> Import from MPCFill
+                    </button>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className={`btn-add${addMenuOpen ? ' open' : ''}`}
+                  onClick={() => setAddMenuOpen((o) => !o)}
+                  aria-haspopup="menu"
+                  aria-expanded={addMenuOpen}
+                >
+                  <IconPlus size={18} /> Add cards
+                </button>
+              </div>
+              <ExportProgress loading={loading} progress={genProgress} disabled={images.length === 0}
+                onGenerate={handleGenerate} onCancel={handleCancelGenerate} />
+              <div className="export-row">
+                <button className="btn-secondary btn-save" onClick={handleSaveProject} disabled={images.length === 0}>
+                  <IconList size={15} /> Save list
+                </button>
+                <button className="btn-secondary" onClick={handleClearAll} disabled={images.length === 0}>
+                  <IconTrash size={15} /> Delete all
+                </button>
+              </div>
+              {error && (
+                <div className="info-box info-box-error">
+                  <IconAlert size={15} style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span>{error}</span>
+                  <button type="button" className="info-box-dismiss" onClick={() => setError(null)} aria-label="Dismiss error">
+                    <IconX size={14} />
                   </button>
                 </div>
               )}
-              <button
-                type="button"
-                className={`btn-add${addMenuOpen ? ' open' : ''}`}
-                onClick={() => setAddMenuOpen((o) => !o)}
-                aria-haspopup="menu"
-                aria-expanded={addMenuOpen}
-              >
-                <IconPlus size={18} /> Add cards
-              </button>
             </div>
-            <ExportProgress loading={loading} progress={genProgress} disabled={images.length === 0}
-              onGenerate={handleGenerate} onCancel={handleCancelGenerate} />
-            <div className="export-row">
-              <button className="btn-secondary btn-save" onClick={handleSaveProject} disabled={images.length === 0}>
-                <IconList size={15} /> Save list
-              </button>
-              <button className="btn-secondary" onClick={handleClearAll} disabled={images.length === 0}>
-                <IconTrash size={15} /> Delete all
-              </button>
-            </div>
-            {error && (
-              <div className="info-box info-box-error">
-                <IconAlert size={15} style={{ flexShrink: 0, marginTop: 2 }} />
-                <span>{error}</span>
-                <button type="button" className="info-box-dismiss" onClick={() => setError(null)} aria-label="Dismiss error">
-                  <IconX size={14} />
-                </button>
-              </div>
-            )}
-          </div>
-        </aside>
+          </aside>
 
-        {/* Main, area drop + preview grande */}
-        <main className="main-content" {...getRootProps()}>
-          <input {...getInputProps()} />
-          <PagePreview {...previewProps} />
-        </main>
-      </div>
+          {/* Main, area drop + preview grande */}
+          <main className="main-content" {...getRootProps()}>
+            <input {...getInputProps()} />
+            <PagePreview {...previewProps} />
+          </main>
+        </div>
+      )}
 
       <ScryfallImportModal
         open={importOpen}

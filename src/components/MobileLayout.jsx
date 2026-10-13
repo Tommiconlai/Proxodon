@@ -30,7 +30,7 @@ export function MobilePage({ title, onClose, children }) {
   );
 }
 
-export default function MobileLayout({ settingsProps, previewProps, actions, addMenu }) {
+export default function MobileLayout({ settingsProps, previewProps, actions, addMenu, tabs, altBody }) {
   const [addOpen, setAddOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [page, setPage] = useState(null); // null | 'settings' | 'export'
@@ -49,66 +49,75 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
     <div className="mobile">
       <header className="mobile-header">
         <h1 className="brand"><Wordmark height={26} className="wordmark" /></h1>
-        {/* Pulsante ? con tap-toggle su mobile, riusa lo stesso markup del desktop */}
-        <div className={`help${helpOpen ? ' open' : ''}`}>
-          <button type="button" className="help-btn" aria-label="How it works" onClick={() => setHelpOpen((o) => !o)}>?</button>
-          <div className="help-tooltip" role="tooltip">
-            <button type="button" className="help-tooltip-close" aria-label="Close help" onClick={() => setHelpOpen(false)}>✕</button>
-            <strong>How it works</strong>
-            <ol>
-              <li><b>Add cards</b>. Tap <b>＋</b> to upload images or import from Scryfall (a card list or a deck link).</li>
-              <li><b>Set up</b>. Tap <b>Settings</b> (bottom-left): sheet &amp; card size, bleed, crop marks, CMYK.</li>
-              <li><b>Tweak</b>. Select as many cards as you like, then use the menu: change art, duplicate, bleed, remove. With several selected the menu acts on all of them.</li>
-              <li><b>Export</b>. Tap <b>Export</b> (bottom-right) for <b>Generate PDF</b>; <b>Save list</b> exports your Scryfall cards as a reloadable deck list.</li>
-            </ol>
-            <p className="help-controls"><b>Tap</b> select or deselect · <b>Long-press</b> options</p>
-          </div>
-        </div>
+        {tabs}
+        {!altBody && (
+          <>
+            {/* Pulsante ? con tap-toggle su mobile, riusa lo stesso markup del desktop */}
+            <div className={`help${helpOpen ? ' open' : ''}`}>
+              <button type="button" className="help-btn" aria-label="How it works" onClick={() => setHelpOpen((o) => !o)}>?</button>
+              <div className="help-tooltip" role="tooltip">
+                <button type="button" className="help-tooltip-close" aria-label="Close help" onClick={() => setHelpOpen(false)}>✕</button>
+                <strong>How it works</strong>
+                <ol>
+                  <li><b>Add cards</b>. Tap <b>＋</b> to upload images or import from Scryfall (a card list or a deck link).</li>
+                  <li><b>Set up</b>. Tap <b>Settings</b> (bottom-left): sheet &amp; card size, bleed, crop marks, CMYK.</li>
+                  <li><b>Tweak</b>. Select as many cards as you like, then use the menu: change art, duplicate, bleed, remove. With several selected the menu acts on all of them.</li>
+                  <li><b>Export</b>. Tap <b>Export</b> (bottom-right) for <b>Generate PDF</b>; <b>Save list</b> exports your Scryfall cards as a reloadable deck list.</li>
+                </ol>
+                <p className="help-controls"><b>Tap</b> select or deselect · <b>Long-press</b> options</p>
+              </div>
+            </div>
+          </>
+        )}
       </header>
 
-      <main className="mobile-body">
-        <div className="mobile-cards">
-          <PagePreview {...previewProps} touch />
-          {/* Barra inferiore (sostituisce la tab bar): Settings · [Elimina · ＋ · Salva] · Export */}
-          <div className="cards-toolbar">
-            <button className="ct-nav" onClick={() => setPage('settings')} aria-label="Settings">
-              <IconSliders /><span>Settings</span>
-            </button>
-            <div className="ct-cluster">
-              <div className="ct-item">
-                <button className="ct-btn ct-danger" onClick={actions.onClear} disabled={actions.count === 0} aria-label="Delete all"><IconTrash size={20} /></button>
-                <span className="ct-lbl">Delete</span>
+      {altBody
+        ? <main className="mobile-body mobile-decks">{altBody}</main>
+        : (
+          <main className="mobile-body">
+            <div className="mobile-cards">
+              <PagePreview {...previewProps} touch />
+              {/* Barra inferiore (sostituisce la tab bar): Settings · [Elimina · ＋ · Salva] · Export */}
+              <div className="cards-toolbar">
+                <button className="ct-nav" onClick={() => setPage('settings')} aria-label="Settings">
+                  <IconSliders /><span>Settings</span>
+                </button>
+                <div className="ct-cluster">
+                  <div className="ct-item">
+                    <button className="ct-btn ct-danger" onClick={actions.onClear} disabled={actions.count === 0} aria-label="Delete all"><IconTrash size={20} /></button>
+                    <span className="ct-lbl">Delete</span>
+                  </div>
+                  <div className="ct-item">
+                    <button className="fab" onClick={() => setAddOpen(true)} aria-label="Add cards"><IconPlus size={26} /></button>
+                    <span className="ct-lbl">Add</span>
+                  </div>
+                  <div className="ct-item">
+                    <button className="ct-btn ct-save" onClick={actions.onSave} disabled={actions.count === 0} aria-label="Save list"><IconList size={20} /></button>
+                    <span className="ct-lbl">Save</span>
+                  </div>
+                </div>
+                <button className="ct-nav" onClick={() => setPage('export')} aria-label="Export PDF">
+                  <IconFile size={22} /><span>Export</span>
+                </button>
               </div>
-              <div className="ct-item">
-                <button className="fab" onClick={() => setAddOpen(true)} aria-label="Add cards"><IconPlus size={26} /></button>
-                <span className="ct-lbl">Add</span>
-              </div>
-              <div className="ct-item">
-                <button className="ct-btn ct-save" onClick={actions.onSave} disabled={actions.count === 0} aria-label="Save list"><IconList size={20} /></button>
-                <span className="ct-lbl">Save</span>
-              </div>
-            </div>
-            <button className="ct-nav" onClick={() => setPage('export')} aria-label="Export PDF">
-              <IconFile size={22} /><span>Export</span>
-            </button>
-          </div>
 
-          {addOpen && (
-            <div className="sheet-overlay" onClick={() => setAddOpen(false)}>
-              <div className="sheet" onClick={(e) => e.stopPropagation()} role="menu">
-                <div className="sheet-handle" />
-                <label role="menuitem" className="sheet-upload">
-                  <input type="file" accept="image/*" multiple hidden
-                    onChange={(e) => { const fs = [...e.target.files]; e.target.value = ''; setAddOpen(false); if (fs.length) addMenu.onFiles(fs); }} />
-                  <IconImage size={18} /> Upload files
-                </label>
-                <button role="menuitem" onClick={() => { setAddOpen(false); addMenu.onImport(); }}><IconDownload size={18} /> Import from Scryfall</button>
-                <button role="menuitem" onClick={() => { setAddOpen(false); addMenu.onImportMpc(); }}><IconFile size={18} /> Import from MPCFill</button>
-              </div>
+              {addOpen && (
+                <div className="sheet-overlay" onClick={() => setAddOpen(false)}>
+                  <div className="sheet" onClick={(e) => e.stopPropagation()} role="menu">
+                    <div className="sheet-handle" />
+                    <label role="menuitem" className="sheet-upload">
+                      <input type="file" accept="image/*" multiple hidden
+                        onChange={(e) => { const fs = [...e.target.files]; e.target.value = ''; setAddOpen(false); if (fs.length) addMenu.onFiles(fs); }} />
+                      <IconImage size={18} /> Upload files
+                    </label>
+                    <button role="menuitem" onClick={() => { setAddOpen(false); addMenu.onImport(); }}><IconDownload size={18} /> Import from Scryfall</button>
+                    <button role="menuitem" onClick={() => { setAddOpen(false); addMenu.onImportMpc(); }}><IconFile size={18} /> Import from MPCFill</button>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </main>
+          </main>
+        )}
 
       {page === 'settings' && (
         <MobilePage title="Settings" onClose={() => setPage(null)}>
