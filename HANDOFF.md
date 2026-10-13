@@ -112,7 +112,8 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
   Scryfall search, editions, stats and a one-click hand-off to print, synced PC/phone via
   Firebase (Auth Google + Firestore offline cache, chosen over Drive and Supabase). Design
   approved in chat; spec in `docs/superpowers/specs/2026-10-13-deck-manager-design.md`,
-  awaiting the user's review, then the implementation plan (3 phases).
+  reviewed (sideboard for 60-card formats and Enter / Alt / Shift add shortcuts added). Phase 1
+  plan: `docs/superpowers/plans/2026-10-13-deck-manager-phase1.md` (12 tasks), awaiting review.
 - **Marquee selection:** user request. Drag on empty preview space draws a cyan
   dashed rectangle; touched cards are added to the selection live, never deselecting the rest.
   Desktop mouse only (touch drag = scroll). Verified live with 12 cards: drag over 4 cards
