@@ -8,18 +8,18 @@ import { IconX, IconCopy, IconFrame, IconImage, IconTrash } from './icons';
 // Nome carta vero (Scryfall) se presente, altrimenti il filename senza estensione.
 const cardName = (img, idx) => img.name || (img.file?.name || `Card ${idx + 1}`).replace(/\.[^.]+$/, '');
 
-// ── Cornice HUD carta (hover / selezione), dal Figma "Portfolio-TG" nodo 4021:2411 ──
-// 4 squadrette agli angoli + 4 segmenti lato disposti in rotazione oraria (in alto a sinistra,
-// a destra in alto, in basso a destra, a sinistra in basso), magenta/ciano alternati come il logo.
-// Segmenti in % del lato (scalano con la carta); squadrette 9×8.5 e tratto 2px fissi come nel design.
-// Colori, tratto e visibilità in CSS (.card-frame).
+// ── Cornice HUD carta (hover / selezione), dal Figma "Portfolio-TG" ──
+// Selezionata (nodo 4021:2397): 4 squadrette 9×8.5 agli angoli + 4 segmenti centrati sui lati
+// (sopra/sotto 13.5→86.5%, lati 15→85%), magenta/ciano alternati come il logo, tratto 2px tondo.
+// Hover (nodo 4021:2411): stessi segmenti accorciati in rotazione oraria; li accorcia il CSS
+// (scale dall'estremo giusto), così al click crescono fino alla forma "selezionata".
 function CardFrame() {
     return (
         <svg className="card-frame" aria-hidden="true" focusable="false">
-            <line className="m" x1="13.5%" y1="0" x2="62%" y2="0" />
-            <line className="c" x1="100%" y1="15%" x2="100%" y2="50%" />
-            <line className="m" x1="38%" y1="100%" x2="86.5%" y2="100%" />
-            <line className="c" x1="0" y1="50%" x2="0" y2="85%" />
+            <line className="m t" x1="13.5%" y1="0" x2="86.5%" y2="0" />
+            <line className="c r" x1="100%" y1="15%" x2="100%" y2="85%" />
+            <line className="m b" x1="13.5%" y1="100%" x2="86.5%" y2="100%" />
+            <line className="c l" x1="0" y1="15%" x2="0" y2="85%" />
             <path className="m" d="M0 8.5V0H9" />
             <svg x="100%" overflow="visible"><path className="c" d="M-9 0H0V8.5" /></svg>
             <svg x="100%" y="100%" overflow="visible"><path className="m" d="M0 -8.5V0H-9" /></svg>
