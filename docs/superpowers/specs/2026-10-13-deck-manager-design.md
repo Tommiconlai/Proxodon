@@ -217,8 +217,23 @@ edition), `CardMenu` and `useOverlayDismiss` (menus), `ConfirmDialog`, `Toast`,
   identity", type, mana value from/to, rarity, set, rules text, legal in the deck format.
   Filters build a Scryfall query; the raw query is editable. Every query adds `game:paper`.
   Results: image grid (first page of `/cards/search?unique=cards`, "Load more" for the
-  next), **+** adds one copy to main, Alt+click adds to maybeboard, click opens the large
-  image. Adding uses the search result data, no extra request.
+  next); click on a tile opens the large image. Adding uses the search result data, no
+  extra request (an autocomplete name is resolved with one `/cards/named?exact=` call).
+- **Adding, keyboard and mouse** (same modifiers on both):
+
+  | Keys (on the highlighted suggestion or a focused result) | Mouse on **+** | Adds |
+  | --- | --- | --- |
+  | Enter | click | 1 copy to main |
+  | Alt+Enter | Alt+click | 1 copy to maybeboard |
+  | Shift+Enter | Shift+click | 4 copies to main |
+  | Alt+Shift+Enter | Alt+Shift+click | 4 copies to maybeboard |
+
+  The first autocomplete suggestion is highlighted by default (arrow keys move it), so
+  typing a name and pressing Enter adds it. With advanced filters or a raw query, Enter in
+  the query box runs the search; the shortcuts then work on the focused result tile
+  (Tab / arrow keys). The "4 copies" variants add 4 in non-singleton formats and for cards
+  exempt from singleton (basic lands, `limit` 0); a card with `limit` N gets min(4, N);
+  any other card in Commander gets 1.
 - **Deck area:** "Group by" (Type / Mana value / Color / Custom) and a "Deck / Stats" switch.
   Commander block on top, sections in responsive columns, Maybeboard at the bottom
   (collapsed). Row: quantity, name, mana cost symbols (Scryfall symbol SVGs), set code. Hover
