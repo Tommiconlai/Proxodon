@@ -1,6 +1,62 @@
-import { useRef, useEffect, useState, useMemo } from 'react';
+import { useRef, useEffect, useLayoutEffect, useState, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { getGridInfo, cropMarkSpan, drawCardWithBleed, resolveBleedMode, bleedLabel } from '../utils/pdfGenerator';
-import { IconX, IconCopy, IconFrame } from './icons';
+import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
+import { IconX, IconCopy, IconFrame, IconImage, IconTrash } from './icons';
+
+// Nome carta vero (Scryfall) se presente, altrimenti il filename senza estensione.
+const cardName = (img, idx) => img.name || (img.file?.name || `Card ${idx + 1}`).replace(/\.[^.]+$/, '');
+
+// ── Menu contestuale carta (click destro / Shift+F10): tutte le azioni per-carta ──
+// In portal sul body: gli antenati animati (transform) romperebbero il position:fixed.
+function CardMenu({ x, y, name, bleed, onClose, onChangeArt, onDuplicate, onToggleBleed, onRemove }) {
+    // Esc chiude + focus restituito alla carta alla chiusura.
+    const ref = useOverlayDismiss(onClose, true, { focusContainer: false });
+    // Tieni il menu dentro il viewport (aperto vicino al bordo destro/basso).
+    useLayoutEffect(() => {
+        const el = ref.current;
+        const r = el.getBoundingClientRect();
+        el.style.left = `${Math.max(8, Math.min(x, window.innerWidth - r.width - 8))}px`;
+        el.style.top = `${Math.max(8, Math.min(y, window.innerHeight - r.height - 8))}px`;
+    }, [x, y, ref]);
+    // Dopo l'effect dell'hook (che memorizza la carta come focus da ripristinare).
+    useEffect(() => { ref.current.querySelector('[role="menuitem"]')?.focus(); }, [ref]);
+    // Click fuori / finestra ridimensionata o persa = chiudi.
+    useEffect(() => {
+        const onDown = (e) => { if (!ref.current?.contains(e.target)) onClose(); };
+        document.addEventListener('pointerdown', onDown, true);
+        window.addEventListener('resize', onClose);
+        window.addEventListener('blur', onClose);
+        return () => {
+            document.removeEventListener('pointerdown', onDown, true);
+            window.removeEventListener('resize', onClose);
+            window.removeEventListener('blur', onClose);
+        };
+    }, [onClose, ref]);
+
+    const onKeyDown = (e) => {
+        const items = [...ref.current.querySelectorAll('[role="menuitem"]')];
+        const step = { ArrowDown: 1, ArrowUp: -1 }[e.key];
+        if (step) {
+            e.preventDefault();
+            items[(items.indexOf(document.activeElement) + step + items.length) % items.length].focus();
+        } else if (e.key === 'Tab') onClose();
+    };
+    const act = (fn, keepOpen) => () => { fn(); if (!keepOpen) onClose(); };
+
+    return createPortal(
+        <div className="card-menu" role="menu" aria-label={name} ref={ref} style={{ left: x, top: y }}
+            onKeyDown={onKeyDown} onContextMenu={(e) => e.preventDefault()}>
+            <div className="card-menu-title" aria-hidden="true">{name}</div>
+            <button type="button" role="menuitem" onClick={act(onChangeArt)}><IconImage size={15} /> Change art</button>
+            <button type="button" role="menuitem" onClick={act(onDuplicate)}><IconCopy size={15} /> Duplicate</button>
+            {/* Resta aperto: ogni click cicla il modo e l'etichetta mostra l'esito. */}
+            <button type="button" role="menuitem" onClick={act(onToggleBleed, true)}><IconFrame size={15} /> Bleed: {bleedLabel(bleed)}</button>
+            <button type="button" role="menuitem" className="danger" onClick={act(onRemove)}><IconTrash size={15} /> Remove</button>
+        </div>,
+        document.body,
+    );
+}
 
 // ── Carica un'immagine come HTMLImageElement (async) ─────────
 function loadImage(src) {
@@ -339,6 +395,19 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
         wrapRef.current?.querySelector(`[data-card-id="${CSS.escape(id)}"] .card-surface`)?.focus();
     }, [images, page]);
 
+    // Menu contestuale (solo desktop): { id, x, y } della carta cliccata col destro.
+    const [menu, setMenu] = useState(null);
+    const closeMenu = useCallback(() => setMenu(null), []);
+    const openMenu = (e, id) => {
+        e.preventDefault();
+        let { clientX: x, clientY: y } = e;
+        // Da tastiera (Shift+F10 / tasto menu) può arrivare 0,0: ancora il menu alla carta.
+        if (!x && !y) { const r = e.currentTarget.getBoundingClientRect(); x = r.left + r.width / 2; y = r.top + r.height / 2; }
+        setMenu({ id, x, y });
+    };
+    const menuIdx = menu ? images.findIndex(i => i.id === menu.id) : -1;
+    const menuItem = images[menuIdx]; // undefined se chiuso o carta sparita (es. undo)
+
     // Scorciatoie: Del = elimina selezione, Esc = deseleziona, Ctrl/Cmd+A = seleziona tutto.
     useEffect(() => {
         if (!selectMode || !fits) return;
@@ -363,7 +432,7 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
 
     return (
         <div className={`preview-root${isDragActive ? ' drag-active' : ''}`}>
-            {/* Skip-link tastiera: la griglia desktop ha 4 stop-tab per carta; questo salta al footer. */}
+            {/* Skip-link tastiera: la griglia desktop ha uno stop-tab per carta; questo salta al footer. */}
             {selectMode && images.length > 0 && (
                 <button
                     type="button"
@@ -417,14 +486,10 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                                 const row = Math.floor(i / info.cols);
                                 const left = (info.offsetX + col * info.cellW + bleedMm) * scale;
                                 const top = (info.offsetY + row * info.cellH + bleedMm) * scale;
-                                // Nome carta vero (Scryfall) se presente, altrimenti il filename senza estensione.
-                                const name = img.name || (img.file?.name || `Card ${page * perPage + i + 1}`).replace(/\.[^.]+$/, '');
+                                const gi = page * perPage + i; // indice globale (= ordine di stampa)
+                                const name = cardName(img, gi);
                                 const lowRes = img.w && img.w < dpi * 0.5 * (cardW / 25.4);
                                 const isSel = selected.has(img.id);
-                                // Abbondanza EFFETTIVA renderizzata (lo stile globale può sovrascrivere il
-                                // modo per-carta): l'etichetta deve dire ciò che esce, non il solo modo carta.
-                                const resolvedBleed = resolveBleedMode(img.bleedMode, bleedStyle);
-                                const gi = page * perPage + i; // indice globale (= ordine di stampa)
                                 const dnd = dndOn ? {
                                     draggable: true,
                                     onDragStart: (e) => startDrag(e, img.id),
@@ -467,46 +532,22 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                                             type="button"
                                             className="card-surface"
                                             onClick={(e) => handleCardClick(e, img.id)}
+                                            onContextMenu={(e) => openMenu(e, img.id)}
                                             onKeyDown={(e) => {
                                                 // Space = seleziona/deseleziona (equivalente da tastiera del
                                                 // ctrl/shift-click); Enter resta "cambia art" (click nativo).
                                                 if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); toggleSel(img.id); }
+                                                // Menu da tastiera (non tutti i browser generano contextmenu da Shift+F10).
+                                                if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) openMenu(e, img.id);
                                                 // Alt+frecce = scambia col vicino (su/giù = la carta della riga accanto).
                                                 const d = e.altKey && dndOn && { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -info.cols, ArrowDown: info.cols }[e.key];
                                                 if (d) { e.preventDefault(); moveTo(img.id, gi + d); }
                                             }}
-                                            title="Change art (Enter). Drag or Alt+arrows to move. Ctrl-click or Space to select"
-                                            aria-label={`${name}. Change art. Alt+arrow keys to move. Ctrl/Shift-click or press Space to select.`}
+                                            title="Click: change art. Right-click: options. Drag: move. Ctrl-click: select"
+                                            aria-label={`${name}. Change art. Shift+F10 for options, Alt+arrow keys to move, Space to select.`}
+                                            aria-haspopup="menu"
                                             aria-pressed={isSel}
                                         />
-                                        <button
-                                            type="button"
-                                            className="preview-card-dup"
-                                            onClick={(e) => { e.stopPropagation(); onDuplicate(img.id); }}
-                                            title="Duplicate"
-                                            aria-label={`Duplicate ${name}`}
-                                        >
-                                            <IconCopy size={11} />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`preview-card-bleed${resolvedBleed !== 'none' ? ' on' : ''}`}
-                                            onClick={(e) => { e.stopPropagation(); onToggleBleed(img.id); }}
-                                            title={`Bleed: ${bleedLabel(resolvedBleed)} (click to change)`}
-                                            aria-label={`Bleed ${name}: ${bleedLabel(resolvedBleed)}`}
-                                            aria-pressed={resolvedBleed !== 'none'}
-                                        >
-                                            <IconFrame size={11} />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="preview-card-delete"
-                                            onClick={(e) => { e.stopPropagation(); onRemove(img.id); }}
-                                            title="Remove"
-                                            aria-label={`Remove ${name}`}
-                                        >
-                                            <IconX size={12} />
-                                        </button>
                                         {lowRes && <span className="sr-only">Low resolution for {dpi} DPI. May print soft.</span>}
                                         </>)}
                                     </div>
@@ -516,6 +557,21 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                     )}
                 </div>
             </div>
+
+            {menuItem && (
+                <CardMenu
+                    x={menu.x}
+                    y={menu.y}
+                    name={cardName(menuItem, menuIdx)}
+                    // Abbondanza EFFETTIVA (lo stile globale può sovrascrivere il modo per-carta).
+                    bleed={resolveBleedMode(menuItem.bleedMode, bleedStyle)}
+                    onClose={closeMenu}
+                    onChangeArt={() => onChangeArt(menuItem.id)}
+                    onDuplicate={() => onDuplicate(menuItem.id)}
+                    onToggleBleed={() => onToggleBleed(menuItem.id)}
+                    onRemove={() => onRemove(menuItem.id)}
+                />
+            )}
 
             <div className="preview-footer" ref={footerRef} tabIndex={-1}>
                 {/* La bulk-bar è una RIGA a sé: il pager resta sempre visibile (niente trappola
@@ -556,7 +612,7 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                 )}
                 {/* Suggerimento discreto: rende scopribile la multi-selezione (altrimenti solo hover/aria). */}
                 {fits && selectMode && images.length > 1 && selectedIds.length === 0 && (
-                    <span className="preview-hint">Drag to reorder · Ctrl/⌘ or Shift-click to select multiple</span>
+                    <span className="preview-hint">Right-click a card for options · Drag to swap · Ctrl/⌘ or Shift-click to select</span>
                 )}
             </div>
         </div>

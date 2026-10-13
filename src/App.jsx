@@ -452,7 +452,7 @@ export default function App() {
             <ol>
               <li><b>Add cards</b>. Upload images, or import from Scryfall (paste a card list or a deck link).</li>
               <li><b>Set up</b>. Sheet &amp; card size, bleed and crop marks in the sidebar.</li>
-              <li><b>Tweak</b>. Click a card to change its printing, drag it to reorder; hover a card to duplicate, toggle bleed, or remove it. <b>Ctrl/⌘ or Shift-click</b> cards to select several, then bleed or delete them together.</li>
+              <li><b>Tweak</b>. Click a card to change its printing, drag it onto another to swap them; <b>right-click</b> a card to duplicate, toggle bleed, or remove it. <b>Ctrl/⌘ or Shift-click</b> cards to select several, then bleed or delete them together.</li>
               <li><b>Export</b>. <b>Generate PDF</b> (print-ready). <b>Save list</b> exports your Scryfall cards as a reloadable deck list.</li>
             </ol>
           </div>

@@ -1103,6 +1103,18 @@ input[type="range"]::-webkit-slider-thumb:hover {
   bottom: calc(100% + 10px);
   left: 0;
   right: 0;
+  z-index: 20;
+}
+
+/* Menu contestuale carta (click destro in preview): fixed alle coordinate del click. */
+.card-menu {
+  position: fixed;
+  z-index: 300;
+  min-width: 190px;
+}
+
+.add-menu,
+.card-menu {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -1111,11 +1123,11 @@ input[type="range"]::-webkit-slider-thumb:hover {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  z-index: 20;
   animation: fade-up 0.15s ease both;
 }
 
-.add-menu button {
+.add-menu button,
+.card-menu button {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1133,9 +1145,32 @@ input[type="range"]::-webkit-slider-thumb:hover {
   transition: background var(--transition), color var(--transition);
 }
 
-.add-menu button:hover {
+.add-menu button:hover,
+.card-menu button:hover,
+.card-menu button:focus-visible {
   background: var(--bg-glass-hover);
   color: var(--text-primary);
+}
+
+.card-menu-title {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 6px 10px 6px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: var(--cyan);
+}
+
+.card-menu button.danger { color: var(--danger); }
+.card-menu button.danger:hover,
+.card-menu button.danger:focus-visible {
+  background: rgba(255, 77, 109, 0.12);
+  color: var(--danger);
 }
 
 /* ============================================================
@@ -1550,7 +1585,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   color: var(--text-muted);
 }
 
-/* ── Overlay elimina su ogni carta (hover: bordo rosso + × angolo) ── */
+/* ── Hotspot carta sopra il canvas (click = cambia art, destro = menu azioni) ── */
 .preview-card-layer {
   position: absolute;
   inset: 0;
@@ -1611,76 +1646,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
   outline: 2px solid var(--cyan);
   outline-offset: -1px;
   box-shadow: 0 0 16px rgba(0, 229, 255, 0.55);
-}
-
-.preview-card-delete {
-  position: absolute;
-  top: 1px;
-  right: 1px;
-  width: 16px;
-  height: 16px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 3px;
-  background: transparent;
-  color: var(--danger);
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--transition), background var(--transition), color var(--transition);
-}
-
-.preview-card-hotspot:hover .preview-card-delete,
-.preview-card-delete:focus-visible {
-  opacity: 1;
-}
-
-.preview-card-delete:hover {
-  background: var(--danger);
-  color: #fff;
-}
-
-/* Duplica (alto-sx) + abbondanza on/off (basso-sx). Stessa estetica del delete. */
-.preview-card-dup,
-.preview-card-bleed {
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 3px;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--transition), background var(--transition), color var(--transition);
-}
-
-.preview-card-dup { top: 1px; left: 1px; }
-.preview-card-bleed { bottom: 1px; left: 1px; }
-
-/* Abbondanza attiva: sempre visibile in oro = colpo d'occhio su quali carte hanno il bleed. */
-.preview-card-bleed.on {
-  opacity: 1;
-  color: var(--accent-light);
-}
-
-.preview-card-hotspot:hover .preview-card-dup,
-.preview-card-hotspot:hover .preview-card-bleed,
-.preview-card-dup:focus-visible,
-.preview-card-bleed:focus-visible {
-  opacity: 1;
-}
-
-.preview-card-dup:hover,
-.preview-card-bleed:hover {
-  background: var(--accent);
-  color: #14121f;
 }
 
 /* Solo screen-reader: testo accessibile non visivo (es. carta low-res, riepilogo foglio). */
