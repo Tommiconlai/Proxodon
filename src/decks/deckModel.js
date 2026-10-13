@@ -5,6 +5,8 @@
  * Le funzioni non mutano: ritornano sempre un mazzo nuovo.
  */
 
+import { parseCardList, deckLine } from '../utils/scryfall.js';
+
 export const FORMATS = [
   { id: 'commander', label: 'Commander' },
   { id: 'standard', label: 'Standard' },
@@ -161,4 +163,171 @@ export function copiesToAdd(format, card, four) {
   if (card.limit != null && card.limit > 0) return Math.min(4, card.limit);
   if (format !== 'commander' || isBasicLand(card) || card.limit === 0) return 4;
   return 1;
+}
+
+// ── Viste ────────────────────────────────────────────────────
+
+// Tipo che decide il gruppo: il primo che combacia in quest'ordine (Artifact Creature → Creature,
+// Artifact Land → Land).
+const TYPE_PRIORITY = ['Land', 'Creature', 'Planeswalker', 'Battle', 'Artifact', 'Enchantment', 'Instant', 'Sorcery'];
+const TYPE_ORDER = ['Creature', 'Planeswalker', 'Battle', 'Instant', 'Sorcery', 'Artifact', 'Enchantment', 'Land', 'Other'];
+const TYPE_LABEL = {
+  Creature: 'Creatures', Planeswalker: 'Planeswalkers', Battle: 'Battles', Instant: 'Instants', Sorcery: 'Sorceries',
+  Artifact: 'Artifacts', Enchantment: 'Enchantments', Land: 'Lands', Other: 'Other',
+};
+
+export const primaryType = (type) => TYPE_PRIORITY.find((t) => new RegExp(`\\b${t}\\b`).test(type)) || 'Other';
+
+const byMvName = (a, b) => a.card.mv - b.card.mv || a.card.name.localeCompare(b.card.name);
+
+export const commanderRows = (deck) => deck.cards.filter((r) => r.board === 'main' && r.commander);
+export const boardRows = (deck, board) => deck.cards.filter((r) => r.board === board).sort(byMvName);
+
+// Main board (comandanti esclusi) raggruppato per tipo. ponytail: solo "type" in fase 1;
+// mana value, colore e custom arrivano in fase 2 leggendo deck.groupBy.
+export function groupMain(deck) {
+  const map = new Map();
+  for (const r of deck.cards) {
+    if (r.board !== 'main' || r.commander) continue;
+    const k = primaryType(r.card.type);
+    if (!map.has(k)) map.set(k, []);
+    map.get(k).push(r);
+  }
+  return TYPE_ORDER.filter((k) => map.has(k)).map((k) => {
+    const rows = map.get(k).sort(byMvName);
+    return { key: k, label: TYPE_LABEL[k], rows, count: sum(rows) };
+  });
+}
+
+const WUBRG = ['W', 'U', 'B', 'R', 'G'];
+
+// Identità del mazzo: quella dei comandanti, o (senza comandante) l'unione del main.
+export function deckIdentity(deck) {
+  const cmd = commanderRows(deck);
+  const src = cmd.length ? cmd : deck.cards.filter((r) => r.board === 'main');
+  const set = new Set(src.flatMap((r) => r.card.ci));
+  return WUBRG.filter((c) => set.has(c));
+}
+
+export function deckCover(deck) {
+  const r = commanderRows(deck)[0] || deck.cards.find((x) => x.board === 'main');
+  return r?.card.art || '';
+}
+
+// ── Verso la stampa ──────────────────────────────────────────
+
+const frontName = (name) => name.split(' // ')[0];
+
+// Voci per fetchScryfallImages: set + numero tengono l'edizione scelta. Comandanti per primi,
+// sideboard solo se richiesta, maybeboard mai.
+export function toPrintEntries(deck, { includeSide = false } = {}) {
+  return deck.cards
+    .filter((r) => r.board === 'main' || (includeSide && r.board === 'side'))
+    .sort((a, b) => Number(b.commander) - Number(a.commander))
+    .map((r) => ({ qty: r.qty, name: frontName(r.card.name), set: r.card.set, collector: r.card.cn }));
+}
+
+// ── Testo ────────────────────────────────────────────────────
+
+// Formato MTGA: "Commander" / "Deck" / "Sideboard" come intestazioni (solo quando servono),
+// "qty Nome (SET) num" per riga. La maybeboard resta solo nel backup JSON.
+export function exportText(deck) {
+  const line = (r) => deckLine(r.qty, frontName(r.card.name), r.card.set, r.card.cn);
+  const cmd = commanderRows(deck).map(line);
+  const main = deck.cards.filter((r) => r.board === 'main' && !r.commander).map(line);
+  const side = deck.cards.filter((r) => r.board === 'side').map(line);
+  const out = cmd.length ? ['Commander', ...cmd, '', 'Deck', ...main] : [...main];
+  if (side.length) out.push('', 'Sideboard', ...side);
+  return out.join('\n');
+}
+
+const HEADERS = [
+  [/^commanders?$/, 'commander'],
+  [/^(deck|main|mainboard)$/, 'main'],
+  [/^(sideboard|side)$/, 'side'],
+  [/^(maybeboard|maybe|considering)$/, 'maybe'],
+];
+
+// Lista incollata → voci con zona. Le intestazioni (maiuscole o no, con "//" davanti o ":" in
+// fondo) cambiano la zona di destinazione; le righe vuote no. Senza intestazioni: tutto nel main.
+export function parseDeckText(text) {
+  let target = 'main';
+  const out = [];
+  for (const raw of String(text || '').replace(/\r/g, '').split('\n')) {
+    const h = raw.trim().replace(/^\/\/\s*/, '').replace(/:$/, '').trim().toLowerCase();
+    const hit = HEADERS.find(([re]) => re.test(h));
+    if (hit) { target = hit[1]; continue; }
+    for (const e of parseCardList(raw)) {
+      out.push({ ...e, board: target === 'commander' ? 'main' : target, commander: target === 'commander' });
+    }
+  }
+  return out;
+}
+
+// ── Backup ───────────────────────────────────────────────────
+
+const iso = (t) => {
+  const d = t?.toDate ? t.toDate() : t instanceof Date ? t : t ? new Date(t) : null;
+  return d && !Number.isNaN(d.getTime()) ? d.toISOString() : null;
+};
+
+export function toBackup(decks, now = new Date()) {
+  return {
+    app: 'proxoteca', kind: 'decks', v: 1, exportedAt: now.toISOString(),
+    decks: decks.map((d) => ({
+      v: 1, name: d.name, format: d.format, groupBy: d.groupBy, sections: d.sections, cards: d.cards,
+      createdAt: iso(d.createdAt), updatedAt: iso(d.updatedAt),
+    })),
+  };
+}
+
+const BOARDS = ['main', 'side', 'maybe'];
+const validRow = (r) => r && BOARDS.includes(r.board) && Number.isInteger(r.qty) && r.qty > 0
+  && r.card && typeof r.card.sid === 'string' && typeof r.card.name === 'string';
+
+// Backup → mazzi nuovi (id riga nuovi). Righe rotte scartate, formato ignoto = Casual.
+export function fromBackup(json) {
+  if (!json || json.app !== 'proxoteca' || json.kind !== 'decks' || !Array.isArray(json.decks)) {
+    throw new Error('This file is not a Proxoteca deck backup.');
+  }
+  if (json.v !== 1) throw new Error(`Unsupported backup version (${json.v}).`);
+  return json.decks.map((d) => ({
+    ...newDeck({ name: d?.name, format: FORMATS.some((f) => f.id === d?.format) ? d.format : 'casual' }),
+    groupBy: ['type', 'mv', 'color', 'custom'].includes(d?.groupBy) ? d.groupBy : 'type',
+    sections: Array.isArray(d?.sections) ? d.sections.filter((s) => s && s.id && s.name) : [],
+    cards: (Array.isArray(d?.cards) ? d.cards : []).filter(validRow).slice(0, MAX_ROWS)
+      .map((r) => ({ id: rid(), qty: clampQty(r.qty), board: r.board, commander: r.board === 'main' && !!r.commander, section: r.section ?? null, card: r.card })),
+  }));
+}
+
+export function duplicateDeck(deck) {
+  return {
+    ...newDeck({ name: `${deck.name} (copy)`, format: deck.format }),
+    groupBy: deck.groupBy,
+    sections: deck.sections.map((s) => ({ ...s })),
+    cards: deck.cards.map((r) => ({ ...r, id: rid() })),
+  };
+}
+
+// Confronto profondo che ignora l'ordine delle chiavi (Firestore può riordinarle).
+const same = (a, b) => {
+  if (a === b) return true;
+  if (!a || !b || typeof a !== 'object' || typeof b !== 'object' || Array.isArray(a) !== Array.isArray(b)) return false;
+  const ka = Object.keys(a);
+  return ka.length === Object.keys(b).length && ka.every((k) => same(a[k], b[k]));
+};
+
+// Riallinea gli snapshot ai dati Scryfall freschi (ban, legalità, immagini). Stesso oggetto
+// se non cambia nulla, così l'editor non scrive.
+export function refreshSnapshots(deck, cardsById) {
+  let changed = false;
+  const cards = deck.cards.map((r) => {
+    const c = cardsById.get(r.card.sid);
+    if (!c) return r;
+    const card = snapshotFromCard(c);
+    if (same(card, r.card)) return r;
+    changed = true;
+    return { ...r, card };
+  });
+  return changed ? { deck: { ...deck, cards }, changed } : { deck, changed };
 }

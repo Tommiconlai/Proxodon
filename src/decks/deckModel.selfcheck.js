@@ -4,6 +4,10 @@ import {
   snapshotFromCard, copyLimitFromText, newDeck, addCard, setQty, bumpQty, removeRows, setCommander,
   moveToBoard, boardCounts, countOk, copiesToAdd, MAX_ROWS, MAX_QTY,
 } from './deckModel.js';
+import {
+  groupMain, commanderRows, boardRows, deckIdentity, deckCover, toPrintEntries, exportText,
+  parseDeckText, toBackup, fromBackup, duplicateDeck, refreshSnapshots, primaryType,
+} from './deckModel.js';
 
 const eq = (a, b, msg) => {
   if (JSON.stringify(a) !== JSON.stringify(b)) {
@@ -98,5 +102,70 @@ const dwarves = snap({ id: 'dwf', name: 'Seven Dwarves', text: 'A deck can have 
 eq([copiesToAdd('commander', bolt, false), copiesToAdd('commander', bolt, true), copiesToAdd('modern', bolt, true)], [1, 1, 4], 'Shift: 4 solo fuori dal singleton');
 eq([copiesToAdd('commander', forest, true), copiesToAdd('commander', rats, true), copiesToAdd('commander', dwarves, true), copiesToAdd('casual', bolt, true)],
   [4, 4, 4, 4], 'eccezioni al singleton');
+
+// tipo primario
+eq([primaryType('Artifact Creature'), primaryType('Artifact Land'), primaryType('Legendary Enchantment Creature'), primaryType('Kindred Instant'), primaryType('Conspiracy')],
+  ['Creature', 'Land', 'Creature', 'Instant', 'Other'], 'tipo primario');
+
+// raggruppamento per tipo
+let g = newDeck({ name: 'G', format: 'commander' });
+for (const c of [atraxa, bolt, forest,
+  snap({ id: 'ring', name: 'Sol Ring', mana: '{1}', mv: 1, type: 'Artifact' }),
+  snap({ id: 'gob', name: 'Goblin Guide', mana: '{R}', mv: 1, type: 'Creature' }),
+  snap({ id: 'ac', name: 'Solemn Simulacrum', mana: '{4}', mv: 4, type: 'Artifact Creature' })]) g = addCard(g, c).deck;
+g = setCommander(g, [g.cards[0].id], true);
+g = addCard(g, snap({ id: 'side1', name: 'Pyroblast', type: 'Instant' }), { board: 'side' }).deck;
+eq(groupMain(g).map((x) => [x.label, x.rows.map((r) => r.card.name), x.count]),
+  [['Creatures', ['Goblin Guide', 'Solemn Simulacrum'], 2], ['Instants', ['Lightning Bolt'], 1], ['Artifacts', ['Sol Ring'], 1], ['Lands', ['Forest'], 1]],
+  'gruppi per tipo: ordine, senza comandante e sideboard, ordinati per costo e nome');
+eq(commanderRows(g).map((r) => r.card.name), ["Atraxa, Praetors' Voice"], 'riga comandante');
+eq(boardRows(g, 'side').map((r) => r.card.name), ['Pyroblast'], 'righe sideboard');
+eq([deckIdentity(g), deckCover(g)], [['W', 'U', 'B', 'G'], 'a-atx'], 'identità e copertina dal comandante');
+eq(deckIdentity(addCard(newDeck({ name: 'x', format: 'modern' }), bolt).deck), ['R'], 'identità senza comandante = carte del main');
+
+// verso la stampa
+eq(toPrintEntries(g).map((e) => e.name),
+  ["Atraxa, Praetors' Voice", 'Lightning Bolt', 'Forest', 'Sol Ring', 'Goblin Guide', 'Solemn Simulacrum'], 'stampa: comandante primo, sideboard esclusa');
+eq(toPrintEntries(g, { includeSide: true }).length, 7, 'stampa con sideboard');
+eq(toPrintEntries(addCard(newDeck({ name: 'd' }), delver).deck), [{ qty: 1, name: 'Delver of Secrets', set: 'isd', collector: '51' }],
+  'stampa: nome della faccia anteriore, set e numero (Review Focus 1)');
+
+// testo: export e re-import con le zone
+const txt = exportText(g);
+eq(txt.split('\n'), ['Commander', "1 Atraxa, Praetors' Voice (TST) 1", '', 'Deck', '1 Lightning Bolt (TST) 1', '1 Forest (TST) 1',
+  '1 Sol Ring (TST) 1', '1 Goblin Guide (TST) 1', '1 Solemn Simulacrum (TST) 1', '', 'Sideboard', '1 Pyroblast (TST) 1'], 'export MTGA');
+eq(parseDeckText(txt).map((e) => [e.board, e.commander, e.name]),
+  [['main', true, "Atraxa, Praetors' Voice"], ['main', false, 'Lightning Bolt'], ['main', false, 'Forest'], ['main', false, 'Sol Ring'],
+    ['main', false, 'Goblin Guide'], ['main', false, 'Solemn Simulacrum'], ['side', false, 'Pyroblast']], 'import con intestazioni');
+eq(exportText(addCard(newDeck({ name: 'n', format: 'modern' }), bolt, { qty: 4 }).deck), '4 Lightning Bolt (TST) 1', 'export senza comandante né sideboard');
+// input disordinato (Review Focus 2)
+eq(parseDeckText('4x Lightning Bolt\r\n\r\nSIDEBOARD:\r\n2 Pyroblast\r\n// Maybeboard\r\n1 Sol Ring (C21) 263').map((e) => [e.board, e.qty, e.name, e.set, e.collector]),
+  [['main', 4, 'Lightning Bolt', '', ''], ['side', 2, 'Pyroblast', '', ''], ['maybe', 1, 'Sol Ring', 'c21', '263']], 'import tollerante');
+
+// backup (Review Focus 3)
+g = addCard(g, bolt, { board: 'maybe' }).deck;
+eq(toPrintEntries(g, { includeSide: true }).length, 7, 'maybeboard mai in stampa');
+const bk = toBackup([{ ...g, id: 'x1', createdAt: new Date('2026-01-01T00:00:00Z'), updatedAt: null }], new Date('2026-10-13T00:00:00Z'));
+eq([bk.app, bk.kind, bk.v, bk.exportedAt, bk.decks[0].createdAt, bk.decks[0].updatedAt, 'id' in bk.decks[0]],
+  ['proxoteca', 'decks', 1, '2026-10-13T00:00:00.000Z', '2026-01-01T00:00:00.000Z', null, false], 'backup');
+const restored = fromBackup(JSON.parse(JSON.stringify(bk)));
+eq([restored[0].name, restored[0].cards.length, restored[0].cards[0].id === g.cards[0].id], [g.name, g.cards.length, false], 'ripristino con id riga nuovi');
+let threw = '';
+try { fromBackup({ app: 'other' }); } catch (e) { threw = e.message; }
+eq(threw, 'This file is not a Proxoteca deck backup.', 'file estraneo');
+eq(fromBackup({ app: 'proxoteca', kind: 'decks', v: 1, decks: [{ name: 'R', format: 'nope', cards: [
+  { board: 'main', qty: 2, card: { sid: 's', name: 'N' } }, { board: 'oops', qty: 1, card: { sid: 's', name: 'N' } }, { qty: -1 }] }] })
+  .map((x) => [x.format, x.cards.length]), [['casual', 1]], 'righe non valide scartate, formato ignoto = casual');
+
+// duplicato e riallineamento con Scryfall
+const dup = duplicateDeck(g);
+eq([dup.name, dup.cards.length, dup.cards[0].id === g.cards[0].id], [`${g.name} (copy)`, g.cards.length, false], 'duplica');
+const same = refreshSnapshots(g, new Map());
+eq([same.changed, same.deck === g], [false, true], 'refresh senza dati: invariato');
+const reordered = { ...g, cards: g.cards.map((r) => ({ ...r, card: Object.fromEntries(Object.entries(r.card).reverse()) })) };
+const boltCard = sc({ id: 'bolt', name: 'Lightning Bolt', mana: '{R}', mv: 1, type: 'Instant', colors: ['R'] });
+eq(refreshSnapshots(reordered, new Map([['bolt', boltCard]])).changed, false, 'chiavi in ordine diverso (come da Firestore) = invariato');
+const banned = refreshSnapshots(g, new Map([['bolt', { ...boltCard, legalities: { commander: 'banned' } }]]));
+eq([banned.changed, banned.deck.cards.find((r) => r.card.sid === 'bolt').card.legal.commander], [true, 'banned'], 'refresh aggiorna le legalità');
 
 console.log('deckModel selfcheck: ok');
