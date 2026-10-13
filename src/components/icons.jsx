@@ -196,3 +196,87 @@ export function IconFrame(props) {
     </Svg>
   );
 }
+
+export function IconLogOut(props) {
+  return (
+    <Svg {...props}>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" x2="9" y1="12" y2="12" />
+    </Svg>
+  );
+}
+
+export function IconInfo(props) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4" />
+      <path d="M12 8h.01" />
+    </Svg>
+  );
+}
+
+export function IconPrinter(props) {
+  return (
+    <Svg {...props}>
+      <polyline points="6 9 6 2 18 2 18 9" />
+      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+      <rect width="12" height="8" x="6" y="14" />
+    </Svg>
+  );
+}
+
+export function IconArrowLeft(props) {
+  return (
+    <Svg {...props}>
+      <path d="m12 19-7-7 7-7" />
+      <path d="M19 12H5" />
+    </Svg>
+  );
+}
+
+export function IconSearch(props) {
+  return (
+    <Svg {...props}>
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
+    </Svg>
+  );
+}
+
+export function IconUpload(props) {
+  return (
+    <Svg {...props}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <path d="M17 8l-5-5-5 5" />
+      <path d="M12 3v12" />
+    </Svg>
+  );
+}
+
+export function IconPencil(props) {
+  return (
+    <Svg {...props}>
+      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+    </Svg>
+  );
+}
+
+export function IconMinus(props) {
+  return (
+    <Svg {...props}>
+      <path d="M5 12h14" />
+    </Svg>
+  );
+}
+
+// Comandante: corona.
+export function IconCrown(props) {
+  return (
+    <Svg {...props}>
+      <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" />
+      <path d="M5 20h14" />
+    </Svg>
+  );
+}

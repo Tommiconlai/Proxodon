@@ -17,7 +17,7 @@ function IconSliders({ size = 22 }) {
 
 // Pagina overlay full-screen (Settings / Export): si apre dal basso, header + chiudi.
 // Sostituisce le vecchie tab: Settings/Export ora aprono una "pagina", come l'add-sheet.
-function MobilePage({ title, onClose, children }) {
+export function MobilePage({ title, onClose, children }) {
   const dismissRef = useOverlayDismiss(onClose); // Esc chiude + focus nella pagina
   return (
     <div className="mobile-page" ref={dismissRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title}>
