@@ -20,7 +20,7 @@ const CARD_TYPES = [
 ];
 
 // Input numerico → numero finito (campo svuotato = 0, non NaN: evita "NaN×NaN" e
-// griglia NaN a valle; lo 0 fa scattare l'avviso "foglio troppo piccolo").
+// griglia NaN a valle; lo 0 fa scattare l'avviso "No cards fit this sheet" nel preview).
 const toNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 
 // Label-sopra + select. aria-label associa il nome al control (niente <label for>).
@@ -104,12 +104,6 @@ export default function PageSettings({
                                         {sheetUnit}
                                     </label>
                                 </div>
-                                {customSheet && (customSheet[0] < cardW || customSheet[1] < cardH) && (
-                                    <div className="lowres-warn">
-                                        <span className="lowres-mark" aria-hidden="true">!</span>
-                                        <span>Sheet smaller than the {cardW}×{cardH}&nbsp;mm card. No cards will fit. Increase the sheet, or reduce the card size.</span>
-                                    </div>
-                                )}
                             </>
                         )}
                     </div>
@@ -144,7 +138,6 @@ export default function PageSettings({
                             <option key={v} value={v}>{v.toFixed(1)} mm</option>
                         ))}
                     </SelectField>
-                    <p className="field-hint">Extra art printed past the cut line so no white edges show after trimming.</p>
                 </div>
             </div>
 
@@ -158,12 +151,8 @@ export default function PageSettings({
                             <option value="rgb">RGB (screen)</option>
                             <option value="cmyk">CMYK (print), PDF/X-1a</option>
                         </SelectField>
-                        {colorMode === 'rgb' && (
-                            <p className="field-hint">RGB suits home &amp; online printing; choose CMYK only for a professional print shop.</p>
-                        )}
                         {colorMode === 'cmyk' && (
                             <div className="cmyk-box">
-                                <span className="cmyk-tag">PDF/X-1a:2003 · DeviceCMYK · embedded ICC</span>
                                 {/* Profilo ICC: incluso (default pronto) o caricato dall'utente */}
                                 <SelectField label="ICC profile" value={iccProfileId} onChange={e => setIccProfileId(e.target.value)}>
                                     {BUNDLED_PROFILES.map(p => (
@@ -183,9 +172,7 @@ export default function PageSettings({
                                                 <button type="button" className="icc-clear" onClick={() => onIccClear?.()} aria-label="Remove ICC profile">×</button>
                                             )}
                                         </div>
-                                        {uploadedIcc
-                                            ? <p className="field-hint icc-ok">✓ {uploadedIcc.name}</p>
-                                            : <p className="field-hint">Ask your print shop for their CMYK <b>output</b> profile (an <code>.icc</code> / <code>.icm</code> file). The bundled FOGRA profiles above already cover most EU/US offset shops. DeviceLink or abstract profiles are rejected.</p>}
+                                        {uploadedIcc && <p className="field-hint icc-ok">✓ {uploadedIcc.name}</p>}
                                     </>
                                 )}
                                 {profileMismatchCount > 0 && (
@@ -202,13 +189,6 @@ export default function PageSettings({
                                     <option value="relative">Relative Colorimetric + BPC (default)</option>
                                     <option value="perceptual">Perceptual</option>
                                 </SelectField>
-                                <p className="field-hint">
-                                    How RGB art is mapped into CMYK. <b>Relative Colorimetric + BPC</b> (default) keeps in-gamut
-                                    colours exact and uses Black Point Compensation (BPC) to preserve shadow detail;
-                                    {' '}<b>Perceptual</b> gently compresses all colours to fit. Affects only RGB art (Scryfall / RGB
-                                    uploads). Native CMYK JPEGs pass through untouched. Your print shop may prefer one.
-                                </p>
-                                <p className="field-hint">Note: the on-screen preview is RGB. Very saturated colours print less vivid in CMYK (smaller gamut), that’s normal.</p>
                             </div>
                         )}
                     </div>
@@ -219,13 +199,6 @@ export default function PageSettings({
                                 <option key={o.value} value={o.value}>{o.label}</option>
                             ))}
                         </SelectField>
-                        {bleedStyle === 'full' && (
-                            <p className="field-hint">
-                                Cards are drawn edge-to-edge (no bleed generated) - for art that already
-                                includes bleed. Set <b>Bleed</b> to the baked amount (e.g. 2&nbsp;mm) so crop
-                                marks land on the trim.
-                            </p>
-                        )}
                     </div>
 
                     <SelectField label="Resolution" value={dpi} onChange={e => setDpi(parseInt(e.target.value, 10))}>
@@ -233,7 +206,6 @@ export default function PageSettings({
                             <option key={v} value={v}>{v} DPI</option>
                         ))}
                     </SelectField>
-                    <p className="field-hint">Print sharpness. 300 DPI is the standard. Source art should be about that at card size (a 63×88&nbsp;mm card ≈ 745&nbsp;px wide). Higher DPI only helps if the art is high-res.</p>
 
                     {/* Compressione JPEG dell'export RGB (non si applica al CMYK lossless) */}
                     <div className="field">
@@ -248,11 +220,6 @@ export default function PageSettings({
                             aria-label="JPEG quality (compression)"
                             style={{ '--fill': `${((Math.round(quality * 100) - 30) / 70) * 100}%` }}
                         />
-                        <p className="field-hint">
-                            {colorMode === 'cmyk'
-                                ? 'Applies to RGB output only. CMYK export is lossless (FlateDecode).'
-                                : 'Lower quality = smaller PDF, more JPEG artifacts. 85% is a good default.'}
-                        </p>
                     </div>
 
                     <div className="field">
@@ -266,7 +233,6 @@ export default function PageSettings({
                             </span>
                             <span>Show crop marks</span>
                         </label>
-                        <p className="field-hint">Thin guides showing where to cut each card.</p>
                         {cropMarks && (
                             <div className="select-wrapper" style={{ marginTop: 10 }}>
                                 <select value={cropStyle} onChange={e => setCropStyle(e.target.value)} aria-label="Crop mark style">

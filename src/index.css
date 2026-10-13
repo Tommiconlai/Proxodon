@@ -94,10 +94,6 @@ body {
 }
 
 @keyframes px-sweep { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-@keyframes px-pulse {
-  0%, 100% { box-shadow: 0 0 6px rgba(0, 229, 255, 0.12), inset 0 0 8px rgba(0, 229, 255, 0.05); }
-  50% { box-shadow: 0 0 18px rgba(0, 229, 255, 0.32), inset 0 0 12px rgba(0, 229, 255, 0.10); }
-}
 
 h1,
 h2,
@@ -768,22 +764,6 @@ select option {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-base);
-}
-/* Chip stato CMYK: ciano pulsante (px-pulse, dal design) */
-.cmyk-tag {
-  display: inline-block;
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--cyan-soft);
-  border: 1px solid rgba(0, 229, 255, 0.45);
-  background: rgba(0, 229, 255, 0.05);
-  border-radius: 6px;
-  padding: 5px 9px;
-  margin-bottom: 10px;
-  animation: px-pulse 2.8s ease-in-out infinite;
 }
 .icc-row {
   display: flex;
