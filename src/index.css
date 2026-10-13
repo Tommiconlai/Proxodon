@@ -154,26 +154,18 @@ h3 {
   line-height: 0;
 }
 
-.wordmark { position: relative; flex-shrink: 0; }
-.wordmark svg { display: block; overflow: visible; }
+.wordmark { flex-shrink: 0; overflow: visible; }
 
-/* Hover sul wordmark: il centro della X resta fermo, le V sopra/sotto (svg sovrapposto) fanno
-   due giri rapidi (720°) in prospettiva sull'asse verticale passante per il centro della X
-   (56.5, 15.25 nel viewBox 143×30.5 = 39.51% 50%). Animazione e non transizione: all'uscita
-   non riavvolge (2 giri = posizione di partenza). */
+/* Hover sul wordmark: il centro della X resta fermo, le V sopra/sotto ruotano di 180° sull'asse
+   verticale passante per il centro della X (56.5, 15.25 nel viewBox) e tornano all'uscita. */
 .wordmark .x-v {
-  position: absolute;
-  inset: 0;
-  transform-origin: 39.51% 50%;
-}
-
-@keyframes x-spin {
-  from { transform: perspective(40px) rotateY(0); }
-  to { transform: perspective(40px) rotateY(2turn); }
+  transform-box: view-box;
+  transform-origin: 56.5px 15.25px;
+  transition: transform 0.4s cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 @media (hover: hover) {
-  .wordmark:hover .x-v { animation: x-spin 0.8s cubic-bezier(0.65, 0, 0.35, 1); }
+  .wordmark:hover .x-v { transform: rotateY(180deg); }
 }
 
 /* Pulsante "?" + tooltip "come funziona" (hover/focus, CSS puro) */

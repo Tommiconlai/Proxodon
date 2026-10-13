@@ -42,22 +42,17 @@ const WORDMARK_X_V = [
 ];
 
 export function Wordmark({ height = 30, ...props }) {
-  const svg = { height, width: (height * 143) / 30.5, viewBox: '0 0 143 30.5', 'aria-hidden': true };
   return (
-    <span role="img" aria-label="Proxoteca" {...props}>
-      <svg {...svg}>
-        <g fill="#00e5ff">
-          {WORDMARK_LETTERS.map((d) => <path key={d} d={d} />)}
-          <path d={WORDMARK_X_CORE} />
-        </g>
-      </svg>
-      {/* V sopra/sotto in un svg sovrapposto: il 3D CSS (prospettiva) funziona sugli elementi
-          HTML, non sui figli di un svg. All'hover fanno due giri sull'asse verticale del centro
-          della X (CSS .wordmark .x-v). */}
-      <svg {...svg} className="x-v" fill="none" stroke="#ff2d95" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-        {WORDMARK_X_V.map((d) => <path key={d} d={d} />)}
-      </svg>
-    </span>
+    <svg height={height} width={(height * 143) / 30.5} viewBox="0 0 143 30.5" role="img" aria-label="Proxoteca" {...props}>
+      {/* .x-v = V sopra/sotto: all'hover ruotano di 180° sull'asse verticale del centro della X (CSS .wordmark). */}
+      <g fill="#00e5ff">
+        {WORDMARK_LETTERS.map((d) => <path key={d} d={d} />)}
+        <path d={WORDMARK_X_CORE} />
+      </g>
+      <g fill="none" stroke="#ff2d95" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        {WORDMARK_X_V.map((d) => <path key={d} d={d} className="x-v" />)}
+      </g>
+    </svg>
   );
 }
 
