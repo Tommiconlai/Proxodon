@@ -38,7 +38,12 @@ export function Logo({ size = 34, ...props }) {
   return (
     <svg width={size} height={size} viewBox="-208 -208 416 416" aria-hidden="true" focusable="false" {...props}>
       <g fill="none" strokeWidth="39" strokeLinecap="round" strokeLinejoin="round">
-        {LOGO_ARMS.map((d, i) => <path key={d} d={d} stroke={i % 2 ? '#00e5ff' : '#ff2d95'} />)}
+        {/* arm-h = sopra/sotto (flip orizzontale all'hover), arm-v = destra/sinistra (flip
+            verticale); --i = posizione oraria per lo sfasamento dell'animazione (CSS .logo-mark). */}
+        {LOGO_ARMS.map((d, i) => (
+          <path key={d} d={d} className={i % 2 ? 'arm arm-v' : 'arm arm-h'} style={{ '--i': i }}
+            stroke={i % 2 ? '#00e5ff' : '#ff2d95'} />
+        ))}
       </g>
     </svg>
   );

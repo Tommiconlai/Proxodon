@@ -68,7 +68,7 @@ before restarting.
 | `src/utils/pdfGenerator.js` | Grid math (`getGridInfo(formatKey, bleedMm, cardW=63, cardH=88, customSheet=null)`; `formatKey==='custom'` uses `customSheet` mm dims, else `PAPER_FORMATS`) + `generatePDF(items, formatKey, bleedMm, dpi, bleedStyle, cardW, cardH, cropMarks, cropStyle, customSheet)` (jspdf, dynamically imported) + `drawCardWithBleed` (stretch/mirror/black bleed) + `resolveBleedMode` (per-card mode × global style) + `drawCropMarks(…, style)` (`lines`/`corners`) + `cropMarkSpan` (clamped crop marks) |
 | `src/utils/scryfall.js` | `parseCardList` (text → `{qty,name,set,collector}`; collector keeps **original case**. Scryfall `/cards/collection` is case-sensitive on it, e.g. The List `TMP-294`) + `fetchScryfallImages` (`/cards/collection` batched, printing-pinned via name\|set\|collector keys, downloads PNGs as `File`; DFC → both faces) + `fetchPrints` + `downloadAsFile` + `fetchDeckList` (deck link → text, via `fetchViaProxy` = `CORS_PROXIES` fallback chain: allorigins → codetabs → corsproxy.io) + `scryfallFetch` (retry 429/5xx + network, clear error on Scryfall outage) + `deckLine(qty,name,set,cn)` (builds `qty Name (SET) cn` so deck links pin the **edition chosen in the deck**) + `buildDeckList(items)` (placed cards → deck-list text for "Save list"; front faces only, custom uploads excluded) |
 | `src/utils/scryfall.selfcheck.js` | `node`-runnable assert check for `parseCardList` (no framework). Run: `node src/utils/scryfall.selfcheck.js` |
-| `src/components/icons.jsx` | Custom lucide-style SVG icon set (currentColor), incl. `IconPlus`, `IconDownload`, `IconList` (Save list, distinct from the download/export arrows), `IconCopy`, `IconFrame` + `Logo` (Proxoteca brandmark: four rotated chevrons, `LOGO_ARMS` in logo-source px, viewBox ±208, clockwise from the top arm coloured **magenta `#ff2d95` / cyan `#00e5ff` alternating**; same geometry + colours as `public/favicon.svg`) |
+| `src/components/icons.jsx` | Custom lucide-style SVG icon set (currentColor), incl. `IconPlus`, `IconDownload`, `IconList` (Save list, distinct from the download/export arrows), `IconCopy`, `IconFrame` + `Logo` (Proxoteca brandmark: four rotated chevrons, `LOGO_ARMS` in logo-source px, viewBox ±208, clockwise from the top arm coloured **magenta `#ff2d95` / cyan `#00e5ff` alternating**; same geometry + colours as `public/favicon.svg`). **Hover animation** (`.logo-mark`, `@media (hover: hover)`): top/bottom arms (`.arm-h`) `scaleX(-1)`, right/left (`.arm-v`) `scaleY(-1)` around the logo centre (`transform-box: view-box; transform-origin: 0 0` = viewBox origin), 0.45s ease-in-out, staggered 45ms clockwise in (`--i`) and counter-clockwise out |
 | `src/index.css` | All styling + design tokens |
 | `public/` (favicons) | Proxoteca icon set: `favicon.svg/.ico`, `favicon-16/32/48/192/512.png`, `apple-touch-icon.png`, `site.webmanifest`. Linked in `index.html` with root-absolute paths → Vite rewrites to `./` via `base:'./'` (Pages-safe); manifest icon `src`s are relative. All icons = **magenta/cyan chevron mark on black** (same colour order as `Logo`): `favicon.svg` + 16/32/48/192/512 PNG + `.ico` (16/32/48) use a rounded square (`rx` 112 of 532, mark ~78% wide); `apple-touch-icon.png` is a full square with more padding (iOS rounds it). Rasters made with **Pillow** (8x supersample, lines + round caps/joins drawn from the same coordinates as `LOGO_PATH`, stroke 39). Manifest colours `#08070f`. |
 
@@ -105,7 +105,14 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Low-res explanation moved into the chip (most recent):** user request. The sidebar warning
+- **Logo flip on hover (most recent):** hovering the header logo flips the top and bottom
+  chevrons horizontally and the right and left ones vertically, each mirrored around the logo
+  centre so the vertices stay put and the pinwheel reverses its spin; leaving reverses it.
+  Clockwise 45ms stagger in, counter-clockwise out. CSS transitions only (interrupting
+  mid-way reverses from the current point; reduced-motion makes it instant via the global
+  rule). Verified live: end transforms `matrix(-1,0,0,1)` / `matrix(1,0,0,-1)`, arm boxes
+  mirrored about the centre, `transitionstart` order 0→3 in and 3→0 out.
+- **Low-res explanation moved into the chip:** user request. The sidebar warning
   above Resolution is gone (`lowResCount` no longer passed to `PageSettings`; App still computes
   it for the mobile Export page). Hovering the `!` chip widens it to the card's width and reveals
   the text inside; leaving restores the icon. Text fades in after the widening and out before
