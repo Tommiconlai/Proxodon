@@ -64,13 +64,13 @@ export default function App() {
   const [mpcOpen, setMpcOpen] = useState(false); // import da file XML MPCFill
   const [addMenuOpen, setAddMenuOpen] = useState(false); // menu "+" in sidebar (carica file / Scryfall)
   const [helpOpen, setHelpOpen] = useState(false); // tooltip "?" header (apri al click, non hover)
-  const [editingId, setEditingId] = useState(null); // carta di cui cambiare l'art
+  const [editingIds, setEditingIds] = useState(null); // carte (stessa carta) di cui cambiare l'art
   // Foglio personalizzato in mm (sheetW/H sono nell'unità scelta: mm o inch).
   const customSheet = formatKey === 'custom'
     ? (sheetUnit === 'in' ? [sheetW * 25.4, sheetH * 25.4] : [sheetW, sheetH])
     : null;
   const { perPage } = getGridInfo(formatKey, bleedMm, cardW, cardH, customSheet);
-  const editing = editingId ? images.find(i => i.id === editingId) : null;
+  const editing = editingIds ? images.find(i => i.id === editingIds[0]) : null;
 
   // Persiste i settaggi (non le immagini: sono blob, si re-importano in 1 click).
   useEffect(() => {
@@ -255,14 +255,14 @@ export default function App() {
     setToast({ kind: 'success', msg: `Bleed ${anyOff ? 'on' : 'off'} for ${ids.length} card${ids.length > 1 ? 's' : ''}` });
   };
 
-  // Duplica una carta (preview con object URL nuovo, inserita dopo l'originale).
-  const handleDuplicate = (id) => setImages(prev => {
-    const idx = prev.findIndex(i => i.id === id);
-    if (idx === -1) return prev;
-    const it = prev[idx];
-    const dup = { ...it, id: `${it.file.name}-${Date.now()}-${Math.random()}`, preview: URL.createObjectURL(it.file) };
-    return [...prev.slice(0, idx + 1), dup, ...prev.slice(idx + 1)];
-  });
+  // Duplica una o più carte: ogni copia (object URL nuovo) va subito dopo il suo originale.
+  const handleDuplicate = (ids) => {
+    const set = new Set([].concat(ids));
+    setImages(prev => prev.flatMap(it => (set.has(it.id)
+      ? [it, { ...it, id: `${it.file.name}-${Date.now()}-${Math.random()}`, preview: URL.createObjectURL(it.file) }]
+      : [it])));
+    if (set.size > 1) setToast({ kind: 'success', msg: `Duplicated ${set.size} cards` });
+  };
 
   // Riordino: la carta `id` va all'indice `to` e quella che c'era prende il suo posto
   // (scambio, le altre restano ferme). Ordine = ordine di stampa.
@@ -277,13 +277,15 @@ export default function App() {
   // Cambia art: il box ha già scaricato la stampa Scryfall; sostituisce file+preview
   // (id invariato). meta: { bleedMode, set, collector }. bleedMode mirror/stretch in
   // base a full-art/borderless; set/collector aggiornati così "Save list" segue la stampa.
+  // Con più carte (stessa carta selezionata) la stampa va su tutte; un object URL a testa
+  // perché ogni carta revoca il proprio alla rimozione.
   const handleReplaceArt = (file, { bleedMode, set, collector } = {}) => {
-    const preview = URL.createObjectURL(file);
+    const ids = new Set(editingIds);
     setImages(prev => prev.map(it => {
-      if (it.id !== editingId) return it;
+      if (!ids.has(it.id)) return it;
       URL.revokeObjectURL(it.preview);
       return {
-        ...it, file, preview,
+        ...it, file, preview: URL.createObjectURL(file),
         bleedMode: bleedMode != null ? bleedMode : it.bleedMode,
         // set lowercase (coerenza con l'import); collector mantiene il case (Scryfall
         // è case-sensitive).
@@ -291,7 +293,7 @@ export default function App() {
         collector: collector != null ? collector : it.collector,
       };
     }));
-    setEditingId(null);
+    setEditingIds(null);
   };
 
   // Salva la lista delle carte Scryfall in un .txt (formato deck-list → ricaricabile
@@ -407,7 +409,7 @@ export default function App() {
   };
   const previewProps = {
     images, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop: cropMarks, cropStyle,
-    customSheet, onRemove: handleRemove, onChangeArt: setEditingId, onToggleBleed: handleToggleBleed,
+    customSheet, onRemove: handleRemove, onChangeArt: (ids) => setEditingIds([].concat(ids)), onToggleBleed: handleToggleBleed,
     onDuplicate: handleDuplicate, onMove: handleMove, isDragActive, missing,
     onRemoveMany: handleRemoveMany, onBleedMany: handleBleedMany,
   };
@@ -428,7 +430,7 @@ export default function App() {
         />
         <ScryfallImportModal open={importOpen} onClose={() => setImportOpen(false)} onImport={addItems} />
         <MpcImportModal open={mpcOpen} onClose={() => setMpcOpen(false)} onImport={addItems} />
-        {editing && <ArtPickerModal key={editing.id} card={editing} onClose={() => setEditingId(null)} onPick={handleReplaceArt} />}
+        {editing && <ArtPickerModal key={editing.id} card={editing} count={editingIds.length} onClose={() => setEditingIds(null)} onPick={handleReplaceArt} />}
         <CookieBanner />
         <ConfirmDialog open={!!confirm} message={confirm?.message} confirmLabel={confirm?.confirmLabel}
           onConfirm={() => { confirm?.onConfirm?.(); setConfirm(null); }} onCancel={() => setConfirm(null)} />
@@ -452,7 +454,7 @@ export default function App() {
             <ol>
               <li><b>Add cards</b>. Upload images, or import from Scryfall (paste a card list or a deck link).</li>
               <li><b>Set up</b>. Sheet &amp; card size, bleed and crop marks in the sidebar.</li>
-              <li><b>Tweak</b>. Click a card to change its printing, drag it onto another to swap them; <b>right-click</b> a card to duplicate, toggle bleed, or remove it. <b>Ctrl/⌘ or Shift-click</b> cards to select several, then bleed or delete them together.</li>
+              <li><b>Tweak</b>. Click a card to select it (<b>Ctrl/⌘ or Shift-click</b> for several), drag it onto another to swap them, and <b>right-click</b> for options: change art, duplicate, bleed, remove. With several cards selected the menu acts on all of them.</li>
               <li><b>Export</b>. <b>Generate PDF</b> (print-ready). <b>Save list</b> exports your Scryfall cards as a reloadable deck list.</li>
             </ol>
           </div>
@@ -533,7 +535,8 @@ export default function App() {
         <ArtPickerModal
           key={editing.id}
           card={editing}
-          onClose={() => setEditingId(null)}
+          count={editingIds.length}
+          onClose={() => setEditingIds(null)}
           onPick={handleReplaceArt}
         />
       )}

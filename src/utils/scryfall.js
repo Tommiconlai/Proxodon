@@ -110,6 +110,10 @@ export function imageFaces(card) {
  * ponytail: solo prima pagina (175 max); +paginazione se una carta ne ha di più.
  * @returns {Promise<{id,set,setName,thumb,png}[]>}
  */
+// Nome con cui "Cambia art" cerca le stampe: il filename senza estensione.
+// Due carte sono "la stessa" (cambio art multiplo consentito) se coincide.
+export const artName = (item) => item.file.name.replace(/\.[a-z0-9]+$/i, '');
+
 export async function fetchPrints(name) {
   const q = encodeURIComponent(`!"${name}" game:paper`);
   const res = await fetch(`https://api.scryfall.com/cards/search?q=${q}&unique=prints&order=released`);

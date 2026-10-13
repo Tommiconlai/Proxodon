@@ -1166,6 +1166,24 @@ input[type="range"]::-webkit-slider-thumb:hover {
   color: var(--cyan);
 }
 
+/* Voce non disponibile (es. cambio art su carte diverse): visibile ma spenta. */
+.card-menu button[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.card-menu button[aria-disabled="true"]:hover {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.card-menu-note {
+  margin-left: auto;
+  padding-left: 12px;
+  font-size: 0.7rem;
+  font-style: italic;
+}
+
 .card-menu button.danger { color: var(--danger); }
 .card-menu button.danger:hover,
 .card-menu button.danger:focus-visible {
