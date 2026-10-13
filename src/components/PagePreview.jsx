@@ -193,7 +193,7 @@ export function PageCanvas({ pageImages, formatKey, bleedMm, bleedStyle, dpi, ca
 }
 
 // ── Componente principale ─────────────────────────────────────
-export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop, cropStyle, customSheet, onRemove, onChangeArt, onToggleBleed, onDuplicate, isDragActive, missing, onCardTap, onRemoveMany, onBleedMany }) {
+export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop, cropStyle, customSheet, onRemove, onChangeArt, onToggleBleed, onDuplicate, onMove, isDragActive, missing, onCardTap, onRemoveMany, onBleedMany }) {
     const [pageOffset, setPageOffset] = useState(0);
     const [box, setBox] = useState({ w: 0, h: 0 });
     const stageRef = useRef(null);
@@ -298,6 +298,47 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
         else onChangeArt(id);
     };
 
+    // Riordino (solo desktop): trascina una carta su un'altra → ne prende il posto, le altre
+    // scalano ("sposta", non "scambia"). Alt+frecce = alternativa da tastiera.
+    // ponytail: solo dentro la pagina visibile; tra pagine si passa da Alt+frecce.
+    const [drag, setDrag] = useState(null); // { id, over: indice globale bersaglio | null }
+    const wrapRef = useRef(null);
+    const refocusRef = useRef(null);
+    const dndOn = selectMode && !!onMove;
+    const startDrag = (e, id) => {
+        const dt = e.dataTransfer;
+        dt.effectAllowed = 'move';
+        dt.setData('application/x-proxoteca-card', id);
+        // Ghost = ritaglio della carta dal canvas pagina: l'hotspot è trasparente, quello nativo sarebbe vuoto.
+        const hs = e.currentTarget;
+        const sheet = wrapRef.current?.querySelector('canvas');
+        if (sheet) {
+            const g = document.createElement('canvas');
+            g.width = hs.offsetWidth;
+            g.height = hs.offsetHeight;
+            g.getContext('2d').drawImage(sheet, hs.offsetLeft, hs.offsetTop, g.width, g.height, 0, 0, g.width, g.height);
+            g.style.cssText = 'position:fixed;top:-10000px;left:0';
+            document.body.appendChild(g);
+            const r = hs.getBoundingClientRect();
+            dt.setDragImage(g, e.clientX - r.left, e.clientY - r.top);
+            setTimeout(() => g.remove(), 0);
+        }
+        setDrag({ id, over: null });
+    };
+    const moveTo = (id, to) => {
+        if (to < 0 || to >= images.length) return;
+        onMove(id, to);
+        setPageOffset(Math.floor(to / perPage)); // segui la carta se cambia pagina
+        refocusRef.current = id;
+    };
+    // Dopo uno spostamento da tastiera il nodo può essere rimontato/spostato: rimetti il focus.
+    useEffect(() => {
+        const id = refocusRef.current;
+        if (!id) return;
+        refocusRef.current = null;
+        wrapRef.current?.querySelector(`[data-card-id="${CSS.escape(id)}"] .card-surface`)?.focus();
+    }, [images, page]);
+
     // Scorciatoie: Del = elimina selezione, Esc = deseleziona, Ctrl/Cmd+A = seleziona tutto.
     useEffect(() => {
         if (!selectMode || !fits) return;
@@ -331,7 +372,7 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                 >Skip cards</button>
             )}
             <div className="preview-stage" ref={stageRef}>
-                <div className="preview-page-wrap" style={{ width: pageW }}>
+                <div className="preview-page-wrap" ref={wrapRef} style={{ width: pageW }}>
                     <PageCanvas
                         pageImages={pageImages}
                         formatKey={formatKey}
@@ -383,11 +424,35 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                                 // Abbondanza EFFETTIVA renderizzata (lo stile globale può sovrascrivere il
                                 // modo per-carta): l'etichetta deve dire ciò che esce, non il solo modo carta.
                                 const resolvedBleed = resolveBleedMode(img.bleedMode, bleedStyle);
+                                const gi = page * perPage + i; // indice globale (= ordine di stampa)
+                                const dnd = dndOn ? {
+                                    draggable: true,
+                                    onDragStart: (e) => startDrag(e, img.id),
+                                    onDragOver: (e) => {
+                                        if (!drag) return; // drag esterno (file): lo gestisce la dropzone
+                                        e.preventDefault();
+                                        e.dataTransfer.dropEffect = 'move';
+                                        if (drag.over !== gi) setDrag({ ...drag, over: gi });
+                                    },
+                                    onDragLeave: (e) => {
+                                        if (drag?.over === gi && !e.currentTarget.contains(e.relatedTarget)) setDrag({ ...drag, over: null });
+                                    },
+                                    onDrop: (e) => {
+                                        if (!drag) return;
+                                        e.preventDefault();
+                                        if (drag.id !== img.id) onMove(drag.id, gi);
+                                        setDrag(null);
+                                    },
+                                    onDragEnd: () => setDrag(null),
+                                } : {};
+                                const dragCls = drag?.id === img.id ? ' dragging' : drag?.over === gi ? ' drop-target' : '';
                                 return (
                                     <div
                                         key={img.id}
-                                        className={`preview-card-hotspot${isSel ? ' selected' : ''}`}
+                                        data-card-id={img.id}
+                                        className={`preview-card-hotspot${isSel ? ' selected' : ''}${dragCls}`}
                                         style={{ left, top, width: cardW * scale, height: cardH * scale }}
+                                        {...dnd}
                                     >
                                         {/* Superficie carta = button a tutta area → "cambia art" raggiungibile da tastiera. */}
                                         {onCardTap ? (
@@ -406,9 +471,12 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                                                 // Space = seleziona/deseleziona (equivalente da tastiera del
                                                 // ctrl/shift-click); Enter resta "cambia art" (click nativo).
                                                 if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); toggleSel(img.id); }
+                                                // Alt+frecce = sposta di una cella (su/giù = una riga).
+                                                const d = e.altKey && dndOn && { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -info.cols, ArrowDown: info.cols }[e.key];
+                                                if (d) { e.preventDefault(); moveTo(img.id, gi + d); }
                                             }}
-                                            title="Change art (Enter). Ctrl-click or Space to select"
-                                            aria-label={`${name}. Change art. Ctrl/Shift-click or press Space to select.`}
+                                            title="Change art (Enter). Drag or Alt+arrows to move. Ctrl-click or Space to select"
+                                            aria-label={`${name}. Change art. Alt+arrow keys to move. Ctrl/Shift-click or press Space to select.`}
                                             aria-pressed={isSel}
                                         />
                                         <button
@@ -488,7 +556,7 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                 )}
                 {/* Suggerimento discreto: rende scopribile la multi-selezione (altrimenti solo hover/aria). */}
                 {fits && selectMode && images.length > 1 && selectedIds.length === 0 && (
-                    <span className="preview-hint">Ctrl/⌘ or Shift-click to select multiple</span>
+                    <span className="preview-hint">Drag to reorder · Ctrl/⌘ or Shift-click to select multiple</span>
                 )}
             </div>
         </div>

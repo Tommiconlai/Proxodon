@@ -264,6 +264,15 @@ export default function App() {
     return [...prev.slice(0, idx + 1), dup, ...prev.slice(idx + 1)];
   });
 
+  // Riordino: la carta `id` va all'indice `to` (le altre scalano). Ordine = ordine di stampa.
+  const handleMove = (id, to) => setImages(prev => {
+    const from = prev.findIndex(i => i.id === id);
+    if (from === -1 || from === to || to < 0 || to >= prev.length) return prev;
+    const next = [...prev];
+    next.splice(to, 0, ...next.splice(from, 1));
+    return next;
+  });
+
   // Cambia art: il box ha già scaricato la stampa Scryfall; sostituisce file+preview
   // (id invariato). meta: { bleedMode, set, collector }. bleedMode mirror/stretch in
   // base a full-art/borderless; set/collector aggiornati così "Save list" segue la stampa.
@@ -398,7 +407,7 @@ export default function App() {
   const previewProps = {
     images, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop: cropMarks, cropStyle,
     customSheet, onRemove: handleRemove, onChangeArt: setEditingId, onToggleBleed: handleToggleBleed,
-    onDuplicate: handleDuplicate, isDragActive, missing,
+    onDuplicate: handleDuplicate, onMove: handleMove, isDragActive, missing,
     onRemoveMany: handleRemoveMany, onBleedMany: handleBleedMany,
   };
 
@@ -442,7 +451,7 @@ export default function App() {
             <ol>
               <li><b>Add cards</b>. Upload images, or import from Scryfall (paste a card list or a deck link).</li>
               <li><b>Set up</b>. Sheet &amp; card size, bleed and crop marks in the sidebar.</li>
-              <li><b>Tweak</b>. Click a card to change its printing; hover a card to duplicate, toggle bleed, or remove it. <b>Ctrl/⌘ or Shift-click</b> cards to select several, then bleed or delete them together.</li>
+              <li><b>Tweak</b>. Click a card to change its printing, drag it to reorder; hover a card to duplicate, toggle bleed, or remove it. <b>Ctrl/⌘ or Shift-click</b> cards to select several, then bleed or delete them together.</li>
               <li><b>Export</b>. <b>Generate PDF</b> (print-ready). <b>Save list</b> exports your Scryfall cards as a reloadable deck list.</li>
             </ol>
           </div>
