@@ -156,9 +156,9 @@ h3 {
 
 .wordmark { flex-shrink: 0; overflow: visible; }
 
-/* Hover sul wordmark: la X si ribalta in orizzontale attorno al proprio centro (56.5, 15.25
-   nel viewBox), prima la parte centrale e poi le V sopra/sotto. In uscita l'ordine si inverte
-   (il ritardo di uscita è quello dello stato di base). */
+/* Hover sul wordmark: la X si ribalta attorno al proprio centro (56.5, 15.25 nel viewBox),
+   prima la parte centrale sull'asse orizzontale, poi le V sopra/sotto sull'asse verticale.
+   In uscita l'ordine si inverte (il ritardo di uscita è quello dello stato di base). */
 .wordmark .x-part {
   transform-box: view-box;
   transform-origin: 56.5px 15.25px;
@@ -167,9 +167,8 @@ h3 {
 .wordmark .x-core { transition-delay: 0.3s; }
 
 @media (hover: hover) {
-  .wordmark:hover .x-part { transform: scaleX(-1); }
-  .wordmark:hover .x-core { transition-delay: 0s; }
-  .wordmark:hover .x-v { transition-delay: 0.3s; }
+  .wordmark:hover .x-core { transform: scaleY(-1); transition-delay: 0s; }
+  .wordmark:hover .x-v { transform: scaleX(-1); transition-delay: 0.3s; }
 }
 
 /* Pulsante "?" + tooltip "come funziona" (hover/focus, CSS puro) */

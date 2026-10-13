@@ -57,14 +57,15 @@ export function Wordmark({ height = 30, ...props }) {
 }
 
 // Chevron sinistro (‹) o doppio (« con `double`) col pezzo del logo: braccio lungo il doppio
-// del corto (come gli angoli delle carte selezionate). È il braccio destro del marchio, lungo
-// verso l'alto; per la destra il CSS lo ruota di 180° (= braccio sinistro, lungo verso il basso).
+// del corto (come gli angoli delle carte selezionate) e vertice arrotondato come le V del marchio.
+// È la metà destra del centro della X, lunga verso l'alto; per la destra il CSS lo ruota di 180°
+// (= metà sinistra, lunga verso il basso).
 export function IconChevron({ double, ...props }) {
   return (
     <Svg {...props}>
       {double
-        ? <><path d="M13.5 5.25 4.5 14.25 9 18.75" /><path d="M19.5 5.25 10.5 14.25 15 18.75" /></>
-        : <path d="M16.5 5.25 7.5 14.25 12 18.75" />}
+        ? <><path d="M13.5 5.25 6 12.75C5.18 13.57 5.18 14.93 6 15.75L9 18.75" /><path d="M19.5 5.25 12 12.75C11.18 13.57 11.18 14.93 12 15.75L15 18.75" /></>
+        : <path d="M16.5 5.25 9 12.75C8.18 13.57 8.18 14.93 9 15.75L12 18.75" />}
     </Svg>
   );
 }
