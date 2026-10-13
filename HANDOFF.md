@@ -106,7 +106,13 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Glow on selected segments (most recent):** user request. Selected cards' four side segments
+- **Add-cards menu above sticky headers (most recent):** the "Upload / Scryfall / MPCFill"
+  menu opened under the sticky sidebar `h2`s ("[ SUMMARY ]"). `.sidebar-export` has
+  `backdrop-filter`, which makes it a stacking context at level 0, so the menu's `z-index: 20`
+  only counted inside it and the sticky `h2` (`z-index: 1`) won. Fix: `.sidebar-export
+  { position: relative; z-index: 2 }`. Verified live by sampling `elementFromPoint` over the
+  open menu with "Summary" behind it: 132 covered points before, 0 after.
+- **Glow on selected segments:** user request. Selected cards' four side segments
   now glow in their own colour (magenta/cyan) through an SVG blur filter on the `.segs`
   group; corner brackets and hover stay unglowed. Verified live (computed filter + zoom).
 - **Selected frame per Figma 4021:2397:** selected cards now show the long centred

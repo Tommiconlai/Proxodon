@@ -379,6 +379,10 @@ h3 {
 /* Esporta: footer fisso fuori dall'area scroll, la CTA resta sempre visibile. */
 .sidebar-export {
   flex: none;
+  /* Sopra gli h2 sticky (z 1) dell'area che scorre: il backdrop-filter crea uno stacking
+     context, quindi lo z-index del menu "Add cards" vale solo qui dentro. */
+  position: relative;
+  z-index: 2;
   padding: 14px 16px 16px;
   background: rgba(9, 8, 17, 0.85);
   backdrop-filter: blur(12px);
