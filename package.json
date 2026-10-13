@@ -10,12 +10,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tensorflow/tfjs": "~4.11.0",
+    "@upscalerjs/esrgan-medium": "^1.0.0",
     "jspdf": "^4.2.0",
     "lcms-wasm": "^1.0.5",
     "pdf-lib": "^1.17.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-dropzone": "^15.0.0"
+    "react-dropzone": "^15.0.0",
+    "upscaler": "^1.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

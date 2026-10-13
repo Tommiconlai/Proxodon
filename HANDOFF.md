@@ -14,6 +14,8 @@ trading-card proxies; card size is 63×88 mm.
 - Vite 7, React 19, `react-dropzone`, `jspdf` (pulls `html2canvas`) for the RGB/screen PDF
 - `pdf-lib` + `lcms-wasm` (Little-CMS WASM) for the **CMYK / PDF-X-1a** print export (both lazy-loaded);
   a **vendored** jpeg-js decoder (`src/utils/vendor/jpegCmykDecoder.js`, Apache-2.0) for native CMYK JPEGs
+- `upscaler` 1.0 + `@tensorflow/tfjs` ~4.11 (its peer) + `@upscalerjs/esrgan-medium` for the in-browser
+  **AI upscale 2×** (lazy chunk ~1.1 MB, model weights ~2.7 MB fetched from jsDelivr on first use)
 - Vanilla CSS with design tokens in `src/index.css` (no Tailwind / CSS-in-JS)
 
 ## Run
@@ -67,6 +69,7 @@ before restarting.
 | `src/utils/vendor/jpegCmykDecoder.js` | **Vendored** da jpeg-js (Apache-2.0, (c) 2011 notmasteryet); `eslint-disable`. jpeg-js espone solo `decode()`→RGB; qui si aggiunge `decodeCMYK(bytes)` che chiama `JpegImage.parse`+`getData` (case 4) → CMYK 8-bit interleaved in **convenzione DeviceCMYK (0=no ink)**, gestendo l'inversione Adobe (APP14) e l'eventuale YCCK. Browser-safe (solo `Uint8Array`, niente `Buffer`) |
 | `src/utils/pdfGenerator.js` | Grid math (`getGridInfo(formatKey, bleedMm, cardW=63, cardH=88, customSheet=null)`; `formatKey==='custom'` uses `customSheet` mm dims, else `PAPER_FORMATS`) + `generatePDF(items, formatKey, bleedMm, dpi, bleedStyle, cardW, cardH, cropMarks, cropStyle, customSheet)` (jspdf, dynamically imported) + `drawCardWithBleed` (stretch/mirror/black bleed) + `resolveBleedMode` (per-card mode × global style) + `drawCropMarks(…, style)` (`lines`/`corners`) + `cropMarkSpan` (clamped crop marks) |
 | `src/utils/scryfall.js` | `parseCardList` (text → `{qty,name,set,collector}`; collector keeps **original case**. Scryfall `/cards/collection` is case-sensitive on it, e.g. The List `TMP-294`) + `fetchScryfallImages` (`/cards/collection` batched, printing-pinned via name\|set\|collector keys, downloads PNGs as `File`; DFC → both faces) + `fetchPrints` + `downloadAsFile` + `fetchDeckList` (deck link → text, via `fetchViaProxy` = `CORS_PROXIES` fallback chain: allorigins → codetabs → corsproxy.io) + `scryfallFetch` (retry 429/5xx + network, clear error on Scryfall outage) + `deckLine(qty,name,set,cn)` (builds `qty Name (SET) cn` so deck links pin the **edition chosen in the deck**) + `buildDeckList(items)` (placed cards → deck-list text for "Save list"; front faces only, custom uploads excluded) |
+| `src/utils/upscale.js` | **AI upscale 2×** in the browser. `upscaleFile(file, onProgress)` lazy-imports `upscaler` + `@upscalerjs/esrgan-medium/2x` (one `Upscaler` instance, WebGL), tiles 128/pad 8 with `awaitNextFrame`, then re-applies the original alpha scaled 2× (`destination-in`) so Scryfall's transparent rounded corners don't turn black; returns `{ file: PNG same base name, width }`. `canUpscale(item, dpi, cardW)` = RGB (not `colorKind:'cmyk'`) and rounded effective DPI < chosen DPI. Measured on an RTX 4070: ~7 s per Scryfall PNG, first run ~16 s (shader compile + weights). Used by App `handleUpscale` (dedupes shared `File`s across duplicates, updates `file`/`preview`/`w`, persistent `kind:'progress'` toast with % then success/error) and the card menu item "Upscale 2× (AI)" (single + multi, disabled with a note: running / CMYK file / sharp at N DPI) |
 | `src/utils/scryfall.selfcheck.js` | `node`-runnable assert check for `parseCardList` (no framework). Run: `node src/utils/scryfall.selfcheck.js` |
 | `src/components/icons.jsx` | Custom lucide-style SVG icon set (currentColor), incl. `IconPlus`, `IconDownload`, `IconList` (Save list, distinct from the download/export arrows), `IconCopy`, `IconFrame` + `Wordmark` (header lockup from the user's Figma "Portfolio-TG" node 4025:2465: "PRO" + "OTECA" as filled cyan `#00e5ff` letter paths, the **X is the brandmark**: four chevrons, stroke 3 round, top/bottom magenta `#ff2d95`, sides cyan, centre (73.25, 18.25) of the `0 0 180 37` viewBox; `role=img aria-label="Proxoteca"` inside `<h1 className="brand">`; 30px tall desktop, 26px mobile). **Hover animation** (`.wordmark`, `@media (hover: hover)`): top/bottom X arms (`.arm-h`) `scaleX(-1)`, right/left (`.arm-v`) `scaleY(-1)` around the X centre (`transform-box: view-box; transform-origin: 73.25px 18.25px`), 0.45s ease-in-out, staggered 45ms clockwise in (`--i`) and counter-clockwise out. The standalone mark only lives in `public/favicon.svg` now (the `Logo` component was removed) |
 | `src/index.css` | All styling + design tokens |
@@ -105,7 +108,14 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Sidebar without explanations (most recent):** removed every `.field-hint` under the sidebar
+- **AI upscale 2× (most recent):** new "Upscale 2× (AI)" in the card context menu (one card or
+  the selection): ESRGAN-medium via UpscalerJS/TF.js runs in the browser (WebGL), no server.
+  Scryfall PNG 744×1040 → 1488×2080 (~600 DPI at 63 mm), text/symbol edges visibly crisper than
+  the bilinear scaling the PDF did; transparent corners kept. Only offered for RGB cards under
+  the chosen DPI. Verified live: 2 cards in 16 s incl. model load with a live % toast, `w`
+  updated so the item turns "all sharp at 600 DPI"; entry bundle +3.4 kB, TF in a lazy chunk.
+  Picked medium over slim (same speed here, better model).
+- **Sidebar without explanations:** removed every `.field-hint` under the sidebar
   controls (Bleed, Output RGB, ICC upload help, rendering intent x2, Bleed in art, Resolution,
   Compression, crop marks), the `PDF/X-1a:2003 · DeviceCMYK · embedded ICC` tag (+ its
   `.cmyk-tag` CSS and the now unused `px-pulse` keyframes) and the "sheet smaller than the card"
@@ -768,6 +778,12 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 All verified live + `npm run lint` clean + `npm run build` green.
 
 ## Known issues / TODO
+
+- **AI upscale:** weights come from jsDelivr (fallback unpkg) at first use: no CDN = no upscale.
+  Self-host by copying `node_modules/@upscalerjs/esrgan-medium/models/x2/*` into `public/` and
+  passing `path` to the model definition. Slow on phones / integrated GPUs (no cancel button
+  yet). `npm audit` flags tfjs/upscaler deps (`argparse`, `sprintf-js`, `wireit`/`chokidar`):
+  Node CLI tooling, not in the browser bundle.
 
 - **CMYK export: Phases 1+2+3 done; remaining follow-ups** (spec in user's `CMYK-PRINT-EXPORT.md` Phase 3+):
   - **§4 live-deploy smoke UNRUN**. Confirm `lcms.wasm` + the 3 `.icc` load (200/correct MIME) on

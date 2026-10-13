@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom';
 import { getGridInfo, cropMarkSpan, drawCardWithBleed, resolveBleedMode, bleedLabel } from '../utils/pdfGenerator';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 import { artName } from '../utils/scryfall';
-import { IconX, IconCopy, IconFrame, IconImage, IconTrash } from './icons';
+import { canUpscale } from '../utils/upscale';
+import { IconX, IconCopy, IconFrame, IconImage, IconTrash, IconSparkles } from './icons';
 
 // Nome carta vero (Scryfall) se presente, altrimenti il filename senza estensione.
 const cardName = (img, idx) => img.name || (img.file?.name || `Card ${idx + 1}`).replace(/\.[^.]+$/, '');
@@ -259,7 +260,7 @@ export function PageCanvas({ pageImages, formatKey, bleedMm, bleedStyle, cardW, 
 }
 
 // ── Componente principale ─────────────────────────────────────
-export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop, cropStyle, customSheet, onRemove, onChangeArt, onToggleBleed, onDuplicate, onMove, isDragActive, missing, touch, onRemoveMany, onBleedMany }) {
+export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop, cropStyle, customSheet, onRemove, onChangeArt, onToggleBleed, onDuplicate, onMove, onUpscale, upscaling, isDragActive, missing, touch, onRemoveMany, onBleedMany }) {
     const [pageOffset, setPageOffset] = useState(0);
     const [box, setBox] = useState({ w: 0, h: 0 });
     const stageRef = useRef(null);
@@ -465,6 +466,12 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
             title: cardName(it, images.indexOf(it)),
             items: [
                 { key: 'art', Icon: IconImage, label: 'Change art', run: () => onChangeArt(it.id) },
+                // Upscale AI 2× solo se serve (sotto i px del DPI scelto) e non durante un altro upscale.
+                {
+                    key: 'up', Icon: IconSparkles, label: 'Upscale 2× (AI)', run: () => onUpscale(it.id),
+                    disabled: upscaling || !canUpscale(it, dpi, cardW),
+                    note: upscaling ? 'running' : it.colorKind === 'cmyk' ? 'CMYK file' : `sharp at ${dpi} DPI`,
+                },
                 { key: 'dup', Icon: IconCopy, label: 'Duplicate', run: () => onDuplicate(it.id) },
                 // Resta aperto: ogni click cicla il modo e l'etichetta mostra l'esito.
                 { key: 'bleed', Icon: IconFrame, label: `Bleed: ${bleedLabel(bleed)}`, run: () => onToggleBleed(it.id), keepOpen: true },
@@ -477,10 +484,18 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
         const sameCard = new Set(menuCards.map(artName)).size === 1;
         // Stessa regola di onBleedMany: qualcuna senza abbondanza → accendi, altrimenti spegni.
         const anyOff = menuCards.some(i => i.bleedMode === 'none');
+        const upCount = menuCards.filter(i => canUpscale(i, dpi, cardW)).length;
         menuSpec = {
             title: `${ids.length} cards selected`,
             items: [
                 { key: 'art', Icon: IconImage, label: 'Change art', run: () => onChangeArt(ids), disabled: !sameCard, note: 'different cards' },
+                {
+                    key: 'up', Icon: IconSparkles,
+                    label: `Upscale 2× (AI)${upCount && upCount < ids.length ? `, ${upCount} of ${ids.length}` : ''}`,
+                    run: () => onUpscale(ids),
+                    disabled: upscaling || !upCount,
+                    note: upscaling ? 'running' : `all sharp at ${dpi} DPI`,
+                },
                 { key: 'dup', Icon: IconCopy, label: 'Duplicate all', run: () => onDuplicate(ids) },
                 { key: 'bleed', Icon: IconFrame, label: anyOff ? 'Bleed on for all' : 'Bleed off for all', run: () => onBleedMany(ids), keepOpen: true },
                 { key: 'rm', Icon: IconTrash, label: 'Remove all', run: () => { onRemoveMany(ids); clearSel(); }, danger: true },

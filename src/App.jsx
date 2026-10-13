@@ -6,6 +6,7 @@ import PagePreview from './components/PagePreview';
 import ScryfallImportModal from './components/ScryfallImportModal';
 import MpcImportModal from './components/MpcImportModal';
 import ArtPickerModal from './components/ArtPickerModal';
+import { upscaleFile, canUpscale } from './utils/upscale';
 import CookieBanner from './components/CookieBanner';
 import ConfirmDialog from './components/ConfirmDialog';
 import ExportProgress from './components/ExportProgress';
@@ -60,6 +61,7 @@ export default function App() {
   const genAbortRef = useRef(null); // AbortController dell'export in corso (per Annulla)
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null); // feedback transitorio { kind:'success'|'error', msg }
+  const [upscaling, setUpscaling] = useState(false); // upscale AI in corso (uno alla volta)
   const [importOpen, setImportOpen] = useState(false);
   const [mpcOpen, setMpcOpen] = useState(false); // import da file XML MPCFill
   const [addMenuOpen, setAddMenuOpen] = useState(false); // menu "+" in sidebar (carica file / Scryfall)
@@ -118,7 +120,7 @@ export default function App() {
   // Auto-chiusura del toast (tap per chiudere prima). I toast con azione (es. Undo)
   // restano più a lungo, allineati alla finestra di annullamento (revoke a 5.3s).
   useEffect(() => {
-    if (!toast) return;
+    if (!toast || toast.kind === 'progress') return; // l'avanzamento resta finché non finisce
     const t = setTimeout(() => setToast(null), toast.action ? 5000 : 3500);
     return () => clearTimeout(t);
   }, [toast]);
@@ -296,6 +298,37 @@ export default function App() {
     setEditingIds(null);
   };
 
+  // Upscale AI 2× (ESRGAN nel browser) delle carte idonee fra `ids`. I duplicati condividono
+  // lo stesso File: si elabora una volta per file. Aggiorna `w` → il "!" bassa risoluzione
+  // si ricalcola da solo. Avanzamento in un toast persistente.
+  const handleUpscale = async (ids) => {
+    if (upscaling) return;
+    const set = new Set([].concat(ids));
+    const files = [...new Set(images.filter(it => set.has(it.id) && canUpscale(it, dpi, cardW)).map(it => it.file))];
+    if (!files.length) return;
+    setUpscaling(true);
+    const n = files.length;
+    const status = (i, p) => setToast({ kind: 'progress', msg: `Upscaling ${n > 1 ? `${i + 1}/${n} ` : ''}${p == null ? '(loading AI model)' : `${Math.round(p * 100)}%`}` });
+    status(0, null);
+    try {
+      const done = new Map();
+      for (const [i, f] of files.entries()) {
+        done.set(f, await upscaleFile(f, (p) => status(i, p)));
+      }
+      setImages(prev => prev.map(it => {
+        const r = set.has(it.id) && done.get(it.file);
+        if (!r) return it;
+        URL.revokeObjectURL(it.preview);
+        return { ...it, file: r.file, preview: URL.createObjectURL(r.file), w: r.width };
+      }));
+      setToast({ kind: 'success', msg: `Upscaled ${n} image${n > 1 ? 's' : ''} 2×` });
+    } catch (e) {
+      setToast({ kind: 'error', msg: `Upscale failed: ${e.message || 'unknown error'}` });
+    } finally {
+      setUpscaling(false);
+    }
+  };
+
   // Salva la lista delle carte Scryfall in un .txt (formato deck-list → ricaricabile
   // incollandola in "Importa da Scryfall"). Gli upload manuali non entrano nel testo.
   const handleSaveProject = () => {
@@ -410,7 +443,7 @@ export default function App() {
   const previewProps = {
     images, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop: cropMarks, cropStyle,
     customSheet, onRemove: handleRemove, onChangeArt: (ids) => setEditingIds([].concat(ids)), onToggleBleed: handleToggleBleed,
-    onDuplicate: handleDuplicate, onMove: handleMove, isDragActive, missing,
+    onDuplicate: handleDuplicate, onMove: handleMove, onUpscale: handleUpscale, upscaling, isDragActive, missing,
     onRemoveMany: handleRemoveMany, onBleedMany: handleBleedMany,
   };
 
