@@ -8,6 +8,26 @@ import { IconX, IconCopy, IconFrame, IconImage, IconTrash } from './icons';
 // Nome carta vero (Scryfall) se presente, altrimenti il filename senza estensione.
 const cardName = (img, idx) => img.name || (img.file?.name || `Card ${idx + 1}`).replace(/\.[^.]+$/, '');
 
+// ── Cornice HUD carta (hover / selezione), dal Figma "Portfolio-TG" nodo 4021:2411 ──
+// 4 squadrette agli angoli + 4 segmenti lato disposti in rotazione oraria (in alto a sinistra,
+// a destra in alto, in basso a destra, a sinistra in basso), magenta/ciano alternati come il logo.
+// Segmenti in % del lato (scalano con la carta); squadrette 9×8.5 e tratto 2px fissi come nel design.
+// Colori, tratto e visibilità in CSS (.card-frame).
+function CardFrame() {
+    return (
+        <svg className="card-frame" aria-hidden="true" focusable="false">
+            <line className="m" x1="13.5%" y1="0" x2="62%" y2="0" />
+            <line className="c" x1="100%" y1="15%" x2="100%" y2="50%" />
+            <line className="m" x1="38%" y1="100%" x2="86.5%" y2="100%" />
+            <line className="c" x1="0" y1="50%" x2="0" y2="85%" />
+            <path className="m" d="M0 8.5V0H9" />
+            <svg x="100%" overflow="visible"><path className="c" d="M-9 0H0V8.5" /></svg>
+            <svg x="100%" y="100%" overflow="visible"><path className="m" d="M0 -8.5V0H-9" /></svg>
+            <svg y="100%" overflow="visible"><path className="c" d="M9 0H0V-8.5" /></svg>
+        </svg>
+    );
+}
+
 // ── Menu contestuale carte (click destro / Shift+F10): azioni su una carta o sulla selezione ──
 // items: [{ key, Icon, label, run, keepOpen?, danger?, disabled?, note? }].
 // In portal sul body: gli antenati animati (transform) romperebbero il position:fixed.
@@ -332,6 +352,7 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
         return selectedIds.some(id => !pageIds.has(id));
     }, [images, selectedIds, page, perPage]);
     const clearSel = () => setSelected(new Set());
+    const hasSel = selectMode && selectedIds.length > 0;
     const toggleSel = (id) => setSelected(prev => {
         const n = new Set(prev);
         n.has(id) ? n.delete(id) : n.add(id);
@@ -354,8 +375,9 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                 return;
             }
         }
-        if (e.metaKey || e.ctrlKey || e.shiftKey) { e.preventDefault(); toggleSel(id); }
-        else setSelected(new Set([id])); // click semplice = seleziona solo questa
+        // Click (con o senza Ctrl/⌘) = aggiungi/togli: seleziona, deseleziona e multi-selezione.
+        e.preventDefault();
+        toggleSel(id);
         anchorRef.current = id;
     };
 
@@ -576,7 +598,7 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                                             onContextMenu={(e) => openMenu(e, img.id)}
                                             onKeyDown={(e) => {
                                                 // Space = seleziona/deseleziona (equivalente da tastiera del
-                                                // ctrl/shift-click); Enter = click nativo = seleziona solo questa.
+                                                // click); Enter = click nativo, stesso effetto.
                                                 if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); toggleSel(img.id); }
                                                 // Menu da tastiera (non tutti i browser generano contextmenu da Shift+F10).
                                                 if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) openMenu(e, img.id);
@@ -584,11 +606,12 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                                                 const d = e.altKey && dndOn && { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -info.cols, ArrowDown: info.cols }[e.key];
                                                 if (d) { e.preventDefault(); moveTo(img.id, gi + d); }
                                             }}
-                                            title="Click: select. Ctrl-click: add to selection. Right-click: options. Drag: swap"
-                                            aria-label={`${name}. Enter to select, Space to add to selection, Shift+F10 for options, Alt+arrow keys to move.`}
+                                            title="Click: select or deselect. Right-click: options. Drag: swap"
+                                            aria-label={`${name}. Enter or Space to select or deselect, Shift+F10 for options, Alt+arrow keys to move.`}
                                             aria-haspopup="menu"
                                             aria-pressed={isSel}
                                         />
+                                        <CardFrame />
                                         {lowRes && <span className="sr-only">Low resolution for {dpi} DPI. May print soft.</span>}
                                         </>)}
                                     </div>
@@ -602,20 +625,6 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
             {menuSpec && <CardMenu x={menu.x} y={menu.y} {...menuSpec} onClose={closeMenu} />}
 
             <div className="preview-footer" ref={footerRef} tabIndex={-1}>
-                {/* La bulk-bar è una RIGA a sé: il pager resta sempre visibile (niente trappola
-                    sulla pagina corrente quando c'è una selezione su un foglio multi-pagina). */}
-                {fits && selectMode && selectedIds.length > 0 && (
-                    <div className="bulk-bar" role="toolbar" aria-label="Selected cards">
-                        <span className="bulk-count">{selectedIds.length} selected{selectedSpansPages ? ' · spans pages' : ''}</span>
-                        <button type="button" className="bulk-btn" onClick={() => onBleedMany?.(selectedIds)}>
-                            <IconFrame size={13} /> Bleed
-                        </button>
-                        <button type="button" className="bulk-btn bulk-del" onClick={() => { onRemoveMany?.(selectedIds); clearSel(); }}>
-                            <IconX size={13} /> Delete
-                        </button>
-                        <button type="button" className="bulk-btn bulk-clear" onClick={clearSel}>Clear</button>
-                    </div>
-                )}
                 {fits && totalPages > 1 && (
                     <div className="preview-nav">
                         <button
@@ -633,14 +642,33 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                         >›</button>
                     </div>
                 )}
-                {fits && images.length > 0 && !(selectMode && selectedIds.length > 0) && (
-                    <span className="preview-count">
-                        {images.length} card{images.length !== 1 ? 's' : ''}{missing > 0 ? ` · add ${missing} to fill this page` : ''}
-                    </span>
-                )}
-                {/* Suggerimento discreto: rende scopribile la multi-selezione (altrimenti solo hover/aria). */}
-                {fits && selectMode && images.length > 1 && selectedIds.length === 0 && (
-                    <span className="preview-hint">Click to select · Ctrl/⌘-click for more · Right-click for options · Drag to swap</span>
+                {/* Barra selezione e contatore nella STESSA cella (grid sovrapposta, l'inattivo è
+                    visibility:hidden): il footer ha sempre la stessa altezza, quindi selezionare
+                    una carta non sposta il foglio. Il pager sta sopra, sempre raggiungibile. */}
+                {fits && images.length > 0 && (
+                        <div className="preview-status">
+                            {selectMode && (
+                                <div className={`bulk-bar${hasSel ? '' : ' is-off'}`} role="toolbar" aria-label="Selected cards">
+                                    <span className="bulk-count">{selectedIds.length} selected{selectedSpansPages ? ' · spans pages' : ''}</span>
+                                    <button type="button" className="bulk-btn" onClick={() => onBleedMany?.(selectedIds)}>
+                                        <IconFrame size={13} /> Bleed
+                                    </button>
+                                    <button type="button" className="bulk-btn bulk-del" onClick={() => { onRemoveMany?.(selectedIds); clearSel(); }}>
+                                        <IconX size={13} /> Delete
+                                    </button>
+                                    <button type="button" className="bulk-btn bulk-clear" onClick={clearSel}>Clear</button>
+                                </div>
+                            )}
+                            <div className={`preview-info${hasSel ? ' is-off' : ''}`}>
+                                <span className="preview-count">
+                                    {images.length} card{images.length !== 1 ? 's' : ''}{missing > 0 ? ` · add ${missing} to fill this page` : ''}
+                                </span>
+                                {/* Suggerimento discreto: rende scopribili selezione e menu. */}
+                                {selectMode && (
+                                    <span className="preview-hint">Click to select or deselect · Right-click for options · Drag to swap</span>
+                                )}
+                            </div>
+                        </div>
                 )}
             </div>
         </div>

@@ -1597,13 +1597,31 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .preview-warn-cta .empty-cta-title { color: #b42318; } /* rosso scuro: leggibile sul foglio bianco */
 .preview-warn-cta .empty-cta-sub { color: #7a2d1c; }
 
-/* Suggerimento discreto sotto al contatore (scopribilità multi-selezione). */
+/* Barra selezione e contatore sovrapposti nella stessa cella: altezza footer costante
+   (selezionare non sposta il foglio). L'inattivo resta in layout ma nascosto (e fuori dal tab). */
+.preview-status {
+  display: grid;
+  justify-items: center;
+  align-items: center;
+}
+
+.preview-status > * { grid-area: 1 / 1; }
+.preview-status > .is-off { visibility: hidden; }
+
+.preview-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Suggerimento discreto sotto al contatore (scopribilità selezione e menu). */
 .preview-hint {
   font-size: 0.68rem;
   color: var(--text-muted);
 }
 
-/* ── Hotspot carta sopra il canvas (click = cambia art, destro = menu azioni) ── */
+/* ── Hotspot carta sopra il canvas (click = seleziona/deseleziona, destro = menu azioni) ── */
 .preview-card-layer {
   position: absolute;
   inset: 0;
@@ -1613,11 +1631,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .preview-card-hotspot {
   position: absolute;
   pointer-events: auto;
-}
-
-.preview-card-hotspot:hover {
-  outline: 1.5px solid var(--border-hover);
-  outline-offset: -1px;
 }
 
 /* Superficie carta = button trasparente a tutta cella (cambia art, focus tastiera). */
@@ -1637,18 +1650,32 @@ input[type="range"]::-webkit-slider-thumb:hover {
   outline-offset: -1px;
 }
 
-/* Carta selezionata (multi-selezione): velo + bordo magenta. */
-.preview-card-hotspot.selected {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
+/* Cornice HUD (dal Figma): 3px fuori dal taglio, invisibile a riposo.
+   Hover = cornice attenuata; selezionata = piena + bagliore. Così il click che DESELEZIONA
+   si vede anche con il mouse ancora sopra la carta. */
+.card-frame {
+  position: absolute;
+  inset: -3px;
+  width: calc(100% + 6px);
+  height: calc(100% + 6px);
+  overflow: visible;
+  pointer-events: none;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  transition: opacity 0.14s ease, filter 0.14s ease;
 }
 
-.preview-card-hotspot.selected::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--accent-dim);
-  pointer-events: none;
+.card-frame .m { stroke: var(--accent); }
+.card-frame .c { stroke: var(--cyan); }
+
+.preview-card-hotspot:hover .card-frame { opacity: 0.7; }
+
+.preview-card-hotspot.selected .card-frame {
+  opacity: 1;
+  filter: drop-shadow(0 0 3px rgba(255, 45, 149, 0.55)) drop-shadow(0 0 3px rgba(0, 229, 255, 0.45));
 }
 
 /* Riordino drag&drop: sorgente velata (il ghost la porta via), bersaglio ciano. */
