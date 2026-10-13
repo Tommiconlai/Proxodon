@@ -277,7 +277,7 @@ export function PageCanvas({ pageImages, formatKey, bleedMm, bleedStyle, dpi, ca
 }
 
 // ── Componente principale ─────────────────────────────────────
-export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop, cropStyle, customSheet, onRemove, onChangeArt, onToggleBleed, onDuplicate, onMove, isDragActive, missing, onCardTap, onRemoveMany, onBleedMany }) {
+export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop, cropStyle, customSheet, onRemove, onChangeArt, onToggleBleed, onDuplicate, onMove, isDragActive, missing, touch, onRemoveMany, onBleedMany }) {
     const [pageOffset, setPageOffset] = useState(0);
     const [box, setBox] = useState({ w: 0, h: 0 });
     const stageRef = useRef(null);
@@ -339,10 +339,9 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
     const canPrev = page > 0;
     const canNext = page < totalPages - 1;
 
-    // Selezione multipla (solo desktop = !onCardTap): ctrl/cmd/shift-click marca le carte,
-    // poi azioni in blocco. Click semplice resta "cambia art" → i novizi non se ne accorgono.
+    // Selezione (desktop e mobile): click/tap = aggiungi/togli, poi azioni dal menu o dalla
+    // barra in blocco. `touch` = layout mobile: tap + pressione lunga, niente drag.
     const [selected, setSelected] = useState(() => new Set());
-    const selectMode = !onCardTap;
     // Tieni solo gli id ancora esistenti (carte cancellate / pagina cambiata).
     const selectedIds = useMemo(
         () => images.filter(i => selected.has(i.id)).map(i => i.id),
@@ -356,7 +355,7 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
         return selectedIds.some(id => !pageIds.has(id));
     }, [images, selectedIds, page, perPage]);
     const clearSel = () => setSelected(new Set());
-    const hasSel = selectMode && selectedIds.length > 0;
+    const hasSel = selectedIds.length > 0;
     const toggleSel = (id) => setSelected(prev => {
         const n = new Set(prev);
         n.has(id) ? n.delete(id) : n.add(id);
@@ -364,6 +363,8 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
     });
     const anchorRef = useRef(null); // ultima carta selezionata = ancora per lo shift-range
     const handleCardClick = (e, id) => {
+        // Il click che segue una pressione lunga (menu già aperto) non deve anche selezionare.
+        if (suppressClickRef.current) { suppressClickRef.current = false; return; }
         // Shift-click = range contiguo sulla pagina corrente fra ancora e target (come Finder/Linear),
         // così la copia "Shift-click to select multiple" è vera (non un alias di ctrl).
         if (e.shiftKey && anchorRef.current && anchorRef.current !== id) {
@@ -385,13 +386,13 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
         anchorRef.current = id;
     };
 
-    // Riordino (solo desktop): trascina una carta su un'altra → le due si scambiano di posto,
+    // Riordino (solo desktop, `!touch`): trascina una carta su un'altra → le due si scambiano di posto,
     // le altre restano ferme. Alt+frecce = scambio col vicino, alternativa da tastiera.
     // ponytail: solo dentro la pagina visibile; tra pagine si passa da Alt+frecce.
     const [drag, setDrag] = useState(null); // { id, over: indice globale bersaglio | null }
     const wrapRef = useRef(null);
     const refocusRef = useRef(null);
-    const dndOn = selectMode && !!onMove;
+    const dndOn = !touch && !!onMove;
     const startDrag = (e, id) => {
         const dt = e.dataTransfer;
         dt.effectAllowed = 'move';
@@ -426,19 +427,51 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
         wrapRef.current?.querySelector(`[data-card-id="${CSS.escape(id)}"] .card-surface`)?.focus();
     }, [images, page]);
 
-    // Menu contestuale (solo desktop): { ids, x, y }. Destro su una carta fuori dalla selezione
-    // = seleziona solo quella (come un file manager); dentro una multi-selezione = agisce su tutte.
+    // Menu contestuale: { ids, x, y }. Click destro (o pressione lunga su touch) su una carta
+    // fuori dalla selezione = seleziona solo quella (come un file manager); dentro una
+    // multi-selezione = agisce su tutte.
     const [menu, setMenu] = useState(null);
     const closeMenu = useCallback(() => setMenu(null), []);
+    const showMenu = (id, x, y) => {
+        const inSel = selected.has(id);
+        if (!inSel) { setSelected(new Set([id])); anchorRef.current = id; }
+        setMenu({ ids: inSel && selectedIds.length > 1 ? selectedIds : [id], x, y });
+    };
     const openMenu = (e, id) => {
         e.preventDefault();
         let { clientX: x, clientY: y } = e;
         // Da tastiera (Shift+F10 / tasto menu) può arrivare 0,0: ancora il menu alla carta.
         if (!x && !y) { const r = e.currentTarget.getBoundingClientRect(); x = r.left + r.width / 2; y = r.top + r.height / 2; }
-        const inSel = selected.has(id);
-        if (!inSel) { setSelected(new Set([id])); anchorRef.current = id; }
-        setMenu({ ids: inSel && selectedIds.length > 1 ? selectedIds : [id], x, y });
+        showMenu(id, x, y);
     };
+    // Pressione lunga (touch/penna) = click destro. Annullata se il dito si sposta (scroll)
+    // o si alza prima. Android genera anche `contextmenu`: stesso effetto, idempotente.
+    const pressRef = useRef(null); // { timer, x, y }
+    const suppressClickRef = useRef(false);
+    const cancelPress = () => { clearTimeout(pressRef.current?.timer); pressRef.current = null; };
+    const pressHandlers = (id) => ({
+        onPointerDown: (e) => {
+            suppressClickRef.current = false; // nuovo gesto
+            if (e.pointerType === 'mouse') return;
+            const { clientX: x, clientY: y } = e;
+            cancelPress();
+            pressRef.current = {
+                x, y,
+                timer: setTimeout(() => {
+                    pressRef.current = null;
+                    suppressClickRef.current = true;
+                    navigator.vibrate?.(10); // feedback aptico dove esiste (Android)
+                    showMenu(id, x, y);
+                }, 500),
+            };
+        },
+        onPointerMove: (e) => {
+            const p = pressRef.current;
+            if (p && Math.hypot(e.clientX - p.x, e.clientY - p.y) > 10) cancelPress();
+        },
+        onPointerUp: cancelPress,
+        onPointerCancel: cancelPress,
+    });
     // Carte del menu ancora esistenti (una può sparire con undo/delete mentre è aperto).
     const menuCards = menu ? images.filter(i => menu.ids.includes(i.id)) : [];
     let menuSpec = null;
@@ -475,7 +508,7 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
 
     // Scorciatoie: Del = elimina selezione, Esc = deseleziona, Ctrl/Cmd+A = seleziona tutto.
     useEffect(() => {
-        if (!selectMode || !fits) return;
+        if (!fits) return;
         const onKey = (e) => {
             const tag = e.target?.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) return;
@@ -493,35 +526,33 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    }, [selectMode, fits, selected, selectedIds, images, onRemoveMany]);
+    }, [fits, selected, selectedIds, images, onRemoveMany]);
 
     return (
         <div className={`preview-root${isDragActive ? ' drag-active' : ''}`}>
             {/* Skip-link tastiera: la griglia desktop ha uno stop-tab per carta; questo salta al footer. */}
-            {selectMode && images.length > 0 && (
+            {images.length > 0 && (
                 <button
                     type="button"
                     className="skip-cards-link"
                     onClick={() => footerRef.current?.focus()}
                 >Skip cards</button>
             )}
-            {/* Click fuori dalle carte (foglio vuoto/sfondo) = deseleziona. */}
             {/* Glow dei segmenti di selezione: sfocatura del tratto stesso (stesso colore),
                 definita una volta sola e referenziata dal CSS. Non display:none (Firefox lo ignora). */}
-            {selectMode && (
-                <svg width="0" height="0" className="svg-defs" aria-hidden="true" focusable="false">
-                    <filter id="px-seg-glow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feGaussianBlur stdDeviation="2.5" result="b" />
-                        <feMerge>
-                            <feMergeNode in="b" />
-                            <feMergeNode in="b" />
-                            <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                    </filter>
-                </svg>
-            )}
+            <svg width="0" height="0" className="svg-defs" aria-hidden="true" focusable="false">
+                <filter id="px-seg-glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="2.5" result="b" />
+                    <feMerge>
+                        <feMergeNode in="b" />
+                        <feMergeNode in="b" />
+                        <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                </filter>
+            </svg>
+            {/* Click fuori dalle carte (foglio vuoto/sfondo) = deseleziona. */}
             <div className="preview-stage" ref={stageRef}
-                onClick={selectMode ? (e) => { if (!e.target.closest('.preview-card-hotspot')) clearSel(); } : undefined}>
+                onClick={(e) => { if (!e.target.closest('.preview-card-hotspot')) clearSel(); }}>
                 <div className="preview-page-wrap" ref={wrapRef} style={{ width: pageW }}>
                     <PageCanvas
                         pageImages={pageImages}
@@ -551,13 +582,11 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                         </p>
                     )}
                     {/* Annuncio SR del conteggio selezione (la bulk-bar è solo visiva, role=toolbar). */}
-                    {selectMode && (
-                        <p className="sr-only" aria-live="polite">
-                            {selectedIds.length > 0
-                                ? `${selectedIds.length} card${selectedIds.length !== 1 ? 's' : ''} selected${selectedSpansPages ? ', spanning multiple pages' : ''}.`
-                                : ''}
-                        </p>
-                    )}
+                    <p className="sr-only" aria-live="polite">
+                        {selectedIds.length > 0
+                            ? `${selectedIds.length} card${selectedIds.length !== 1 ? 's' : ''} selected${selectedSpansPages ? ', spanning multiple pages' : ''}.`
+                            : ''}
+                    </p>
                     {images.length > 0 && (
                         <div className="preview-card-layer">
                             {Array.from({ length: info.perPage }, (_, i) => {
@@ -600,20 +629,13 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                                         style={{ left, top, width: cardW * scale, height: cardH * scale }}
                                         {...dnd}
                                     >
-                                        {/* Superficie carta = button a tutta area → "cambia art" raggiungibile da tastiera. */}
-                                        {onCardTap ? (
-                                            <button
-                                                type="button"
-                                                className="card-surface"
-                                                onClick={() => onCardTap(img.id)}
-                                                aria-label={`Edit ${name}`}
-                                            />
-                                        ) : (<>
+                                        {/* Superficie carta = button a tutta area → selezione raggiungibile da tastiera. */}
                                         <button
                                             type="button"
                                             className="card-surface"
                                             onClick={(e) => handleCardClick(e, img.id)}
                                             onContextMenu={(e) => openMenu(e, img.id)}
+                                            {...pressHandlers(img.id)}
                                             onKeyDown={(e) => {
                                                 // Space = seleziona/deseleziona (equivalente da tastiera del
                                                 // click); Enter = click nativo, stesso effetto.
@@ -624,14 +646,13 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                                                 const d = e.altKey && dndOn && { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -info.cols, ArrowDown: info.cols }[e.key];
                                                 if (d) { e.preventDefault(); moveTo(img.id, gi + d); }
                                             }}
-                                            title="Click: select or deselect. Right-click: options. Drag: swap"
+                                            title={touch ? undefined : 'Click: select or deselect. Right-click: options. Drag: swap'}
                                             aria-label={`${name}. Enter or Space to select or deselect, Shift+F10 for options, Alt+arrow keys to move.`}
                                             aria-haspopup="menu"
                                             aria-pressed={isSel}
                                         />
                                         <CardFrame />
                                         {lowRes && <span className="sr-only">Low resolution for {dpi} DPI. May print soft.</span>}
-                                        </>)}
                                     </div>
                                 );
                             })}
@@ -664,29 +685,27 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                     visibility:hidden): il footer ha sempre la stessa altezza, quindi selezionare
                     una carta non sposta il foglio. Il pager sta sopra, sempre raggiungibile. */}
                 {fits && images.length > 0 && (
-                        <div className="preview-status">
-                            {selectMode && (
-                                <div className={`bulk-bar${hasSel ? '' : ' is-off'}`} role="toolbar" aria-label="Selected cards">
-                                    <span className="bulk-count">{selectedIds.length} selected{selectedSpansPages ? ' · spans pages' : ''}</span>
-                                    <button type="button" className="bulk-btn" onClick={() => onBleedMany?.(selectedIds)}>
-                                        <IconFrame size={13} /> Bleed
-                                    </button>
-                                    <button type="button" className="bulk-btn bulk-del" onClick={() => { onRemoveMany?.(selectedIds); clearSel(); }}>
-                                        <IconX size={13} /> Delete
-                                    </button>
-                                    <button type="button" className="bulk-btn bulk-clear" onClick={clearSel}>Clear</button>
-                                </div>
-                            )}
-                            <div className={`preview-info${hasSel ? ' is-off' : ''}`}>
-                                <span className="preview-count">
-                                    {images.length} card{images.length !== 1 ? 's' : ''}{missing > 0 ? ` · add ${missing} to fill this page` : ''}
-                                </span>
-                                {/* Suggerimento discreto: rende scopribili selezione e menu. */}
-                                {selectMode && (
-                                    <span className="preview-hint">Click to select or deselect · Right-click for options · Drag to swap</span>
-                                )}
-                            </div>
+                    <div className="preview-status">
+                        <div className={`bulk-bar${hasSel ? '' : ' is-off'}`} role="toolbar" aria-label="Selected cards">
+                            <span className="bulk-count">{selectedIds.length} selected{selectedSpansPages ? ' · spans pages' : ''}</span>
+                            <button type="button" className="bulk-btn" onClick={() => onBleedMany?.(selectedIds)}>
+                                <IconFrame size={13} /> Bleed
+                            </button>
+                            <button type="button" className="bulk-btn bulk-del" onClick={() => { onRemoveMany?.(selectedIds); clearSel(); }}>
+                                <IconX size={13} /> Delete
+                            </button>
+                            <button type="button" className="bulk-btn bulk-clear" onClick={clearSel}>Clear</button>
                         </div>
+                        <div className={`preview-info${hasSel ? ' is-off' : ''}`}>
+                            <span className="preview-count">
+                                {images.length} card{images.length !== 1 ? 's' : ''}{missing > 0 ? ` · add ${missing} to fill this page` : ''}
+                            </span>
+                            {/* Suggerimento discreto: rende scopribili selezione e menu. */}
+                            <span className="preview-hint">
+                                {touch ? 'Tap to select or deselect · Long-press for options' : 'Click to select or deselect · Right-click for options · Drag to swap'}
+                            </span>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>

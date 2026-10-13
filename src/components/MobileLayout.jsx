@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Logo, IconFile, IconDownload, IconList, IconTrash, IconPlus, IconImage, IconX } from './icons';
 import PageSettings from './PageSettings';
 import PagePreview from './PagePreview';
-import CardActionSheet from './CardActionSheet';
 import ExportProgress from './ExportProgress';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 
@@ -33,19 +32,18 @@ function MobilePage({ title, onClose, children }) {
 
 export default function MobileLayout({ settingsProps, previewProps, actions, addMenu }) {
   const [addOpen, setAddOpen] = useState(false);
-  const [sel, setSel] = useState(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [page, setPage] = useState(null); // null | 'settings' | 'export'
 
-  // Esc chiude i due overlay inline (add-sheet, tooltip ?). Gli altri (CardActionSheet,
-  // MobilePage) hanno il loro useOverlayDismiss. Se una pagina/sheet è SOPRA (page/sel),
+  // Esc chiude i due overlay inline (add-sheet, tooltip ?). Gli altri (menu carta,
+  // MobilePage) hanno il loro useOverlayDismiss. Se una pagina è SOPRA (page),
   // l'Esc spetta a quella: qui non si chiude nulla, così un solo Esc non chiude due layer.
   useEffect(() => {
-    if ((!addOpen && !helpOpen) || page || sel) return undefined;
+    if ((!addOpen && !helpOpen) || page) return undefined;
     const onKey = (e) => { if (e.key === 'Escape') { setAddOpen(false); setHelpOpen(false); } };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [addOpen, helpOpen, page, sel]);
+  }, [addOpen, helpOpen, page]);
 
   return (
     <div className="mobile">
@@ -61,7 +59,7 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
             <ol>
               <li><b>Add cards</b>. Tap <b>＋</b> to upload images or import from Scryfall (a card list or a deck link).</li>
               <li><b>Set up</b>. Tap <b>Settings</b> (bottom-left): sheet &amp; card size, bleed, crop marks, CMYK.</li>
-              <li><b>Tweak</b>. Tap a card to change art, duplicate, toggle bleed, or remove it.</li>
+              <li><b>Tweak</b>. <b>Tap</b> cards to select or deselect them; <b>long-press</b> a card for options: change art, duplicate, bleed, remove. With several selected the menu acts on all of them.</li>
               <li><b>Export</b>. Tap <b>Export</b> (bottom-right) for <b>Generate PDF</b>; <b>Save list</b> exports your Scryfall cards as a reloadable deck list.</li>
             </ol>
           </div>
@@ -70,7 +68,7 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
 
       <main className="mobile-body">
         <div className="mobile-cards">
-          <PagePreview {...previewProps} onCardTap={setSel} />
+          <PagePreview {...previewProps} touch />
           {/* Barra inferiore (sostituisce la tab bar): Settings · [Elimina · ＋ · Salva] · Export */}
           <div className="cards-toolbar">
             <button className="ct-nav" onClick={() => setPage('settings')} aria-label="Settings">
@@ -109,15 +107,6 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
               </div>
             </div>
           )}
-          <CardActionSheet
-            card={previewProps.images.find((i) => i.id === sel) || null}
-            bleedStyle={settingsProps.bleedStyle}
-            onClose={() => setSel(null)}
-            onChangeArt={previewProps.onChangeArt}
-            onDuplicate={previewProps.onDuplicate}
-            onToggleBleed={previewProps.onToggleBleed}
-            onRemove={previewProps.onRemove}
-          />
         </div>
       </main>
 
