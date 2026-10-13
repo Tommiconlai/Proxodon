@@ -59,3 +59,33 @@ export function NameFormatDialog({ title, confirmLabel, initialName = '', initia
     </div>
   );
 }
+
+// Conferma "Print deck": sostituzione della coda (se non vuota) e sideboard opzionale.
+export function PrintDeckDialog({ queueCount, sideCount, onConfirm, onClose }) {
+  const [side, setSide] = useState(false);
+  const ref = useOverlayDismiss(onClose, true, { focusContainer: false });
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal modal-confirm" ref={ref} role="dialog" aria-modal="true" aria-label="Print deck" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header"><h2>Print deck</h2></div>
+        {queueCount > 0 && <p className="modal-hint">Replace the {queueCount} card{queueCount !== 1 ? 's' : ''} in the print queue?</p>}
+        {sideCount > 0 && (
+          <label className="checkbox-row">
+            <input type="checkbox" checked={side} onChange={(e) => setSide(e.target.checked)} />
+            <span className="anim-check" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 18 18">
+                <path d="M 1 9 L 1 9 c 0 -5 3 -8 8 -8 L 9 1 C 14 1 17 5 17 9 L 17 9 c 0 4 -4 8 -8 8 L 9 17 C 5 17 1 14 1 9 L 1 9 Z" />
+                <polyline points="1 9 7 14 15 4" />
+              </svg>
+            </span>
+            Include sideboard ({sideCount})
+          </label>
+        )}
+        <div className="modal-actions">
+          <button type="button" className="btn-secondary" onClick={onClose} autoFocus>Cancel</button>
+          <button type="button" className="btn-generate import-btn" onClick={() => onConfirm(side)}>{queueCount > 0 ? 'Replace and print' : 'Print'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}

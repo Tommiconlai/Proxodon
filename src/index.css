@@ -2657,3 +2657,4 @@ body::before {
 .card-zoom { display: block; max-width: 92vw; max-height: 86vh; border-radius: 18px; box-shadow: var(--shadow-lg); }
 .card-zoom-close { position: absolute; top: -12px; right: -12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 50%; }
 .deck-fab { position: fixed; right: 18px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 50; }
+.deck-print { margin-left: auto; }

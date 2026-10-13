@@ -1,21 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDeck } from './useDeck';
-import { FORMATS, boardCounts, countTarget, countOk, refreshSnapshots, addCard } from './deckModel';
+import { FORMATS, boardCounts, countTarget, countOk, refreshSnapshots, addCard, toPrintEntries } from './deckModel';
 import { cardsByIds } from './scryfallSearch';
 import { navigate } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
 import CardSearch from './CardSearch';
 import { MobilePage } from '../components/MobileLayout';
-import { IconArrowLeft, IconPlus } from '../components/icons';
+import { PrintDeckDialog } from './dialogs';
+import { IconArrowLeft, IconPlus, IconPrinter } from '../components/icons';
 
 // Editor del mazzo: barra in alto (nome, formato, stato sync, conteggio), corpo con le sezioni.
-// Ricerca (task 10) e Print deck (task 11) si aggiungono qui.
-export default function DeckEditor({ uid, id, notify }) {
+// Ricerca a sinistra (foglio a tutto schermo su telefono) e Print deck.
+export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDeck }) {
   const { deck, update, saving, error } = useDeck(uid, id);
   const mobile = useIsMobile();
   const [online, setOnline] = useState(() => navigator.onLine);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
   const refreshed = useRef(false);
 
   useEffect(() => {
@@ -57,6 +59,11 @@ export default function DeckEditor({ uid, id, notify }) {
   if (!deck) return <div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>;
 
   const c = boardCounts(deck);
+  // Nessuna domanda se la coda è vuota e non c'è sideboard.
+  const startPrint = () => {
+    if (!printQueueCount && !c.side) onPrintDeck(toPrintEntries(deck));
+    else setPrintOpen(true);
+  };
   const target = countTarget(deck.format);
   const sync = !online ? (saving ? 'Offline, saved on this device' : 'Offline') : saving ? 'Saving…' : 'Saved';
   return (
@@ -73,6 +80,7 @@ export default function DeckEditor({ uid, id, notify }) {
         <span className={`deck-count ${countOk(deck.format, c.main) ? 'ok' : 'warn'}`} title="Main deck">
           {c.main}{target ? `/${target}` : ''}
         </span>
+        <button type="button" className="btn-secondary deck-print" onClick={startPrint} disabled={!c.main}><IconPrinter size={15} /> Print deck</button>
       </header>
       <div className="deck-body">
         {!mobile && <aside className="deck-search"><CardSearch format={deck.format} onAdd={add} /></aside>}
@@ -83,6 +91,10 @@ export default function DeckEditor({ uid, id, notify }) {
         <MobilePage title="Add cards" onClose={() => setSearchOpen(false)}>
           <CardSearch format={deck.format} onAdd={add} autoFocus />
         </MobilePage>
+      )}
+      {printOpen && (
+        <PrintDeckDialog queueCount={printQueueCount} sideCount={c.side} onClose={() => setPrintOpen(false)}
+          onConfirm={(side) => { setPrintOpen(false); onPrintDeck(toPrintEntries(deck, { includeSide: side })); }} />
       )}
     </div>
   );
