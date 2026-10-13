@@ -29,8 +29,9 @@ Firebase. Mainly for the owner today, built so other users can sign up later.
   English prints only.
 - Stats: mana curve, colors (cost pips vs mana sources), types, average mana value,
   legality. **No prices.**
-- Boards: a **Commander** block (1 or 2 commanders) and a **Maybeboard** (excluded from count
-  and print). No sideboard.
+- Boards: a **Commander** block (1 or 2 commanders), a **Sideboard** for 60-card formats (at
+  most 15 cards, excluded from print unless chosen) and a **Maybeboard** (excluded from count
+  and print).
 - "Print deck" imports the whole deck (basic lands included, maybeboard excluded) into the
   existing print queue, **replacing** it after confirmation; the user then edits it there as
   today.
@@ -41,7 +42,7 @@ Firebase. Mainly for the owner today, built so other users can sign up later.
 
 ## Out of scope
 
-Prices, collection tracking, sideboard, sharing / public deck links, Partner / Background
+Prices, collection tracking, sharing / public deck links, Partner / Background
 pairing validation, draw probabilities and sample hands, non-English prints, other card
 games, Firebase App Check.
 
@@ -98,7 +99,7 @@ Deck {
 Row {
   id: string,                    // stable random row id
   qty: number,                   // 1..99
-  board: 'main' | 'maybe',
+  board: 'main' | 'side' | 'maybe',
   commander: boolean,            // only meaningful on board 'main'
   section: string | null,        // custom section id, null = main list
   card: Snapshot
@@ -224,9 +225,12 @@ edition), `CardMenu` and `useOverlayDismiss` (menus), `ConfirmDialog`, `Toast`,
   | Keys (on the highlighted suggestion or a focused result) | Mouse on **+** | Adds |
   | --- | --- | --- |
   | Enter | click | 1 copy to main |
-  | Alt+Enter | Alt+click | 1 copy to maybeboard |
+  | Alt+Enter | Alt+click | 1 copy to sideboard |
   | Shift+Enter | Shift+click | 4 copies to main |
-  | Alt+Shift+Enter | Alt+Shift+click | 4 copies to maybeboard |
+  | Alt+Shift+Enter | Alt+Shift+click | 4 copies to sideboard |
+
+  In Commander (no sideboard) the Alt variants add to the Maybeboard. Cards reach the
+  Maybeboard otherwise through the row menu.
 
   The first autocomplete suggestion is highlighted by default (arrow keys move it), so
   typing a name and pressing Enter adds it. With advanced filters or a raw query, Enter in
@@ -235,14 +239,15 @@ edition), `CardMenu` and `useOverlayDismiss` (menus), `ConfirmDialog`, `Toast`,
   exempt from singleton (basic lands, `limit` 0); a card with `limit` N gets min(4, N);
   any other card in Commander gets 1.
 - **Deck area:** "Group by" (Type / Mana value / Color / Custom) and a "Deck / Stats" switch.
-  Commander block on top, sections in responsive columns, Maybeboard at the bottom
-  (collapsed). Row: quantity, name, mana cost symbols (Scryfall symbol SVGs), set code. Hover
+  Commander block on top, sections in responsive columns, then the **Sideboard** (shown in
+  60-card formats, and in any format when it has rows; flat list sorted by mana value then
+  name, count in its header), Maybeboard at the bottom (collapsed). Row: quantity, name, mana cost symbols (Scryfall symbol SVGs), set code. Hover
   shows the card image and +/- quantity buttons.
 - **Row selection:** click toggles a row in the selection (same model as print cards);
   Shift-click range; Esc clears.
 - **Row menu** (right-click or Shift+F10 / ContextMenu key): Change edition, Split row, Set
-  as commander / Remove as commander, Move to maybeboard / main, Move to section… (custom
-  mode), Remove. Acts on the whole selection when the row is part of it.
+  as commander / Remove as commander, Move to main / sideboard / maybeboard, Move to
+  section… (custom mode), Remove. Acts on the whole selection when the row is part of it.
 - **Custom mode:** "Create section"; drag selected rows onto a section; rename and delete a
   section from its header (deleting returns its rows to the main list).
 
@@ -254,9 +259,12 @@ section…", no drag on touch). Print deck in the top bar.
 
 ### Print deck
 
-1. If the print queue is not empty: confirm "Replace the N cards in the print queue?".
-2. Build entries from main-board rows (commanders included, maybeboard excluded):
-   `{ qty, name, set, collector }`, so the chosen edition is kept.
+1. Confirmation dialog: "Replace the N cards in the print queue?" when the queue is not
+   empty, plus an "Include sideboard (N)" checkbox, unchecked, shown only when the deck has
+   a sideboard. With an empty queue and no sideboard there is no dialog.
+2. Build entries from main-board rows (commanders included) and, if chosen, sideboard rows;
+   maybeboard always excluded: `{ qty, name, set, collector }`, so the chosen edition is
+   kept.
 3. Download images with the existing `fetchScryfallImages` and its progress UI, replace the
    queue, go to `#/print`.
 
@@ -271,12 +279,14 @@ section…", no drag on touch). Print deck in the top bar.
   face colors).
 - **Custom:** main list ("Deck", rows with `section: null`) first, then sections in order.
 - Inside a group: by mana value, then name. Group headers show the summed quantity.
+- Grouping applies to the main board only; Commander, Sideboard and Maybeboard keep their
+  own blocks.
 
 ## Stats (Stats view)
 
 Hand-written SVG, no chart library; built following the dataviz skill.
 
-- **Mana curve:** main-board non-land rows by mana value 0..7+, weighted by qty. Clicking a
+- **Mana curve:** main-board (sideboard and maybeboard excluded in every stat) non-land rows by mana value 0..7+, weighted by qty. Clicking a
   bar highlights those rows.
 - **Average mana value** of non-land cards.
 - **Colors:** per W, U, B, R, G, C: cost pips (from `mana`; hybrid counts for each of its
@@ -293,8 +303,11 @@ Hand-written SVG, no chart library; built following the dataviz skill.
   singleton by oracle id except basic lands (`type` contains "Basic Land") and rows with
   `limit` (0 = any number, N = up to N); every card's `ci` within the commanders' combined
   identity; legality.
-- **Standard, Pioneer, Modern, Legacy, Vintage, Pauper:** main count at least 60; at most 4
-  copies by oracle id (same exceptions); legality (Vintage `restricted` = at most 1 copy).
+- **Standard, Pioneer, Modern, Legacy, Vintage, Pauper:** main count at least 60; sideboard
+  at most 15; at most 4 copies by oracle id counted over main + sideboard (same exceptions);
+  legality on main and sideboard (Vintage `restricted` = at most 1 copy over both).
+- **Sideboard in Commander:** one issue ("Commander has no sideboard"); its rows are left out
+  of the count and of the identity / singleton checks.
 - **Casual:** no checks.
 - `limit` is read at add time from the oracle text: "A deck can have any number of cards
   named" gives 0, "up to seven" / "up to nine" give 7 / 9.
@@ -310,12 +323,18 @@ Hand-written SVG, no chart library; built following the dataviz skill.
 ## Import, export, backup
 
 - **Text import:** `parseCardList`, resolved through `/cards/collection` (set + collector
-  number when present, else name); unresolved lines listed in the result.
-- **Link import:** `fetchDeckList` extended to also return the commanders when the source
-  provides them (Moxfield `commanders` board, Archidekt "Commander" category); they are
-  marked `commander: true`.
-- **Export text:** `qty Name (SET) cn` per line, commanders first, main board only (same
-  format the importers read).
+  number when present, else name); unresolved lines listed in the result. Header lines
+  switch the target board (case-insensitive, optional leading `//` and trailing `:`):
+  "Commander", "Deck" / "Main" / "Mainboard", "Sideboard", "Maybeboard" / "Considering".
+  Without headers everything goes to main; blank lines never switch boards.
+- **Link import:** `fetchDeckList` extended to return boards when the source provides them:
+  commanders (Moxfield `commanders` board, Archidekt "Commander" category) are marked
+  `commander: true`; sideboard (Moxfield `sideboard`, Archidekt "Sideboard") goes to `side`;
+  maybeboard (Moxfield `maybeboard`, Archidekt "Maybeboard" / "Considering") to `maybe`.
+  The print-side import keeps its current behaviour (main + commanders only).
+- **Export text:** `qty Name (SET) cn` per line, commanders first, then main; if the deck
+  has a sideboard, a blank line, a "Sideboard" line and the sideboard rows (MTGA style, read
+  back by the text import above and by Moxfield). Maybeboard only in the JSON backup.
 - **Backup JSON:** `{ app: 'proxoteca', kind: 'decks', v: 1, exportedAt, decks: [...] }`
   with timestamps as ISO strings. Importing adds every deck as a new deck (new ids), never
   overwrites.
@@ -345,8 +364,9 @@ Hand-written SVG, no chart library; built following the dataviz skill.
 - `src/decks/deckModel.selfcheck.js` (run: `node src/decks/deckModel.selfcheck.js`, same
   pattern as `src/utils/scryfall.selfcheck.js`): grouping rules, curve and pips (hybrid,
   Phyrexian), Commander validation (count, singleton exceptions, identity), deck to print
-  entries (qty, edition, maybeboard excluded), text export / import round trip, backup JSON
-  round trip.
+  entries (qty, edition, sideboard only when chosen, maybeboard excluded), 60-card checks
+  (4 copies over main + sideboard, sideboard max 15), text export / import round trip with
+  board headers, backup JSON round trip.
 - Live in the browser pane after the user signs in once: create, search (simple and
   advanced), add, quantities, group modes, custom sections with drag, change edition,
   split, Print deck, phone viewport, offline (Firestore `disableNetwork`) then back online.
@@ -356,7 +376,8 @@ Hand-written SVG, no chart library; built following the dataviz skill.
 ## Phases (each shipped and usable)
 
 1. Firebase setup, tabs and routes, sign-in, deck list (new, rename, duplicate, delete),
-   editor base (name search, add, quantities, group by type, commander, maybeboard), sync
+   editor base (name search with the add shortcuts, quantities, group by type, commander,
+   sideboard, maybeboard), sync
    label, Print deck, text import / export, JSON backup, privacy panel, delete account.
 2. Advanced search filters, Change edition, Split row, group by mana value / color / custom
    with drag and drop.
