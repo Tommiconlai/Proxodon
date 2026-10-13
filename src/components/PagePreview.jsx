@@ -9,7 +9,7 @@ import { IconX, IconCopy, IconFrame, IconImage, IconTrash } from './icons';
 const cardName = (img, idx) => img.name || (img.file?.name || `Card ${idx + 1}`).replace(/\.[^.]+$/, '');
 
 // ── Cornice HUD carta (hover / selezione), dal Figma "Portfolio-TG" ──
-// Selezionata (nodo 4021:2397): 4 squadrette 9×8.5 agli angoli + 4 segmenti centrati sui lati
+// Selezionata (nodo 4021:2397): 4 squadrette agli angoli + 4 segmenti centrati sui lati
 // (sopra/sotto 13.5→86.5%, lati 15→85%), magenta/ciano alternati come il logo, tratto 2px tondo.
 // Hover (nodo 4021:2411): stessi segmenti accorciati in rotazione oraria; li accorcia il CSS
 // (scale dall'estremo giusto), così al click crescono fino alla forma "selezionata".
@@ -24,10 +24,13 @@ function CardFrame() {
                 <line className="m b" x1="13.5%" y1="100%" x2="86.5%" y2="100%" />
                 <line className="c l" x1="0" y1="15%" x2="0" y2="85%" />
             </g>
-            <path className="m" d="M0 8.5V0H9" />
-            <svg x="100%" overflow="visible"><path className="c" d="M-9 0H0V8.5" /></svg>
-            <svg x="100%" y="100%" overflow="visible"><path className="m" d="M0 -8.5V0H-9" /></svg>
-            <svg y="100%" overflow="visible"><path className="c" d="M9 0H0V-8.5" /></svg>
+            {/* Squadrette come i chevron del logo: un braccio lungo il doppio dell'altro (10/5px),
+                il lungo segue il giro orario (alto-sx → destra, alto-dx → giù, basso-dx → sinistra,
+                basso-sx → su), stessa simmetria rotazionale del marchio e dei segmenti. */}
+            <path className="m" d="M0 5V0H10" />
+            <svg x="100%" overflow="visible"><path className="c" d="M-5 0H0V10" /></svg>
+            <svg x="100%" y="100%" overflow="visible"><path className="m" d="M0 -5V0H-10" /></svg>
+            <svg y="100%" overflow="visible"><path className="c" d="M5 0H0V-10" /></svg>
         </svg>
     );
 }
