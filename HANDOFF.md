@@ -108,7 +108,17 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **AI upscale 2× (most recent):** new "Upscale 2× (AI)" in the card context menu (one card or
+- **Dependency security pass (most recent, 2026-10-13):** `jspdf` 4.2.0 → **4.2.1** (`^4.2.1`), plus
+  `npm audit fix` (no `--force`): transitive `dompurify` 3.3.1 → 3.4.17, `fflate` 0.8.2 → 0.8.3,
+  `brace-expansion` 1.1.12 → 1.1.21, plus in-range dev bumps (vite 7.3.7, esbuild 0.28, babel).
+  Triage: none of the fixed advisories hit our code paths. The jspdf critical (GHSA-7x6v, PDF object
+  injection) needs `createAnnotation({color})` and the HTML-injection one (GHSA-wfv2) needs
+  `output('*newwindow', opts)`; `pdfGenerator.js` only calls `addImage`/`line`/`addPage`/`save`.
+  dompurify is only loaded by jspdf's `html()` plugin (never called), fflate is used by jspdf only
+  for `zlibSync` compression, never `unzipSync` (the ZIP64 loop). Updated anyway for defense in depth.
+  Verified: lint clean, build green, dev export of 2 cards (A3, RGB) → valid `%PDF-1.3`, 1 page,
+  2 images, `%%EOF`, jspdf reports 4.2.1, no console errors.
+- **AI upscale 2×:** new "Upscale 2× (AI)" in the card context menu (one card or
   the selection): ESRGAN-medium via UpscalerJS/TF.js runs in the browser (WebGL), no server.
   Scryfall PNG 744×1040 → 1488×2080 (~600 DPI at 63 mm), text/symbol edges visibly crisper than
   the bilinear scaling the PDF did; transparent corners kept. Only offered for RGB cards under
@@ -782,8 +792,13 @@ All verified live + `npm run lint` clean + `npm run build` green.
 - **AI upscale:** weights come from jsDelivr (fallback unpkg) at first use: no CDN = no upscale.
   Self-host by copying `node_modules/@upscalerjs/esrgan-medium/models/x2/*` into `public/` and
   passing `path` to the model definition. Slow on phones / integrated GPUs (no cancel button
-  yet). `npm audit` flags tfjs/upscaler deps (`argparse`, `sprintf-js`, `wireit`/`chokidar`):
-  Node CLI tooling, not in the browser bundle.
+  yet).
+- **Remaining `npm audit` items (11: 6 high, 5 moderate, as of 2026-10-13), all accepted:** only the
+  tfjs/upscaler chain is left. `sprintf-js` via `argparse@1` via `@tensorflow/tfjs` (only its
+  `tfjs-custom-module` CLI bin uses it; no upstream fix) and `braces` via `chokidar`/`micromatch`/
+  `fast-glob` via `wireit` (a build-script runner that `upscaler` wrongly lists as a runtime dep).
+  All Node CLI tooling: grep of `dist/assets/*.js` finds none of them in the browser bundle. The
+  only "fix" is `npm audit fix --force`, which downgrades `upscaler` to 0.12.3 (breaking). Don't.
 
 - **CMYK export: Phases 1+2+3 done; remaining follow-ups** (spec in user's `CMYK-PRINT-EXPORT.md` Phase 3+):
   - **§4 live-deploy smoke UNRUN**. Confirm `lcms.wasm` + the 3 `.icc` load (200/correct MIME) on
