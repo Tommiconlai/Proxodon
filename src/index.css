@@ -2543,3 +2543,4 @@ body::before {
 .decks-empty { max-width: 420px; padding: 28px 0; }
 .decks-empty-title { margin: 0 0 6px; font-family: var(--font-display); font-size: 1.1rem; color: var(--text-primary); }
 .deck-form select { width: 100%; }
+.import-meta-row { display: grid; grid-template-columns: 1fr 160px; gap: 8px; }

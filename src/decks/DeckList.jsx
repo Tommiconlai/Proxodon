@@ -10,6 +10,7 @@ import CardMenu from '../components/CardMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { ManaPips } from './Mana';
 import { NameFormatDialog } from './dialogs';
+import ImportDeckDialog from './ImportDeckDialog';
 import { IconPlus, IconList, IconUpload, IconCopy, IconTrash, IconPencil, IconDownload } from '../components/icons';
 
 const download = (filename, text, type) => {
@@ -73,6 +74,7 @@ export default function DeckList({ uid, notify, account }) {
       <header className="decks-head">
         <h2 className="decks-title">Your decks</h2>
         <div className="decks-actions">
+          <button type="button" className="btn-secondary" onClick={() => setDialog('import')}><IconDownload size={15} /> Import</button>
           <button type="button" className="btn-secondary" onClick={exportBackup} disabled={!decks?.length}><IconList size={15} /> Backup</button>
           <button type="button" className="btn-secondary" onClick={() => fileRef.current.click()}><IconUpload size={15} /> Restore</button>
           <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={restore} />
@@ -116,6 +118,17 @@ export default function DeckList({ uid, notify, account }) {
       )}
 
       {menu && <CardMenu x={menu.x} y={menu.y} title={menu.deck.name} items={menuItems} onClose={closeMenu} />}
+      {dialog === 'import' && (
+        <ImportDeckDialog onClose={() => setDialog(null)}
+          onImported={(deck, notFound) => {
+            setDialog(null);
+            const id = create(deck);
+            notify(notFound.length
+              ? `Imported. Not found: ${notFound.slice(0, 5).join(', ')}${notFound.length > 5 ? ` and ${notFound.length - 5} more` : ''}`
+              : 'Deck imported', notFound.length ? 'error' : 'success');
+            navigate(`/decks/${id}`);
+          }} />
+      )}
       {dialog === 'new' && (
         <NameFormatDialog title="New deck" confirmLabel="Create" onClose={() => setDialog(null)}
           onSubmit={(v) => { setDialog(null); navigate(`/decks/${create(newDeck(v))}`); }} />
