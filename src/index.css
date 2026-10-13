@@ -1687,6 +1687,11 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 .preview-card-hotspot.selected .card-frame line { transform: none; }
 
+/* Selezionata: i segmenti si accendono col loro colore (filtro #px-seg-glow in PagePreview). */
+.preview-card-hotspot.selected .card-frame .segs { filter: url(#px-seg-glow); }
+
+.svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
 /* Riordino drag&drop: sorgente velata (il ghost la porta via), bersaglio ciano. */
 .preview-card-hotspot.dragging::before {
   content: '';

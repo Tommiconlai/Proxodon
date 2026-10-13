@@ -16,10 +16,14 @@ const cardName = (img, idx) => img.name || (img.file?.name || `Card ${idx + 1}`)
 function CardFrame() {
     return (
         <svg className="card-frame" aria-hidden="true" focusable="false">
-            <line className="m t" x1="13.5%" y1="0" x2="86.5%" y2="0" />
-            <line className="c r" x1="100%" y1="15%" x2="100%" y2="85%" />
-            <line className="m b" x1="13.5%" y1="100%" x2="86.5%" y2="100%" />
-            <line className="c l" x1="0" y1="15%" x2="0" y2="85%" />
+            {/* Gruppo: il glow da selezionata va sul gruppo (bbox piena), non sulle linee
+                (bbox alta/larga 0 → regione filtro vuota, la linea sparirebbe). */}
+            <g className="segs">
+                <line className="m t" x1="13.5%" y1="0" x2="86.5%" y2="0" />
+                <line className="c r" x1="100%" y1="15%" x2="100%" y2="85%" />
+                <line className="m b" x1="13.5%" y1="100%" x2="86.5%" y2="100%" />
+                <line className="c l" x1="0" y1="15%" x2="0" y2="85%" />
+            </g>
             <path className="m" d="M0 8.5V0H9" />
             <svg x="100%" overflow="visible"><path className="c" d="M-9 0H0V8.5" /></svg>
             <svg x="100%" y="100%" overflow="visible"><path className="m" d="M0 -8.5V0H-9" /></svg>
@@ -502,6 +506,20 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                 >Skip cards</button>
             )}
             {/* Click fuori dalle carte (foglio vuoto/sfondo) = deseleziona. */}
+            {/* Glow dei segmenti di selezione: sfocatura del tratto stesso (stesso colore),
+                definita una volta sola e referenziata dal CSS. Non display:none (Firefox lo ignora). */}
+            {selectMode && (
+                <svg width="0" height="0" className="svg-defs" aria-hidden="true" focusable="false">
+                    <filter id="px-seg-glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="2.5" result="b" />
+                        <feMerge>
+                            <feMergeNode in="b" />
+                            <feMergeNode in="b" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                    </filter>
+                </svg>
+            )}
             <div className="preview-stage" ref={stageRef}
                 onClick={selectMode ? (e) => { if (!e.target.closest('.preview-card-hotspot')) clearSel(); } : undefined}>
                 <div className="preview-page-wrap" ref={wrapRef} style={{ width: pageW }}>
