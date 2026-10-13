@@ -554,21 +554,24 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
             <div className="preview-stage" ref={stageRef}
                 onClick={(e) => { if (!e.target.closest('.preview-card-hotspot, .preview-nav')) clearSel(); }}>
                 <div className="preview-page-wrap" ref={wrapRef} style={{ width: pageW }}>
-                    {/* Pager desktop ai lati del foglio: «‹ pagina corrente | totale ›». La selezione
-                        può coprire più pagine, quindi cambiare pagina non la azzera. */}
+                    {/* Pager desktop ai lati del foglio: « ‹N | N› ». Il numero accanto alla freccia è
+                        la pagina a cui porta (a pagina 2: 1 a sinistra, 3 a destra) e fa parte del
+                        bottone. La selezione può coprire più pagine, quindi cambiare pagina non la azzera. */}
                     {!touch && fits && totalPages > 1 && <>
                         <nav className="preview-nav nav-side nav-prev" aria-label={`Page ${page + 1} of ${totalPages}`}>
                             <button className="nav-btn" disabled={!canPrev} onClick={() => setPageOffset(0)} aria-label="First page" title="First page">
                                 <IconChevron double size={22} />
                             </button>
-                            <button className="nav-btn" disabled={!canPrev} onClick={() => setPageOffset(page - 1)} aria-label="Previous page" title="Previous page">
+                            <button className="nav-btn" disabled={!canPrev} onClick={() => setPageOffset(page - 1)}
+                                aria-label={canPrev ? `Previous page, ${page}` : 'Previous page'} title="Previous page">
                                 <IconChevron size={22} />
+                                <span className="nav-info">{canPrev ? page : ''}</span>
                             </button>
-                            <span className="nav-info" aria-current="page">{page + 1}</span>
                         </nav>
                         <nav className="preview-nav nav-side nav-next" aria-label="More pages">
-                            <span className="nav-info" title={`${totalPages} pages`}>{totalPages}</span>
-                            <button className="nav-btn" disabled={!canNext} onClick={() => setPageOffset(page + 1)} aria-label="Next page" title="Next page">
+                            <button className="nav-btn" disabled={!canNext} onClick={() => setPageOffset(page + 1)}
+                                aria-label={canNext ? `Next page, ${page + 2}` : 'Next page'} title="Next page">
+                                <span className="nav-info">{canNext ? page + 2 : ''}</span>
                                 <IconChevron size={22} />
                             </button>
                             <button className="nav-btn" disabled={!canNext} onClick={() => setPageOffset(totalPages - 1)} aria-label="Last page" title="Last page">
@@ -704,21 +707,18 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
 
             <div className="preview-footer" ref={footerRef} tabIndex={-1}>
                 {touch && fits && totalPages > 1 && (
-                    <div className="preview-nav">
-                        <button
-                            className="nav-btn"
-                            disabled={!canPrev}
-                            onClick={() => setPageOffset(page - 1)}
-                            aria-label="Previous page"
-                        >‹</button>
-                        <span className="nav-info">{page + 1}/{totalPages}</span>
-                        <button
-                            className="nav-btn"
-                            disabled={!canNext}
-                            onClick={() => setPageOffset(page + 1)}
-                            aria-label="Next page"
-                        >›</button>
-                    </div>
+                    <nav className="preview-nav nav-foot" aria-label={`Page ${page + 1} of ${totalPages}`}>
+                        <button className="nav-btn nav-prev-btn" disabled={!canPrev} onClick={() => setPageOffset(page - 1)}
+                            aria-label={canPrev ? `Previous page, ${page}` : 'Previous page'}>
+                            <IconChevron size={20} />
+                            <span className="nav-info">{canPrev ? page : ''}</span>
+                        </button>
+                        <button className="nav-btn nav-next-btn" disabled={!canNext} onClick={() => setPageOffset(page + 1)}
+                            aria-label={canNext ? `Next page, ${page + 2}` : 'Next page'}>
+                            <span className="nav-info">{canNext ? page + 2 : ''}</span>
+                            <IconChevron size={20} />
+                        </button>
+                    </nav>
                 )}
                 {/* Barra selezione e contatore nella STESSA cella (grid sovrapposta, l'inattivo è
                     visibility:hidden): il footer ha sempre la stessa altezza, quindi selezionare

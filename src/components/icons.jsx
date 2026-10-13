@@ -61,11 +61,15 @@ export function Wordmark({ height = 30, ...props }) {
   );
 }
 
-// Chevron sinistro (‹) o doppio (« con `double`). Per la destra: CSS scaleX(-1).
+// Chevron sinistro (‹) o doppio (« con `double`) col pezzo del logo: braccio lungo il doppio
+// del corto (come gli angoli delle carte selezionate). È il braccio destro del marchio, lungo
+// verso l'alto; per la destra il CSS lo ruota di 180° (= braccio sinistro, lungo verso il basso).
 export function IconChevron({ double, ...props }) {
   return (
     <Svg {...props}>
-      {double ? <><path d="m11 17-5-5 5-5" /><path d="m18 17-5-5 5-5" /></> : <path d="m15 18-6-6 6-6" />}
+      {double
+        ? <><path d="M13.5 5.25 4.5 14.25 9 18.75" /><path d="M19.5 5.25 10.5 14.25 15 18.75" /></>
+        : <path d="M16.5 5.25 7.5 14.25 12 18.75" />}
     </Svg>
   );
 }
