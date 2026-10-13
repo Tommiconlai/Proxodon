@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { watchUser, signIn } from './firebase';
 import AccountMenu from './AccountMenu';
+import DeckList from './DeckList';
+import { deleteAllDecks } from './deckStore';
 
 // Radice dell'area mazzi (lazy): attende lo stato di login, poi lista o editor.
 export default function DecksView({ notify }) {
@@ -8,16 +10,7 @@ export default function DecksView({ notify }) {
   useEffect(() => watchUser(setUser), []);
   if (user === undefined) return <div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>;
   if (!user) return <SignInPanel />;
-  return (
-    <div className="decks-root">
-      <header className="decks-head">
-        <h2 className="decks-title">Your decks</h2>
-        <div className="decks-actions">
-          <AccountMenu user={user} notify={notify} onDeleteData={async () => {}} />
-        </div>
-      </header>
-    </div>
-  );
+  return <DeckList uid={user.uid} notify={notify} account={<AccountMenu user={user} notify={notify} onDeleteData={deleteAllDecks} />} />;
 }
 
 function SignInPanel() {

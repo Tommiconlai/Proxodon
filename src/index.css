@@ -2511,3 +2511,35 @@ body::before {
 
 .privacy-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45; }
 .privacy-list b { color: var(--text-primary); }
+
+/* Lista mazzi: riquadri con l'arte del comandante sfumata nel corpo. */
+.deck-new { width: auto; padding: 9px 16px; }
+.deck-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.deck-tile {
+  width: 100%;
+  display: flex; flex-direction: column;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  -webkit-touch-callout: none;
+  user-select: none;
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+.deck-tile:hover, .deck-tile:focus-visible { border-color: var(--border-hover); box-shadow: 0 0 18px rgba(0, 229, 255, 0.16); transform: translateY(-2px); outline: none; }
+.deck-tile-art { position: relative; aspect-ratio: 626 / 457; background: var(--bg-elevated) center 22% / cover no-repeat; }
+.deck-tile-art::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, var(--bg-surface)); }
+.deck-tile-body { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px 12px; }
+.deck-tile-name { font-family: var(--font-display); font-weight: 600; font-size: 0.95rem; color: var(--text-primary); }
+.deck-tile-meta { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-secondary); }
+.deck-tile-meta .warn { color: var(--warning); }
+.mana { display: inline-flex; align-items: center; gap: 2px; }
+.mana img { display: block; }
+.decks-empty { max-width: 420px; padding: 28px 0; }
+.decks-empty-title { margin: 0 0 6px; font-family: var(--font-display); font-size: 1.1rem; color: var(--text-primary); }
+.deck-form select { width: 100%; }
