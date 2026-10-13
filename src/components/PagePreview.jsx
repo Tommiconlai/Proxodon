@@ -372,6 +372,46 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
         anchorRef.current = id;
     };
 
+    // Selezione ad area (solo desktop, mouse): premi sul vuoto e trascina → rettangolo; le carte
+    // che tocca diventano la selezione, con Ctrl/⌘/Shift si aggiungono a quella esistente.
+    // Sulle carte il trascinamento resta lo scambio. Solo la pagina visibile.
+    const [marquee, setMarquee] = useState(null); // { left, top, width, height } relativi allo stage
+    const marqueeRef = useRef(null); // { x0, y0, base: Set, active }
+    const swallowClickRef = useRef(false); // il click che chiude un'area non deve deselezionare
+    const marqueeHandlers = touch ? {} : {
+        onPointerDown: (e) => {
+            swallowClickRef.current = false; // nuovo gesto
+            if (e.pointerType !== 'mouse' || e.button !== 0 || e.target.closest('.preview-card-hotspot, .preview-nav')) return;
+            e.preventDefault(); // niente selezione di testo mentre si trascina
+            const add = e.ctrlKey || e.metaKey || e.shiftKey;
+            marqueeRef.current = { x0: e.clientX, y0: e.clientY, base: add ? new Set(selected) : new Set(), active: false };
+            e.currentTarget.setPointerCapture(e.pointerId);
+        },
+        onPointerMove: (e) => {
+            const m = marqueeRef.current;
+            if (!m || (!m.active && Math.hypot(e.clientX - m.x0, e.clientY - m.y0) < 4)) return;
+            m.active = true;
+            const s = stageRef.current.getBoundingClientRect();
+            const cx = Math.min(Math.max(e.clientX, s.left), s.right);
+            const cy = Math.min(Math.max(e.clientY, s.top), s.bottom);
+            const [x1, x2] = m.x0 < cx ? [m.x0, cx] : [cx, m.x0];
+            const [y1, y2] = m.y0 < cy ? [m.y0, cy] : [cy, m.y0];
+            const n = new Set(m.base);
+            wrapRef.current?.querySelectorAll('.preview-card-hotspot').forEach((h) => {
+                const r = h.getBoundingClientRect();
+                if (r.left < x2 && r.right > x1 && r.top < y2 && r.bottom > y1) n.add(h.dataset.cardId);
+            });
+            setSelected(n);
+            setMarquee({ left: x1 - s.left, top: y1 - s.top, width: x2 - x1, height: y2 - y1 });
+        },
+        onPointerUp: () => {
+            if (marqueeRef.current?.active) swallowClickRef.current = true;
+            marqueeRef.current = null;
+            setMarquee(null);
+        },
+        onPointerCancel: () => { marqueeRef.current = null; setMarquee(null); },
+    };
+
     // Riordino (solo desktop, `!touch`): trascina una carta su un'altra → le due si scambiano di posto,
     // le altre restano ferme. Alt+frecce = scambio col vicino, alternativa da tastiera.
     // ponytail: solo dentro la pagina visibile; tra pagine si passa da Alt+frecce.
@@ -550,9 +590,13 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                     </feMerge>
                 </filter>
             </svg>
-            {/* Click fuori dalle carte (foglio vuoto/sfondo) = deseleziona. */}
-            <div className="preview-stage" ref={stageRef}
-                onClick={(e) => { if (!e.target.closest('.preview-card-hotspot, .preview-nav')) clearSel(); }}>
+            {/* Click fuori dalle carte (foglio vuoto/sfondo) = deseleziona; trascinamento = selezione ad area. */}
+            <div className="preview-stage" ref={stageRef} {...marqueeHandlers}
+                onClick={(e) => {
+                    if (swallowClickRef.current) { swallowClickRef.current = false; return; }
+                    if (!e.target.closest('.preview-card-hotspot, .preview-nav')) clearSel();
+                }}>
+                {marquee && <div className="marquee" style={marquee} aria-hidden="true" />}
                 <div className="preview-page-wrap" ref={wrapRef} style={{ width: pageW }}>
                     {/* Pager desktop ai lati del foglio: « ‹N | N› ». Il numero accanto alla freccia è
                         la pagina a cui porta (a pagina 2: 1 a sinistra, 3 a destra) e fa parte del

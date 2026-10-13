@@ -1187,6 +1187,16 @@ input[type="range"]::-webkit-slider-thumb:hover {
   position: relative;
 }
 
+/* Rettangolo della selezione ad area (stile HUD come il frame carte: ciano tratteggiato, velo leggero). */
+.marquee {
+  position: absolute;
+  z-index: 4;
+  border: 1px dashed var(--cyan);
+  background: rgba(0, 229, 255, 0.08);
+  box-shadow: 0 0 12px var(--cyan-glow);
+  pointer-events: none;
+}
+
 /* Pavimento a griglia prospettica viola dietro il foglio (dal design) + alone radiale.
    Decorativo, statico, pointer-events none: il foglio bianco resta il protagonista. */
 .preview-stage::before {
