@@ -1,4 +1,9 @@
 <svg width="64" height="64" viewBox="-266 -266 532 532" xmlns="http://www.w3.org/2000/svg">
   <rect x="-266" y="-266" width="532" height="532" rx="112" fill="#000"/>
-  <path d="M-137 -188L0 -51L74 -125M188 -137L51 0L125 74M137 188L0 51L-74 125M-188 137L-51 0L-125 -74" fill="none" stroke="#fff" stroke-width="39" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="none" stroke-width="39" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M-137 -188L0 -51L74 -125" stroke="#ff2d95"/>
+    <path d="M188 -137L51 0L125 74" stroke="#00e5ff"/>
+    <path d="M137 188L0 51L-74 125" stroke="#ff2d95"/>
+    <path d="M-188 137L-51 0L-125 -74" stroke="#00e5ff"/>
+  </g>
 </svg>

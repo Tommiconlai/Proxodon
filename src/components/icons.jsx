@@ -22,16 +22,24 @@ function Svg({ size = 18, children, ...props }) {
   );
 }
 
-// Path del marchio Proxoteca: quattro chevron ruotati di 90° attorno al centro, tratto
-// tondo. Unità = px del logo sorgente 736×736 (centro 0,0; ingombro ±207.5 col tratto).
-// Stessa geometria di public/favicon.svg.
-const LOGO_PATH = 'M-137 -188L0 -51L74 -125M188 -137L51 0L125 74M137 188L0 51L-74 125M-188 137L-51 0L-125 -74';
+// Marchio Proxoteca: quattro chevron ruotati di 90° attorno al centro, tratto tondo.
+// Unità = px del logo sorgente 736×736 (centro 0,0; ingombro ±207.5 col tratto).
+// Ordine orario da quello in alto; colori alternati magenta/ciano (palette pagina).
+// Stessa geometria e colori di public/favicon.svg.
+const LOGO_ARMS = [
+  'M-137 -188L0 -51L74 -125',
+  'M188 -137L51 0L125 74',
+  'M137 188L0 51L-74 125',
+  'M-188 137L-51 0L-125 -74',
+];
 
-// Brandmark inline (no fetch, base-safe); colore da `currentColor`.
+// Brandmark inline (no fetch, base-safe).
 export function Logo({ size = 34, ...props }) {
   return (
     <svg width={size} height={size} viewBox="-208 -208 416 416" aria-hidden="true" focusable="false" {...props}>
-      <path d={LOGO_PATH} fill="none" stroke="currentColor" strokeWidth="39" strokeLinecap="round" strokeLinejoin="round" />
+      <g fill="none" strokeWidth="39" strokeLinecap="round" strokeLinejoin="round">
+        {LOGO_ARMS.map((d, i) => <path key={d} d={d} stroke={i % 2 ? '#00e5ff' : '#ff2d95'} />)}
+      </g>
     </svg>
   );
 }
