@@ -44,7 +44,7 @@ const WORDMARK_X_V = [
 export function Wordmark({ height = 30, ...props }) {
   return (
     <svg height={height} width={(height * 143) / 30.5} viewBox="0 0 143 30.5" role="img" aria-label="Proxoteca" {...props}>
-      {/* .x-v = V sopra/sotto: all'hover fanno due giri attorno al centro della X (CSS .wordmark). */}
+      {/* .x-v = V sopra/sotto: all'hover fanno due giri sull'asse verticale del centro della X (CSS .wordmark). */}
       <g fill="#00e5ff">
         {WORDMARK_LETTERS.map((d) => <path key={d} d={d} />)}
         <path d={WORDMARK_X_CORE} />
