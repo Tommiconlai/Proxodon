@@ -150,8 +150,11 @@ h3 {
   pointer-events: none;
 }
 
-.app-header .logo-mark {
+/* Marchio bianco con la stessa aberrazione ciano/magenta del wordmark */
+.logo-mark {
   flex-shrink: 0;
+  color: #f5f3ff;
+  filter: drop-shadow(-1px 0 rgba(0, 229, 255, 0.45)) drop-shadow(1px 0 rgba(255, 45, 149, 0.45));
 }
 
 /* Wordmark: colore pieno + aberrazione cromatica ciano/magenta (niente gradient-text) */

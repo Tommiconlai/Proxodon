@@ -22,25 +22,16 @@ function Svg({ size = 18, children, ...props }) {
   );
 }
 
-// Brandmark Proxoteca: cerchio gold gradient + burst bianco. Inline (no fetch, base-safe);
-// stessa grafica di public/favicon.svg.
+// Path del marchio Proxoteca: quattro chevron ruotati di 90° attorno al centro, tratto
+// tondo. Unità = px del logo sorgente 736×736 (centro 0,0; ingombro ±207.5 col tratto).
+// Stessa geometria di public/favicon.svg.
+const LOGO_PATH = 'M-137 -188L0 -51L74 -125M188 -137L51 0L125 74M137 188L0 51L-74 125M-188 137L-51 0L-125 -74';
+
+// Brandmark inline (no fetch, base-safe); colore da `currentColor`.
 export function Logo({ size = 34, ...props }) {
-  // Marchio cyberpunk (dal design): mirino, anello esterno ciano, anello interno
-  // magenta, linea verticale magenta + orizzontale ciano, con glow.
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" focusable="false" {...props}>
-      <defs>
-        <filter id="pxGlowC" x="-60%" y="-60%" width="220%" height="220%">
-          <feDropShadow dx="0" dy="0" stdDeviation="1.6" floodColor="#00e5ff" floodOpacity="0.8" />
-        </filter>
-        <filter id="pxGlowM" x="-60%" y="-60%" width="220%" height="220%">
-          <feDropShadow dx="0" dy="0" stdDeviation="1.6" floodColor="#ff2d95" floodOpacity="0.8" />
-        </filter>
-      </defs>
-      <circle cx="32" cy="32" r="29" fill="none" stroke="#00e5ff" strokeWidth="2" opacity="0.9" filter="url(#pxGlowC)" />
-      <circle cx="32" cy="32" r="14" fill="none" stroke="#ff2d95" strokeWidth="2" opacity="0.85" filter="url(#pxGlowM)" />
-      <line x1="32" y1="6" x2="32" y2="58" stroke="#ff2d95" strokeWidth="2.2" filter="url(#pxGlowM)" />
-      <line x1="6" y1="32" x2="58" y2="32" stroke="#00e5ff" strokeWidth="2.2" filter="url(#pxGlowC)" />
+    <svg width={size} height={size} viewBox="-208 -208 416 416" aria-hidden="true" focusable="false" {...props}>
+      <path d={LOGO_PATH} fill="none" stroke="currentColor" strokeWidth="39" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

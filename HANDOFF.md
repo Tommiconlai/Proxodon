@@ -69,9 +69,9 @@ before restarting.
 | `src/utils/pdfGenerator.js` | Grid math (`getGridInfo(formatKey, bleedMm, cardW=63, cardH=88, customSheet=null)`; `formatKey==='custom'` uses `customSheet` mm dims, else `PAPER_FORMATS`) + `generatePDF(items, formatKey, bleedMm, dpi, bleedStyle, cardW, cardH, cropMarks, cropStyle, customSheet)` (jspdf, dynamically imported) + `drawCardWithBleed` (stretch/mirror/black bleed) + `resolveBleedMode` (per-card mode × global style) + `drawCropMarks(…, style)` (`lines`/`corners`) + `cropMarkSpan` (clamped crop marks) |
 | `src/utils/scryfall.js` | `parseCardList` (text → `{qty,name,set,collector}`; collector keeps **original case**. Scryfall `/cards/collection` is case-sensitive on it, e.g. The List `TMP-294`) + `fetchScryfallImages` (`/cards/collection` batched, printing-pinned via name\|set\|collector keys, downloads PNGs as `File`; DFC → both faces) + `fetchPrints` + `downloadAsFile` + `fetchDeckList` (deck link → text, via `fetchViaProxy` = `CORS_PROXIES` fallback chain: allorigins → codetabs → corsproxy.io) + `scryfallFetch` (retry 429/5xx + network, clear error on Scryfall outage) + `deckLine(qty,name,set,cn)` (builds `qty Name (SET) cn` so deck links pin the **edition chosen in the deck**) + `buildDeckList(items)` (placed cards → deck-list text for "Save list"; front faces only, custom uploads excluded) |
 | `src/utils/scryfall.selfcheck.js` | `node`-runnable assert check for `parseCardList` (no framework). Run: `node src/utils/scryfall.selfcheck.js` |
-| `src/components/icons.jsx` | Custom lucide-style SVG icon set (currentColor), incl. `IconPlus`, `IconDownload`, `IconList` (Save list, distinct from the download/export arrows), `IconCopy`, `IconFrame` + `Logo` (Proxoteca brandmark: gold-gradient circle + white burst, inline; same art as `public/favicon.svg`, used in the header) |
+| `src/components/icons.jsx` | Custom lucide-style SVG icon set (currentColor), incl. `IconPlus`, `IconDownload`, `IconList` (Save list, distinct from the download/export arrows), `IconCopy`, `IconFrame` + `Logo` (Proxoteca brandmark: four rotated chevrons, stroke `currentColor`, path `LOGO_PATH` in logo-source px, viewBox ±208; same geometry as `public/favicon.svg`; `.logo-mark` colours it `#f5f3ff` + cyan/magenta drop-shadow fringe) |
 | `src/index.css` | All styling + design tokens |
-| `public/` (favicons) | Proxoteca icon set: `favicon.svg/.ico`, `favicon-16/32/48/192/512.png`, `apple-touch-icon.png`, `site.webmanifest`. Linked in `index.html` with root-absolute paths → Vite rewrites to `./` via `base:'./'` (Pages-safe); manifest icon `src`s are relative. **`favicon.svg` is the gold-circle + white-burst mark** (matches the header). ⚠️ The **raster PNG/ico/apple-touch are still the old dark-`#16181D`-square** version. No local rasterizer (sharp won't install); re-export from the design tool to match. |
+| `public/` (favicons) | Proxoteca icon set: `favicon.svg/.ico`, `favicon-16/32/48/192/512.png`, `apple-touch-icon.png`, `site.webmanifest`. Linked in `index.html` with root-absolute paths → Vite rewrites to `./` via `base:'./'` (Pages-safe); manifest icon `src`s are relative. All icons = **white chevron mark on black**: `favicon.svg` + 16/32/48/192/512 PNG + `.ico` (16/32/48) use a rounded square (`rx` 112 of 532, mark ~78% wide); `apple-touch-icon.png` is a full square with more padding (iOS rounds it). Rasters made with **Pillow** (8x supersample, lines + round caps/joins drawn from the same coordinates as `LOGO_PATH`, stroke 39). Manifest colours `#08070f`. |
 
 ## Design system, "Proxoteca Cyberpunk" (since 2026-07-04)
 
@@ -91,7 +91,7 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 - **Signature elements:** `[ SECTION ]` sidebar headers (h2 `::before`/`::after` mono
   brackets, cyan/magenta with glow); wordmark = solid `#f5f3ff` + **chromatic-aberration
   text-shadow** (cyan left / magenta right), deliberately NOT gradient-text, the slop
-  detector is now fully clean; crosshair `Logo` (icons.jsx, cyan/magenta rings + axes);
+  detector is now fully clean; `Logo` = white four-chevron mark (icons.jsx) with the wordmark's cyan/magenta fringe;
   **Generate CTA** = animated gradient border via two-layer background
   (`padding-box`/`border-box` + `px-sweep`), dark core, acid text, no wrapper element,
   disabled = flat dark; cyan **pulsing CMYK chip** (`px-pulse`); compression slider =
@@ -103,12 +103,17 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 - **Empty state:** no overlay, bare white sheet; the framed `.empty-cta-box` CTA was removed
   2026-10-13 at the user's request (Add cards button bottom-left is enough).
 - **Invariant:** the print sheet preview stays **pure white, never tinted** (print accuracy).
-- ⚠️ **Favicons still show the old gold mark** (svg + rasters). Re-export to the crosshair
-  when possible (no local rasterizer).
 
 ## Done recently
 
-- **Em-dash purge (most recent):** every U+2014 in the repo (src UI copy + comments, HANDOFF,
+- **New logo + favicons (most recent):** user supplied a new brandmark (white, four 90°-rotated
+  chevrons with round caps, on black). Rebuilt as vector by fitting a parametric model to the
+  PNG (IoU 0.96): centre-to-vertex 51, long arm 137, short arm 74, stroke 39 (units = px of the
+  736 source). `Logo` (header desktop + mobile) now draws that path in `currentColor`; favicon
+  svg + all rasters + `.ico` regenerated (Pillow), manifest colours fixed (`#16181D` → `#08070f`).
+  Replaces the cyberpunk crosshair and the stale gold favicons. Verified live: header renders,
+  all icon URLs 200 with right MIME.
+- **Em-dash purge:** every U+2014 in the repo (src UI copy + comments, HANDOFF,
   docs/, .impeccable/) replaced by a period (new sentence, next word capitalised) or a comma,
   decided per case. UI strings changed accordingly, e.g. card sizes `Standard, 63×88`, sheet
   options `A3, 297×420 mm`, toasts/errors `PDF ready. Check your downloads.` Only hit left is
