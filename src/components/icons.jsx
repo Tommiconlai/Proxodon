@@ -44,13 +44,13 @@ const WORDMARK_X_V = [
 export function Wordmark({ height = 30, ...props }) {
   return (
     <svg height={height} width={(height * 143) / 30.5} viewBox="0 0 143 30.5" role="img" aria-label="Proxoteca" {...props}>
-      {/* .x-part = pezzi della X, ribaltati in orizzontale all'hover: prima .x-core, poi .x-v (CSS .wordmark). */}
+      {/* .x-v = V sopra/sotto: all'hover fanno due giri attorno al centro della X (CSS .wordmark). */}
       <g fill="#00e5ff">
         {WORDMARK_LETTERS.map((d) => <path key={d} d={d} />)}
-        <path className="x-part x-core" d={WORDMARK_X_CORE} />
+        <path d={WORDMARK_X_CORE} />
       </g>
       <g fill="none" stroke="#ff2d95" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-        {WORDMARK_X_V.map((d) => <path key={d} d={d} className="x-part x-v" />)}
+        {WORDMARK_X_V.map((d) => <path key={d} d={d} className="x-v" />)}
       </g>
     </svg>
   );

@@ -156,19 +156,18 @@ h3 {
 
 .wordmark { flex-shrink: 0; overflow: visible; }
 
-/* Hover sul wordmark: la X si ribalta attorno al proprio centro (56.5, 15.25 nel viewBox),
-   prima la parte centrale sull'asse orizzontale, poi le V sopra/sotto sull'asse verticale.
-   In uscita l'ordine si inverte (il ritardo di uscita è quello dello stato di base). */
-.wordmark .x-part {
+/* Hover sul wordmark: il centro della X resta fermo, le V sopra/sotto fanno due giri rapidi
+   attorno al centro della X (56.5, 15.25 nel viewBox). Animazione e non transizione: all'uscita
+   non riavvolge (2 giri = posizione di partenza). */
+.wordmark .x-v {
   transform-box: view-box;
   transform-origin: 56.5px 15.25px;
-  transition: transform 0.4s cubic-bezier(0.65, 0, 0.35, 1);
 }
-.wordmark .x-core { transition-delay: 0.3s; }
+
+@keyframes x-spin { to { transform: rotate(2turn); } }
 
 @media (hover: hover) {
-  .wordmark:hover .x-core { transform: scaleY(-1); transition-delay: 0s; }
-  .wordmark:hover .x-v { transform: scaleX(-1); transition-delay: 0.3s; }
+  .wordmark:hover .x-v { animation: x-spin 0.8s cubic-bezier(0.65, 0, 0.35, 1); }
 }
 
 /* Pulsante "?" + tooltip "come funziona" (hover/focus, CSS puro) */
