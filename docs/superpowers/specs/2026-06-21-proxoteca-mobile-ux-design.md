@@ -1,4 +1,4 @@
-# Proxoteca — Mobile UX design
+# Proxoteca, Mobile UX design
 
 Date: 2026-06-21
 Status: approved (design), pending implementation plan
@@ -6,13 +6,13 @@ Status: approved (design), pending implementation plan
 ## Goal
 
 Add a distinct mobile experience (not just responsive squish) with **full feature
-parity** — including PDF generation/download — for viewports `≤768px`. Desktop layout
+parity**, including PDF generation/download, for viewports `≤768px`. Desktop layout
 (sidebar + main preview) is unchanged above the breakpoint.
 
 ## Problem with the current UI on mobile
 
-- The sidebar is a fixed ~300px column — doesn't fit a phone.
-- Per-card controls (change art / duplicate / bleed / remove) reveal on **hover** — touch
+- The sidebar is a fixed ~300px column, doesn't fit a phone.
+- Per-card controls (change art / duplicate / bleed / remove) reveal on **hover**. Touch
   devices have no hover, so they're unreachable (known gap in HANDOFF).
 - The `?` help tooltip is hover-only.
 - Layout is a two-column grid (sidebar | preview) that doesn't reflow usefully.
@@ -32,16 +32,16 @@ single-scroll page (least distinctive, more scrolling).
 - **All state and handlers stay in `App`** (images, formatKey, bleed, dpi, cardType, crop,
   sheet, modals, `addItems`, `handleRemove`, `handleClearAll`, `handleToggleBleed`,
   `handleDuplicate`, `handleReplaceArt`, `handleGenerate`, `handleSaveProject`, `lowResCount`,
-  `missing`, the dropzone `open`). `MobileLayout` receives them as props — no duplicated logic,
+  `missing`, the dropzone `open`). `MobileLayout` receives them as props, no duplicated logic,
   single source of truth. Desktop and mobile share one state.
 
 ### The three tabs (bottom `BottomTabBar`)
-1. **Cards** — full-width preview (reuses `PageCanvas`) + pager + per-card tap targets.
+1. **Cards**, full-width preview (reuses `PageCanvas`) + pager + per-card tap targets.
    A floating `＋` FAB (bottom-right) opens the add menu as a bottom sheet
    (Upload files → dropzone `open()`; Import from Scryfall → opens `ScryfallImportModal`).
-2. **Settings** — the entire `PageSettings` component as-is, vertical scroll. Includes the
+2. **Settings**, the entire `PageSettings` component as-is, vertical scroll. Includes the
    low-res warning above the dpi field.
-3. **Export** — a "ready to print?" review screen: card count + missing count, the low-res
+3. **Export**, a "ready to print?" review screen: card count + missing count, the low-res
    warning, then **Generate PDF** (primary), **Save list**, **Delete all**.
 
 ### Touch interactions (replace hover)
@@ -50,7 +50,7 @@ single-scroll page (least distinctive, more scrolling).
   existing handlers immediately and close the sheet.
 - Modals (`ScryfallImportModal`, `ArtPickerModal`) render **full-screen** on mobile via
   responsive CSS (same components).
-- The `?` help tooltip toggles on tap on mobile (currently `:hover`/`:focus-within` — add a
+- The `?` help tooltip toggles on tap on mobile (currently `:hover`/`:focus-within`, add a
   tap toggle that doesn't regress desktop hover).
 
 ### Component changes

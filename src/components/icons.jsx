@@ -1,5 +1,5 @@
 /* ============================================================
-   ICONS — lucide-style, stroke = currentColor (themeable)
+   ICONS. Lucide-style, stroke = currentColor (themeable)
    ============================================================ */
 
 function Svg({ size = 18, children, ...props }) {
@@ -25,7 +25,7 @@ function Svg({ size = 18, children, ...props }) {
 // Brandmark Proxoteca: cerchio gold gradient + burst bianco. Inline (no fetch, base-safe);
 // stessa grafica di public/favicon.svg.
 export function Logo({ size = 34, ...props }) {
-  // Marchio cyberpunk (dal design): mirino — anello esterno ciano, anello interno
+  // Marchio cyberpunk (dal design): mirino, anello esterno ciano, anello interno
   // magenta, linea verticale magenta + orizzontale ciano, con glow.
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" focusable="false" {...props}>
@@ -126,7 +126,7 @@ export function IconDownload(props) {
   );
 }
 
-// Salva lista: glifo "elenco" — distinto dalle frecce-giù di Download/Export (evita
+// Salva lista: glifo "elenco", distinto dalle frecce-giù di Download/Export (evita
 // la collisione "due download" adiacenti nella barra mobile).
 export function IconList(props) {
   return (

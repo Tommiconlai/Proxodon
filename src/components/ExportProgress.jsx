@@ -2,7 +2,7 @@ import { IconFile } from './icons';
 
 /**
  * Blocco export PDF: bottone Generate / barra di avanzamento + Annulla.
- * Condiviso da sidebar desktop (App) e pagina Export mobile (MobileLayout) —
+ * Condiviso da sidebar desktop (App) e pagina Export mobile (MobileLayout),
  * stesso markup, un solo posto da mantenere.
  * props: loading, progress {done,total}|null, disabled, onGenerate, onCancel.
  */

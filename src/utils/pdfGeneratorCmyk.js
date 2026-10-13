@@ -1,5 +1,5 @@
 /**
- * PDF Generator CMYK / PDF-X-1a — Proxoteca
+ * PDF Generator CMYK / PDF-X-1a, Proxoteca
  *
  * Esportatore di stampa CMYK, additivo e separato dal path jsPDF (RGB/schermo),
  * che resta intatto. Produce un PDF/X-1a:2003: ogni carta è un'immagine

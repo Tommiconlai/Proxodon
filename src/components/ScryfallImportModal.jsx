@@ -51,7 +51,7 @@ export default function ScryfallImportModal({ open, onClose, onImport }) {
             // 0 importate ma con "non trovate" = fallimento totale: mostra un errore,
             // non il riquadro "✓ 0 imported" (che leggerebbe come successo).
             if (!files.length && notFound.length) {
-                setError(`None of the ${notFound.length} card${notFound.length > 1 ? 's were' : ' was'} found — check the spelling, or the (SET) number.`);
+                setError(`None of the ${notFound.length} card${notFound.length > 1 ? 's were' : ' was'} found. Check the spelling, or the (SET) number.`);
             } else {
                 setResult({ imported: files.length, notFound });
             }

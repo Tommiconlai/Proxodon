@@ -4,12 +4,12 @@
 
 ## Files edited
 
-- `src/index.css` — appended `@media (max-width: 768px)` block at end of file
-- `src/components/MobileLayout.jsx` — added `helpOpen` state + `?` help block in header
+- `src/index.css`, appended `@media (max-width: 768px)` block at end of file
+- `src/components/MobileLayout.jsx`, added `helpOpen` state + `?` help block in header
 
 ## What changed
 
-### Step 1 — full-screen modals (`src/index.css`)
+### Step 1, full-screen modals (`src/index.css`)
 
 Appended a new `@media (max-width: 768px)` block (after all existing mobile CSS) overriding:
 
@@ -24,9 +24,9 @@ Appended a new `@media (max-width: 768px)` block (after all existing mobile CSS)
 
 Also added `.help.open .help-tooltip { opacity: 1; visibility: visible; transform: translateY(0); }` inside the same block.
 
-Desktop rules are untouched — all overrides are scoped to `@media (max-width: 768px)`.
+Desktop rules are untouched. All overrides are scoped to `@media (max-width: 768px)`.
 
-### Step 2 — `?` help tap toggle (`src/components/MobileLayout.jsx`)
+### Step 2, `?` help tap toggle (`src/components/MobileLayout.jsx`)
 
 - Added `const [helpOpen, setHelpOpen] = useState(false)`.
 - Rendered `<div className={\`help${helpOpen ? ' open' : ''}\`}>` in `.mobile-header` after `<h1>`.

@@ -1,5 +1,5 @@
 /**
- * Import da MPCFill (MakePlayingCards autofill) — file XML <order>.
+ * Import da MPCFill (MakePlayingCards autofill), file XML <order>.
  *
  * Ogni <card> ha <id> (file Google Drive), <slots> (posizioni; più slot = più
  * copie), <query> (nome carta) e <name> (filename con l'art). Le immagini sono

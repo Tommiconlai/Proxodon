@@ -1,4 +1,4 @@
-# HANDOFF — Proxoteca
+# HANDOFF, Proxoteca
 
 Context for the next Claude Code session.
 
@@ -27,8 +27,8 @@ npm run lint
 
 **Deploy:** GitHub Pages via Actions (`.github/workflows/deploy.yml`: `npm ci` + build →
 `deploy-pages`). Repo Settings → Pages → Source must be **"GitHub Actions"** (not branch).
-`vite.config.js` sets `base: './'` so assets resolve under the `/Proxoteca/` subpath —
-keep it relative (don't hardcode the repo name). Live at
+`vite.config.js` sets `base: './'` so assets resolve under the `/Proxoteca/` subpath.
+Keep it relative (don't hardcode the repo name). Live at
 `https://tommiconlai.github.io/Proxoteca/`. (Repo was renamed `Impagina-Proxy` → `Proxoteca`
 on 2026-06-21; the old Pages URL 404s. Relative `base` meant no rebuild was needed.)
 
@@ -38,24 +38,24 @@ To populate without picking files, inject test images into the hidden `<input ty
 with a `DataTransfer` + dispatched `change` event (the + button calls react-dropzone's
 `open()`; drag&drop works on the whole preview area).
 
-Gotcha: vite ignores the `PORT` env var, so `autoPort` assigns a port vite won't use —
-keep `port: 5173` and, if `preview_stop` leaves the vite child listening on 5173, kill it
+Gotcha: vite ignores the `PORT` env var, so `autoPort` assigns a port vite won't use.
+Keep `port: 5173` and, if `preview_stop` leaves the vite child listening on 5173, kill it
 before restarting.
 
 ## File map
 
 | File | Role |
 |------|------|
-| `src/App.jsx` | Root: state (images, format incl. `custom`, sheetUnit/sheetW/sheetH, bleed, bleedStyle, dpi, cardType/cardW/cardH, cropMarks/cropStyle, import + art-picker modals), derives `customSheet` (mm) for custom sheets, header (logo + `?` **help tooltip** — `.help` **click-toggle** popover (`helpOpen` state + `.help.open`, click-outside closes) with the 4-step how-to, replaced the old tagline) / sidebar / main layout, `react-dropzone` (full-area drag&drop + `open()`). Settings persisted to `localStorage` (`ip:format`/`ip:bleed`/`ip:bleedStyle`/`ip:dpi`/`ip:cardType`/`ip:cardW`/`ip:cardH`/`ip:cropMarks`/`ip:cropStyle`/`ip:sheetUnit`/`ip:sheetW`/`ip:sheetH`/`ip:quality`/`ip:colorMode`/`ip:renderIntent`/`ip:iccProfileId`; the uploaded ICC bytes are **not** persisted (only the selected profile id); `ip:cardlist` lives in the import modal). Image items carry a `bleedMode` (`none`/`stretch`/`mirror`/`full`). Handlers: add / remove / clearAll / toggleBleed (**per-card 3-state cycle** none→stretch→full→none via `nextBleedMode`) / duplicate / replaceArt (updates edition) / saveProject (Scryfall cards → `.txt`). Scryfall image items carry `{name,set,collector,primary}` for the save; manual uploads don't (→ excluded). Sidebar = scrolling `.sidebar-scroll` (PageSettings) + fixed `.sidebar-export` footer (flex column): **Add cards** (`.btn-add`, green, opens the upload/Scryfall `.add-menu`) → **Generate PDF** → row [**Save list** · **Delete all**]. Save/Delete are always rendered, `disabled` when `images.length === 0` (Save list hovers green, Delete hovers red). The `addMenuOpen` state + click-outside live here (moved out of the preview footer) |
-| `src/components/PageSettings.jsx` | Sidebar settings in **2 group cards**: "Foglio & carta" (format presets + custom sheet W×H with mm/inch toggle · card type presets + custom W×H · bleed) and "Stampa" (bleed-style **auto/mirror/stretch/black/`full`="Bleed in art"** — `full` forces every card edge-to-edge for pre-bled art, with a `.field-hint` · **Output RGB/CMYK** (CMYK rivela: **ICC profile select** = 3 ECI inclusi + "Upload custom .icc…" con validazione DeviceLink/CMYK · avviso mismatch profilo nativo · rendering intent · tag PDF/X-1a · avviso soft-proof) · dpi · **Compression** (slider `range` 30–100% = qualità JPEG export RGB; `accent-color` oro; nota "non si applica al CMYK lossless") · crop marks: show checkbox + style Linee/Squadrette) + "Riepilogo" info box. Above the dpi field, a **low-res warning** (`.lowres-warn`, prop `lowResCount`) appears only when ≥1 placed card is below the chosen DPI — explains the red `!` preview marker. `SelectField` helper = label + `aria-label`ed select |
+| `src/App.jsx` | Root: state (images, format incl. `custom`, sheetUnit/sheetW/sheetH, bleed, bleedStyle, dpi, cardType/cardW/cardH, cropMarks/cropStyle, import + art-picker modals), derives `customSheet` (mm) for custom sheets, header (logo + `?` **help tooltip**, `.help` **click-toggle** popover (`helpOpen` state + `.help.open`, click-outside closes) with the 4-step how-to, replaced the old tagline) / sidebar / main layout, `react-dropzone` (full-area drag&drop + `open()`). Settings persisted to `localStorage` (`ip:format`/`ip:bleed`/`ip:bleedStyle`/`ip:dpi`/`ip:cardType`/`ip:cardW`/`ip:cardH`/`ip:cropMarks`/`ip:cropStyle`/`ip:sheetUnit`/`ip:sheetW`/`ip:sheetH`/`ip:quality`/`ip:colorMode`/`ip:renderIntent`/`ip:iccProfileId`; the uploaded ICC bytes are **not** persisted (only the selected profile id); `ip:cardlist` lives in the import modal). Image items carry a `bleedMode` (`none`/`stretch`/`mirror`/`full`). Handlers: add / remove / clearAll / toggleBleed (**per-card 3-state cycle** none→stretch→full→none via `nextBleedMode`) / duplicate / replaceArt (updates edition) / saveProject (Scryfall cards → `.txt`). Scryfall image items carry `{name,set,collector,primary}` for the save; manual uploads don't (→ excluded). Sidebar = scrolling `.sidebar-scroll` (PageSettings) + fixed `.sidebar-export` footer (flex column): **Add cards** (`.btn-add`, green, opens the upload/Scryfall `.add-menu`) → **Generate PDF** → row [**Save list** · **Delete all**]. Save/Delete are always rendered, `disabled` when `images.length === 0` (Save list hovers green, Delete hovers red). The `addMenuOpen` state + click-outside live here (moved out of the preview footer) |
+| `src/components/PageSettings.jsx` | Sidebar settings in **2 group cards**: "Foglio & carta" (format presets + custom sheet W×H with mm/inch toggle · card type presets + custom W×H · bleed) and "Stampa" (bleed-style **auto/mirror/stretch/black/`full`="Bleed in art"**, `full` forces every card edge-to-edge for pre-bled art, with a `.field-hint` · **Output RGB/CMYK** (CMYK rivela: **ICC profile select** = 3 ECI inclusi + "Upload custom .icc…" con validazione DeviceLink/CMYK · avviso mismatch profilo nativo · rendering intent · tag PDF/X-1a · avviso soft-proof) · dpi · **Compression** (slider `range` 30–100% = qualità JPEG export RGB; `accent-color` oro; nota "non si applica al CMYK lossless") · crop marks: show checkbox + style Linee/Squadrette) + "Riepilogo" info box. Above the dpi field, a **low-res warning** (`.lowres-warn`, prop `lowResCount`) appears only when ≥1 placed card is below the chosen DPI, explains the red `!` preview marker. `SelectField` helper = label + `aria-label`ed select |
 | `src/components/PagePreview.jsx` | Preview: one large centered page (`PageCanvas`) + per-card overlay. Each card is a full-area `.card-surface` `<button>` (keyboard-reachable change-art, `aria-label`=card name) with corner buttons: duplicate, bleed on/off, delete. **Empty state** = bare white sheet, no overlay (the sidebar/mobile **Add cards** button is the only entry point; `.preview-empty-cta` now only hosts the "No cards fit this sheet" warning). **Desktop multi-select** (`selectMode = !onCardTap`): Ctrl/Cmd/Shift-click toggles `selected` (local `Set`, pruned to `selectedIds`); selected = gold outline+wash; **bulk bar** in footer (Bleed/Delete/Clear → `onBleedMany`/`onRemoveMany`); keys Del/Esc/Ctrl+A (window listener, ignores inputs). A11y: `.sr-only` sheet summary + per-card low-res text. `PageCanvas` draws cards + bleed + crop marks + a **low-res warning** triangle (source < ½ the px the chosen DPI needs). Footer: pager + count, or the bulk bar when selecting |
 | `src/components/MpcImportModal.jsx` | Modal: pick a **MPCFill `.xml`** order file → `parseMpcXml` lists cards → `fetchMpcImages` downloads each from Google Drive → `onImport` (= App `addItems`). File input is a hidden `<input>` inside a `.mpc-file` label. Shows count, progress, and failed-download names |
-| `src/utils/mpcfill.js` | **XML import only — contacts no MPCFill server.** `parseMpcXml(text)` (DOMParser → `{cards:[{id,name,count}]}`, fronts then backs; comma-separated `<slots>` = copies; name from `<query>`) + `fetchMpcImages(cards,onProgress)` (downloads via **`lh3.googleusercontent.com/d/<id>=w2000`** — the only Drive endpoint that sends CORS headers, so the blob is readable/not tainted; `drive.google.com/uc` + `/thumbnail` 403 even through a proxy). Each card → `{file, bleedMode:'full'}`, one entry per copy (same `File` reused); no `name` so MPC art counts as custom in "Save list". (The live MPCFill art-search was removed — see "Done recently".) |
+| `src/utils/mpcfill.js` | **XML import only, contacts no MPCFill server.** `parseMpcXml(text)` (DOMParser → `{cards:[{id,name,count}]}`, fronts then backs; comma-separated `<slots>` = copies; name from `<query>`) + `fetchMpcImages(cards,onProgress)` (downloads via **`lh3.googleusercontent.com/d/<id>=w2000`**, the only Drive endpoint that sends CORS headers, so the blob is readable/not tainted; `drive.google.com/uc` + `/thumbnail` 403 even through a proxy). Each card → `{file, bleedMode:'full'}`, one entry per copy (same `File` reused); no `name` so MPC art counts as custom in "Save list". (The live MPCFill art-search was removed. See "Done recently".) |
 | `src/components/ScryfallImportModal.jsx` | Modal: paste a card list **or a deck link** (URL field + "Carica" → `fetchDeckList` fills the textarea) → fetch from Scryfall → add to images. Pasted text persisted to `localStorage` (`ip:cardlist`). Accepts `(SET) collector` to pin a printing |
-| `src/components/ArtPickerModal.jsx` | **Scryfall-only** art box. Click a placed card → `fetchPrints` lists every Scryfall printing → pick downloads the PNG to a `File` (`downloadAsFile`) and calls `onPick(file, {bleedMode, set, collector})` — `bleedMode` = `mirror` for full-art/borderless else `stretch` (mirrors the import path). Card name from the **filename**; remounted via `key={id}` |
+| `src/components/ArtPickerModal.jsx` | **Scryfall-only** art box. Click a placed card → `fetchPrints` lists every Scryfall printing → pick downloads the PNG to a `File` (`downloadAsFile`) and calls `onPick(file, {bleedMode, set, collector})`, `bleedMode` = `mirror` for full-art/borderless else `stretch` (mirrors the import path). Card name from the **filename**; remounted via `key={id}` |
 | `src/components/Toast.jsx` | Transient feedback toast (`aria-live`), rendered in both App trees; centered above the mobile action bar, auto-dismiss (3.5 s, set in App) + tap-to-close. Driven by App `toast` state `{kind:'success'\|'error', msg}`; used by `handleSaveProject` (replaced the old `notice` box) |
 | `src/components/ConfirmDialog.jsx` | Themed confirm for destructive actions (reuses `.modal`; `.modal.modal-confirm` overrides the mobile full-screen modal so it stays small/centered). Driven by App's `confirm` state `{message,confirmLabel,onConfirm}`; rendered in both App trees. Used by `handleClearAll` ("Delete all") |
-| `src/components/CookieBanner.jsx` | Cookie-consent banner (fixed bottom, centered, matches the modal surface/shadow). Self-contained: shows until the user chooses, persists `ip:cookieConsent` = `accepted`\|`declined` in localStorage. **Settings always live in localStorage (technical)**; this flag only gates any *future* analytics cookies (read the flag before loading them — none today). Rendered once in each App tree (desktop + mobile); on mobile it sits above the bottom-tab bar. Centered via `left:0;right:0;margin-inline:auto` (not `translateX`, which the `fade-up` animation would override) |
+| `src/components/CookieBanner.jsx` | Cookie-consent banner (fixed bottom, centered, matches the modal surface/shadow). Self-contained: shows until the user chooses, persists `ip:cookieConsent` = `accepted`\|`declined` in localStorage. **Settings always live in localStorage (technical)**; this flag only gates any *future* analytics cookies (read the flag before loading them, none today). Rendered once in each App tree (desktop + mobile); on mobile it sits above the bottom-tab bar. Centered via `left:0;right:0;margin-inline:auto` (not `translateX`, which the `fade-up` animation would override) |
 | `src/hooks/useIsMobile.js` | `matchMedia('(max-width: 768px)')` via `useSyncExternalStore` → boolean. App renders the desktop tree above 768px, `MobileLayout` at/below |
 | `src/hooks/useOverlayDismiss.js` | Shared overlay a11y: `useOverlayDismiss(onClose, active=true, {focusContainer=true})` → a `ref`. Esc-to-close (document keydown), moves focus into the overlay container on open, restores to the trigger on close. `active` lets always-mounted modals (`if(!open) return null`) gate it; `focusContainer:false` keeps an internal `autoFocus` (ConfirmDialog→Cancel). Used by every modal/sheet/dialog. **No full focus-trap on Tab** (deliberate, `ponytail:` note in-file) |
 | `src/components/MobileLayout.jsx` | Mobile shell (≤768px): compact header (Logo + `?` tap-tooltip) + the always-on **Cards** view (`PagePreview`; `onCardTap` → `CardActionSheet`). **No tab bar** (removed `BottomTabBar`). Bottom **action bar** `.cards-toolbar` (`space-between`): **Settings** nav (left, icon+label) · `.ct-cluster` [Delete all · ＋ Add (FAB, primary) · Save list] · **Export** nav (right). ＋ opens the add bottom-sheet; **Settings/Export open a full-screen `MobilePage` overlay** (slide-up, header + close): Settings = `PageSettings`, Export = count/missing + low-res warn + Generate PDF (Save/Delete moved to the bar). Presentational; consumes `settingsProps`/`previewProps`/`actions`/`addMenu`. Local state: addOpen, sel, helpOpen, page(`null`/`settings`/`export`). Inline `IconSliders` + `MobilePage` helpers |
@@ -63,21 +63,21 @@ before restarting.
 | `src/utils/iccProfiles.js` | **Bundled ICC registry.** `BUNDLED_PROFILES` (id/label/`?url`/`condition`/`info`) for the 3 ECI output profiles in `src/assets/icc/` (FOGRA39 default, FOGRA51, FOGRA52) + `DEFAULT_PROFILE_ID`/`UPLOAD_ID`/`getProfileMeta`/`loadBundledProfileBytes` (fetch+cache on demand). `info` = exact lcms description (drives OutputIntent Info + mismatch compare) |
 | `src/utils/vendor/jpegCmykDecoder.selfcheck.js` | `node`-runnable self-check (no framework) for the CMYK decoder: decodes the synthetic CMYK fixture, asserts non-inverted DeviceCMYK + paper-white tripwire, prints APP14 transform. Run: `node src/utils/vendor/jpegCmykDecoder.selfcheck.js` |
 | `src/utils/cmykEngine.js` | **CMYK colour engine** (lazy). `readProfileInfo` now also returns `deviceClass` (ICC header bytes; for DeviceLink rejection). Wrapper su `lcms-wasm`: `instantiate()` singleton col WASM via `import wasmURL from 'lcms-wasm/dist/lcms.wasm?url'` (Vite emette `dist/assets/lcms-*.wasm`, base `./` → Pages-safe). `readProfileInfo(bytes)` → `{space,name}` (valida che sia CMYK); `makeRgbToCmyk(iccBytes, intentKey)` → `{convert(rgbaBytes,nPixels), close()}` (sorgente = sRGB built-in, dest = profilo tipografia; `cmsDoTransform` accetta il buffer RGBA di `getImageData` diretto, output CMYK 8-bit 0=no ink). Intenti: `relative` (RelCol+BPC) / `perceptual` |
-| `src/utils/pdfGeneratorCmyk.js` | **CMYK / PDF-X-1a:2003 exporter** (lazy), additivo — il path jsPDF RGB resta intatto. Riusa `getGridInfo`/`cropMarkSpan`/`drawCardWithBleed` da `pdfGenerator.js`. Per carta: render cella su canvas RGB (stessa pipeline RGB, sfondo nero dietro i PNG) → `getImageData` → `cmykEngine` → bytes CMYK → image XObject **raw FlateDecode `/DeviceCMYK`** (`doc.context.flateStream`+`register`, posizionato con `newXObject`+`pushOperators(concatTransformationMatrix…drawObject)`). Aggiunge **OutputIntent** `/GTS_PDFX` con ICC incorporato (`/N 4`), Info `GTS_PDFXVersion`+`Trapped /False`, `TrimBox`=`BleedBox`=`MediaBox`=foglio, crocini vettoriali in `cmyk(0,0,0,1)`. **Salva con `useObjectStreams:false`** (xref classico, niente ObjStm/XRef-stream = feature 1.5+ vietate in X-1a) e **patch del byte minor header `%PDF-1.7`→`1.4`** (pdf-lib hardcoda 1.7, nessuna API). `buildCmykPdfBytes(...)` ritorna i byte (testabile); `generatePDFCmyk(...)` li scarica. **Routing per-carta:** JPEG CMYK nativo (rilevato da `isCmykJpeg`) → `decodeCMYK`+`cmykCellBuffer`, **passthrough senza conversione** (numeri preservati esatti); tutto il resto → RGB su canvas + lcms. `getConv` è lazy (set di soli CMYK non carica il WASM lcms) |
-| `src/utils/cmykRaster.js` | **Fase 2** — `isCmykJpeg(bytes)` (sniff marker SOFn → Nf===4; PNG/non-JPEG → false) + `cmykCellBuffer(dec, cardWmm, cardHmm, bleedMm, mode)`: genera l'abbondanza sui **canali grezzi CMYK senza canvas** (riflessione/replica di pixel, lossless). Modi full/none/black/stretch/mirror; lo scaling alla cella fisica lo fa la matrice PDF (RIP ricampiona), quindi i pixel del trim restano 1:1 |
+| `src/utils/pdfGeneratorCmyk.js` | **CMYK / PDF-X-1a:2003 exporter** (lazy), additivo, il path jsPDF RGB resta intatto. Riusa `getGridInfo`/`cropMarkSpan`/`drawCardWithBleed` da `pdfGenerator.js`. Per carta: render cella su canvas RGB (stessa pipeline RGB, sfondo nero dietro i PNG) → `getImageData` → `cmykEngine` → bytes CMYK → image XObject **raw FlateDecode `/DeviceCMYK`** (`doc.context.flateStream`+`register`, posizionato con `newXObject`+`pushOperators(concatTransformationMatrix…drawObject)`). Aggiunge **OutputIntent** `/GTS_PDFX` con ICC incorporato (`/N 4`), Info `GTS_PDFXVersion`+`Trapped /False`, `TrimBox`=`BleedBox`=`MediaBox`=foglio, crocini vettoriali in `cmyk(0,0,0,1)`. **Salva con `useObjectStreams:false`** (xref classico, niente ObjStm/XRef-stream = feature 1.5+ vietate in X-1a) e **patch del byte minor header `%PDF-1.7`→`1.4`** (pdf-lib hardcoda 1.7, nessuna API). `buildCmykPdfBytes(...)` ritorna i byte (testabile); `generatePDFCmyk(...)` li scarica. **Routing per-carta:** JPEG CMYK nativo (rilevato da `isCmykJpeg`) → `decodeCMYK`+`cmykCellBuffer`, **passthrough senza conversione** (numeri preservati esatti); tutto il resto → RGB su canvas + lcms. `getConv` è lazy (set di soli CMYK non carica il WASM lcms) |
+| `src/utils/cmykRaster.js` | **Fase 2**, `isCmykJpeg(bytes)` (sniff marker SOFn → Nf===4; PNG/non-JPEG → false) + `cmykCellBuffer(dec, cardWmm, cardHmm, bleedMm, mode)`: genera l'abbondanza sui **canali grezzi CMYK senza canvas** (riflessione/replica di pixel, lossless). Modi full/none/black/stretch/mirror; lo scaling alla cella fisica lo fa la matrice PDF (RIP ricampiona), quindi i pixel del trim restano 1:1 |
 | `src/utils/vendor/jpegCmykDecoder.js` | **Vendored** da jpeg-js (Apache-2.0, (c) 2011 notmasteryet); `eslint-disable`. jpeg-js espone solo `decode()`→RGB; qui si aggiunge `decodeCMYK(bytes)` che chiama `JpegImage.parse`+`getData` (case 4) → CMYK 8-bit interleaved in **convenzione DeviceCMYK (0=no ink)**, gestendo l'inversione Adobe (APP14) e l'eventuale YCCK. Browser-safe (solo `Uint8Array`, niente `Buffer`) |
 | `src/utils/pdfGenerator.js` | Grid math (`getGridInfo(formatKey, bleedMm, cardW=63, cardH=88, customSheet=null)`; `formatKey==='custom'` uses `customSheet` mm dims, else `PAPER_FORMATS`) + `generatePDF(items, formatKey, bleedMm, dpi, bleedStyle, cardW, cardH, cropMarks, cropStyle, customSheet)` (jspdf, dynamically imported) + `drawCardWithBleed` (stretch/mirror/black bleed) + `resolveBleedMode` (per-card mode × global style) + `drawCropMarks(…, style)` (`lines`/`corners`) + `cropMarkSpan` (clamped crop marks) |
-| `src/utils/scryfall.js` | `parseCardList` (text → `{qty,name,set,collector}`; collector keeps **original case** — Scryfall `/cards/collection` is case-sensitive on it, e.g. The List `TMP-294`) + `fetchScryfallImages` (`/cards/collection` batched, printing-pinned via name\|set\|collector keys, downloads PNGs as `File`; DFC → both faces) + `fetchPrints` + `downloadAsFile` + `fetchDeckList` (deck link → text, via `fetchViaProxy` = `CORS_PROXIES` fallback chain: allorigins → codetabs → corsproxy.io) + `scryfallFetch` (retry 429/5xx + network, clear error on Scryfall outage) + `deckLine(qty,name,set,cn)` (builds `qty Name (SET) cn` so deck links pin the **edition chosen in the deck**) + `buildDeckList(items)` (placed cards → deck-list text for "Save list"; front faces only, custom uploads excluded) |
+| `src/utils/scryfall.js` | `parseCardList` (text → `{qty,name,set,collector}`; collector keeps **original case**. Scryfall `/cards/collection` is case-sensitive on it, e.g. The List `TMP-294`) + `fetchScryfallImages` (`/cards/collection` batched, printing-pinned via name\|set\|collector keys, downloads PNGs as `File`; DFC → both faces) + `fetchPrints` + `downloadAsFile` + `fetchDeckList` (deck link → text, via `fetchViaProxy` = `CORS_PROXIES` fallback chain: allorigins → codetabs → corsproxy.io) + `scryfallFetch` (retry 429/5xx + network, clear error on Scryfall outage) + `deckLine(qty,name,set,cn)` (builds `qty Name (SET) cn` so deck links pin the **edition chosen in the deck**) + `buildDeckList(items)` (placed cards → deck-list text for "Save list"; front faces only, custom uploads excluded) |
 | `src/utils/scryfall.selfcheck.js` | `node`-runnable assert check for `parseCardList` (no framework). Run: `node src/utils/scryfall.selfcheck.js` |
-| `src/components/icons.jsx` | Custom lucide-style SVG icon set (currentColor), incl. `IconPlus`, `IconDownload`, `IconList` (Save list — distinct from the download/export arrows), `IconCopy`, `IconFrame` + `Logo` (Proxoteca brandmark: gold-gradient circle + white burst, inline; same art as `public/favicon.svg`, used in the header) |
+| `src/components/icons.jsx` | Custom lucide-style SVG icon set (currentColor), incl. `IconPlus`, `IconDownload`, `IconList` (Save list, distinct from the download/export arrows), `IconCopy`, `IconFrame` + `Logo` (Proxoteca brandmark: gold-gradient circle + white burst, inline; same art as `public/favicon.svg`, used in the header) |
 | `src/index.css` | All styling + design tokens |
-| `public/` (favicons) | Proxoteca icon set: `favicon.svg/.ico`, `favicon-16/32/48/192/512.png`, `apple-touch-icon.png`, `site.webmanifest`. Linked in `index.html` with root-absolute paths → Vite rewrites to `./` via `base:'./'` (Pages-safe); manifest icon `src`s are relative. **`favicon.svg` is the gold-circle + white-burst mark** (matches the header). ⚠️ The **raster PNG/ico/apple-touch are still the old dark-`#16181D`-square** version — no local rasterizer (sharp won't install); re-export from the design tool to match. |
+| `public/` (favicons) | Proxoteca icon set: `favicon.svg/.ico`, `favicon-16/32/48/192/512.png`, `apple-touch-icon.png`, `site.webmanifest`. Linked in `index.html` with root-absolute paths → Vite rewrites to `./` via `base:'./'` (Pages-safe); manifest icon `src`s are relative. **`favicon.svg` is the gold-circle + white-burst mark** (matches the header). ⚠️ The **raster PNG/ico/apple-touch are still the old dark-`#16181D`-square** version. No local rasterizer (sharp won't install); re-export from the design tool to match. |
 
-## Design system — "Proxoteca Cyberpunk" (since 2026-07-04)
+## Design system, "Proxoteca Cyberpunk" (since 2026-07-04)
 
 Tokens at the top of `src/index.css`. Implemented from the user's claude.ai/design spec
 (`Proxoteca Cyberpunk.dc.html`, project 16e043bc-…, fetched via DesignSync; decoded copy
-was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't restore gold
+was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't restore gold
 `#d4923f`, Bricolage/Hanken, or the green add-affordance. Memory `design-identity` updated.
 
 - **Palette:** `--bg-base #08070f` under a violet-tinted 155deg gradient (body) + radial
@@ -85,33 +85,38 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   Add-cards). Secondary **cyan `--cyan #00e5ff`** (focus rings, hovers on inputs/ghosts,
   checkmarks, CMYK chip, chevrons, Save hover, toast-success). **Violet** `rgba(124,92,255,…)`
   = borders/glass tint. **Acid `--acid #cfff56`** ONLY as Generate-CTA text. Danger `#ff4d6d`.
-- **Fonts:** Chakra Petch (`--font-display`: h1/h2/h3, CTA/Add buttons — letterspaced
+- **Fonts:** Chakra Petch (`--font-display`: h1/h2/h3, CTA/Add buttons, letterspaced
   uppercase) + Space Grotesk (`--font`) + **JetBrains Mono** (`--font-mono`: selects,
   number inputs, summary values, cmyk-tag, help `?`).
 - **Signature elements:** `[ SECTION ]` sidebar headers (h2 `::before`/`::after` mono
   brackets, cyan/magenta with glow); wordmark = solid `#f5f3ff` + **chromatic-aberration
-  text-shadow** (cyan left / magenta right) — deliberately NOT gradient-text, the slop
-  detector is now fully clean; crosshair `Logo` (icons.jsx — cyan/magenta rings + axes);
+  text-shadow** (cyan left / magenta right), deliberately NOT gradient-text, the slop
+  detector is now fully clean; crosshair `Logo` (icons.jsx, cyan/magenta rings + axes);
   **Generate CTA** = animated gradient border via two-layer background
-  (`padding-box`/`border-box` + `px-sweep`), dark core, acid text — no wrapper element,
+  (`padding-box`/`border-box` + `px-sweep`), dark core, acid text, no wrapper element,
   disabled = flat dark; cyan **pulsing CMYK chip** (`px-pulse`); compression slider =
   magenta glow thumb + track fill via `--fill` set inline in PageSettings; cyan
   `anim-check`; Summary = mono cyan values; ghost Save/Delete (cyan / red hovers);
   **perspective-grid floor** + radial glow behind the sheet (`.preview-stage::before/::after`);
   magenta→cyan **scrollbar**; magenta `::selection`; **scanlines** overlay (`body::before`,
   replaced film grain).
-- **Empty state:** no overlay — bare white sheet; the framed `.empty-cta-box` CTA was removed
+- **Empty state:** no overlay, bare white sheet; the framed `.empty-cta-box` CTA was removed
   2026-10-13 at the user's request (Add cards button bottom-left is enough).
 - **Invariant:** the print sheet preview stays **pure white, never tinted** (print accuracy).
-- ⚠️ **Favicons still show the old gold mark** (svg + rasters) — re-export to the crosshair
+- ⚠️ **Favicons still show the old gold mark** (svg + rasters). Re-export to the crosshair
   when possible (no local rasterizer).
 
 ## Done recently
 
-- **Sticky sidebar headers flush (most recent):** the sticky `.sidebar-section h2` had `top:0`,
+- **Em-dash purge (most recent):** every U+2014 in the repo (src UI copy + comments, HANDOFF,
+  docs/, .impeccable/) replaced by a period (new sentence, next word capitalised) or a comma,
+  decided per case. UI strings changed accordingly, e.g. card sizes `Standard, 63×88`, sheet
+  options `A3, 297×420 mm`, toasts/errors `PDF ready. Check your downloads.` Only hit left is
+  inside the binary `ISOcoated_v2_eci.icc` (profile metadata, editing it corrupts the file).
+- **Sticky sidebar headers flush:** the sticky `.sidebar-section h2` had `top:0`,
   but sticky respects the scroller's 24px `padding-top` → it parked 24px down and scrolled
   content showed in the gap above it (plus through its 0.92-alpha bg). Now `top:-24px`
-  (= `.sidebar-scroll` padding — keep in sync) + opaque `rgb(10,9,18)` bg. Verified live:
+  (= `.sidebar-scroll` padding, keep in sync) + opaque `rgb(10,9,18)` bg. Verified live:
   stuck h2 top == scroller top.
 - **Removed empty-state CTA:** user asked to drop the centered "No cards yet"
   box and keep only the bottom-left **Add cards** button. Deleted the overlay JSX in
@@ -120,7 +125,7 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   title/sub styles stay for the "No cards fit this sheet" warning. Verified live (empty
   desktop), lint + build green.
 - **Cyberpunk re-skin:** implemented the user's claude.ai/design spec
-  "Proxoteca Cyberpunk.dc.html" — full token + component restyle, zero functional changes
+  "Proxoteca Cyberpunk.dc.html", full token + component restyle, zero functional changes
   (see the "Design system" section above for the complete language). Touched:
   `index.html` (fonts, theme-color), `src/index.css` (tokens + ~all component styles),
   `src/components/icons.jsx` (new crosshair `Logo`), `PageSettings.jsx` (slider `--fill`
@@ -130,15 +135,15 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   populated, mobile 375px); contrast sweep 5.8–17:1 all AA+; lint + build green.
 - **Post-sweep code review:** 10-angle multi-agent `/code-review` of the 4-batch range
   (34 raw candidates → 5 confirmed after refute-by-default verify + gap sweep). Fixed:
-  - **MpcImportModal 0-import read as success** — the "✓ 0 images imported" bug fixed in Scryfall was
+  - **MpcImportModal 0-import read as success**. The "✓ 0 images imported" bug fixed in Scryfall was
     missed in MPC; now 0 downloads + failures → error box (same logic).
   - **Desktop add-menu now closes on Esc** (App.jsx effect gained a keydown listener beside click-outside).
-  - **Mobile stacked-Esc** — the MobileLayout inline Esc effect for addOpen/helpOpen now bails when a
+  - **Mobile stacked-Esc**. The MobileLayout inline Esc effect for addOpen/helpOpen now bails when a
     `page`/`sel` overlay is on top, so one Esc closes only the topmost layer (verified: help stays open
     when Esc closes the Settings page; second Esc closes help).
-  - **`ExportProgress` component** (`src/components/ExportProgress.jsx`) — the duplicated Generate/progress/
+  - **`ExportProgress` component** (`src/components/ExportProgress.jsx`), the duplicated Generate/progress/
     Cancel block extracted from App.jsx + MobileLayout.jsx (single source).
-  - **Sticky h2 overflow on mobile** — the sticky `.sidebar-section h2` (-20px margins sized to
+  - **Sticky h2 overflow on mobile**. The sticky `.sidebar-section h2` (-20px margins sized to
     `.sidebar-scroll`'s 20px padding) leaked 6px per side inside `.mobile-page-body` (14px padding);
     rule now scoped to `.sidebar-scroll .sidebar-section h2`, mobile headers are plain/static.
   - Refuted (not bugs, with proof): disabled-loading parity on Generate (branch renders only when !loading);
@@ -151,26 +156,26 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   HANDOFF critiques were never saved to `.impeccable/`, so the score isn't directly comparable). Detector clean
   on JSX; live contrast sweep all-pass. User chose **all 29, P1-first, CMYK = keep power + add glosses.** All four
   batches shipped, live-verified, lint + build green:
-  - **Batch 1 — a11y (P1):** new **`src/hooks/useOverlayDismiss.js`** (Esc-to-close + focus-into-overlay on open +
+  - **Batch 1, a11y (P1):** new **`src/hooks/useOverlayDismiss.js`** (Esc-to-close + focus-into-overlay on open +
     restore-to-trigger on close) wired into **every** overlay: Scryfall/MPC/ArtPicker modals, ConfirmDialog,
     CardActionSheet, mobile MobilePage (Settings/Export), mobile add-sheet + help popover, desktop help tooltip.
     Plus: ConfirmDialog `autoFocus` moved off the destructive button → **Cancel**; help button's
     `aria-haspopup="dialog"` dropped (mismatch with `role="tooltip"`). (Modals with `if(!open) return null` pass
-    the open flag as the hook's `active` arg — hooks can't run after the early return.)
-  - **Batch 2 — export + CMYK copy (P1):** `generatePDF` + `buildCmykPdfBytes` take `onProgress(done,total)` +
+    the open flag as the hook's `active` arg. Hooks can't run after the early return.)
+  - **Batch 2, export + CMYK copy (P1):** `generatePDF` + `buildCmykPdfBytes` take `onProgress(done,total)` +
     an `AbortSignal`; both loops report per-card progress and bail cooperatively (typed `AbortError`). App +
     MobileLayout show a **determinate bar (`.gen-bar`/`.gen-bar-fill`, scaleX not width) + "Cancel export"**;
     abort → neutral "Export canceled." toast. CMYK copy (kept all controls, added plain glosses): actionable ICC
     error pointing to the sidebar control + naming Coated FOGRA39; **BPC decoded** (Black Point Compensation);
     intents differentiated + default marked; ICC-upload hint (where to get a profile); profile-mismatch warning
     rewritten plain; DPI/low-res hints explain the half-the-pixels threshold (~745px @300DPI).
-  - **Batch 3 — P2:** per-card bleed button now shows the **resolved** bleed (`resolveBleedMode(mode, bleedStyle)`)
+  - **Batch 3, P2:** per-card bleed button now shows the **resolved** bleed (`resolveBleedMode(mode, bleedStyle)`)
     so the label matches what prints (desktop + mobile CardActionSheet, which now gets `bleedStyle`); Scryfall
     import with **0 imported + some not-found → error** (was a green "✓ 0 imported"); not-found lists cap at 8
     (+N more) and scroll (Scryfall + MPC); mobile help tooltip = centered fixed panel + max-height scroll + close
     ✕; mobile bottom cluster got visible **Delete / Add / Save** micro-labels; duplicate→delete **object-URL leak**
     fixed (`pendingRevokesRef` Set flushed on unmount).
-  - **Batch 4 — P3:** `.sidebar-section h2` is **sticky** (full-width bg via `margin/padding -20px`, no overflow);
+  - **Batch 4, P3:** `.sidebar-section h2` is **sticky** (full-width bg via `margin/padding -20px`, no overflow);
     **Toast** got a semantic ✓/! badge (`.toast-ic`, color by kind); mm↔inch conversion bumped to 3/2-decimal
     precision so repeated toggles don't drift.
   - **Still open** (not in this sweep): full focus-**trap** on Tab inside modals (Esc + focus-in/restore done;
@@ -180,16 +185,16 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   **34/40** (up from 33; #5 + #10 reached a genuine 4). It found 3 regressions from the previous batch + the
   loudest pre-existing P2s. All 6 fixed + live-verified; lint + build green; console clean.
   - **Regression: mobile error box lost the dismiss ×** (added to desktop only). Threaded `onClearError`
-    into the `actions` bundle ([App.jsx](src/App.jsx)) + the same `IconX` dismiss in `MobileLayout` — parity
+    into the `actions` bundle ([App.jsx](src/App.jsx)) + the same `IconX` dismiss in `MobileLayout`, parity
     restored (this was the sole thing capping #9 at 3). Verified live: mobile error shows + clears.
-  - **Regression: new `.field-hint`s failed WCAG AA** — `.field-hint` was `--text-muted` #767e93 at 11.5px
+  - **Regression: new `.field-hint`s failed WCAG AA**. `.field-hint` was `--text-muted` #767e93 at 11.5px
     (~4.0–4.46:1 on the glass-over-surface bg), the exact pattern already rejected at `.sidebar-section h2`.
     Switched `.field-hint` → `--text-secondary` (#8b92a8) and `.field-hint b` → `--text-primary`. One CSS rule.
   - **Regression: card W/H = 0 bypassed the degenerate guard** (incl. a latent `bleed=0 + card=0` →
     `Array.from({length: Infinity})` RangeError). `calcGrid` ([utils/pdfGenerator.js](src/utils/pdfGenerator.js))
     now returns a 0×0 grid when `cardW/cardH/cellW/cellH <= 0`, so `perPage===0` → the existing `fits` handling
     (warning + suppressed chrome) kicks in. Verified: card-0 shows "No cards fit", finite canvas, no crash.
-  - **Shift-click range-select** (was a false affordance — aliased to ctrl): `handleCardClick` now tracks an
+  - **Shift-click range-select** (was a false affordance, aliased to ctrl): `handleCardClick` now tracks an
     `anchorRef` and shift-click selects the contiguous range on the current page (Finder/Linear-style), making
     the "Shift-click to select multiple" copy true. Verified: ctrl-click anchor + shift-click → 5-card range.
   - **Keyboard Delete on the card grid**: the bail-on-`BUTTON` guard over-fired on the card buttons (focus sits
@@ -209,25 +214,25 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
     no silent print-fidelity downgrade. OFF still sets all `none`.
   - **Regression: degenerate-sheet footgun** ([PagePreview.jsx](src/components/PagePreview.jsx)): when no card fits
     (`info.perPage===0`), the pager/count/hint/bulk-bar are now gated on a new `fits` flag and the Ctrl+A/Delete
-    keyboard handler early-returns — no phantom "1/45" pager, no "delete what you can't see". Only the "No cards fit
+    keyboard handler early-returns, no phantom "1/45" pager, no "delete what you can't see". Only the "No cards fit
     this sheet" alert shows.
   - **Regression: undo toast under-lived its window**: action-bearing toasts now auto-dismiss at **5000ms** (was a
     flat 3500) and the deferred revoke moved to **5300ms**, so the Undo button stays reachable for its full window.
-  - **#5 input validation**: custom sheet/card numeric inputs go through `toNum` (empty/invalid → 0, never NaN — kills
+  - **#5 input validation**: custom sheet/card numeric inputs go through `toNum` (empty/invalid → 0, never NaN, kills
     the "NaN×NaN" grid), plus an inline `.field-hint-warn` "Sheet smaller than the W×H mm card" at the source.
   - **#9 error recovery**: the sidebar error box got a **dismiss ×** (`setError(null)`) so a failed generate/ICC can
     be cleared directly, not only as a side-effect of the next action.
-  - **#10 help/docs**: plain-language `field-hint`s added to the always-visible print terms — **Bleed**, **Output**
-    (RGB vs CMYK steer), **Resolution/DPI**, **crop marks** — extending the existing hint pattern.
+  - **#10 help/docs**: plain-language `field-hint`s added to the always-visible print terms, **Bleed**, **Output**
+    (RGB vs CMYK steer), **Resolution/DPI**, **crop marks**, extending the existing hint pattern.
   - **Bonus (found via console during verify):** a zero-dimension sheet made `scale = previewW/0 = Infinity` →
     invalid CSS height. Guarded `ratio`/`scale`/`previewH` in both PagePreview and PageCanvas (fallback to the card
     ratio) so the degenerate state renders a clean blank sheet with no console errors.
   - **Verify killed 2 false positives** (a phantom "no keyboard path to corner buttons"; a "footer text fails AA" that
-    used the wrong bg — it's on `--bg-base`, computes 4.73:1, passes). **Still open** (P2/P3, not done): jargon for the
+    used the wrong bg. It's on `--bg-base`, computes 4.73:1, passes). **Still open** (P2/P3, not done): jargon for the
     advanced CMYK/intent fields, SR announce of the selection count, Shift-click range-select, help-tooltip role.
-- **Re-critique P3 polish — 5 fixes:** all live-verified, lint + build green.
+- **Re-critique P3 polish, 5 fixes:** all live-verified, lint + build green.
   - **Refresh-loss guard** ([App.jsx](src/App.jsx)): a `beforeunload` listener (only while `images.length>0`)
-    fires the browser's native "leave site?" prompt — images aren't persisted (blobs revoked on unmount), so a
+    fires the browser's native "leave site?" prompt. Images aren't persisted (blobs revoked on unmount), so a
     reload no longer silently drops a layout. Verified: `beforeunload` event is `defaultPrevented` with cards present.
   - **Keyboard skip-link** ([PagePreview.jsx](src/components/PagePreview.jsx)): the desktop grid is 4 tab-stops
     per card; a `.skip-cards-link` (hidden until `:focus-visible`, top-left of the preview) focuses the footer
@@ -241,18 +246,18 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   - **Deliberately skipped** (confirmed P3, low value / risk): mobile cluster labels (would crowd the centered FAB
     cluster; a11y already covered by aria-labels + help) and the low-res SR/canvas measurement race (self-healing,
     transient). **Still deferred as features** (not polish): drag-reorder, mobile batch ops.
-- **Re-critique P2 backlog — 8 fixes:** cleared the deferred P2s from the re-`critique`. All
+- **Re-critique P2 backlog, 8 fixes:** cleared the deferred P2s from the re-`critique`. All
   live-verified + an independent reviewer pass found no bugs; lint + build green.
   - **Generate-PDF success toast** ([App.jsx](src/App.jsx) `handleGenerate`): the primary export was silent;
-    now emits `{kind:'success', msg:'PDF ready — check your downloads.'}` (Toast infra already existed).
-  - **Undo for delete** (single + bulk): new `removeWithUndo(ids)` — captures items+indices (pure, from current
+    now emits `{kind:'success', msg:'PDF ready. Check your downloads.'}` (Toast infra already existed).
+  - **Undo for delete** (single + bulk): new `removeWithUndo(ids)`, captures items+indices (pure, from current
     `images`), defers `URL.revokeObjectURL` to a 5 s timer that **only fires if not undone**, and shows a toast
     with an **Undo** action that re-inserts at original indices. `Toast` gained an optional `action:{label,onClick}`
     button (`.toast-action`, `stopPropagation` so it doesn't trigger the toast's tap-to-close). `handleRemove` +
     `handleRemoveMany` both route through it. (Clear-all keeps its confirm.)
   - **Bulk-Bleed converges + feedback** (`handleBleedMany`): replaced the per-card `nextBleedMode` cycle (which
-    never made a mixed selection uniform) with an **absolute target** — if any selected card is `none` → all
-    `stretch`, else all `none` — plus a toast "Bleed on/off for N cards".
+    never made a mixed selection uniform) with an **absolute target**, if any selected card is `none` → all
+    `stretch`, else all `none`, plus a toast "Bleed on/off for N cards".
   - **Ctrl+A scope label**: the bulk-count shows **"N selected · spans pages"** when the selection includes
     off-page cards (`selectedSpansPages` memo), so a blind Ctrl+A→Delete is signalled.
   - **Multi-select discoverability**: a persistent `.preview-hint` ("Ctrl/⌘ or Shift-click to select multiple")
@@ -265,11 +270,11 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
     present, a `.preview-warn-cta` "No cards fit this sheet" overlay replaces the silent blank page.
   - Also removed a stale "(⬇)" from the mobile help (Save list is the list glyph now). **Still deferred** (P3 +
     explicit): drag-reorder, mobile batch, per-card tab-order weight, `.bulk-btn:active` polish, `Clear` icon.
-- **Re-critique P1 regressions — multi-select rough edges:** an impeccable re-`critique`
+- **Re-critique P1 regressions, multi-select rough edges:** an impeccable re-`critique`
   (multi-agent: 6 lenses + adversarial verify of every finding) scored **31/40** (up from 29) but flagged that
   the desktop multi-select feature shipped with **2 P1 regressions**, both fixed here in `PagePreview.jsx`:
   - **Trapped pager:** the bulk bar and the pager were the two branches of one footer ternary, so selecting any
-    card on a multi-page sheet **removed the pager + page indicator** — you couldn't change page or build a
+    card on a multi-page sheet **removed the pager + page indicator**. You couldn't change page or build a
     cross-page selection by clicking. Now the bulk bar is its own footer row and the pager **always renders**
     when `totalPages>1` (the plain count hides while the bulk bar shows, since the bar has its own count). The
     `selected` Set is id-keyed so it survives page changes. Verified live (24 cards / 2 pages): select → pager
@@ -277,21 +282,21 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   - **Backspace wiped the selection:** the window keydown guard bailed on INPUT/TEXTAREA/SELECT but **not BUTTON**,
     so a keyboard user tabbing through cards who hit Backspace (the "go back" reflex) wiped the whole selection.
     Now **Backspace is dropped** (only `Delete` deletes) and `Delete` fires **only when focus is not on a
-    BUTTON/A** — tabbing through cards can't trigger it; the explicit path is the bulk-bar Delete button (Esc /
+    BUTTON/A**. Tabbing through cards can't trigger it; the explicit path is the bulk-bar Delete button (Esc /
     Ctrl+A unchanged). Verified live: Backspace/Delete on a focused card = no wipe; Delete from background = deletes.
   - Adversarial verify also **killed 3 false-positive findings** (a non-existent `img.file` crash, a "no escape"
     claim refuted by the visible Clear button, a "double outline" refuted by CSS cascade). **Deferred P2 backlog**
     (acknowledged, not done): Generate-PDF success toast, undo for delete, Ctrl+A all-pages scope, bulk-Bleed
     convergence+feedback, multi-select discoverability hint, keyboard selection, card label = real Scryfall name,
     degenerate-sheet warning. Lint + build green.
-- **UX critique P3 — Save-list icon disambiguation:** the mobile action bar had **two adjacent
-  down-arrow glyphs** — Save list (`IconDownload` ⬇) next to Export (`IconFile`, whose path includes a download
-  arrow) — and the cluster buttons are icon-only, so "which one makes the PDF?" was ambiguous. Added a distinct
+- **UX critique P3, Save-list icon disambiguation:** the mobile action bar had **two adjacent
+  down-arrow glyphs**, Save list (`IconDownload` ⬇) next to Export (`IconFile`, whose path includes a download
+  arrow), and the cluster buttons are icon-only, so "which one makes the PDF?" was ambiguous. Added a distinct
   **`IconList`** (elenco/list glyph) and swapped it into **Save list** on both mobile (`MobileLayout` `.ct-save`)
   and desktop (`App` `.btn-save`, keeps its text label too). `IconDownload` stays for "Import from Scryfall"
   (download = fetch, correct). Also dropped a now-stale "⬇" from the mobile Export-page hint. Verified live (375px):
   Save list reads as a list, clearly separate from Export; lint + build green.
-- **UX critique P2s — multi-select batch ops + canvas a11y:** from the same impeccable `critique`.
+- **UX critique P2s, multi-select batch ops + canvas a11y:** from the same impeccable `critique`.
   - **Desktop multi-select** in `PagePreview`: **Ctrl/Cmd/Shift-click** a card toggles selection (plain click stays
     "change art" → novices unaffected). Selected cards get a gold outline + `accent-dim` wash. A **bulk bar** replaces
     the preview footer when ≥1 selected: **N selected · Bleed · Delete · Clear**. Keys: **Del/Backspace** = delete
@@ -306,29 +311,29 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
     was canvas-only). Card-hover outline went red→neutral (`--border-hover`) since the whole surface is now "change
     art", not "delete". Verified live (desktop): ctrl-click selects, bulk Bleed/Delete mutate, Ctrl+A/Esc/Del work,
     empty CTA returns after delete-all; lint + build + detector green (only the deliberate wordmark gradients remain).
-- **UX critique fixes — empty-state CTA + "missing" copy:** from an impeccable `critique`
-  (29/40, "Good"). Two P1s: (1) the placed/empty footer said **"N missing"** for empty grid slots — overloaded
+- **UX critique fixes, empty-state CTA + "missing" copy:** from an impeccable `critique`
+  (29/40, "Good"). Two P1s: (1) the placed/empty footer said **"N missing"** for empty grid slots, overloaded
   with the real "unresolved card" badge and read as data loss. `PagePreview` footer now says **"N to fill the
   page"** (matches the mobile `export-summary` copy; the `missing` var = empty slots on the current page, see
-  [App.jsx](src/App.jsx) `missing`). (2) the empty preview was a bare white canvas with no guidance — added a
+  [App.jsx](src/App.jsx) `missing`). (2) the empty preview was a bare white canvas with no guidance. Added a
   centered **`.preview-empty-cta`** overlay ("No cards yet" + drop/import hint + an **Add cards** button) over the
   sheet, shown when `images.length===0 && !isDragActive`. Wired a new `onAdd` prop into `previewProps`: desktop =
   react-dropzone `open()`, mobile = open the add sheet (`setAddOpen(true)`). Button reuses `.btn-add` (green) with
   `width:auto` since the sidebar one is full-width. Also fixed a **leftover Italian string**: the drag overlay
   `.preview-root.drag-active::after` said "Rilascia le immagini qui" → **"Drop images here"**. Verified live
   (desktop + 375px): empty CTA centered/sized, footer reads "to fill the page", build + lint green. (The 2
-  `gradient-text` detector hits are the deliberate "Proxoteca" wordmark — left as brand.)
+  `gradient-text` detector hits are the deliberate "Proxoteca" wordmark, left as brand.)
 - **Save-list feedback toast:** "Save list" gave feedback only via the old `notice` box (desktop
-  sidebar / Export page) — invisible from the mobile Cards bar. Replaced `notice` with a global **`Toast`**
+  sidebar / Export page), invisible from the mobile Cards bar. Replaced `notice` with a global **`Toast`**
   (`{kind,msg}` state, auto-dismiss 3.5 s, tap-to-close, `aria-live`), rendered in both App trees, centered above
   the mobile action bar. `handleSaveProject` now emits success/error toasts (the only `notice` user; `error` stays
   for generate/import). Verified live (390px): error toast on upload-only save, positioned above the bar, dismisses.
   Lint + build green.
-- **Mobile nav redesign — tab bar → bottom action bar:** removed the 3-item `BottomTabBar`
+- **Mobile nav redesign, tab bar → bottom action bar:** removed the 3-item `BottomTabBar`
   (file deleted). **Cards is now the always-on view**; the bottom bar (`.cards-toolbar`, `space-between`) is
   **Settings** (left, icon+label) · **[🗑 Delete · ＋ Add (FAB) · ⬇ Save]** (centered `.ct-cluster`) · **Export**
   (right, icon+label). **Settings and Export open a full-screen `MobilePage` overlay** (slide-up, header + close X)
-  instead of switching tabs — Settings = `PageSettings`, Export = count/missing + low-res warn + Generate PDF
+  instead of switching tabs, Settings = `PageSettings`, Export = count/missing + low-res warn + Generate PDF
   (Save list / Delete all live on the bar now). Built per the **ui-ux-pro-max** skill: 5 targets max, ≥44pt /
   ≥8px spacing, one primary CTA (green ＋), labeled nav items, safe-area bottom margin, border-top separation.
   Verified live (390px): tab bar gone, bar order, Settings/Export pages open + close, desktop unaffected.
@@ -336,13 +341,13 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
 - **Mobile Cards action toolbar + Delete-all confirm:** the Cards tab's lone bottom-right ＋ FAB
   is now a **centered bottom toolbar** `.cards-toolbar` = **[🗑 Delete all · ＋ Add (FAB, center) · 🖾 Save list]`**
   (`MobileLayout`). `.mobile-cards` became a flex column so the toolbar sits below the preview + pager (no overlap;
-  `.mobile-cards .preview-root` min-height override). **Delete all now asks for confirmation everywhere** — new
+  `.mobile-cards .preview-root` min-height override). **Delete all now asks for confirmation everywhere**. New
   themed `ConfirmDialog` (reuses `.modal`; `.modal.modal-confirm` stays small/centered even on mobile). `handleClearAll`
   opens it (one wrapper → desktop sidebar + mobile Export tab + mobile Cards toolbar all get the "Delete all cards?
   This can't be undone." guard); `ConfirmDialog` rendered in both App trees. Verified live (390px + 1280px): toolbar
   order/enabled-state, confirm Cancel keeps cards / Delete clears, desktop Delete-all also guarded. Lint + build green.
 - **Mobile Upload button fix:** the mobile add-sheet "Upload files" called react-dropzone's
-  `open()` after `setAddOpen(false)` — mobile browsers block a programmatic file-input `.click()` (no trusted
+  `open()` after `setAddOpen(false)`. Mobile browsers block a programmatic file-input `.click()` (no trusted
   gesture after the re-render), so nothing opened. Replaced it with a **native `<label><input type=file multiple
   accept="image/*">`** (`.sheet-upload`) in `MobileLayout`, wired to `addMenu.onFiles` = `handleImagesAdded`.
   Tapping the label opens the picker via a real gesture (same pattern as the ICC upload). Desktop still uses
@@ -353,38 +358,38 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   The direct Scryfall import was also failing with a CORS/`Failed to fetch` error caused by `api.scryfall.com`
   returning **503 error pages without CORS headers** (a Scryfall-side outage, not an app bug): added `scryfallFetch`
   (retry 429/5xx + network with backoff, clear "Scryfall may be busy or down" message). **Not live-tested from the
-  agent sandbox** (its network egress is blocked — that's why the agent's own probes 503'd); verify in a real
+  agent sandbox** (its network egress is blocked, that's why the agent's own probes 503'd); verify in a real
   browser. Lint + build + parser self-check green.
-- **CMYK export — Phase 3 (bundled profiles, validation, mismatch warning, decoder self-check):**
+- **CMYK export, Phase 3 (bundled profiles, validation, mismatch warning, decoder self-check):**
   - **Bundled ICC profiles** (`utils/iccProfiles.js`): three ECI output profiles in `src/assets/icc/`
     (`ISOcoated_v2_eci.icc`=FOGRA39 **default**, `PSOcoated_v3.icc`=FOGRA51, `PSOuncoated_v3_FOGRA52.icc`=FOGRA52),
     imported `?url` (emitted to `dist/assets/`, fetched on demand, **not** inlined). The "Stampa" group now has an
     **ICC profile select** = bundled list + "Upload custom .icc…". **CMYK export works out-of-box (no upload).**
     Selection persisted (`ip:iccProfileId`); uploaded bytes still not persisted. Registry `info` = exact lcms
     description per file → drives the OutputIntent `Info` and the mismatch compare.
-  - **OutputIntent follows the profile:** `buildCmykPdfBytes(…, condition)` — `OutputConditionIdentifier` =
+  - **OutputIntent follows the profile:** `buildCmykPdfBytes(…, condition)`, `OutputConditionIdentifier` =
     FOGRA39/51/52 (or `CUSTOM` for uploads), `Info` = the profile description (was hardcoded FOGRA39).
-  - **§1e upload validation** (`cmykEngine.readProfileInfo` now returns `deviceClass` from the ICC header bytes —
+  - **§1e upload validation** (`cmykEngine.readProfileInfo` now returns `deviceClass` from the ICC header bytes,
     lcms-wasm has no `cmsGetDeviceClass`): rejects **DeviceLink/abstract/named-color** profiles (CMYK space but not
     a destination) with a clear message; still requires CMYK colour space.
   - **§2 native profile-mismatch warning:** `cmykRaster.extractIccFromJpeg` pulls the embedded ICC from APP2
     (`ICC_PROFILE`, multi-chunk). On add, native CMYK JPEGs get `embeddedIccName` read via lcms; if it differs from
     the selected target a **non-blocking** warning shows in the CMYK box (export unaffected, still passthrough).
   - **§3 decoder self-check** (`utils/vendor/jpegCmykDecoder.selfcheck.js`, `node`-runnable): asserts non-inverted
-    DeviceCMYK on **two real CMYK JPEGs** covering **both APP14 branches** — `synthetic_cmyk.jpg` (transform 0, Pillow)
+    DeviceCMYK on **two real CMYK JPEGs** covering **both APP14 branches**, `synthetic_cmyk.jpg` (transform 0, Pillow)
     and `photoshop_cmyk.jpg` (**transform 2 / YCCK**, real Adobe export, 500×400), incl. the **paper-white inversion
     tripwire**; prints each detected transform. (The first `photoshop_cmyk.jpg` supplied was RGB; the user replaced it
-    with a correct CMYK YCCK file — both branches now covered.) Verified live: bundled default generates PDF/X-1a with
+    with a correct CMYK YCCK file, both branches now covered.) Verified live: bundled default generates PDF/X-1a with
     no upload; switching profile changes the OutputIntent identifier; custom upload accepted; mismatch warning fires
     only on a real mismatch; the **real YCCK card** runs end-to-end (passthrough → 1 DeviceCMYK image, %PDF-1.4,
     OutputIntent, no RGB). Lint + build + self-check green; the 3 `.icc` + `lcms.wasm` emit to `dist/assets/`.
 - **Compression slider:** Print group has a **Compression** range slider (30–100%, default 85%,
-  `ip:quality`) driving the RGB export's JPEG quality — `generatePDF(…, quality)` → `compressImage` →
+  `ip:quality`) driving the RGB export's JPEG quality, `generatePDF(…, quality)` → `compressImage` →
   `toDataURL('image/jpeg', q)`. Lower = smaller PDF (verified: 100%→550KB vs 40%→45KB on the same card).
   **Does not affect CMYK** (FlateDecode is lossless); the hint says so when Output=CMYK. Styled with native
   `accent-color` (gold). Lint + build green.
-- **CMYK export — Phase 2: native CMYK JPEG files:** native CMYK JPEGs (Photoshop/
-  Illustrator/`magick`) now pass through to the PDF **without an RGB round-trip** — exact ink numbers,
+- **CMYK export, Phase 2: native CMYK JPEG files:** native CMYK JPEGs (Photoshop/
+  Illustrator/`magick`) now pass through to the PDF **without an RGB round-trip**, exact ink numbers,
   already in the shop's profile, no lcms conversion. New `utils/cmykRaster.js` (`isCmykJpeg` SOFn sniff +
   raw-channel bleed `cmykCellBuffer`, no canvas) + a **vendored** jpeg-js decoder
   (`utils/vendor/jpegCmykDecoder.js`) exposing `decodeCMYK` (jpeg-js only gives RGB; `getData` case-4 yields
@@ -397,7 +402,7 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   (200×280×4, no inversion); raw-bleed modes unit-checked; mixed RGB+CMYK sheet → 2 DeviceCMYK images, still
   %PDF-1.4 / OutputIntent / no RGB / no ObjStm. Lint + build green. (YCCK transform=2 later covered in Phase 3
   by a real Adobe fixture; **Acrobat Preflight / print-shop proof** remains user-side.)
-- **CMYK / PDF-X-1a print export — Phase 1:** new **Output: RGB (screen) / CMYK (print)**
+- **CMYK / PDF-X-1a print export, Phase 1:** new **Output: RGB (screen) / CMYK (print)**
   toggle in the "Print" group. CMYK produces a **press-ready PDF/X-1a:2003** (DeviceCMYK images, one
   embedded ICC as OutputIntent). The RGB/jsPDF path is **untouched** (additive). New deps `pdf-lib` +
   `lcms-wasm`, both **lazy-loaded** (separate chunks + `lcms.wasm`), so RGB-only users don't pay.
@@ -407,16 +412,16 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   - **UI:** Output select reveals an ICC **upload** (`.icc/.icm`, validated as CMYK, name shown), a
     **rendering intent** select (RelCol+BPC default / Perceptual), a PDF/X-1a tag, and a soft-proof
     caveat (preview is RGB; saturated colours print less vivid). ICC choice is **not persisted** (binary,
-    re-pick per session — like images); `ip:colorMode`/`ip:renderIntent` are. Flows to mobile via the
+    re-pick per session, like images); `ip:colorMode`/`ip:renderIntent` are. Flows to mobile via the
     shared `PageSettings`/`settingsProps`.
   - **Verified (this environment):** lcms in-browser gives correct CMYK (white→0 ink, red→C0/M95/Y92,
-    rich black); generated PDF **passes every structural PDF/X-1a check programmatically** — header
+    rich black); generated PDF **passes every structural PDF/X-1a check programmatically**, header
     %PDF-1.4, classic xref (no ObjStm), OutputIntent `/GTS_PDFX` + ICC `/N 4`, `GTS_PDFXVersion`,
     `Trapped /False`, DeviceCMYK images, TrimBox/BleedBox, and **zero** RGB/ICCBased-CS/transparency.
     Tested end-to-end through the real UI handler with FOGRA39. Lint + build green.
-  - **NOT verified / known gaps:** no **Acrobat Preflight** or **print-shop proof** was possible here —
-    that sign-off (the real acceptance gate, doc §12) is still the user's. (**Phase 2** native CMYK JPEG
-    files are now done — see the entry above.)
+  - **NOT verified / known gaps:** no **Acrobat Preflight** or **print-shop proof** was possible here.
+    That sign-off (the real acceptance gate, doc §12) is still the user's. (**Phase 2** native CMYK JPEG
+    files are now done. See the entry above.)
     **No bundled profiles** (licensing): upload-only; bundling free **ECI** profiles is a follow-up.
     Soft-proof preview (§9) deferred to a warning. WASM/ICC load on the **live Pages URL** uses the same
     relative-`base` lazy-chunk mechanism as jspdf (works in dev) but wasn't tested on the deployed site.
@@ -426,23 +431,23 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   `cursor:pointer`), and a click-outside `mousedown` listener (mirrors the sidebar add-menu) closes it.
   Removed the `.help:hover`/`.help:focus-within` CSS triggers. **Fixed the mobile bug** ("`?` non sparisce
   mai"): `:focus-within` kept the tooltip pinned after the tap-toggle set `helpOpen` false, so it never
-  hid — gone now. Dropped the redundant mobile-media `.help.open` rule (global covers it). Verified live:
+  hid. Gone now. Dropped the redundant mobile-media `.help.open` rule (global covers it). Verified live:
   desktop click opens / second click + click-outside close; mobile (375px) tap opens / second tap hides;
   lint + build green.
 - **"Bleed in art" support for pre-bled custom cards:** for custom (non-Scryfall) cards
   exported with bleed already baked in (e.g. 2 mm). Two ways:
-  - **Global** — a new **Bleed style → "Bleed in art"** option (`full`). `resolveBleedMode` returns `full`
+  - **Global**. A new **Bleed style → "Bleed in art"** option (`full`). `resolveBleedMode` returns `full`
     when `style === 'full'`, forcing **every** card edge-to-edge (overrides even `none`); a `.field-hint`
     reminds to set Bleed to the baked amount so crop marks land on the trim.
-  - **Per-card** — the per-card bleed control is a 3-state cycle (`nextBleedMode`: none → stretch → full →
+  - **Per-card**. The per-card bleed control is a 3-state cycle (`nextBleedMode`: none → stretch → full →
     none) with a `bleedLabel` on the desktop hover button and mobile action sheet (sheet stays open to cycle),
     so any card can be set to/from "Bleed in art" after upload.
   Uploads import as `none`. (Earlier this was a separate "Uploads already include bleed" checkbox +
-  `ip:preBled` state — **removed**, folded into Bleed style.) Verified live: Bleed style `full` → upload
+  `ip:preBled` state, **removed**, folded into Bleed style.) Verified live: Bleed style `full` → upload
   fills the cell; per-card cycle reaches full; lint + build green.
 - **Cookie consent banner:** `CookieBanner` (bottom, centered, site style) shown until
   the user picks Accept/Decline; choice persisted in `localStorage` (`ip:cookieConsent`). Settings always
-  use localStorage (technical); the flag only gates *future* analytics cookies (none today — read the flag
+  use localStorage (technical); the flag only gates *future* analytics cookies (none today, read the flag
   before loading any). Rendered in both App trees; on mobile it clears the bottom-tab bar. Verified live
   (desktop centered + mobile stacked; Accept dismisses + persists across reload). Gotcha noted: centered via
   margins, not `translateX`, since the `fade-up` animation overrides `transform`.
@@ -463,7 +468,7 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   (desktop add-menu + mobile add-sheet). `MpcImportModal` takes a MPCFill `.xml` order file;
   `utils/mpcfill.js` parses it (`<id>` = Google Drive file, `<slots>` count = copies, `<query>`
   = card name) and downloads each image. **Key finding:** Drive images are only CORS-fetchable
-  via `https://lh3.googleusercontent.com/d/<id>=w<N>` — `drive.google.com/uc?export=download`
+  via `https://lh3.googleusercontent.com/d/<id>=w<N>`, `drive.google.com/uc?export=download`
   and `/thumbnail` return 403 even through `corsproxy.io`. The lh3 blob is readable (not tainted)
   → PDF export works with no proxy. MPC images are **already full-bleed (~3 mm, aspect 0.735)**, so
   they import with a new **`bleedMode:'full'`** (added to `resolveBleedMode` + `drawCardWithBleed`
@@ -484,7 +489,7 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   full-screen-modal `@media` was changed to the **same** condition (keep the two in sync). Tablet
   *landscape* and laptops stay desktop (the portrait clause excludes them). Verified live: 820px &
   1024px portrait → bottom-tab shell + full-screen modal; 1180×820 landscape → desktop sidebar.
-- **Change-art modal sizing:** the box was `.modal` `max-width:520px` —
+- **Change-art modal sizing:** the box was `.modal` `max-width:520px`,
   a small, resolution-dependent fraction on wider/hi-dpi monitors. New `.modal-art`
   modifier (in `ArtPickerModal`) sets a **fixed `width:820px` (`max-width:94vw` guard)**
   so it's the same CSS size on every desktop resolution and ~58% bigger. `.art-grid`
@@ -494,7 +499,7 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   (`fit-content` was tried first but `auto-fill` collapses to one column under intrinsic
   sizing.) Verified live: 820px at 1481px & 1920px viewports (identical), mobile 375px full-screen
   no overflow; lint + build green.
-- **Mobile UX — bottom-tab shell:** at `≤768px` (`useIsMobile`), `App` renders
+- **Mobile UX, bottom-tab shell:** at `≤768px` (`useIsMobile`), `App` renders
   `MobileLayout` instead of the desktop sidebar/preview; all state + handlers stay in `App` and
   flow through `settingsProps`/`previewProps`/`actions`/`addMenu` bundles (shared by both layouts,
   DRY). Three bottom tabs: **Cards** (`PageCanvas` preview + ＋ FAB → add bottom-sheet; tap a card
@@ -519,18 +524,18 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   the card↔bleed join in `mirror`. Cause: the Scryfall PNG's outermost 1-3 px are a darker
   antialias **fringe**. `drawCardWithBleed` now (a) draws the card from an `inset` (`≈iw/370`,
   ~2 px) so the trim edge samples real art, not the fringe, and (b) samples every mirror/stretch
-  band from the same inset so the join pixel matches — plus the earlier `ov = 1` px inward
+  band from the same inset so the join pixel matches, plus the earlier `ov = 1` px inward
   overlap to hide the AA hairline. Measured on the real SLD Exotic Orchard PNG: seam dip went
   ~35% → ~5% (gone); dark-edged cards (SPG Verdant Catacombs) stay flat. `black` mode only gets
   the cleaner inset trim edge.
 - **UI translated to English:** all visible strings (sidebar, preview, both modals, errors,
   `index.html`); code comments stay Italian. Verified live.
 - **Deck-link import pins the deck's edition:** `moxfieldList`/`archidektList`
-  emitted only `qty Name`, so Scryfall returned the *default* printing — not the one chosen in
+  emitted only `qty Name`, so Scryfall returned the *default* printing, not the one chosen in
   the deck. They now emit `qty Name (SET) cn` via a shared `deckLine` helper (Moxfield card →
   `set`/`cn`; Archidekt → `edition.editioncode`/`collectorNumber`), and the existing
   `(SET) collector` pin pipeline does the rest. **Fixed a latent bug it exposed:** `parseCardList`
-  lowercased the collector, but `/cards/collection` is **case-sensitive** on it — alphanumeric
+  lowercased the collector, but `/cards/collection` is **case-sensitive** on it, alphanumeric
   collectors (The List `TMP-294`, `PCY-45`) returned not-found. Collector now keeps original case;
   Map keys stay case-insensitive. Verified live on the test deck: 100/100 cards resolve to the
   exact edition, 0 not-found (was 2). Self-check + `deckLine` round-trip added. Tappedout left as-is
@@ -552,18 +557,18 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   app is static, so requests go through a **public CORS proxy** (`corsproxy.io`); only the
   proxy URL constant needs changing if it dies. **Archidekt and Moxfield verified live
   end-to-end** (real decks); Tappedout uses its documented `?fmt=txt` shape (proxy forwarding
-  confirmed, not tested with a real deck). Manabox was left out — its API is CORS-OK but the web
+  confirmed, not tested with a real deck). Manabox was left out. Its API is CORS-OK but the web
   URL/JSON shape couldn't be verified.
 - **Animated "Mostra crocini" checkbox:** native input hidden-but-focusable +
   an SVG (`.anim-check`) that morphs a circle into a checkmark on `:checked` (adapted Uiverse
-  snippet — green swapped for the gold `--accent`, light ripple/base for the dark theme).
+  snippet, green swapped for the gold `--accent`, light ripple/base for the dark theme).
 - **Sidebar redesign (from a design critique):**
   - *Fixed export footer:* `.app` is now `height: 100dvh` (was `min-height`), so the sidebar
     splits into a scrolling `.sidebar-scroll` (the settings) + a non-scrolling `.sidebar-export`
-    footer. **Genera PDF is always visible** — before it sat below the fold. (Sticky-bottom was
+    footer. **Genera PDF is always visible**. Before it sat below the fold. (Sticky-bottom was
     tried first but the trailing content peeked under it; a flex footer is clean.)
   - *Grouped controls:* the 6 separate carded sections collapsed into **2 group cards**
-    ("Foglio & carta", "Stampa") of stacked `.field`s + a trimmed "Riepilogo" box — far less
+    ("Foglio & carta", "Stampa") of stacked `.field`s + a trimmed "Riepilogo" box, far less
     scroll. `SelectField` helper renders label + select.
   - *Contrast:* section `h2` lightened `--text-muted` → `--text-secondary` (was ~4.4:1 at 11px,
     failed AA; now ~5.9:1).
@@ -572,7 +577,7 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
     without scroll; custom sheet scrolls with the footer pinned).
 - **Crop-mark style + checkbox + custom sheet:**
   - *Crop-mark styles:* `cropStyle` = `'lines'` (the original edge-aligned marks, clamped by
-    `cropMarkSpan`) | `'corners'` (squadrette — L-brackets offset into the gutter at each trim
+    `cropMarkSpan`) | `'corners'` (squadrette, L-brackets offset into the gutter at each trim
     corner, opening toward the card). `drawCropMarks` (PDF) + `drawCropMarksCanvas` (preview)
     both take a `style` arg.
   - *Show-crop is now a checkbox* (`.checkbox-row`, `accent-color` gold) instead of a select;
@@ -584,7 +589,7 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
 - **Card type + crop-mark toggle:**
   - *Tipo carta:* sidebar preset select (Standard 63×88, Piccola/JP 59×86, Mini USA 41×63,
     Tarot 70×120) + "Personalizzata" with free W×H inputs. `CARD_W`/`CARD_H` are now just
-    defaults — `getGridInfo(formatKey, bleedMm, cardW, cardH)` and `generatePDF(…, cardW, cardH, …)`
+    defaults, `getGridInfo(formatKey, bleedMm, cardW, cardH)` and `generatePDF(…, cardW, cardH, …)`
     take real dims, threaded through `App` state (`cardType`/`cardW`/`cardH`, persisted) into
     `PageSettings`, `PagePreview`/`PageCanvas`, crop marks, and the low-res check.
   - *Crocini di taglio:* Mostra/Nascondi select gates crop marks in both the PDF
@@ -592,8 +597,8 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   - Layout info box relabelled: Foglio (sheet) / Carta (card) / Cella (cell). Verified live.
 - **Five usability features:**
   - *Persistence:* settings (`formatKey`/`bleedMm`/`bleedStyle`/`dpi`) + the pasted
-    Scryfall list survive reload via `localStorage`. Images (blobs) are not persisted —
-    re-import is one click. Corrupt `ip:format` falls back to A3 (guards a crash in `getGridInfo`).
+    Scryfall list survive reload via `localStorage`. Images (blobs) are not persisted.
+    Re-import is one click. Corrupt `ip:format` falls back to A3 (guards a crash in `getGridInfo`).
   - *Bleed on manual uploads:* per-card hover button toggles `bleedMode` none↔stretch.
     Before this, uploads were locked to object-fit cover and the bleed feature never touched
     them. Cards with bleed show a persistent gold frame indicator. Global "Stile abbondanza"
@@ -618,11 +623,11 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   borderless`, else `stretch` (note: `/cards/collection` returns the default printing, so
   mirror only fires when that printing is itself full-art/borderless). Shared by the canvas
   preview and `compressImage`/PDF, follows the bleed slider (`bleed=0` → card fills the
-  cell). **`bleedMode: 'none'` draws the card at trim (63×88), bleed margin left blank** —
-  toggling bleed off no longer resizes the card up to the full cell (preview + PDF; was
+  cell). **`bleedMode: 'none'` draws the card at trim (63×88), bleed margin left blank**.
+  Toggling bleed off no longer resizes the card up to the full cell (preview + PDF; was
   fill-cell/cover before). (mpc-autofill itself is desktop MPC-order automation, not embeddable;
   this replicates the print-ready bleed in-browser.)
-- **Scryfall import:** the green "+" is now a menu — "Carica file" (existing picker) or
+- **Scryfall import:** the green "+" is now a menu, "Carica file" (existing picker) or
   "Importa da Scryfall". The Scryfall option opens a modal (`ScryfallImportModal`) where you
   paste a `1x Card Name` list; `utils/scryfall.js` resolves names via `/cards/collection`
   (batched 75), downloads the PNGs as `File`s, and feeds them through the normal pipeline.
@@ -630,13 +635,13 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   object URLs (same-origin) so the canvas/PDF export is not tainted. After a successful
   import the modal's "Importa" button becomes "Finito" (closes). Verified live.
 - **Preview image cache:** `PageCanvas` keeps a `src → HTMLImageElement` cache so redraws
-  (delete, resize, format change) no longer re-decode every image — deleting a card is now
+  (delete, resize, format change) no longer re-decode every image. Deleting a card is now
   0 re-decodes (was N) and the preview no longer "reloads from scratch"/flashes. Cache is
   rebuilt from the current page each draw (bounded memory; removed images dropped). Page
   navigation still decodes the newly-shown page once.
 - **Crop-mark fix:** crop marks no longer overflow into adjacent cards at small bleed.
   New pure `cropMarkSpan(limit, gap, len)` in `pdfGenerator.js` clamps each mark's outward
-  reach to the available space — inner edges to `bleed` (the midline between ganged cards),
+  reach to the available space, inner edges to `bleed` (the midline between ganged cards),
   outer edges to `bleed + offset` (page margin, also prevents off-page marks); `bleed = 0`
   → no inner marks. Shared by the PDF (`drawCropMarks`) and the canvas preview
   (`drawCropMarksCanvas`).
@@ -650,7 +655,7 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme — don't re
   compression); removed `setState`-in-effect in `PagePreview` (offset derived in render);
   memoized grid info + page images; cancel stale async canvas draws; revoke object URLs on
   unmount; deleted unused `VirtualThumbGrid`.
-- Earlier: full design pass — contrast/empty-state/responsive/focus fixes, custom SVG icons
+- Earlier: full design pass, contrast/empty-state/responsive/focus fixes, custom SVG icons
   + branded favicon, depth/light-table, Bricolage+Hanken type, code-split PDF libs
   (jspdf/html2canvas lazy), warm-gold rebrand + grain.
 
@@ -659,34 +664,34 @@ All verified live + `npm run lint` clean + `npm run build` green.
 ## Known issues / TODO
 
 - **CMYK export: Phases 1+2+3 done; remaining follow-ups** (spec in user's `CMYK-PRINT-EXPORT.md` Phase 3+):
-  - **§4 live-deploy smoke UNRUN** — confirm `lcms.wasm` + the 3 `.icc` load (200/correct MIME) on
+  - **§4 live-deploy smoke UNRUN**. Confirm `lcms.wasm` + the 3 `.icc` load (200/correct MIME) on
     `https://tommiconlai.github.io/Proxoteca/` after deploy and a CMYK export runs end-to-end. Emit verified in
     local `dist/assets/`; live not checked.
   - **§7 Acrobat preflight + contract proof = the acceptance gate, still user-side** (structural checks pass here).
-  - **Decoder both APP14 branches now covered** — transform 0 (`synthetic_cmyk.jpg`) + transform 2 / YCCK
+  - **Decoder both APP14 branches now covered**, transform 0 (`synthetic_cmyk.jpg`) + transform 2 / YCCK
     (`photoshop_cmyk.jpg`, real Adobe). Self-check + live e2e green on both.
   - **§5 soft-proof** (CMYK→monitor) and **§6 CMYK-JPEG/DCTDecode** size path are **optional**, not built (preview
     keeps the RGB warning; raw-Flate DeviceCMYK stays the lossless default, heavy at high DPI). Confirm the shop's
-    preferred default profile + intent (spec §14) — default = FOGRA39 + RelCol+BPC.
+    preferred default profile + intent (spec §14), default = FOGRA39 + RelCol+BPC.
 - **Deck-link import depends on public CORS proxies** for Moxfield / Archidekt / Tappedout.
   `utils/scryfall.js` now tries a **fallback chain** `CORS_PROXIES` (allorigins → codetabs → corsproxy.io)
   via `fetchViaProxy`; if all die, add/reorder entries or add a tiny backend. (`corsproxy.io` alone went to
-  403/key-required — that's why it's now a chain.) The Tappedout parser uses a documented `?fmt=txt` shape but
-  wasn't tested with a real deck — fix the field path if an import comes back empty.
-- **Scryfall direct import can fail when Scryfall is degraded** — `api.scryfall.com` 503/Cloudflare error pages
+  403/key-required, that's why it's now a chain.) The Tappedout parser uses a documented `?fmt=txt` shape but
+  wasn't tested with a real deck. Fix the field path if an import comes back empty.
+- **Scryfall direct import can fail when Scryfall is degraded**, `api.scryfall.com` 503/Cloudflare error pages
   carry no CORS header, so the browser shows "blocked by CORS policy / Failed to fetch". `scryfallFetch` now
   retries 429/5xx + network errors with backoff and surfaces a clear "Scryfall may be busy or down" message.
-  Not app-fixable beyond that — it's a Scryfall outage; retry later. (Could not be live-tested from the agent
+  Not app-fixable beyond that. It's a Scryfall outage; retry later. (Could not be live-tested from the agent
   sandbox: its egress is blocked, so external fetch checks must be done in a real browser.)
 - **A11y:** sidebar `<select>`s now carry `aria-label`s (field text is a decorative `<span>`);
   custom W/H inputs are wrapped in `<label>`. Remaining gap: no full keyboard/focus-visible audit.
 - **Touch (desktop layout):** the per-card hover buttons reveal on hover, so they're not
-  reachable on touch in the *desktop* layout. Resolved on the mobile layout (≤768px) — there
+  reachable on touch in the *desktop* layout. Resolved on the mobile layout (≤768px). There
   `PagePreview` runs in tap mode (`onCardTap`) and a tap opens `CardActionSheet`. A touch device
   on a wide screen still gets the desktop hover buttons.
 - **Low-res warning:** the per-card `!` is canvas-drawn (visual-only, no SR text), but the
   sidebar now has a DOM `.lowres-warn` above the dpi field explaining it (counts cards whose
-  decoded `naturalWidth` < `dpi*0.5*cardW/25.4` — same threshold as the marker; dims are decoded
+  decoded `naturalWidth` < `dpi*0.5*cardW/25.4`, same threshold as the marker; dims are decoded
   once on add and stored as `item.w`). `replaceArt` doesn't re-decode `w` (Scryfall prints are all
   745×1040, so it stays valid).
 - **Tests:** only `scryfall.selfcheck.js` (parseCardList). No component/integration tests.
@@ -695,6 +700,8 @@ All verified live + `npm run lint` clean + `npm run build` green.
 
 - Commit + push to `main` after every change unless told to wait (user pref, 2026-06-19).
   Repo is solo, history is direct-to-`main`. Write the commit message to a temp file and use
-  `git commit -F <tmpfile>` — PowerShell mangles multi-line `-m` here-strings.
+  `git commit -F <tmpfile>`. PowerShell mangles multi-line `-m` here-strings.
 - After UI edits: run the app, screenshot empty + populated, then `npm run build`.
 - Treat "AI-default" looks (Inter, generic purple, emoji icons) as signals to diverge.
+- **No em-dash (U+2014) anywhere** (code, UI copy, comments, docs; user rule 2026-10-13). Use a
+  period or a comma, chosen per case. En-dash in number ranges (`0.5–1.0`) is fine.

@@ -1,5 +1,5 @@
 // Self-check del parser. Esegui: node src/utils/scryfall.selfcheck.js
-// ponytail: niente framework — un file, assert via throw, copre i rami di parseCardList.
+// ponytail: niente framework, un file, assert via throw, copre i rami di parseCardList.
 import { parseCardList, deckLine, buildDeckList } from './scryfall.js';
 
 const eq = (a, b, msg) => {

@@ -282,7 +282,7 @@ async function fetchViaProxy(targetUrl) {
   throw new Error(`Could not reach the deck site (CORS proxies failed${lastErr ? `: ${lastErr.message}` : ''}). Try again later, or paste the list by hand.`);
 }
 
-// "qty Nome (SET) cn" — set+collector pinnano la stampa SCELTA NEL DECK; assenti →
+// "qty Nome (SET) cn", set+collector pinnano la stampa SCELTA NEL DECK; assenti →
 // solo nome (Scryfall sceglie la stampa di default). Il tail lo riparsa parseCardList.
 export function deckLine(qty, name, set, cn) {
   if (!name) return '';

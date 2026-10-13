@@ -52,17 +52,17 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
       <header className="mobile-header">
         <Logo size={30} className="logo-mark" />
         <h1>Proxoteca</h1>
-        {/* Pulsante ? con tap-toggle su mobile — riusa lo stesso markup del desktop */}
+        {/* Pulsante ? con tap-toggle su mobile, riusa lo stesso markup del desktop */}
         <div className={`help${helpOpen ? ' open' : ''}`}>
           <button type="button" className="help-btn" aria-label="How it works" onClick={() => setHelpOpen((o) => !o)}>?</button>
           <div className="help-tooltip" role="tooltip">
             <button type="button" className="help-tooltip-close" aria-label="Close help" onClick={() => setHelpOpen(false)}>✕</button>
             <strong>How it works</strong>
             <ol>
-              <li><b>Add cards</b> — tap <b>＋</b> to upload images or import from Scryfall (a card list or a deck link).</li>
-              <li><b>Set up</b> — tap <b>Settings</b> (bottom-left): sheet &amp; card size, bleed, crop marks, CMYK.</li>
-              <li><b>Tweak</b> — tap a card to change art, duplicate, toggle bleed, or remove it.</li>
-              <li><b>Export</b> — tap <b>Export</b> (bottom-right) for <b>Generate PDF</b>; <b>Save list</b> exports your Scryfall cards as a reloadable deck list.</li>
+              <li><b>Add cards</b>. Tap <b>＋</b> to upload images or import from Scryfall (a card list or a deck link).</li>
+              <li><b>Set up</b>. Tap <b>Settings</b> (bottom-left): sheet &amp; card size, bleed, crop marks, CMYK.</li>
+              <li><b>Tweak</b>. Tap a card to change art, duplicate, toggle bleed, or remove it.</li>
+              <li><b>Export</b>. Tap <b>Export</b> (bottom-right) for <b>Generate PDF</b>; <b>Save list</b> exports your Scryfall cards as a reloadable deck list.</li>
             </ol>
           </div>
         </div>
@@ -135,7 +135,7 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
             </div>
             {actions.lowResCount > 0 && (
               <div className="lowres-warn"><span className="lowres-mark" aria-hidden="true">!</span>
-                <span>{actions.lowResCount} card{actions.lowResCount > 1 ? 's' : ''} too low-res for {actions.dpi} DPI — lower the DPI or use higher-res art.</span></div>
+                <span>{actions.lowResCount} card{actions.lowResCount > 1 ? 's' : ''} too low-res for {actions.dpi} DPI. Lower the DPI or use higher-res art.</span></div>
             )}
             <ExportProgress loading={actions.loading} progress={actions.genProgress} disabled={actions.count === 0}
               onGenerate={actions.onGenerate} onCancel={actions.onCancelGenerate} />

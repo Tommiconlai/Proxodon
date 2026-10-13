@@ -1,4 +1,4 @@
-# Task 2 Report — Settings + Export tabs
+# Task 2 Report, Settings + Export tabs
 
 ## Files changed
 
@@ -19,4 +19,4 @@
 
 None. All existing global classes (`.btn-generate`, `.btn-secondary`, `.btn-save`, `.export-row`, `.lowres-warn`, `.lowres-mark`, `.info-box`, `.info-box-error`, `.spinner`) are reused without redefinition. Desktop unchanged.
 
-**Impeccable hook note:** the `gradient-text` finding on `.mobile-header h1` (L1439, Task 1) is a false positive — it is an intentional brand-identity choice matching the desktop `h1`, not AI-generated filler.
+**Impeccable hook note:** the `gradient-text` finding on `.mobile-header h1` (L1439, Task 1) is a false positive. It is an intentional brand-identity choice matching the desktop `h1`, not AI-generated filler.

@@ -161,7 +161,7 @@ export default function App() {
       probe.src = it.preview;
     });
     // §2: per i JPEG CMYK nativi, leggi il profilo incorporato (APP2) una volta sola
-    // qui in add — per l'avviso "profilo diverso dalla destinazione" nell'export CMYK.
+    // qui in add, per l'avviso "profilo diverso dalla destinazione" nell'export CMYK.
     newItems.forEach((it) => {
       (async () => {
         try {
@@ -265,7 +265,7 @@ export default function App() {
   });
 
   // Cambia art: il box ha già scaricato la stampa Scryfall; sostituisce file+preview
-  // (id invariato). meta: { bleedMode, set, collector } — bleedMode mirror/stretch in
+  // (id invariato). meta: { bleedMode, set, collector }. bleedMode mirror/stretch in
   // base a full-art/borderless; set/collector aggiornati così "Save list" segue la stampa.
   const handleReplaceArt = (file, { bleedMode, set, collector } = {}) => {
     const preview = URL.createObjectURL(file);
@@ -290,7 +290,7 @@ export default function App() {
     const { text, cards, custom } = buildDeckList(images);
     if (!cards) {
       setToast({ kind: 'error', msg: custom
-        ? 'Only custom images — Save list covers Scryfall cards only.'
+        ? 'Only custom images. Save list covers Scryfall cards only.'
         : 'No cards to save.' });
       return;
     }
@@ -351,7 +351,7 @@ export default function App() {
       } else {
         await generatePDF(images, formatKey, bleedMm, dpi, bleedStyle, cardW, cardH, cropMarks, cropStyle, customSheet, quality, onProgress, ctrl.signal);
       }
-      setToast({ kind: 'success', msg: 'PDF ready — check your downloads.' });
+      setToast({ kind: 'success', msg: 'PDF ready. Check your downloads.' });
     } catch (err) {
       // L'utente ha annullato: feedback neutro, non un errore.
       if (err?.name === 'AbortError') setToast({ kind: 'success', msg: 'Export canceled.' });
@@ -373,7 +373,7 @@ export default function App() {
   });
 
   const missing = images.length === 0 || perPage === 0 ? 0 : (perPage - (images.length % perPage)) % perPage;
-  // Carte la cui sorgente non regge il DPI scelto — stessa soglia del marker "!" nel preview.
+  // Carte la cui sorgente non regge il DPI scelto, stessa soglia del marker "!" nel preview.
   const lowResCount = images.reduce((n, it) => n + (it.w && it.w < dpi * 0.5 * (cardW / 25.4) ? 1 : 0), 0);
   // §2: nome del profilo di destinazione attivo + n. carte CMYK native con profilo
   // incorporato DIVERSO (confronto descrizione lcms ↔ descrizione lcms, normalizzato).
@@ -440,10 +440,10 @@ export default function App() {
           <div className="help-tooltip" role="tooltip">
             <strong>How it works</strong>
             <ol>
-              <li><b>Add cards</b> — upload images, or import from Scryfall (paste a card list or a deck link).</li>
-              <li><b>Set up</b> — sheet &amp; card size, bleed and crop marks in the sidebar.</li>
-              <li><b>Tweak</b> — click a card to change its printing; hover a card to duplicate, toggle bleed, or remove it. <b>Ctrl/⌘ or Shift-click</b> cards to select several, then bleed or delete them together.</li>
-              <li><b>Export</b> — <b>Generate PDF</b> (print-ready). <b>Save list</b> exports your Scryfall cards as a reloadable deck list.</li>
+              <li><b>Add cards</b>. Upload images, or import from Scryfall (paste a card list or a deck link).</li>
+              <li><b>Set up</b>. Sheet &amp; card size, bleed and crop marks in the sidebar.</li>
+              <li><b>Tweak</b>. Click a card to change its printing; hover a card to duplicate, toggle bleed, or remove it. <b>Ctrl/⌘ or Shift-click</b> cards to select several, then bleed or delete them together.</li>
+              <li><b>Export</b>. <b>Generate PDF</b> (print-ready). <b>Save list</b> exports your Scryfall cards as a reloadable deck list.</li>
             </ol>
           </div>
         </div>
@@ -504,7 +504,7 @@ export default function App() {
           </div>
         </aside>
 
-        {/* Main — area drop + preview grande */}
+        {/* Main, area drop + preview grande */}
         <main className="main-content" {...getRootProps()}>
           <input {...getInputProps()} />
           <PagePreview {...previewProps} />

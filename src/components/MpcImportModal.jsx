@@ -40,7 +40,7 @@ export default function MpcImportModal({ open, onClose, onImport }) {
             // 0 scaricate ma con falliti = fallimento totale: errore, non "✓ 0 imported"
             // (stessa logica dell'import Scryfall).
             if (!files.length && notFound.length) {
-                setError(`None of the ${notFound.length} download${notFound.length > 1 ? 's' : ''} succeeded — check your connection, or that the Drive files are still shared.`);
+                setError(`None of the ${notFound.length} download${notFound.length > 1 ? 's' : ''} succeeded. Check your connection, or that the Drive files are still shared.`);
             } else {
                 setResult({ imported: files.length, notFound });
             }
@@ -63,8 +63,8 @@ export default function MpcImportModal({ open, onClose, onImport }) {
 
                 <p className="modal-hint">
                     Pick a MPCFill <code>.xml</code> order file. Images are pulled from the
-                    Google&nbsp;Drive links inside it and come print-ready with bleed —
-                    set <b>Bleed</b> to <b>3&nbsp;mm</b> for accurate crop marks.
+                    Google&nbsp;Drive links inside it and come print-ready with bleed.
+                    Set <b>Bleed</b> to <b>3&nbsp;mm</b> for accurate crop marks.
                 </p>
 
                 <label className="btn-secondary mpc-file">

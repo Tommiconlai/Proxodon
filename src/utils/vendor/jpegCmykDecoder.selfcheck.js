@@ -1,5 +1,5 @@
 /**
- * Self-check del decoder CMYK JPEG — Proxoteca (no framework, stile scryfall.selfcheck).
+ * Self-check del decoder CMYK JPEG, Proxoteca (no framework, stile scryfall.selfcheck).
  * Esegui:  node src/utils/vendor/jpegCmykDecoder.selfcheck.js
  *
  * Verifica che `decodeCMYK` produca DeviceCMYK NON invertito (0 = niente inchiostro)
@@ -37,7 +37,7 @@ function checkSwatches(label, file) {
     dec = decodeCMYK(buf);
   } catch (e) {
     console.warn('  ⚠ NON decodificabile come CMYK: ' + e.message);
-    console.warn('  ⚠ (un export RGB non serve a testare il path CMYK — riesportare in CMYK)');
+    console.warn('  ⚠ (un export RGB non serve a testare il path CMYK, riesportare in CMYK)');
     return; // non blocca: warning, non failure
   }
   const transform = dec.adobe ? dec.adobe.transformCode : '(no APP14)';
@@ -54,8 +54,8 @@ function checkSwatches(label, file) {
 
 console.log('=== jpegCmykDecoder self-check ===');
 // Entrambi i rami APP14 coperti da VERI JPEG CMYK (stesse 5 bande C/M/Y/K/paper):
-// - synthetic_cmyk.jpg → transform 0 (no color transform, inversione Adobe) — Pillow.
-// - photoshop_cmyk.jpg → transform 2 (YCCK) — export Adobe reale.
+// - synthetic_cmyk.jpg → transform 0 (no color transform, inversione Adobe), Pillow.
+// - photoshop_cmyk.jpg → transform 2 (YCCK), export Adobe reale.
 checkSwatches('Synthetic CMYK (APP14 transform 0)', join(FIX, 'synthetic_cmyk.jpg'));
 checkSwatches('Real Adobe CMYK (APP14 transform 2 / YCCK)', join(FIX, 'photoshop_cmyk.jpg'));
 

@@ -1,5 +1,5 @@
 /**
- * Motore colore CMYK — Proxoteca
+ * Motore colore CMYK, Proxoteca
  *
  * Wrapper su lcms-wasm (Little-CMS in WASM). Converte buffer sRGB -> CMYK
  * usando il profilo ICC della tipografia. Caricato on-demand (dynamic import)

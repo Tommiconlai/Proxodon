@@ -203,10 +203,10 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
     const perPage = Math.max(1, info.perPage);
     const totalPages = images.length === 0 ? 1 : Math.ceil(images.length / perPage);
     // Nessuna cella entra (foglio degenere): pager/contatore/scorciatoie non hanno senso
-    // su un foglio vuoto — si mostra solo l'avviso "No cards fit this sheet".
+    // su un foglio vuoto, si mostra solo l'avviso "No cards fit this sheet".
     const fits = info.perPage > 0;
 
-    // Reset pagina al cambio formato/bleed — setState durante il render (no effect).
+    // Reset pagina al cambio formato/bleed, setState durante il render (no effect).
     const [prevFmt, setPrevFmt] = useState(formatKey);
     const [prevBleed, setPrevBleed] = useState(bleedMm);
     if (prevFmt !== formatKey || prevBleed !== bleedMm) {
@@ -407,7 +407,7 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                                                 // ctrl/shift-click); Enter resta "cambia art" (click nativo).
                                                 if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); toggleSel(img.id); }
                                             }}
-                                            title="Change art (Enter) — Ctrl-click or Space to select"
+                                            title="Change art (Enter). Ctrl-click or Space to select"
                                             aria-label={`${name}. Change art. Ctrl/Shift-click or press Space to select.`}
                                             aria-pressed={isSel}
                                         />
@@ -439,7 +439,7 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                                         >
                                             <IconX size={12} />
                                         </button>
-                                        {lowRes && <span className="sr-only">Low resolution for {dpi} DPI — may print soft.</span>}
+                                        {lowRes && <span className="sr-only">Low resolution for {dpi} DPI. May print soft.</span>}
                                         </>)}
                                     </div>
                                 );

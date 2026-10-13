@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 // Banner consenso cookie. I settaggi vivono in localStorage (sempre, tecnici);
 // la scelta qui (`ip:cookieConsent` = accepted|declined) abilita/nega eventuali
-// cookie di analytics futuri — basta leggere il flag prima di caricarli.
+// cookie di analytics futuri. Basta leggere il flag prima di caricarli.
 const KEY = 'ip:cookieConsent';
 
 export default function CookieBanner() {

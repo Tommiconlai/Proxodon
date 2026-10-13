@@ -12,10 +12,10 @@ const BLEED_STYLE_OPTIONS = [
 ];
 // Preset dimensioni carta in mm. 'custom' → input liberi.
 const CARD_TYPES = [
-    { key: 'mtg', label: 'Standard — 63×88', w: 63, h: 88 },
-    { key: 'small', label: 'Small / JP — 59×86', w: 59, h: 86 },
-    { key: 'mini', label: 'Mini USA — 41×63', w: 41, h: 63 },
-    { key: 'tarot', label: 'Tarot — 70×120', w: 70, h: 120 },
+    { key: 'mtg', label: 'Standard, 63×88', w: 63, h: 88 },
+    { key: 'small', label: 'Small / JP, 59×86', w: 59, h: 86 },
+    { key: 'mini', label: 'Mini USA, 41×63', w: 41, h: 63 },
+    { key: 'tarot', label: 'Tarot, 70×120', w: 70, h: 120 },
     { key: 'custom', label: 'Custom…', w: 0, h: 0 },
 ];
 
@@ -71,7 +71,7 @@ export default function PageSettings({
 
     return (
         <>
-            {/* Gruppo 1 — Foglio & carta */}
+            {/* Gruppo 1, Foglio & carta */}
             <div className="sidebar-section">
                 <h2>Sheet &amp; card</h2>
                 <div className="glass-card compact settings-group">
@@ -81,7 +81,7 @@ export default function PageSettings({
                             <select value={formatKey} onChange={e => setFormatKey(e.target.value)} aria-label="Sheet format">
                                 {Object.keys(PAPER_FORMATS).map(k => {
                                     const [w, h] = PAPER_FORMATS[k];
-                                    return <option key={k} value={k}>{k} — {w}×{h} mm</option>;
+                                    return <option key={k} value={k}>{k}, {w}×{h} mm</option>;
                                 })}
                                 <option value="custom">Custom…</option>
                             </select>
@@ -107,7 +107,7 @@ export default function PageSettings({
                                 {customSheet && (customSheet[0] < cardW || customSheet[1] < cardH) && (
                                     <div className="lowres-warn">
                                         <span className="lowres-mark" aria-hidden="true">!</span>
-                                        <span>Sheet smaller than the {cardW}×{cardH}&nbsp;mm card — no cards will fit. Increase the sheet, or reduce the card size.</span>
+                                        <span>Sheet smaller than the {cardW}×{cardH}&nbsp;mm card. No cards will fit. Increase the sheet, or reduce the card size.</span>
                                     </div>
                                 )}
                             </>
@@ -148,7 +148,7 @@ export default function PageSettings({
                 </div>
             </div>
 
-            {/* Gruppo 2 — Stampa */}
+            {/* Gruppo 2, Stampa */}
             <div className="sidebar-section">
                 <h2>Print</h2>
                 <div className="glass-card compact settings-group">
@@ -156,7 +156,7 @@ export default function PageSettings({
                     <div className="field">
                         <SelectField label="Output" value={colorMode} onChange={e => setColorMode(e.target.value)}>
                             <option value="rgb">RGB (screen)</option>
-                            <option value="cmyk">CMYK (print) — PDF/X-1a</option>
+                            <option value="cmyk">CMYK (print), PDF/X-1a</option>
                         </SelectField>
                         {colorMode === 'rgb' && (
                             <p className="field-hint">RGB suits home &amp; online printing; choose CMYK only for a professional print shop.</p>
@@ -206,9 +206,9 @@ export default function PageSettings({
                                     How RGB art is mapped into CMYK. <b>Relative Colorimetric + BPC</b> (default) keeps in-gamut
                                     colours exact and uses Black Point Compensation (BPC) to preserve shadow detail;
                                     {' '}<b>Perceptual</b> gently compresses all colours to fit. Affects only RGB art (Scryfall / RGB
-                                    uploads) — native CMYK JPEGs pass through untouched. Your print shop may prefer one.
+                                    uploads). Native CMYK JPEGs pass through untouched. Your print shop may prefer one.
                                 </p>
-                                <p className="field-hint">Note: the on-screen preview is RGB. Very saturated colours print less vivid in CMYK (smaller gamut) — that’s normal.</p>
+                                <p className="field-hint">Note: the on-screen preview is RGB. Very saturated colours print less vivid in CMYK (smaller gamut), that’s normal.</p>
                             </div>
                         )}
                     </div>
@@ -233,7 +233,7 @@ export default function PageSettings({
                             <span className="lowres-mark" aria-hidden="true">!</span>
                             <span>
                                 {lowResCount} card{lowResCount > 1 ? 's' : ''} {lowResCount > 1 ? 'have' : 'has'} under half the pixels {dpi} DPI needs at
-                                card size — {lowResCount > 1 ? 'they' : 'it'}’ll print soft. Lower the DPI or use higher-res art.
+                                card size. {lowResCount > 1 ? 'They' : 'It'}’ll print soft. Lower the DPI or use higher-res art.
                                 Flagged with a <b>!</b> on the card in the preview.
                             </span>
                         </div>
@@ -244,7 +244,7 @@ export default function PageSettings({
                             <option key={v} value={v}>{v} DPI</option>
                         ))}
                     </SelectField>
-                    <p className="field-hint">Print sharpness. 300 DPI is the standard — source art should be about that at card size (a 63×88&nbsp;mm card ≈ 745&nbsp;px wide). Higher DPI only helps if the art is high-res.</p>
+                    <p className="field-hint">Print sharpness. 300 DPI is the standard. Source art should be about that at card size (a 63×88&nbsp;mm card ≈ 745&nbsp;px wide). Higher DPI only helps if the art is high-res.</p>
 
                     {/* Compressione JPEG dell'export RGB (non si applica al CMYK lossless) */}
                     <div className="field">
@@ -261,7 +261,7 @@ export default function PageSettings({
                         />
                         <p className="field-hint">
                             {colorMode === 'cmyk'
-                                ? 'Applies to RGB output only — CMYK export is lossless (FlateDecode).'
+                                ? 'Applies to RGB output only. CMYK export is lossless (FlateDecode).'
                                 : 'Lower quality = smaller PDF, more JPEG artifacts. 85% is a good default.'}
                         </p>
                     </div>

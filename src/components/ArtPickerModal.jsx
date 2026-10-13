@@ -34,7 +34,7 @@ export default function ArtPickerModal({ card, onClose, onPick }) {
         <div className="modal-overlay" onClick={picking ? undefined : onClose}>
             <div className="modal modal-art" ref={dismissRef} tabIndex={-1} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={`Change art: ${name}`}>
                 <div className="modal-header">
-                    <h2>Change art — {name}</h2>
+                    <h2>Change art, {name}</h2>
                     <button className="modal-close" onClick={onClose} aria-label="Close" disabled={picking}>
                         <IconX size={18} />
                     </button>

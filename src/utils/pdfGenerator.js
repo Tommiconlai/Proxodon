@@ -1,5 +1,5 @@
 /**
- * PDF Generator Utility — Proxoteca
+ * PDF Generator Utility, Proxoteca
  *
  * Costanti: tutte le misure in mm, jsPDF usa 'mm' come unità.
  * Orientamento: auto-calcolato per massimizzare il numero di immagini.
@@ -239,7 +239,7 @@ export function drawCardWithBleed(ctx, img, x, y, cellW, cellH, bleedPx, mode = 
     const bsh = Math.max(1, Math.min(sh0, Math.round((b * sh0) / th)));
     // Sconfina ov px DENTRO il trim per fondere il giunto (copre la cucitura AA).
     const ov = 1;
-    // Bordi — sorgente da `inset`: il pixel al giunto è arte piena, non la frangia
+    // Bordi. Sorgente da `inset`: il pixel al giunto è arte piena, non la frangia
     blit(ctx, img, inset, inset, sw0, bsh, tx, ty - b, tw, b + ov, false, true);                  // alto
     blit(ctx, img, inset, ih - inset - bsh, sw0, bsh, tx, ty + th - ov, tw, b + ov, false, true); // basso
     blit(ctx, img, inset, inset, bsw, sh0, tx - b, ty, b + ov, th, true, false);                  // sinistra
@@ -294,7 +294,7 @@ function compressImage(img, cellWmm, cellHmm, dpi, bleedMm, bleedMode, quality =
 
   if (bleedMode && bleedMode !== 'none') {
     // Sfondo nero dietro la carta: i PNG Scryfall hanno angoli arrotondati
-    // trasparenti — su bianco lascerebbero tacche bianche negli angoli (trim e
+    // trasparenti, su bianco lascerebbero tacche bianche negli angoli (trim e
     // abbondanza). Nero = standard di stampa, si fonde coi bordi neri/full-art.
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, w, h);
