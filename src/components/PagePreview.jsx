@@ -373,7 +373,7 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
     };
 
     // Selezione ad area (solo desktop, mouse): premi sul vuoto e trascina → rettangolo; le carte
-    // che tocca diventano la selezione, con Ctrl/⌘/Shift si aggiungono a quella esistente.
+    // che tocca si aggiungono alla selezione (come il click, non deseleziona il resto).
     // Sulle carte il trascinamento resta lo scambio. Solo la pagina visibile.
     const [marquee, setMarquee] = useState(null); // { left, top, width, height } relativi allo stage
     const marqueeRef = useRef(null); // { x0, y0, base: Set, active }
@@ -383,8 +383,7 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
             swallowClickRef.current = false; // nuovo gesto
             if (e.pointerType !== 'mouse' || e.button !== 0 || e.target.closest('.preview-card-hotspot, .preview-nav')) return;
             e.preventDefault(); // niente selezione di testo mentre si trascina
-            const add = e.ctrlKey || e.metaKey || e.shiftKey;
-            marqueeRef.current = { x0: e.clientX, y0: e.clientY, base: add ? new Set(selected) : new Set(), active: false };
+            marqueeRef.current = { x0: e.clientX, y0: e.clientY, base: new Set(selected), active: false };
             e.currentTarget.setPointerCapture(e.pointerId);
         },
         onPointerMove: (e) => {
