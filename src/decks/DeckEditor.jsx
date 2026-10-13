@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDeck } from './useDeck';
-import { FORMATS, boardCounts, countTarget, countOk, refreshSnapshots } from './deckModel';
+import { FORMATS, boardCounts, countTarget, countOk, refreshSnapshots, addCard } from './deckModel';
 import { cardsByIds } from './scryfallSearch';
 import { navigate } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
-import { IconArrowLeft } from '../components/icons';
+import CardSearch from './CardSearch';
+import { MobilePage } from '../components/MobileLayout';
+import { IconArrowLeft, IconPlus } from '../components/icons';
 
 // Editor del mazzo: barra in alto (nome, formato, stato sync, conteggio), corpo con le sezioni.
 // Ricerca (task 10) e Print deck (task 11) si aggiungono qui.
@@ -13,6 +15,7 @@ export default function DeckEditor({ uid, id, notify }) {
   const { deck, update, saving, error } = useDeck(uid, id);
   const mobile = useIsMobile();
   const [online, setOnline] = useState(() => navigator.onLine);
+  const [searchOpen, setSearchOpen] = useState(false);
   const refreshed = useRef(false);
 
   useEffect(() => {
@@ -45,6 +48,12 @@ export default function DeckEditor({ uid, id, notify }) {
     if (ids.length) cardsByIds(ids).then((map) => update((d) => refreshSnapshots(d, map).deck)).catch(() => {});
   }, [deck, update]);
 
+  const add = (card, opts) => update((d) => {
+    const r = addCard(d, card, opts);
+    if (!r.added) notify('This deck already has 500 rows', 'error');
+    return r.deck;
+  });
+
   if (!deck) return <div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>;
 
   const c = boardCounts(deck);
@@ -66,8 +75,15 @@ export default function DeckEditor({ uid, id, notify }) {
         </span>
       </header>
       <div className="deck-body">
+        {!mobile && <aside className="deck-search"><CardSearch format={deck.format} onAdd={add} /></aside>}
         <section className="deck-main"><DeckSections deck={deck} update={update} touch={mobile} /></section>
       </div>
+      {mobile && <button type="button" className="fab deck-fab" onClick={() => setSearchOpen(true)} aria-label="Add cards"><IconPlus size={26} /></button>}
+      {mobile && searchOpen && (
+        <MobilePage title="Add cards" onClose={() => setSearchOpen(false)}>
+          <CardSearch format={deck.format} onAdd={add} autoFocus />
+        </MobilePage>
+      )}
     </div>
   );
 }
