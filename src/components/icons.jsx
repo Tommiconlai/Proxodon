@@ -61,6 +61,15 @@ export function Wordmark({ height = 30, ...props }) {
   );
 }
 
+// Chevron sinistro (‹) o doppio (« con `double`). Per la destra: CSS scaleX(-1).
+export function IconChevron({ double, ...props }) {
+  return (
+    <Svg {...props}>
+      {double ? <><path d="m11 17-5-5 5-5" /><path d="m18 17-5-5 5-5" /></> : <path d="m15 18-6-6 6-6" />}
+    </Svg>
+  );
+}
+
 export function IconImage(props) {
   return (
     <Svg {...props}>

@@ -254,6 +254,16 @@ h3 {
   font-weight: 600;
 }
 
+/* Gesti sulla preview (ex suggerimento sotto al foglio): riga compatta in fondo. */
+.help-controls {
+  margin: 10px 0 0;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
 /* Chiudi del tooltip "?" (visibile su mobile, dove tap-fuori non è ovvio). */
 .help-tooltip-close {
   position: absolute;
@@ -1114,6 +1124,42 @@ input[type="range"]::-webkit-slider-thumb:hover {
   white-space: nowrap;
 }
 
+/* Pager desktop ai lati del foglio: chevron ciano nudi + numero pagina (sx corrente,
+   dx totale), centrati in verticale. Spazio laterale riservato in PagePreview (SIDE_NAV). */
+.nav-side {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  gap: 0;
+}
+.nav-prev { right: calc(100% + 12px); }
+.nav-next { left: calc(100% + 12px); }
+.nav-next .nav-btn svg { transform: scaleX(-1); }
+
+.nav-side .nav-btn {
+  width: 26px;
+  height: 36px;
+  background: none;
+  border: none;
+  color: var(--cyan);
+  transition: color var(--transition), filter var(--transition);
+}
+.nav-side .nav-btn:hover:not(:disabled) {
+  color: var(--cyan-soft);
+  filter: drop-shadow(0 0 6px var(--cyan-glow));
+}
+.nav-side .nav-btn:disabled { opacity: 0.25; }
+
+.nav-side .nav-info {
+  min-width: 18px;
+  padding: 0 4px;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+}
+
 /* ── Preview grande: stage centrato + footer (pager / conteggio / +) ── */
 .preview-root {
   position: relative;
@@ -1722,12 +1768,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-}
-
-/* Suggerimento discreto sotto al contatore (scopribilità selezione e menu). */
-.preview-hint {
-  font-size: 0.68rem;
-  color: var(--text-muted);
 }
 
 /* ── Hotspot carta sopra il canvas (click = seleziona/deseleziona, destro = menu azioni) ── */

@@ -58,9 +58,10 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
             <ol>
               <li><b>Add cards</b>. Tap <b>＋</b> to upload images or import from Scryfall (a card list or a deck link).</li>
               <li><b>Set up</b>. Tap <b>Settings</b> (bottom-left): sheet &amp; card size, bleed, crop marks, CMYK.</li>
-              <li><b>Tweak</b>. <b>Tap</b> cards to select or deselect them; <b>long-press</b> a card for options: change art, duplicate, bleed, remove. With several selected the menu acts on all of them.</li>
+              <li><b>Tweak</b>. Select as many cards as you like, then use the menu: change art, duplicate, bleed, remove. With several selected the menu acts on all of them.</li>
               <li><b>Export</b>. Tap <b>Export</b> (bottom-right) for <b>Generate PDF</b>; <b>Save list</b> exports your Scryfall cards as a reloadable deck list.</li>
             </ol>
+            <p className="help-controls"><b>Tap</b> select or deselect · <b>Long-press</b> options</p>
           </div>
         </div>
       </header>

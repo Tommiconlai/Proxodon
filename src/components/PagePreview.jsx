@@ -4,7 +4,7 @@ import { getGridInfo, cropMarkSpan, drawCardWithBleed, resolveBleedMode, bleedLa
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 import { artName } from '../utils/scryfall';
 import { canUpscale } from '../utils/upscale';
-import { IconX, IconCopy, IconFrame, IconImage, IconTrash, IconSparkles } from './icons';
+import { IconX, IconCopy, IconFrame, IconImage, IconTrash, IconSparkles, IconChevron } from './icons';
 
 // Nome carta vero (Scryfall) se presente, altrimenti il filename senza estensione.
 const cardName = (img, idx) => img.name || (img.file?.name || `Card ${idx + 1}`).replace(/\.[^.]+$/, '');
@@ -300,10 +300,13 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
     // La pagina riempie lo spazio mantenendo le proporzioni carta,
     // limitata sia in larghezza sia in altezza.
     const PAD = 16;
+    // Desktop: pager ai lati del foglio («‹ n | N ›»). Spazio riservato sempre (anche a
+    // pagina singola) così la 1a carta della pagina 2 non rimpicciolisce il foglio.
+    const SIDE_NAV = touch ? 0 : 96;
     // Guardia foglio degenere/0: pageW/pageH possono essere 0 (campo svuotato → sheet 0),
     // che darebbe ratio=Infinity e scale=Infinity (height CSS invalida). Fallback sicuro.
     const ratio = info.pageW > 0 && info.pageH > 0 ? info.pageW / info.pageH : cardW / cardH;
-    const availW = Math.max(0, box.w - PAD * 2);
+    const availW = Math.max(0, box.w - PAD * 2 - SIDE_NAV * 2);
     const availH = Math.max(0, box.h - PAD * 2);
     const pageW = box.w > 0
         ? Math.max(160, Math.floor(Math.min(availW, availH * ratio)))
@@ -549,8 +552,30 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
             </svg>
             {/* Click fuori dalle carte (foglio vuoto/sfondo) = deseleziona. */}
             <div className="preview-stage" ref={stageRef}
-                onClick={(e) => { if (!e.target.closest('.preview-card-hotspot')) clearSel(); }}>
+                onClick={(e) => { if (!e.target.closest('.preview-card-hotspot, .preview-nav')) clearSel(); }}>
                 <div className="preview-page-wrap" ref={wrapRef} style={{ width: pageW }}>
+                    {/* Pager desktop ai lati del foglio: «‹ pagina corrente | totale ›». La selezione
+                        può coprire più pagine, quindi cambiare pagina non la azzera. */}
+                    {!touch && fits && totalPages > 1 && <>
+                        <nav className="preview-nav nav-side nav-prev" aria-label={`Page ${page + 1} of ${totalPages}`}>
+                            <button className="nav-btn" disabled={!canPrev} onClick={() => setPageOffset(0)} aria-label="First page" title="First page">
+                                <IconChevron double size={22} />
+                            </button>
+                            <button className="nav-btn" disabled={!canPrev} onClick={() => setPageOffset(page - 1)} aria-label="Previous page" title="Previous page">
+                                <IconChevron size={22} />
+                            </button>
+                            <span className="nav-info" aria-current="page">{page + 1}</span>
+                        </nav>
+                        <nav className="preview-nav nav-side nav-next" aria-label="More pages">
+                            <span className="nav-info" title={`${totalPages} pages`}>{totalPages}</span>
+                            <button className="nav-btn" disabled={!canNext} onClick={() => setPageOffset(page + 1)} aria-label="Next page" title="Next page">
+                                <IconChevron size={22} />
+                            </button>
+                            <button className="nav-btn" disabled={!canNext} onClick={() => setPageOffset(totalPages - 1)} aria-label="Last page" title="Last page">
+                                <IconChevron double size={22} />
+                            </button>
+                        </nav>
+                    </>}
                     <PageCanvas
                         pageImages={pageImages}
                         formatKey={formatKey}
@@ -678,7 +703,7 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
             {menuSpec && <CardMenu x={menu.x} y={menu.y} {...menuSpec} onClose={closeMenu} />}
 
             <div className="preview-footer" ref={footerRef} tabIndex={-1}>
-                {fits && totalPages > 1 && (
+                {touch && fits && totalPages > 1 && (
                     <div className="preview-nav">
                         <button
                             className="nav-btn"
@@ -713,10 +738,6 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                         <div className={`preview-info${hasSel ? ' is-off' : ''}`}>
                             <span className="preview-count">
                                 {images.length} card{images.length !== 1 ? 's' : ''}{missing > 0 ? ` · add ${missing} to fill this page` : ''}
-                            </span>
-                            {/* Suggerimento discreto: rende scopribili selezione e menu. */}
-                            <span className="preview-hint">
-                                {touch ? 'Tap to select or deselect · Long-press for options' : 'Click to select or deselect · Right-click for options · Drag to swap'}
                             </span>
                         </div>
                     </div>
