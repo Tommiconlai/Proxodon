@@ -298,8 +298,8 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
         else onChangeArt(id);
     };
 
-    // Riordino (solo desktop): trascina una carta su un'altra → ne prende il posto, le altre
-    // scalano ("sposta", non "scambia"). Alt+frecce = alternativa da tastiera.
+    // Riordino (solo desktop): trascina una carta su un'altra → le due si scambiano di posto,
+    // le altre restano ferme. Alt+frecce = scambio col vicino, alternativa da tastiera.
     // ponytail: solo dentro la pagina visibile; tra pagine si passa da Alt+frecce.
     const [drag, setDrag] = useState(null); // { id, over: indice globale bersaglio | null }
     const wrapRef = useRef(null);
@@ -471,7 +471,7 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                                                 // Space = seleziona/deseleziona (equivalente da tastiera del
                                                 // ctrl/shift-click); Enter resta "cambia art" (click nativo).
                                                 if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); toggleSel(img.id); }
-                                                // Alt+frecce = sposta di una cella (su/giù = una riga).
+                                                // Alt+frecce = scambia col vicino (su/giù = la carta della riga accanto).
                                                 const d = e.altKey && dndOn && { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -info.cols, ArrowDown: info.cols }[e.key];
                                                 if (d) { e.preventDefault(); moveTo(img.id, gi + d); }
                                             }}

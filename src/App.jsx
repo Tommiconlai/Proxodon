@@ -264,12 +264,13 @@ export default function App() {
     return [...prev.slice(0, idx + 1), dup, ...prev.slice(idx + 1)];
   });
 
-  // Riordino: la carta `id` va all'indice `to` (le altre scalano). Ordine = ordine di stampa.
+  // Riordino: la carta `id` va all'indice `to` e quella che c'era prende il suo posto
+  // (scambio, le altre restano ferme). Ordine = ordine di stampa.
   const handleMove = (id, to) => setImages(prev => {
     const from = prev.findIndex(i => i.id === id);
     if (from === -1 || from === to || to < 0 || to >= prev.length) return prev;
     const next = [...prev];
-    next.splice(to, 0, ...next.splice(from, 1));
+    [next[from], next[to]] = [next[to], next[from]];
     return next;
   });
 
