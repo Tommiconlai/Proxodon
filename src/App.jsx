@@ -18,6 +18,7 @@ import { DEFAULT_PROFILE_ID, UPLOAD_ID, getProfileMeta, loadBundledProfileBytes 
 import { buildDeckList, fetchScryfallImages } from './utils/scryfall';
 import { IconFile, IconAlert, IconTrash, IconDownload, IconList, IconImage, IconPlus, IconX, Wordmark } from './components/icons';
 import NavTabs from './components/NavTabs';
+import ErrorBoundary from './components/ErrorBoundary';
 import { useHashRoute, navigate } from './hooks/useHashRoute';
 
 // Area mazzi caricata solo quando serve (porta con sé Firebase): la stampa resta leggera.
@@ -458,9 +459,11 @@ export default function App() {
   };
 
   const decksNode = (
-    <Suspense fallback={<div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>}>
-      <DecksView route={route} notify={notify} printQueueCount={images.length} onPrintDeck={handlePrintDeck} />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>}>
+        <DecksView route={route} notify={notify} printQueueCount={images.length} onPrintDeck={handlePrintDeck} />
+      </Suspense>
+    </ErrorBoundary>
   );
 
   // Bundle props condivisi: sia il ramo desktop sia MobileLayout (Tasks 2–4) li consumano.
