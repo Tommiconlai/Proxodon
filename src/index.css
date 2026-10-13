@@ -442,33 +442,54 @@ h3 {
   justify-content: center;
 }
 
-/* Avviso bassa risoluzione (sopra i DPI), rispecchia il marker "!" rosso del preview */
+/* Avviso bassa risoluzione (pannello laterale / export mobile). Tinta --danger, non il rosso
+   Tailwind di prima: stesso colore di "Remove" e degli altri allarmi del sistema. */
 .lowres-warn {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 9px;
   padding: 10px 12px;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.32);
+  background: rgba(255, 77, 109, 0.07);
+  border: 1px solid rgba(255, 77, 109, 0.3);
   border-radius: var(--radius-sm);
   font-size: 0.74rem;
   line-height: 1.45;
   color: var(--text-secondary);
 }
 
+/* Chip "!" HUD: piastra scura, bordo e glifo --danger in mono, angolo smussato a 45°
+   (rima con squadrette e cornice delle carte), glifo con bagliore come gli altri elementi accesi.
+   Unico disegno per il marker sulla carta (.lowres-badge) e per il pannello (.lowres-mark). */
+.lowres-badge,
 .lowres-warn .lowres-mark {
   flex-shrink: 0;
   width: 17px;
   height: 17px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #ef4444;
-  color: #fff;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
   font-weight: 700;
-  font-size: 0.72rem;
-  border-radius: 4px;
-  margin-top: 1px;
+  font-size: 0.68rem;
+  line-height: 1;
+  color: var(--danger);
+  /* Il clip-path taglia anche il bordo inset sullo smusso: la diagonale la ridisegna il gradiente
+     (linea x+y=5px → 3.5px lungo i 135°). Niente ombra esterna: il clip la taglierebbe. */
+  background:
+    linear-gradient(135deg, transparent 3.5px, rgba(255, 77, 109, 0.75) 3.5px 4.5px, transparent 4.5px),
+    rgba(8, 7, 15, 0.86);
+  box-shadow: inset 0 0 0 1px rgba(255, 77, 109, 0.75);
+  clip-path: polygon(5px 0, 100% 0, 100% 100%, 0 100%, 0 5px);
+  text-shadow: 0 0 6px rgba(255, 77, 109, 0.8);
+}
+
+.lowres-warn .lowres-mark { margin-top: 1px; }
+
+/* Sulla carta: angolo in alto a sinistra del taglio, sopra l'arte, sotto la cornice. */
+.lowres-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  pointer-events: none;
 }
 
 .lowres-warn b {

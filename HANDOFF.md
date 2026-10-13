@@ -105,7 +105,17 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Search in the change-art box (most recent):** cards with many printings (Sol Ring: 134)
+- **Low-res "!" restyled to the design system (most recent):** user request, done with the taste
+  skill as an audit-first "preserve" pass. Before: red `#ef4444` triangle drawn on the canvas
+  with a sans "!" (off-token, a shape used nowhere else), and a solid `#ef4444` square in the
+  sidebar/mobile export warning. Now one HUD chip for both (`.lowres-badge`, `.lowres-mark`):
+  17px dark glass plate, `--danger` 1px border, mono "!" in `--danger` with glow, 45° chamfer
+  top-left (a gradient redraws the border along the chamfer since `clip-path` cuts the inset
+  shadow; no outer shadow for the same reason). The card chip is DOM inside the hotspot, top-left
+  of the trim, `pointer-events: none`; `PageCanvas` no longer takes `dpi`. `.lowres-warn` tint
+  moved to `--danger` too. Verified live (4 low-res cards at 600 DPI) + 6× zoom clones on red,
+  white and panel backgrounds.
+- **Search in the change-art box:** cards with many printings (Sol Ring: 134)
   get a search field above the grid with an example placeholder. Local, no extra requests;
   `fetchPrints` now also maps `artist` and `year` (`released_at`). Verified live: "secret lair"
   34/134, "C21" 2, "2021" 7, "commander 2021" 5 (multi-word AND), "zzzz" → empty hint, clear
@@ -752,10 +762,10 @@ All verified live + `npm run lint` clean + `npm run build` green.
 - **Touch on a wide screen (desktop layout):** long-press works there too (it keys on
   `pointerType`), but the hotspots stay `draggable`, so a browser that starts HTML5 drag on
   long-press (some Android tablets) may begin a drag instead of opening the menu. Untested.
-- **Low-res warning:** the per-card `!` is canvas-drawn (visual-only, no SR text), but the
-  sidebar now has a DOM `.lowres-warn` above the dpi field explaining it (counts cards whose
-  decoded `naturalWidth` < `dpi*0.5*cardW/25.4`, same threshold as the marker; dims are decoded
-  once on add and stored as `item.w`). `replaceArt` doesn't re-decode `w` (Scryfall prints are all
+- **Low-res warning:** the per-card `!` is a DOM chip `.lowres-badge` in the hotspot (plus
+  sr-only text), no longer drawn on the canvas; the sidebar `.lowres-warn` above the dpi field
+  explains it (counts cards whose `item.w` < `dpi*0.5*cardW/25.4`, same threshold as the chip;
+  dims are decoded once on add and stored as `item.w`). Preview only, never printed. `replaceArt` doesn't re-decode `w` (Scryfall prints are all
   745×1040, so it stays valid).
 - **Tests:** only `scryfall.selfcheck.js` (parseCardList). No component/integration tests.
 

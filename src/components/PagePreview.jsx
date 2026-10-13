@@ -153,7 +153,7 @@ function drawCropMarksCanvas(ctx, cellX, cellY, bleedPx, cardWpx, cardHpx, scale
 }
 
 // ── Singola pagina canvas ─────────────────────────────────────
-export function PageCanvas({ pageImages, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop, cropStyle, customSheet, previewW, empty }) {
+export function PageCanvas({ pageImages, formatKey, bleedMm, bleedStyle, cardW, cardH, showCrop, cropStyle, customSheet, previewW, empty }) {
     const canvasRef = useRef();
     // Cache src(objectURL) -> HTMLImageElement decodificata: evita di ri-decodificare
     // le immagini a ogni ridisegno (cancellazione carta, resize, cambio pagina/formato).
@@ -217,27 +217,6 @@ export function PageCanvas({ pageImages, formatKey, bleedMm, bleedStyle, dpi, ca
                         // Non riempie la cella → togliere l'abbondanza non ingrandisce la carta.
                         ctx.drawImage(imgs[i], x + bleedPx, y + bleedPx, cardWpx, cardHpx);
                     }
-                    // Avviso bassa risoluzione: la sorgente non copre metà dei px
-                    // richiesti al DPI scelto → stampa sgranata. ponytail: soglia
-                    // 0.5× fissa; le PNG Scryfall (~300 DPI a misura carta) non avvisano
-                    // fino a >600 DPI. Marker triangolo rosso nell'angolo del trim.
-                    const effDpi = imgs[i].naturalWidth / (cardW / 25.4);
-                    if (effDpi < dpi * 0.5) {
-                        const s = Math.max(9, 15 * scale);
-                        const mx = x + bleedPx;
-                        const my = y + bleedPx;
-                        ctx.fillStyle = '#ef4444';
-                        ctx.beginPath();
-                        ctx.moveTo(mx, my);
-                        ctx.lineTo(mx + s, my);
-                        ctx.lineTo(mx, my + s);
-                        ctx.closePath();
-                        ctx.fill();
-                        ctx.fillStyle = '#fff';
-                        ctx.font = `bold ${Math.round(s * 0.55)}px sans-serif`;
-                        ctx.textBaseline = 'top';
-                        ctx.fillText('!', mx + s * 0.1, my + s * 0.02);
-                    }
                 } else {
                     ctx.fillStyle = empty ? '#f0f0f0' : '#d0d0d0';
                     ctx.fillRect(x + bleedPx, y + bleedPx, cardWpx, cardHpx);
@@ -266,7 +245,7 @@ export function PageCanvas({ pageImages, formatKey, bleedMm, bleedStyle, dpi, ca
 
         draw();
         return () => { cancelled = true; };
-    }, [pageImages, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop, cropStyle, customSheet, previewW, empty, info, scale, previewH]);
+    }, [pageImages, formatKey, bleedMm, bleedStyle, cardW, cardH, showCrop, cropStyle, customSheet, previewW, empty, info, scale, previewH]);
 
     return (
         <canvas
@@ -559,7 +538,6 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                         formatKey={formatKey}
                         bleedMm={bleedMm}
                         bleedStyle={bleedStyle}
-                        dpi={dpi}
                         cardW={cardW}
                         cardH={cardH}
                         showCrop={showCrop}
@@ -598,6 +576,9 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                                 const top = (info.offsetY + row * info.cellH + bleedMm) * scale;
                                 const gi = page * perPage + i; // indice globale (= ordine di stampa)
                                 const name = cardName(img, gi);
+                                // Bassa risoluzione: la sorgente non copre metà dei px richiesti al DPI
+                                // scelto → stampa sgranata. ponytail: soglia 0.5× fissa; le PNG Scryfall
+                                // (~300 DPI a misura carta) non avvisano fino a >600 DPI.
                                 const lowRes = img.w && img.w < dpi * 0.5 * (cardW / 25.4);
                                 const isSel = selected.has(img.id);
                                 const dnd = dndOn ? {
@@ -652,7 +633,11 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                                             aria-pressed={isSel}
                                         />
                                         <CardFrame />
-                                        {lowRes && <span className="sr-only">Low resolution for {dpi} DPI. May print soft.</span>}
+                                        {lowRes && <>
+                                            {/* Chip HUD "!" (stesso del pannello laterale), solo preview: non va in stampa. */}
+                                            <span className="lowres-badge" aria-hidden="true">!</span>
+                                            <span className="sr-only">Low resolution for {dpi} DPI. May print soft.</span>
+                                        </>}
                                     </div>
                                 );
                             })}
