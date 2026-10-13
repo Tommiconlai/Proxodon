@@ -16,13 +16,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // Fetch verso Scryfall con retry su 429/5xx e errori di rete. I 503/Cloudflare
 // tornano senza header CORS → nel browser appaiono come "Failed to fetch" opaco:
 // qui ritentiamo con backoff e, se persiste, diamo un messaggio chiaro.
-async function scryfallFetch(url, opts, tries = 3) {
+// AbortError (richiesta annullata dall'utente) esce subito; i 4xx portano `.status`.
+export async function scryfallFetch(url, opts, tries = 3) {
   let lastErr;
   for (let i = 0; i < tries; i++) {
     let res;
     try {
       res = await fetch(url, opts);
     } catch (e) {
+      if (e.name === 'AbortError') throw e;
       lastErr = e; // rete/CORS → ritenta
       if (i < tries - 1) { await sleep(500 * (i + 1)); continue; }
       throw new Error('Could not reach Scryfall (it may be busy or down). Please try again shortly.');
@@ -33,7 +35,7 @@ async function scryfallFetch(url, opts, tries = 3) {
       if (i < tries - 1) { await sleep(500 * (i + 1)); continue; }
       throw new Error(`Scryfall is temporarily unavailable (${res.status}). Please try again shortly.`);
     }
-    throw new Error(`Scryfall responded ${res.status}`); // 4xx: non ritentabile
+    throw Object.assign(new Error(`Scryfall responded ${res.status}`), { status: res.status }); // 4xx: non ritentabile
   }
   throw lastErr || new Error('Scryfall request failed.');
 }
@@ -153,27 +155,12 @@ async function mapLimit(items, limit, fn) {
 }
 
 /**
- * Scarica le immagini delle carte richieste.
- * @param {{qty:number, name:string, set?:string, collector?:string}[]} entries
- * @param {(done:number, total:number)=>void} [onProgress]
- * @returns {Promise<{files: {file: File, bleedMode: string}[], notFound: string[]}>}
+ * Risolve carte via /cards/collection (batch da 75). Identifier più preciso:
+ * set+collector → stampa esatta; solo set → nome in quel set; altrimenti nome.
+ * @param {{name:string, set?:string, collector?:string}[]} list
+ * @returns {Promise<(e:{name:string, set?:string, collector?:string}) => object|undefined>}
  */
-export async function fetchScryfallImages(entries, onProgress) {
-  // Aggrega le quantità per (nome|set|collector), preservando l'ordine.
-  const byKey = new Map();
-  for (const e of entries) {
-    if (!e.name) continue;
-    const set = e.set || '';
-    const collector = e.collector || '';
-    const key = `${e.name.toLowerCase()}|${set}|${collector}`;
-    if (byKey.has(key)) byKey.get(key).qty += e.qty || 1;
-    else byKey.set(key, { name: e.name, set, collector, qty: e.qty || 1 });
-  }
-  const list = [...byKey.values()];
-  if (!list.length) return { files: [], notFound: [] };
-
-  // 1) Risolvi via /cards/collection (batch da 75). Identifier più preciso:
-  //    set+collector → stampa esatta; solo set → nome in quel set; altrimenti nome.
+export async function lookupCards(list) {
   const identifiers = list.map((e) =>
     e.set && e.collector ? { set: e.set, collector_number: e.collector }
       : e.set ? { name: e.name, set: e.set }
@@ -202,17 +189,42 @@ export async function fetchScryfallImages(entries, onProgress) {
     }
     if (p < parts.length - 1) await sleep(100); // gentile con l'API
   }
+  return (e) => {
+    const nl = e.name.toLowerCase();
+    const set = (e.set || '').toLowerCase();
+    const ec = (e.collector || '').toLowerCase(); // chiavi case-insensitive (registrate lowercased)
+    return cardByKey.get(`${nl}|${set}|${ec}`) || cardByKey.get(`${nl}|${set}|`) || cardByKey.get(`${nl}||`);
+  };
+}
+
+/**
+ * Scarica le immagini delle carte richieste.
+ * @param {{qty:number, name:string, set?:string, collector?:string}[]} entries
+ * @param {(done:number, total:number)=>void} [onProgress]
+ * @returns {Promise<{files: {file: File, bleedMode: string}[], notFound: string[]}>}
+ */
+export async function fetchScryfallImages(entries, onProgress) {
+  // Aggrega le quantità per (nome|set|collector), preservando l'ordine.
+  const byKey = new Map();
+  for (const e of entries) {
+    if (!e.name) continue;
+    const set = e.set || '';
+    const collector = e.collector || '';
+    const key = `${e.name.toLowerCase()}|${set}|${collector}`;
+    if (byKey.has(key)) byKey.get(key).qty += e.qty || 1;
+    else byKey.set(key, { name: e.name, set, collector, qty: e.qty || 1 });
+  }
+  const list = [...byKey.values()];
+  if (!list.length) return { files: [], notFound: [] };
+
+  // 1) Risolvi via /cards/collection.
+  const find = await lookupCards(list);
 
   // 2) Costruisci i task immagine nell'ordine della lista; raccogli i mancanti.
   const notFound = [];
   const tasks = []; // { url, name, qty, bleedMode }
   for (const e of list) {
-    const nl = e.name.toLowerCase();
-    const ec = e.collector.toLowerCase(); // chiavi case-insensitive (registrate lowercased)
-    const card =
-      cardByKey.get(`${nl}|${e.set}|${ec}`) ||
-      cardByKey.get(`${nl}|${e.set}|`) ||
-      cardByKey.get(`${nl}||`);
+    const card = find(e);
     if (!card) {
       notFound.push(e.set ? `${e.name} (${e.set.toUpperCase()})` : e.name);
       continue;
@@ -319,48 +331,60 @@ export function buildDeckList(items) {
   return { text, cards: map.size, custom };
 }
 
-async function archidektList(id) {
-  const r = await fetchViaProxy(`https://archidekt.com/api/decks/${id}/`);
-  const j = await r.json();
-  return (j.cards || [])
-    .filter((c) => !(c.categories || []).some((cat) => /maybe|sideboard|considering/i.test(cat)))
-    .map((c) => deckLine(c.quantity, c.card?.oracleCard?.name, c.card?.edition?.editioncode, c.card?.collectorNumber))
-    .filter((l) => l.length > 1)
-    .join('\n');
+// Righe strutturate di un deck da link: { qty, name, set, collector, board, commander }.
+async function archidektRows(id) {
+  const j = await (await fetchViaProxy(`https://archidekt.com/api/decks/${id}/`)).json();
+  const rows = (j.cards || []).map((c) => {
+    const cats = (c.categories || []).join(' ');
+    const board = /maybe|considering/i.test(cats) ? 'maybe' : /sideboard/i.test(cats) ? 'side' : 'main';
+    return {
+      qty: c.quantity || 1, name: c.card?.oracleCard?.name || '',
+      set: (c.card?.edition?.editioncode || '').toLowerCase(), collector: c.card?.collectorNumber || '',
+      board, commander: board === 'main' && /commander/i.test(cats),
+    };
+  }).filter((r) => r.name);
+  return { name: j.name || '', rows };
 }
 
-async function moxfieldList(pubId) {
-  const r = await fetchViaProxy(`https://api2.moxfield.com/v3/decks/all/${pubId}`);
-  const j = await r.json();
-  const out = [];
+async function moxfieldRows(pubId) {
+  const j = await (await fetchViaProxy(`https://api2.moxfield.com/v3/decks/all/${pubId}`)).json();
   const boards = j.boards || {};
-  for (const name of ['commanders', 'mainboard']) {
-    const cards = boards[name]?.cards || {};
+  const rows = [];
+  for (const [key, board, commander] of [['commanders', 'main', true], ['mainboard', 'main', false], ['sideboard', 'side', false], ['maybeboard', 'maybe', false]]) {
+    const cards = boards[key]?.cards || {};
     for (const k in cards) {
       const c = cards[k].card || {};
-      out.push(deckLine(cards[k].quantity, c.name, c.set, c.cn));
+      if (c.name) rows.push({ qty: cards[k].quantity || 1, name: c.name, set: (c.set || '').toLowerCase(), collector: c.cn || '', board, commander });
     }
   }
-  return out.filter((l) => l.length > 1).join('\n');
+  return { name: j.name || '', rows };
 }
 
-async function tappedoutList(slug) {
-  const r = await fetchViaProxy(`https://tappedout.net/mtg-decks/${slug}/?fmt=txt`);
-  const txt = await r.text();
+async function tappedoutRows(slug) {
+  const txt = await (await fetchViaProxy(`https://tappedout.net/mtg-decks/${slug}/?fmt=txt`)).text();
   // fmt=txt è già "1 Nome" per riga; tieni solo le righe che iniziano con la quantità.
-  return txt.replace(/\r/g, '').split('\n').filter((l) => /^\d+\s/.test(l.trim())).join('\n');
+  const lines = txt.replace(/\r/g, '').split('\n').filter((l) => /^\d+\s/.test(l.trim())).join('\n');
+  return { name: '', rows: parseCardList(lines).map((e) => ({ ...e, board: 'main', commander: false })) };
 }
 
 /**
- * Risolve un link deck in una lista testuale "qty Nome" (poi → parseCardList).
+ * Risolve un link deck nelle sue righe per zona (+ nome del deck se il sito lo dà).
  * @param {string} url link Moxfield / Archidekt / Tappedout
- * @returns {Promise<string>}
  */
-export async function fetchDeckList(url) {
+export async function fetchDeckBoards(url) {
   const u = (url || '').trim();
   let m;
-  if ((m = u.match(/moxfield\.com\/decks\/([\w-]+)/i))) return moxfieldList(m[1]);
-  if ((m = u.match(/archidekt\.com\/(?:api\/)?decks\/(\d+)/i))) return archidektList(m[1]);
-  if ((m = u.match(/tappedout\.net\/mtg-decks\/([\w-]+)/i))) return tappedoutList(m[1]);
+  if ((m = u.match(/moxfield\.com\/decks\/([\w-]+)/i))) return moxfieldRows(m[1]);
+  if ((m = u.match(/archidekt\.com\/(?:api\/)?decks\/(\d+)/i))) return archidektRows(m[1]);
+  if ((m = u.match(/tappedout\.net\/mtg-decks\/([\w-]+)/i))) return tappedoutRows(m[1]);
   throw new Error('Unrecognized link. Supported: Moxfield, Archidekt, Tappedout.');
+}
+
+/**
+ * Lista testuale "qty Nome (SET) num" del main (comandanti inclusi) per l'import in stampa:
+ * stesso comportamento di prima (sideboard e maybeboard escluse).
+ */
+export async function fetchDeckList(url) {
+  const { rows } = await fetchDeckBoards(url);
+  return rows.filter((r) => r.board === 'main').map((r) => deckLine(r.qty, r.name, r.set, r.collector)).join('\n');
 }

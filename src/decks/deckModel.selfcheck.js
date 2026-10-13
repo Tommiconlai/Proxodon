@@ -8,6 +8,7 @@ import {
   groupMain, commanderRows, boardRows, deckIdentity, deckCover, toPrintEntries, exportText,
   parseDeckText, toBackup, fromBackup, duplicateDeck, refreshSnapshots, primaryType,
 } from './deckModel.js';
+import { autocompleteUrl, namedUrl, searchUrl } from './scryfallSearch.js';
 
 const eq = (a, b, msg) => {
   if (JSON.stringify(a) !== JSON.stringify(b)) {
@@ -167,5 +168,9 @@ const boltCard = sc({ id: 'bolt', name: 'Lightning Bolt', mana: '{R}', mv: 1, ty
 eq(refreshSnapshots(reordered, new Map([['bolt', boltCard]])).changed, false, 'chiavi in ordine diverso (come da Firestore) = invariato');
 const banned = refreshSnapshots(g, new Map([['bolt', { ...boltCard, legalities: { commander: 'banned' } }]]));
 eq([banned.changed, banned.deck.cards.find((r) => r.card.sid === 'bolt').card.legal.commander], [true, 'banned'], 'refresh aggiorna le legalità');
+// URL Scryfall con nomi difficili (Review Focus 4)
+eq(namedUrl('Kongming, "Sleeping Dragon"'), 'https://api.scryfall.com/cards/named?exact=Kongming%2C%20%22Sleeping%20Dragon%22', 'named: virgole e virgolette');
+eq(autocompleteUrl('Æther Vi'), 'https://api.scryfall.com/cards/autocomplete?q=%C3%86ther%20Vi', 'autocomplete: unicode');
+eq(searchUrl('t:goblin c<=r'), 'https://api.scryfall.com/cards/search?q=t%3Agoblin%20c%3C%3Dr%20game%3Apaper&unique=cards&order=name', 'search: sempre game:paper');
 
 console.log('deckModel selfcheck: ok');
