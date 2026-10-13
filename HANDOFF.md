@@ -111,7 +111,7 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 - **3-part logo X (most recent):** user request, Figma node 4025:2465 redrawn. The X is now a
   cyan filled centre + magenta V above and below (was four chevrons), letters re-exported at the
   new `0 0 143 30.5` viewBox. Hover = centre still, the two V spin twice around the X centre
-  (after trying flips of centre and V, user preferred this). Favicons (svg + all rasters + ico) redrawn with the new
+  (user asked to try this after the centre + V flip versions). Favicons (svg + all rasters + ico) redrawn with the new
   mark; pager `IconChevron` got the V's rounded apex. Verified live: part bboxes match the Figma SVG (core centred at
   56.5, 15.25), transform sampling shows the centre done at ~0.4s and the V at ~0.7s, lint + build.
 - **Pager arrows = logo chevrons, numbers = target pages:** user request.
