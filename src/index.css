@@ -2645,7 +2645,10 @@ body::before {
 .import-meta-row { display: grid; grid-template-columns: 1fr 160px; gap: 8px; }
 
 /* Editor mazzo: barra + corpo (ricerca a sinistra su desktop, dal task 10). */
-.deck-editor { height: 100%; min-height: 0; display: grid; grid-template-rows: auto 1fr; }
+.deck-editor { height: 100%; min-height: 0; }
+/* Scorre tutto l'editor (testata compresa); restano fermi l'header dell'app e la fascia ricerca. */
+.deck-scroll { height: 100%; overflow-y: auto; display: flex; flex-direction: column; }
+.deck-scroll > .deck-hero { flex: none; }
 /* Testata del mazzo: copertina a sinistra (arte della carta scelta) che verso destra si sfoca e
    svanisce nello sfondo: uno strato nitido che sfuma presto + uno sfocato che lo prosegue. Sopra,
    allineati a sinistra, il nome in alto e i comandi in basso; il velo scuro (più forte in basso,
@@ -2728,11 +2731,11 @@ body::before {
 .deck-sync.offline { color: var(--warning); }
 .deck-count { font-family: var(--font-mono); font-size: 0.8rem; padding: 3px 8px; border: 1px solid var(--border); border-radius: 6px; color: var(--warning); }
 .deck-count.ok { color: var(--success); border-color: rgba(34, 197, 94, 0.35); }
-.deck-body { min-height: 0; display: grid; grid-template-columns: 1fr; }
+.deck-body { flex: 1 0 auto; display: grid; grid-template-columns: 1fr; }
 .deck-editor.is-mobile .deck-body { grid-template-columns: 1fr; }
 /* Il padding sta in .deck-sections, alta quanto il contenitore: click e selezione ad area partono
    da tutto lo spazio vuoto. */
-.deck-main { min-height: 0; overflow-y: auto; }
+.deck-main { min-width: 0; }
 .deck-sections { position: relative; min-height: 100%; padding: 18px 22px 40px; max-width: 1320px; margin-inline: auto; }
 /* Mazzo centrato: negli stack il contenitore si stringe al contenuto e le colonne stanno al centro. */
 .deck-sections.view-stacks:not(.mode-stats) { width: fit-content; max-width: 100%; }
@@ -3052,7 +3055,34 @@ body::before {
 .deck-fab { position: fixed; right: 18px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 50; }
 
 /* Ricerca nella testata (desktop, a destra) e pannello della ricerca avanzata sopra il mazzo. */
-.deck-hero-search { position: relative; z-index: 3; flex: 0 0 auto; width: min(400px, 40%); align-self: flex-start; }
+/* Fascia della ricerca: sticky con altezza 0, quindi non sposta la testata; sopra la testata è
+   trasparente e lascia passare i click, quando la testata è uscita (.stuck) diventa una barra. */
+.deck-sticky { position: sticky; top: 0; z-index: 6; height: 0; }
+.deck-sticky-bar {
+  display: flex; align-items: flex-start; justify-content: flex-end; gap: 16px;
+  padding: 14px 22px 8px;
+  pointer-events: none;
+  transition: background var(--transition), box-shadow var(--transition);
+}
+.deck-sticky-bar > * { pointer-events: auto; }
+.deck-sticky-bar.stuck {
+  pointer-events: auto;
+  background: rgba(10, 9, 18, 0.94);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(124, 92, 255, 0.16);
+  box-shadow: var(--shadow-md);
+}
+.deck-sticky-name {
+  margin-right: auto; align-self: center; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-display); font-size: 1rem; font-weight: 600;
+  color: var(--text-primary);
+  opacity: 0; transition: opacity var(--transition);
+}
+.deck-sticky-bar:not(.stuck) .deck-sticky-name { pointer-events: none; }
+.deck-sticky-bar.stuck .deck-sticky-name { opacity: 1; }
+.deck-sticky-bar.stuck .search-hint { display: none; }
+.deck-hero-search { position: relative; z-index: 3; flex: 0 0 auto; width: min(400px, 40%); }
 .search-foot { display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; margin-top: 6px; }
 .search-foot .search-hint { margin: 0; }
 .search-foot .search-adv-toggle { margin-top: 0; }

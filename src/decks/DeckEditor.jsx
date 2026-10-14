@@ -14,8 +14,10 @@ import { IconPlus, IconPrinter, IconX } from '../components/icons';
 // Editor del mazzo: testata con la copertina (arte della carta scelta, a sinistra, che verso destra
 // si sfoca e svanisce; click = scegli un'altra carta del mazzo, lo dice il cursore a mano) e sopra,
 // a sinistra, il nome in alto e in basso formato, stato sync, conteggio e Print deck (si torna alla
-// lista con la tab Decks). Sotto il corpo con le sezioni; ricerca a sinistra (foglio a tutto
-// schermo su telefono).
+// lista con la tab Decks). Sotto il corpo con le sezioni. Tutto scorre insieme (deck-scroll) tranne
+// la fascia della ricerca (desktop), che resta in alto: sopra la testata è trasparente, quando la
+// testata è uscita prende lo sfondo e mostra il nome del mazzo. Telefono: + apre la ricerca a
+// tutto schermo.
 export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDeck }) {
   const { deck, update, saving, error } = useDeck(uid, id);
   const mobile = useIsMobile();
@@ -24,7 +26,15 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const [printOpen, setPrintOpen] = useState(false);
   const [coverOpen, setCoverOpen] = useState(false);
   const [advOpen, setAdvOpen] = useState(false); // pannello della ricerca avanzata (desktop)
+  const [stuck, setStuck] = useState(false); // la testata è uscita: la fascia ricerca ha lo sfondo
+  const heroRef = useRef(null);
+  const barRef = useRef(null);
   const refreshed = useRef(false);
+  const onScroll = (e) => {
+    const hero = heroRef.current?.offsetHeight || 0;
+    const bar = barRef.current?.offsetHeight || 0;
+    setStuck(e.currentTarget.scrollTop > hero - bar);
+  };
 
   useEffect(() => {
     const on = () => setOnline(true);
@@ -75,7 +85,18 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const sync = !online ? (saving ? 'Offline, saved on this device' : 'Offline') : saving ? 'Saving…' : 'Saved';
   return (
     <div className={`deck-editor${mobile ? ' is-mobile' : ''}`}>
-      <header className="deck-hero">
+      <div className="deck-scroll" onScroll={mobile ? undefined : onScroll}>
+      {!mobile && (
+        <div className="deck-sticky">
+          <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`} ref={barRef}>
+            <span className="deck-sticky-name" aria-hidden={!stuck}>{deck.name}</span>
+            <div className="deck-hero-search">
+              <CardSearch format={deck.format} onAdd={add} advanced={advOpen} onAdvanced={setAdvOpen} />
+            </div>
+          </div>
+        </div>
+      )}
+      <header className="deck-hero" ref={heroRef}>
         <button type="button" className="deck-hero-art" onClick={() => setCoverOpen(true)} disabled={!cover}
           aria-label={cover ? `Deck cover: ${cover.card.name}. Change it` : 'Deck cover: add cards first'}>
           {cover?.card.art && (
@@ -102,16 +123,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
             <button type="button" className="btn-secondary deck-print" onClick={startPrint} disabled={!c.main}><IconPrinter size={15} /> Print deck</button>
           </div>
         </div>
-        {!mobile && (
-          <div className="deck-hero-search">
-            <CardSearch format={deck.format} onAdd={add} advanced={advOpen} onAdvanced={setAdvOpen} />
-          </div>
-        )}
       </header>
-      {coverOpen && (
-        <CoverDialog deck={deck} onClose={() => setCoverOpen(false)}
-          onPick={(oid) => { update((d) => ({ ...d, cover: oid })); setCoverOpen(false); }} />
-      )}
       <div className="deck-body">
         <section className="deck-main">
           {!mobile && advOpen && (
@@ -126,6 +138,11 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
           <DeckSections deck={deck} update={update} touch={mobile} />
         </section>
       </div>
+      </div>
+      {coverOpen && (
+        <CoverDialog deck={deck} onClose={() => setCoverOpen(false)}
+          onPick={(oid) => { update((d) => ({ ...d, cover: oid })); setCoverOpen(false); }} />
+      )}
       {mobile && <button type="button" className="fab deck-fab" onClick={() => setSearchOpen(true)} aria-label="Add cards"><IconPlus size={26} /></button>}
       {mobile && searchOpen && (
         <MobilePage title="Add cards" onClose={() => setSearchOpen(false)}>
