@@ -136,17 +136,27 @@ export function setCommander(deck, ids, on) {
 }
 
 // Sezioni custom (solo main board): { id, name } in deck.sections, la riga punta con `section`.
+// Creare una sezione porta il mazzo in raggruppamento custom; eliminare l'ultima lo riporta a Type.
 const sectionName = (name) => String(name || '').trim().slice(0, 40) || 'Section';
 export function addSection(deck, name) {
   const id = rid();
-  return { deck: { ...deck, sections: [...deck.sections, { id, name: sectionName(name) }] }, id };
+  return { deck: { ...deck, groupBy: 'custom', sections: [...deck.sections, { id, name: sectionName(name) }] }, id };
 }
 export const renameSection = (deck, id, name) =>
   ({ ...deck, sections: deck.sections.map((s) => (s.id === id ? { ...s, name: sectionName(name) } : s)) });
 // Eliminare una sezione riporta le sue righe nella lista principale ("Deck").
 export function deleteSection(deck, id) {
   const cards = deck.cards.map((r) => (r.section === id ? { ...r, section: null } : r));
-  return { ...deck, sections: deck.sections.filter((s) => s.id !== id), cards: mergeSame(cards) };
+  const sections = deck.sections.filter((s) => s.id !== id);
+  const groupBy = !sections.length && deck.groupBy === 'custom' ? 'type' : deck.groupBy;
+  return { ...deck, groupBy, sections, cards: mergeSame(cards) };
+}
+// Trascinamento: righe nella zona di destinazione, nella sezione se indicata (undefined = resta
+// la sua). Lasciata in un gruppo o in un'altra zona, una riga non è più comandante.
+export function placeRows(deck, ids, board, section) {
+  const s = new Set(ids);
+  const cards = deck.cards.map((r) => (s.has(r.id) ? { ...r, board, commander: false, ...(section !== undefined && { section }) } : r));
+  return { ...deck, cards: mergeSame(cards) };
 }
 export function moveToSection(deck, ids, section) {
   const s = new Set(ids);
@@ -222,7 +232,7 @@ export const GROUP_MODES = [
   { id: 'type', label: 'Type' },
   { id: 'typeAdv', label: 'Type, advanced' },
   { id: 'mv', label: 'Mana value' },
-  { id: 'custom', label: 'Custom' },
+  { id: 'custom', label: 'Custom sections' }, // solo con sezioni: ci si arriva creandone una
 ];
 // Tipi di carta nel type line, nell'ordine scritto ("Artifact Creature"); i sottotipi non
 // coincidono mai con questi nomi, i supertipi (Legendary, Basic) restano fuori.
@@ -230,10 +240,14 @@ const CARD_TYPES = new Set(['Kindred', 'Tribal', 'Artifact', 'Enchantment', 'Lan
 const cardTypes = (type) => type.split(/\s+/).filter((w) => CARD_TYPES.has(w));
 const plural = (t) => TYPE_LABEL[t] || `${t}s`;
 
-const byMvName = (a, b) => a.card.mv - b.card.mv || a.card.name.localeCompare(b.card.name);
+const byName = (a, b) => a.card.name.localeCompare(b.card.name);
+const byMvName = (a, b) => a.card.mv - b.card.mv || byName(a, b);
+// Ordine dentro un gruppo: 'mv' = costo poi nome, 'name' = solo nome.
+export const SORT_MODES = [{ id: 'mv', label: 'Mana value' }, { id: 'name', label: 'Name' }];
+const sorter = (sort) => (sort === 'name' ? byName : byMvName);
 
 export const commanderRows = (deck) => deck.cards.filter((r) => r.board === 'main' && r.commander);
-export const boardRows = (deck, board) => deck.cards.filter((r) => r.board === board).sort(byMvName);
+export const boardRows = (deck, board, sort) => deck.cards.filter((r) => r.board === board).sort(sorter(sort));
 
 const bucket = (rows, keyOf) => {
   const map = new Map();
@@ -244,25 +258,26 @@ const bucket = (rows, keyOf) => {
   }
   return map;
 };
-const groupOf = (key, label, rows, extra) => ({ key, label, rows: rows.sort(byMvName), count: sum(rows), ...extra });
+const groupOf = (key, label, rows, sort, extra) => ({ key, label, rows: rows.sort(sorter(sort)), count: sum(rows), ...extra });
 
 // Main board (comandanti esclusi) raggruppato secondo deck.groupBy:
 // type = tipo principale; typeAdv = combinazione di tipi ("Artifact Creatures" a parte), nella
 // famiglia del tipo principale; mv = 0..6, 7+ e terre a parte; custom = "Deck" poi le sezioni.
-export function groupMain(deck) {
+// `sort` = ordine dentro i gruppi (SORT_MODES).
+export function groupMain(deck, sort = 'mv') {
   const main = deck.cards.filter((r) => r.board === 'main' && !r.commander);
   if (deck.groupBy === 'custom') {
     const known = new Set(deck.sections.map((s) => s.id));
     const by = bucket(main, (r) => (known.has(r.section) ? r.section : null));
     return [
-      groupOf('deck', 'Deck', by.get(null) || [], { section: null }),
-      ...deck.sections.map((s) => groupOf(s.id, s.name, by.get(s.id) || [], { section: s.id })),
+      groupOf('deck', 'Deck', by.get(null) || [], sort, { section: null }),
+      ...deck.sections.map((s) => groupOf(s.id, s.name, by.get(s.id) || [], sort, { section: s.id })),
     ];
   }
   if (deck.groupBy === 'mv') {
     const by = bucket(main, (r) => (isLand(r.card) ? 'land' : Math.min(7, Math.floor(r.card.mv))));
     return [0, 1, 2, 3, 4, 5, 6, 7, 'land'].filter((k) => by.has(k))
-      .map((k) => groupOf(`mv${k}`, k === 'land' ? 'Lands' : `${k}${k === 7 ? '+' : ''} mana`, by.get(k)));
+      .map((k) => groupOf(`mv${k}`, k === 'land' ? 'Lands' : `${k}${k === 7 ? '+' : ''} mana`, by.get(k), sort));
   }
   if (deck.groupBy === 'typeAdv') {
     const by = bucket(main, (r) => cardTypes(r.card.type).join(' ') || 'Other');
@@ -270,11 +285,11 @@ export function groupMain(deck) {
     const keys = [...by.keys()].sort((a, b) => rank(a) - rank(b) || a.split(' ').length - b.split(' ').length || a.localeCompare(b));
     return keys.map((k) => {
       const t = k.split(' ');
-      return groupOf(k, [...t.slice(0, -1), plural(t[t.length - 1])].join(' '), by.get(k));
+      return groupOf(k, [...t.slice(0, -1), plural(t[t.length - 1])].join(' '), by.get(k), sort);
     });
   }
   const by = bucket(main, (r) => primaryType(r.card.type));
-  return TYPE_ORDER.filter((k) => by.has(k)).map((k) => groupOf(k, TYPE_LABEL[k], by.get(k)));
+  return TYPE_ORDER.filter((k) => by.has(k)).map((k) => groupOf(k, TYPE_LABEL[k], by.get(k), sort));
 }
 
 const WUBRG = ['W', 'U', 'B', 'R', 'G'];

@@ -2722,16 +2722,10 @@ body::before {
 /* Anteprima carta al passaggio (desktop): in basso a sinistra, sopra la colonna di ricerca. */
 .deck-hover { position: fixed; z-index: 200; border-radius: 12px; pointer-events: none; box-shadow: var(--shadow-lg), 0 0 24px rgba(0, 229, 255, 0.18); animation: fade-in 0.12s ease; }
 
-/* Barra sopra le carte: raggruppa per, vista (lista / griglia / stack), nuova sezione. */
+/* Barra sopra le carte: raggruppa, ordina, vista, nuova sezione. */
 .deck-toolbar { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; margin-bottom: 16px; }
 .deck-tool { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-secondary); }
 .deck-tool select { width: auto; }
-.deck-views { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
-.deck-views button { display: flex; padding: 6px 10px; background: none; border: 0; color: var(--text-secondary); cursor: pointer; transition: color var(--transition), background var(--transition); }
-.deck-views button + button { border-left: 1px solid var(--border); }
-.deck-views button:hover { color: var(--cyan-soft); }
-.deck-views button[aria-pressed="true"] { color: var(--cyan); background: rgba(0, 229, 255, 0.1); box-shadow: inset 0 -2px 0 var(--cyan); }
-.deck-views button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .deck-new-section { padding: 6px 12px; }
 
 /* Sezioni custom: rinomina / elimina nell'intestazione, bersaglio del trascinamento. */
@@ -2741,7 +2735,6 @@ body::before {
 .deck-group-actions button { display: flex; padding: 3px; background: none; border: 0; border-radius: 4px; color: var(--text-secondary); cursor: pointer; }
 .deck-group-actions button:hover, .deck-group-actions button:focus-visible { color: var(--cyan-soft); outline: none; }
 .deck-group.drop-target { outline: 1px dashed var(--cyan); outline-offset: 4px; border-radius: 6px; background: rgba(0, 229, 255, 0.05); }
-.deck-row[draggable="true"] .deck-row-main { cursor: grab; }
 
 /* Griglia e stack: immagini al posto delle righe. Stack = colonne da 160 px dove ogni carta
    copre la precedente lasciando vedere solo la fascia del nome (margine in % della larghezza). */

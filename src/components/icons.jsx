@@ -207,40 +207,6 @@ export function IconLogOut(props) {
   );
 }
 
-export function IconGrid(props) {
-  return (
-    <Svg {...props}>
-      <rect width="7" height="7" x="3" y="3" rx="1" />
-      <rect width="7" height="7" x="14" y="3" rx="1" />
-      <rect width="7" height="7" x="14" y="14" rx="1" />
-      <rect width="7" height="7" x="3" y="14" rx="1" />
-    </Svg>
-  );
-}
-
-// Carte impilate: si vedono i bordi alti di quelle dietro.
-export function IconStack(props) {
-  return (
-    <Svg {...props}>
-      <path d="M7 2h10" />
-      <path d="M5 6h14" />
-      <rect width="18" height="12" x="3" y="10" rx="2" />
-    </Svg>
-  );
-}
-
-// Stack con ogni copia: più bordi alti visibili.
-export function IconStackSplit(props) {
-  return (
-    <Svg {...props}>
-      <path d="M8 2h8" />
-      <path d="M6 5h12" />
-      <path d="M4 8h16" />
-      <rect width="18" height="11" x="3" y="11" rx="2" />
-    </Svg>
-  );
-}
-
 export function IconUser(props) {
   return (
     <Svg {...props}>

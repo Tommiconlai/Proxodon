@@ -5,21 +5,18 @@ import { useLongPress } from '../hooks/useLongPress';
 import { ManaCost } from './Mana';
 import { NameFormatDialog } from './dialogs';
 import {
-  GROUP_MODES, groupMain, commanderRows, boardRows, bumpQty, removeRows, setCommander, moveToBoard,
-  addSection, renameSection, deleteSection, moveToSection, overLimit, formatLabel,
+  GROUP_MODES, SORT_MODES, groupMain, commanderRows, boardRows, bumpQty, removeRows, setCommander, moveToBoard,
+  addSection, renameSection, deleteSection, moveToSection, placeRows, overLimit, formatLabel,
 } from './deckModel';
-import {
-  IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconGrid, IconStack, IconStackSplit, IconPencil, IconAlert,
-} from '../components/icons';
+import { IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert } from '../components/icons';
 
 const BOARD_LABEL = { main: 'main deck', side: 'sideboard', maybe: 'maybeboard' };
 const VIEWS = [
-  { id: 'list', label: 'List', Icon: IconList },
-  { id: 'grid', label: 'Grid', Icon: IconGrid },
-  { id: 'stacks', label: 'Stacks', Icon: IconStack },
-  { id: 'split', label: 'Stacks, every copy', Icon: IconStackSplit },
+  { id: 'list', label: 'List' },
+  { id: 'grid', label: 'Grid' },
+  { id: 'stacks', label: 'Stacks' },
+  { id: 'split', label: 'Stacks, every copy' },
 ];
-const VIEW_KEY = 'ip:deckView'; // vista preferita, per dispositivo
 const PREVIEW_W = 244;
 const PREVIEW_H = Math.round((PREVIEW_W * 680) / 488);
 const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
@@ -28,47 +25,51 @@ const menuPoint = (e) => {
   const r = e.currentTarget.getBoundingClientRect();
   return { x: r.left + 24, y: r.bottom };
 };
-const readView = () => {
-  try {
-    const v = localStorage.getItem(VIEW_KEY);
-    return VIEWS.some((x) => x.id === v) ? v : 'list';
-  } catch {
-    return 'list';
-  }
-};
+// Preferenza per dispositivo in localStorage (vista, ordine); storage bloccato = solo questa sessione.
+function usePref(key, modes) {
+  const [v, setV] = useState(() => {
+    try {
+      const x = localStorage.getItem(key);
+      return modes.some((m) => m.id === x) ? x : modes[0].id;
+    } catch {
+      return modes[0].id;
+    }
+  });
+  const set = (x) => {
+    setV(x);
+    try { localStorage.setItem(key, x); } catch { /* storage bloccato */ }
+  };
+  return [v, set];
+}
 
-// Corpo dell'editor: barra (raggruppa, vista), comandante, gruppi, sideboard, maybeboard.
+// Corpo dell'editor: barra (raggruppa, ordina, vista, nuova sezione), comandante, gruppi, sideboard, maybeboard.
 // Viste: lista (righe), griglia (immagini), stack (immagini sovrapposte, si vede la parte alta),
 // stack con ogni copia (3 copie = 3 carte impilate). Le carte oltre il limite di copie del formato
 // hanno un avviso, più un riepilogo in alto.
 // Selezione come le carte in stampa (click = aggiungi/togli, Shift = intervallo, Esc = svuota);
 // menu su click destro, Shift+F10 o pressione lunga, sulla selezione se la riga ne fa parte.
-// In modalità custom le righe del main si trascinano sulle sezioni (desktop) o si spostano dal menu.
+// Desktop: le carte si trascinano tra gruppi del main, sezioni, sideboard e maybeboard. Creare una
+// sezione porta il mazzo in raggruppamento custom; da telefono si sposta tutto dal menu.
 export default function DeckSections({ deck, update, touch }) {
   const [sel, setSel] = useState(() => new Set());
   const [anchor, setAnchor] = useState(null);
   const [menu, setMenu] = useState(null); // { ids, x, y }
   const [hover, setHover] = useState(null); // anteprima accanto alla riga: { img, x, y }
-  const [view, setViewState] = useState(readView);
+  const [view, setView] = usePref('ip:deckView', VIEWS);
+  const [sort, setSort] = usePref('ip:deckSort', SORT_MODES);
   const [dialog, setDialog] = useState(null); // { id?, name?, moveIds? } nuova sezione o rinomina
   const [dropKey, setDropKey] = useState(null);
+  const [dragging, setDragging] = useState(false); // durante il trascinamento il maybeboard vuoto accetta il rilascio
   const dragIds = useRef(null);
   const press = useLongPress();
   const closeMenu = useCallback(() => setMenu(null), []);
   const custom = deck.groupBy === 'custom';
-  const dnd = custom && !touch;
   const split = view === 'split';
   const layout = split ? 'stacks' : view; // classi CSS: lo split è uno stack
   const over = useMemo(() => overLimit(deck), [deck]);
   const overBy = useMemo(() => new Map(over.map((e) => [e.oid, e])), [over]);
   // Avviso solo dove le copie contano: main e (fuori da Commander) sideboard.
   const warnOf = (r) => (r.board === 'main' || (r.board === 'side' && deck.format !== 'commander') ? overBy.get(r.card.oid) : undefined);
-
-  const setView = (v) => {
-    setViewState(v);
-    setHover(null);
-    try { localStorage.setItem(VIEW_KEY, v); } catch { /* storage bloccato: vale solo per questa sessione */ }
-  };
 
   // L'anteprima è fissa sullo schermo: sparisce appena qualcosa scorre.
   useEffect(() => {
@@ -80,17 +81,17 @@ export default function DeckSections({ deck, update, touch }) {
 
   const blocks = useMemo(() => {
     const cmd = commanderRows(deck);
-    const side = boardRows(deck, 'side');
-    const maybe = boardRows(deck, 'maybe');
+    const side = boardRows(deck, 'side', sort);
+    const maybe = boardRows(deck, 'maybe', sort);
     return {
       commander: cmd.length || deck.format === 'commander' ? { key: 'commander', label: 'Commander', rows: cmd } : null,
-      groups: groupMain(deck),
+      groups: groupMain(deck, sort),
       side: side.length || deck.format !== 'commander' ? { key: 'side', label: 'Sideboard', rows: side } : null,
-      maybe: maybe.length ? { key: 'maybe', label: 'Maybeboard', rows: maybe } : null,
+      maybe: { key: 'maybe', label: 'Maybeboard', rows: maybe },
     };
-  }, [deck]);
+  }, [deck, sort]);
   const order = useMemo(() => [
-    ...(blocks.commander?.rows || []), ...blocks.groups.flatMap((g) => g.rows), ...(blocks.side?.rows || []), ...(blocks.maybe?.rows || []),
+    ...(blocks.commander?.rows || []), ...blocks.groups.flatMap((g) => g.rows), ...(blocks.side?.rows || []), ...blocks.maybe.rows,
   ].map((r) => r.id), [blocks]);
   const selected = order.filter((id) => sel.has(id)); // righe ancora esistenti
   // Righe che possono stare in una sezione custom: main board, non comandanti.
@@ -129,8 +130,8 @@ export default function DeckSections({ deck, update, touch }) {
     if (deck.format === 'commander' && allMain && (allCmd || ids.length <= 2)) {
       items.push({ key: 'cmd', Icon: IconCrown, label: allCmd ? 'Remove as commander' : 'Set as commander', run: () => update((d) => setCommander(d, ids, !allCmd)) });
     }
-    if (custom && ids.every((id) => sectionable.has(id))) {
-      for (const g of blocks.groups) {
+    if (ids.every((id) => sectionable.has(id))) {
+      for (const g of custom ? blocks.groups : []) {
         if (menuRows.every((r) => (r.section ?? null) === g.section)) continue;
         items.push({ key: `sec-${g.key}`, Icon: IconList, label: `Move to “${g.label}”`, run: () => update((d) => moveToSection(d, ids, g.section)) });
       }
@@ -156,27 +157,31 @@ export default function DeckSections({ deck, update, touch }) {
     setHover({ img: r.card.img, x, y });
   };
 
-  const dragProps = (r) => (dnd && sectionable.has(r.id) ? {
+  // Trascinamento (desktop): la riga, o tutta la selezione se ne fa parte.
+  const endDrag = () => { dragIds.current = null; setDropKey(null); setDragging(false); };
+  const dragProps = (r) => (touch ? {} : {
     draggable: true,
     onDragStart: (e) => {
-      dragIds.current = sel.has(r.id) && selected.length > 1 ? selected.filter((id) => sectionable.has(id)) : [r.id];
+      dragIds.current = sel.has(r.id) && selected.length > 1 ? selected : [r.id];
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', r.card.name);
       setHover(null);
+      setDragging(true);
     },
-    onDragEnd: () => { dragIds.current = null; setDropKey(null); },
-  } : {});
-  const dropProps = (g) => (dnd && 'section' in g ? {
-    onDragOver: (e) => { if (!dragIds.current) return; e.preventDefault(); setDropKey(g.key); },
-    onDragLeave: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropKey((k) => (k === g.key ? null : k)); },
+    onDragEnd: endDrag,
+  });
+  // Rilascio su un gruppo del main (con la sua sezione in custom), sul sideboard o sul maybeboard.
+  // endDrag anche qui: la riga spostata può smontarsi prima del suo dragend.
+  const dropProps = (key, board, section) => (touch ? {} : {
+    onDragOver: (e) => { if (!dragIds.current) return; e.preventDefault(); setDropKey(key); },
+    onDragLeave: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropKey((k) => (k === key ? null : k)); },
     onDrop: (e) => {
       e.preventDefault();
       const ids = dragIds.current;
-      dragIds.current = null;
-      setDropKey(null);
-      if (ids) update((d) => moveToSection(d, ids, g.section));
+      endDrag();
+      if (ids) update((d) => placeRows(d, ids, board, section));
     },
-  } : {});
+  });
 
   // copy = indice della copia nella vista split (ogni copia è una carta, tutte agiscono sulla riga).
   const row = (r, copy = 0) => {
@@ -226,8 +231,9 @@ export default function DeckSections({ deck, update, touch }) {
     if (custom && 'section' in g) return touch ? 'Long-press a card, then Move to.' : 'Drag cards here.';
     return 'No cards yet.';
   };
-  const group = (g, extraClass = '') => (
-    <section key={g.key} className={`deck-group ${extraClass}${dropKey === g.key ? ' drop-target' : ''}`} aria-label={g.label} {...dropProps(g)}>
+  // drop = [zona, sezione] per accettare il rilascio delle carte trascinate.
+  const group = (g, extraClass = '', drop) => (
+    <section key={g.key} className={`deck-group ${extraClass}${dropKey === g.key ? ' drop-target' : ''}`} aria-label={g.label} {...(drop && dropProps(g.key, ...drop))}>
       <h3 className="deck-group-head">
         <span className="deck-group-name">{g.label}</span> <span className="n">{sum(g.rows)}</span>
         {g.section && (
@@ -250,15 +256,22 @@ export default function DeckSections({ deck, update, touch }) {
         <label className="deck-tool">
           <span>Group by</span>
           <select value={deck.groupBy} onChange={(e) => update((d) => ({ ...d, groupBy: e.target.value }))}>
-            {GROUP_MODES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+            {GROUP_MODES.filter((m) => m.id !== 'custom' || custom || deck.sections.length).map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
           </select>
         </label>
-        <div className="deck-views" role="group" aria-label="View">
-          {VIEWS.map((v) => (
-            <button key={v.id} type="button" aria-pressed={view === v.id} aria-label={v.label} title={v.label} onClick={() => setView(v.id)}><v.Icon size={16} /></button>
-          ))}
-        </div>
-        {custom && <button type="button" className="btn-secondary deck-new-section" onClick={() => setDialog({})}><IconPlus size={14} /> New section</button>}
+        <label className="deck-tool">
+          <span>Sort by</span>
+          <select value={sort} onChange={(e) => setSort(e.target.value)}>
+            {SORT_MODES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+          </select>
+        </label>
+        <label className="deck-tool">
+          <span>View by</span>
+          <select value={view} onChange={(e) => { setView(e.target.value); setHover(null); }}>
+            {VIEWS.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
+          </select>
+        </label>
+        <button type="button" className="btn-secondary deck-new-section" onClick={() => setDialog({})}><IconPlus size={14} /> New section</button>
       </div>
       {over.length > 0 && (
         <p className="deck-warn" role="status">
@@ -267,10 +280,10 @@ export default function DeckSections({ deck, update, touch }) {
         </p>
       )}
       {blocks.commander && group(blocks.commander, 'deck-block')}
-      <div className={`deck-columns view-${layout}`}>{blocks.groups.map((g) => group(g))}</div>
-      {blocks.side && group(blocks.side, 'deck-block')}
-      {blocks.maybe && (
-        <details className="deck-maybe">
+      <div className={`deck-columns view-${layout}`}>{blocks.groups.map((g) => group(g, '', ['main', g.section]))}</div>
+      {blocks.side && group(blocks.side, 'deck-block', ['side'])}
+      {(blocks.maybe.rows.length > 0 || dragging) && (
+        <details className={`deck-maybe${dropKey === 'maybe' ? ' drop-target' : ''}`} {...dropProps('maybe', 'maybe')}>
           <summary className="deck-group-head">Maybeboard <span className="n">{sum(blocks.maybe.rows)}</span></summary>
           <ul className={`deck-rows view-${layout}`}>{cards(blocks.maybe.rows)}</ul>
         </details>

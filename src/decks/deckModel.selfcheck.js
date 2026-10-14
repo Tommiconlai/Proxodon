@@ -7,7 +7,7 @@ import {
 import {
   groupMain, commanderRows, boardRows, deckIdentity, deckCover, toPrintEntries, exportText,
   parseDeckText, toBackup, fromBackup, duplicateDeck, refreshSnapshots, primaryType,
-  addSection, renameSection, deleteSection, moveToSection, overLimit,
+  addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl } from './scryfallSearch.js';
 
@@ -180,7 +180,7 @@ const gx0 = [
   snap({ id: 'emra', name: 'Emrakul', mv: 15, type: `Legendary Creature ${D} Eldrazi` }),
   snap({ id: 'crib', name: 'Crib Swap', mv: 3, type: `Kindred Instant ${D} Shapeshifter` }),
 ].reduce((d, c) => addCard(d, c).deck, newDeck({ name: 'G', format: 'casual' }));
-const lab = (d) => groupMain(d).map((x) => [x.label, x.rows.map((r) => r.card.name)]);
+const lab = (d, sort) => groupMain(d, sort).map((x) => [x.label, x.rows.map((r) => r.card.name)]);
 eq(lab({ ...gx0, groupBy: 'typeAdv' }), [
   ['Creatures', ['Llanowar Elves', 'Emrakul']],
   ['Artifact Creatures', ['Steel Golem']],
@@ -195,10 +195,11 @@ eq(lab({ ...gx0, groupBy: 'mv' }), [
   ['7+ mana', ['Emrakul']],
   ['Lands', ['Darksteel Citadel', 'Forest']],
 ], 'mana value: 7+ in un gruppo, terre a parte');
-let cu = { ...gx0, groupBy: 'custom' };
+eq(lab({ ...gx0, groupBy: 'typeAdv' }, 'name')[0], ['Creatures', ['Emrakul', 'Llanowar Elves']], 'ordine per nome dentro il gruppo');
+let cu = gx0;
 const ramp = addSection(cu, '  Ramp  ');
 cu = ramp.deck;
-eq(cu.sections, [{ id: ramp.id, name: 'Ramp' }], 'sezione: nome ripulito');
+eq([cu.sections, cu.groupBy], [[{ id: ramp.id, name: 'Ramp' }], 'custom'], 'sezione: nome ripulito, il mazzo passa a custom');
 const elfRow = () => cu.cards.find((r) => r.card.sid === 'elf' && r.board === 'main');
 cu = moveToSection(cu, [elfRow().id], ramp.id);
 eq(groupMain(cu).map((x) => [x.label, x.section, x.count]), [['Deck', null, 6], ['Ramp', ramp.id, 1]], 'custom: Deck poi le sezioni, con id');
@@ -210,7 +211,21 @@ cu = addCard(cu, elfCard, { board: 'side' }).deck;
 cu = moveToBoard(cu, [cu.cards.find((r) => r.card.sid === 'elf' && r.board === 'side').id], 'main');
 eq(cu.cards.filter((r) => r.card.sid === 'elf').map((r) => [r.section, r.qty]), [[ramp.id, 1], [null, 1]], 'stessa carta in Deck e in sezione: righe distinte');
 cu = deleteSection(cu, ramp.id);
-eq([cu.sections.length, cu.cards.filter((r) => r.card.sid === 'elf').map((r) => [r.section, r.qty])], [0, [[null, 2]]], 'elimina sezione: righe tornano in Deck e si fondono');
+eq([cu.sections.length, cu.groupBy, cu.cards.filter((r) => r.card.sid === 'elf').map((r) => [r.section, r.qty])], [0, 'type', [[null, 2]]],
+  'elimina ultima sezione: righe in Deck e fuse, raggruppamento torna a Type');
+// Trascinamento tra zone: board di destinazione, sezione solo se indicata, mai comandante.
+let pl = addSection({ ...gx0, format: 'commander' }, 'Ramp');
+const plRamp = pl.id;
+pl = pl.deck;
+const pid = (sid) => pl.cards.find((r) => r.card.sid === sid).id;
+pl = setCommander(pl, [pid('emra')], true);
+pl = placeRows(pl, [pid('elf'), pid('golem')], 'side');
+pl = placeRows(pl, [pid('emra')], 'main', plRamp);
+pl = placeRows(pl, [pid('elf')], 'main');
+const pos = (sid) => { const r = pl.cards.find((x) => x.card.sid === sid); return [r.board, r.section, r.commander]; };
+eq([pos('golem'), pos('emra'), pos('elf')], [['side', null, false], ['main', plRamp, false], ['main', null, false]],
+  'placeRows: sideboard, sezione con comandante tolto, ritorno nel main senza sezione');
+eq(boardRows(pl, 'side', 'name').map((r) => r.card.name), ['Steel Golem'], 'boardRows con ordine');
 eq(fromBackup({ app: 'proxoteca', kind: 'decks', v: 1, decks: [{ name: 'B', groupBy: 'typeAdv', cards: [] }] })[0].groupBy, 'typeAdv', 'backup: tipo avanzato accettato');
 
 // Avviso copie: 4 nei formati da 60 (main + sideboard, stampe diverse insieme), 1 in Commander
