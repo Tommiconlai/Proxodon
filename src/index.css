@@ -24,6 +24,11 @@
   --cyan-glow: rgba(0, 229, 255, 0.35);
   --violet: #7b5cff;
   --acid: #cfff56;
+  /* Serie dei grafici (Stats): validate con lo script dataviz sul fondo #08070f (dark, tutti i
+     controlli passati: banda di luminosità, croma, separazione CVD, contrasto). --cyan puro è
+     troppo chiaro per una barra, per questo la serie 1 è un ciano più profondo. */
+  --chart-1: #009cbd;
+  --chart-2: #ff2d95;
 
   --success: #22c55e;
   --danger: #ff4d6d;
@@ -2797,16 +2802,82 @@ body::before {
 .deck-rows.view-grid .deck-row-qty { bottom: 6px; left: 50%; transform: translateX(-50%); }
 .deck-rows.view-stacks .deck-row-qty { top: 5px; right: 5px; }
 .deck-rows.view-stacks .deck-row:hover .deck-card-qty { opacity: 0; }
-/* Copie oltre il limite del formato: riepilogo sopra i gruppi, icona sulla riga o sulla carta. */
-.deck-warn {
-  display: flex; align-items: flex-start; gap: 8px;
-  margin: -4px 0 16px; padding: 8px 12px;
+/* Controlli del formato: chip sopra le carte (giallo = avviso, rosso = legalità), click = seleziona
+   le carte coinvolte. Icona sulla riga o sulla carta per copie oltre il limite e divieto. */
+.deck-issues { list-style: none; margin: -4px 0 16px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.deck-issue {
+  display: inline-flex; align-items: flex-start; gap: 6px;
+  padding: 5px 10px;
   border: 1px solid rgba(245, 158, 11, 0.45); border-radius: var(--radius-sm);
   background: rgba(245, 158, 11, 0.08);
+  font: inherit; font-size: 0.78rem; line-height: 1.4; text-align: left;
   color: var(--warning);
-  font-size: 0.82rem; line-height: 1.45;
+  cursor: pointer;
+  transition: background var(--transition), box-shadow var(--transition);
 }
-.deck-warn svg { flex: none; margin-top: 2px; }
+.deck-issue svg { flex: none; margin-top: 2px; }
+.deck-issue.error { border-color: rgba(255, 77, 109, 0.5); background: rgba(255, 77, 109, 0.08); color: var(--danger); }
+.deck-issue:hover:not(:disabled) { background: rgba(245, 158, 11, 0.16); }
+.deck-issue.error:hover:not(:disabled) { background: rgba(255, 77, 109, 0.16); }
+.deck-issue:disabled { cursor: default; }
+.deck-issue:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Deck / Stats */
+.deck-mode { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.deck-mode button {
+  padding: 6px 12px;
+  background: none; border: 0;
+  font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.deck-mode button + button { border-left: 1px solid var(--border); }
+.deck-mode button[aria-pressed="true"] { color: var(--cyan); background: rgba(0, 229, 255, 0.1); box-shadow: inset 0 -2px 0 var(--cyan); }
+.deck-mode button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Vista Stats: riquadri numerici, poi i grafici in colonne. Testi in colori del testo, mai della serie. */
+.deck-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+.stat-tiles { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+.stat-tile, .stat-card {
+  margin: 0;
+  padding: 14px 16px;
+  background: linear-gradient(180deg, var(--bg-elevated), var(--bg-surface));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.stat-tile { display: flex; flex-direction: column; gap: 4px; }
+.stat-tile-label { font-size: 0.75rem; color: var(--text-secondary); }
+.stat-tile-value { font-family: var(--font-display); font-size: 1.6rem; font-weight: 600; color: var(--text-primary); }
+.stat-card figcaption { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
+.stat-title { font-family: var(--font-display); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-primary); }
+.stat-sub { font-size: 0.74rem; color: var(--text-secondary); }
+.stat-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 8px; font-size: 0.74rem; color: var(--text-secondary); }
+.stat-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.stat-swatch { width: 10px; height: 10px; border-radius: 2px; }
+.stat-swatch.s1, .stat-bar.s1 { background: var(--chart-1); fill: var(--chart-1); }
+.stat-swatch.s2, .stat-bar.s2 { background: var(--chart-2); fill: var(--chart-2); }
+.stat-plot { position: relative; }
+.stat-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.stat-axis { stroke: rgba(167, 161, 201, 0.25); stroke-width: 1; }
+.stat-val { font-family: var(--font-mono); font-size: 10px; fill: var(--text-secondary); }
+.stat-tick { font-family: var(--font-mono); font-size: 10px; fill: var(--text-muted); }
+.stat-hit { outline: none; }
+.stat-hit.clickable { cursor: pointer; }
+.stat-hit:focus-visible { stroke: var(--cyan); stroke-width: 1.5; }
+.stat-svg g:has(> .stat-hit:hover) .stat-bar, .stat-svg g:has(> .stat-hit:focus-visible) .stat-bar { filter: brightness(1.25); }
+.stat-tip {
+  position: absolute; z-index: 3;
+  transform: translate(-50%, calc(-100% - 6px));
+  padding: 6px 9px;
+  background: #0b0a15; border: 1px solid var(--border); border-radius: 6px;
+  box-shadow: var(--shadow-md);
+  font-size: 0.74rem; color: var(--text-secondary);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.stat-tip-row { display: flex; align-items: center; gap: 6px; }
+.stat-tip strong { color: var(--text-primary); font-weight: 600; }
+.stat-key { width: 10px; height: 2px; border-radius: 1px; }
 .deck-warn-icon { display: flex; flex: none; color: var(--warning); }
 .deck-row.over .deck-qty { color: var(--warning); }
 /* Chip in alto a sinistra sulla carta (griglia, stack, risultati): divieto, poi copie oltre il limite. */
@@ -2871,7 +2942,6 @@ body::before {
   cursor: help;
 }
 .deck-ban-icon { display: flex; flex: none; color: var(--danger); }
-.deck-warn.deck-illegal { border-color: rgba(255, 77, 109, 0.5); background: rgba(255, 77, 109, 0.08); color: var(--danger); }
 .search-more { width: 100%; justify-content: center; margin-top: 12px; }
 
 .search-none { padding: 9px 12px; margin: 0; font-size: 0.8rem; color: var(--text-muted); }

@@ -8,7 +8,7 @@ import {
   groupMain, commanderRows, boardRows, deckIdentity, deckCover, toPrintEntries, exportText,
   parseDeckText, toBackup, fromBackup, duplicateDeck, refreshSnapshots, primaryType,
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
-  splitRow, changeEdition,
+  splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
 
@@ -276,6 +276,43 @@ eq(ed.cards.map((r) => [r.qty, r.card.set]), [[3, 'tst'], [1, 'm10'], [1, 'tst']
 ed = changeEdition(ed, [ed.cards[0].id], boltM10);
 eq(ed.cards.map((r) => [r.card.name, r.qty, r.card.set]), [['Lightning Bolt', 4, 'm10'], ['Forest', 1, 'tst']], 'stessa edizione nella stessa zona: righe fuse');
 eq([splitRow(ed, 'nope') === ed, splitRow(ed, ed.cards[1].id) === ed], [true, true], 'riga inesistente o da una copia: invariato');
+
+// Statistiche: simboli per colore (ibridi a ogni colore, phyrexian al suo, generico e X ignorati).
+eq(manaPips('{X}{2}{W}{W}{U/B}{2/R}{G/P}{C}{S}'), { W: 2, U: 1, B: 1, R: 1, G: 1, C: 1 }, 'simboli di mana per colore');
+eq(manaPips(''), { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 }, 'costo vuoto');
+let st = newDeck({ name: 'S', format: 'modern' });
+st = addCard(st, bolt, { qty: 4 }).deck;
+st = addCard(st, snap({ id: 'gob', name: 'Goblin Guide', mana: '{R}', mv: 1, type: `Creature ${D} Goblin` }), { qty: 2 }).deck;
+st = addCard(st, snap({ id: 'golem2', name: 'Steel Golem', mana: '{3}', mv: 3, type: `Artifact Creature ${D} Golem` })).deck;
+st = addCard(st, snap({ id: 'big2', name: 'Emrakul', mana: '{15}', mv: 15, type: `Legendary Creature ${D} Eldrazi` })).deck;
+st = addCard(st, snap({ id: 'mtn', name: 'Mountain', type: `Basic Land ${D} Mountain`, produced: ['R'] }), { qty: 10 }).deck;
+st = addCard(st, snap({ id: 'rock', name: 'Mind Stone', mana: '{2}', mv: 2, type: 'Artifact', produced: ['C'] })).deck;
+st = addCard(st, bolt, { board: 'side', qty: 3 }).deck;
+const ss = deckStats(st);
+eq([ss.cards, ss.lands, ss.avgMv], [19, 10, 2.89], 'statistiche: solo main, media dei non terra a 2 decimali');
+eq(ss.curve.map((b) => b.count), [0, 6, 1, 1, 0, 0, 0, 1], 'curva 0..7+, terre escluse');
+eq(ss.curve[1].ids.length, 2, 'la barra conosce le sue righe');
+eq(ss.colors.filter((c) => c.pips || c.sources).map((c) => [c.c, c.pips, c.sources]), [['R', 6, 10], ['C', 0, 1]], 'colori: simboli contro fonti');
+eq(ss.types.map((t) => [t.type, t.count]), [['Creature', 4], ['Instant', 4], ['Artifact', 2], ['Land', 10]], 'tipi: una carta multi-tipo conta in ognuno');
+// Vintage restricted = 1 copia
+eq([maxCopies('vintage', { legal: { vintage: 'restricted' } }), maxCopies('vintage', { legal: { vintage: 'legal' } })], [1, 4], 'restricted = 1');
+// Comandante: legendary creature o "can be your commander"
+eq([snap({ id: 'c1', name: 'L', type: `Legendary Creature ${D} Elf` }).cmdr, snap({ id: 'c2', name: 'P', type: `Legendary Planeswalker ${D} Teferi`, text: 'Teferi can be your commander.' }).cmdr, snap({ id: 'c3', name: 'E', type: 'Legendary Enchantment' }).cmdr], [true, true, false], 'snapshot: può essere comandante');
+// Validazione (mai bloccante): righe coinvolte per evidenziarle
+const issues = (d) => validateDeck(d).map((i) => [i.key, i.ids.length]);
+let vc = addCard(newDeck({ name: 'V', format: 'commander' }), snap({ id: 'atx', name: 'Atraxa', mana: '{G}{W}{U}{B}', mv: 4, type: `Legendary Creature ${D} Phyrexian Angel`, colors: ['G', 'W', 'U', 'B'] })).deck;
+eq(issues(vc), [['nocmd', 0]], 'Commander senza comandante');
+vc = setCommander(vc, [vc.cards[0].id], true);
+vc = addCard(vc, bolt).deck;
+vc = addCard(vc, forest, { qty: 3 }).deck;
+vc = addCard(vc, snap({ id: 'ench', name: 'Pacifism', type: 'Enchantment', colors: ['W'] }), { board: 'side' }).deck;
+eq(issues(vc), [['identity', 1], ['side', 1]], 'fuori identità (Bolt rosso con Atraxa), sideboard in Commander');
+vc = setCommander(vc, [vc.cards.find((r) => r.card.sid === 'for').id], true);
+eq(issues(vc).map((x) => x[0]), ['notcmd', 'identity', 'side'], 'comandante non valido');
+let v60 = addCard(newDeck({ name: 'M', format: 'modern' }), bolt, { qty: 5 }).deck;
+v60 = addCard(v60, forest, { board: 'side', qty: 16 }).deck;
+eq(issues(v60), [['sidesize', 1], ['copies', 1]], '60 carte: sideboard oltre 15, copie oltre 4');
+eq(validateDeck({ ...v60, format: 'casual' }), [], 'Casual: nessun controllo');
 
 // URL Scryfall con nomi difficili (Review Focus 4)
 eq(namedUrl('Kongming, "Sleeping Dragon"'), 'https://api.scryfall.com/cards/named?exact=Kongming%2C%20%22Sleeping%20Dragon%22', 'named: virgole e virgolette');

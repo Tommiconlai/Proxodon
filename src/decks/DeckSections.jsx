@@ -9,8 +9,9 @@ import { cardsByIds } from './scryfallSearch';
 import {
   GROUP_MODES, SORT_MODES, groupMain, commanderRows, boardRows, bumpQty, removeRows, setCommander, moveToBoard,
   addSection, renameSection, deleteSection, moveToSection, placeRows, overLimit, formatLabel, illegalIn, legalityLabel,
-  splitRow, changeEdition, snapshotFromCard,
+  splitRow, changeEdition, snapshotFromCard, validateDeck,
 } from './deckModel';
+import DeckStats from './DeckStats';
 import { IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy } from '../components/icons';
 
 const BOARD_LABEL = { main: 'main deck', side: 'sideboard', maybe: 'maybeboard' };
@@ -81,15 +82,10 @@ export default function DeckSections({ deck, update, touch }) {
   const counts = (r) => r.board === 'main' || (r.board === 'side' && deck.format !== 'commander');
   const warnOf = (r) => (counts(r) ? overBy.get(r.card.oid) : undefined);
   const banOf = (r) => (counts(r) ? illegalIn(deck.format, r.card) : null);
-  // Carte bandite o non legali nel formato (per nome, una volta): arrivano da import o cambio formato.
-  const illegal = useMemo(() => {
-    const by = new Map();
-    for (const r of deck.cards) {
-      const b = (r.board === 'main' || (r.board === 'side' && deck.format !== 'commander')) && illegalIn(deck.format, r.card);
-      if (b && !by.has(r.card.oid)) by.set(r.card.oid, `${r.card.name}${b === 'banned' ? ' (banned)' : ''}`);
-    }
-    return [...by.values()];
-  }, [deck]);
+  // Controlli del formato (mai bloccanti): chip sopra le carte, il click seleziona le carte coinvolte.
+  const issues = useMemo(() => validateDeck(deck), [deck]);
+  const [mode, setMode] = useState('deck'); // 'deck' | 'stats'
+  const pick = (ids) => { setMode('deck'); setSel(new Set(ids)); };
 
   // L'anteprima è fissa sullo schermo: sparisce appena qualcosa scorre.
   useEffect(() => {
@@ -188,7 +184,7 @@ export default function DeckSections({ deck, update, touch }) {
   // disegna un'area e aggiunge le carte che tocca (come nella stampa, non toglie le altre).
   // Nello stack di una carta conta solo la fascia visibile, fino all'inizio della successiva.
   const onEmpty = (e) => e.currentTarget.contains(e.target)
-    && !e.target.closest('.deck-row, .deck-toolbar, .deck-group-actions, .modal-overlay, button, select, input, summary, a');
+    && !e.target.closest('.deck-row, .deck-toolbar, .deck-group-actions, .deck-issues, .deck-stats, .modal-overlay, button, select, input, summary, a');
   const marqueeHandlers = {
     onPointerDown: (e) => {
       swallowClick.current = false; // nuovo gesto
@@ -350,6 +346,11 @@ export default function DeckSections({ deck, update, touch }) {
       onKeyDown={(e) => { if (e.key === 'Escape' && sel.size) { e.stopPropagation(); setSel(new Set()); } }}>
       {marquee && <div className="marquee" style={marquee} aria-hidden="true" />}
       <div className="deck-toolbar">
+        <div className="deck-mode" role="group" aria-label="Show">
+          <button type="button" aria-pressed={mode === 'deck'} onClick={() => setMode('deck')}>Deck</button>
+          <button type="button" aria-pressed={mode === 'stats'} onClick={() => { setMode('stats'); setHover(null); }}>Stats</button>
+        </div>
+        {mode === 'deck' && (<>
         <label className="deck-tool">
           <span>Group by</span>
           <select value={deck.groupBy} onChange={(e) => update((d) => ({ ...d, groupBy: e.target.value }))}>
@@ -370,19 +371,22 @@ export default function DeckSections({ deck, update, touch }) {
         </label>
         <button type="button" className="btn-secondary deck-new-section" onClick={() => setDialog({})}><IconPlus size={14} /> New section</button>
         {!touch && <span className="deck-hint">Drag to move · Alt+drag moves one copy</span>}
+        </>)}
       </div>
-      {illegal.length > 0 && (
-        <p className="deck-warn deck-illegal" role="status">
-          <IconBan size={15} />
-          <span>Not allowed in {formatLabel(deck.format)}: {illegal.join(', ')}.</span>
-        </p>
+      {issues.length > 0 && (
+        <ul className="deck-issues" aria-label={`${formatLabel(deck.format)} checks`}>
+          {issues.map((it) => (
+            <li key={it.key}>
+              <button type="button" className={`deck-issue ${it.level}`} disabled={!it.ids.length}
+                title={it.ids.length ? 'Select these cards' : undefined} onClick={() => pick(it.ids)}>
+                {it.level === 'error' ? <IconBan size={14} /> : <IconAlert size={14} />}
+                <span>{it.label}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
-      {over.length > 0 && (
-        <p className="deck-warn" role="status">
-          <IconAlert size={15} />
-          <span>Over the copy limit for {formatLabel(deck.format)}: {over.map((e) => `${e.name} ${e.count}/${e.max}`).join(', ')}.</span>
-        </p>
-      )}
+      {mode === 'stats' ? <DeckStats deck={deck} onSelect={pick} /> : (<>
       {blocks.commander && group(blocks.commander, 'deck-block')}
       <div className={`deck-columns view-${layout}`}>{blocks.groups.map((g) => group(g, '', ['main', g.section]))}</div>
       {blocks.side && group(blocks.side, 'deck-block', ['side'])}
@@ -392,6 +396,7 @@ export default function DeckSections({ deck, update, touch }) {
           <ul className={`deck-rows view-${layout}`}>{cards(blocks.maybe.rows)}</ul>
         </details>
       )}
+      </>)}
       {menu && items.length > 0 && (
         <CardMenu x={menu.x} y={menu.y} title={menuRows.length === 1 ? menuRows[0].card.name : `${menuRows.length} cards selected`} items={items} onClose={closeMenu} />
       )}

@@ -45,13 +45,14 @@ export function snapshotFromCard(c) {
   const text = c.oracle_text ?? (c.card_faces || []).map((f) => f.oracle_text || '').join('\n');
   const legal = {};
   for (const f of LEGAL_FORMATS) legal[f] = c.legalities?.[f] || 'not_legal';
+  const type = (f0 ? f0.type_line : c.type_line) || '';
   return {
     sid: c.id,
     oid: c.oracle_id || f0?.oracle_id || c.id,
     name: c.name,
     mana: (f0 ? f0.mana_cost : c.mana_cost) || '',
     mv: c.cmc ?? 0,
-    type: (f0 ? f0.type_line : c.type_line) || '',
+    type,
     colors: f0?.colors || c.colors || [],
     ci: c.color_identity || [],
     produced: c.produced_mana || [],
@@ -61,6 +62,8 @@ export function snapshotFromCard(c) {
     img: imgs.normal || '',
     art: imgs.art_crop || '',
     limit: copyLimitFromText(text || ''),
+    // Può guidare un mazzo Commander: creatura leggendaria o "can be your commander".
+    cmdr: (/\bLegendary\b/.test(type) && /\bCreature\b/.test(type)) || /can be your commander/i.test(text || ''),
   };
 }
 
@@ -233,6 +236,7 @@ export const legalityLabel = (status, format) => `${status === 'banned' ? 'Banne
 // "up to N" = N, altrimenti 1 in Commander e 4 nei formati da 60.
 export function maxCopies(format, card) {
   if (format === 'casual' || isBasicLand(card) || card.limit === 0) return Infinity;
+  if (card.legal?.[format] === 'restricted') return 1; // Vintage
   if (card.limit > 0) return card.limit;
   return format === 'commander' ? 1 : 4;
 }
@@ -459,4 +463,88 @@ export function refreshSnapshots(deck, cardsById) {
     return { ...r, card };
   });
   return changed ? { deck: { ...deck, cards }, changed } : { deck, changed };
+}
+
+// ── Statistiche e validazione ────────────────────────────────
+
+const PIP_COLORS = ['W', 'U', 'B', 'R', 'G', 'C'];
+// Simboli colorati di un costo: un ibrido conta per ogni suo colore, un phyrexian per il suo colore,
+// {C} come incolore; generico, X e neve no.
+export function manaPips(cost) {
+  const out = Object.fromEntries(PIP_COLORS.map((c) => [c, 0]));
+  for (const t of (cost || '').match(/\{[^}]+\}/g) || []) {
+    for (const p of t.slice(1, -1).split('/')) if (p in out) out[p] += 1;
+  }
+  return out;
+}
+
+const STAT_TYPES = ['Creature', 'Instant', 'Sorcery', 'Artifact', 'Enchantment', 'Planeswalker', 'Battle', 'Land'];
+// Statistiche del main board (comandanti inclusi; sideboard e maybeboard mai): curva dei non terra
+// 0..7+ con le righe di ogni barra, media del costo dei non terra, simboli nei costi contro fonti di
+// mana per colore, tipi (una carta multi-tipo conta in ognuno; solo quelli presenti).
+export function deckStats(deck) {
+  const main = deck.cards.filter((r) => r.board === 'main');
+  const spells = main.filter((r) => !isLand(r.card));
+  const curve = Array.from({ length: 8 }, (_, mv) => ({ mv, count: 0, ids: [] }));
+  for (const r of spells) {
+    const b = curve[Math.min(7, Math.floor(r.card.mv))];
+    b.count += r.qty;
+    b.ids.push(r.id);
+  }
+  const nSpells = sum(spells);
+  const colors = PIP_COLORS.map((c) => ({
+    c,
+    pips: main.reduce((n, r) => n + manaPips(r.card.mana)[c] * r.qty, 0),
+    sources: sum(main.filter((r) => (r.card.produced || []).includes(c))),
+  }));
+  const types = STAT_TYPES.map((type) => {
+    const rows = main.filter((r) => new RegExp(`\\b${type}\\b`).test(r.card.type));
+    return { type, count: sum(rows), ids: rows.map((r) => r.id) };
+  }).filter((t) => t.count);
+  const avgMv = nSpells ? Math.round((spells.reduce((n, r) => n + r.card.mv * r.qty, 0) / nSpells) * 100) / 100 : null;
+  return { cards: sum(main), lands: sum(main) - nSpells, avgMv, curve, colors, types };
+}
+
+// Snapshot vecchi senza cmdr: si deduce dal tipo finché il riallineamento non lo aggiunge.
+const canCommand = (s) => s.cmdr ?? (/\bLegendary\b/.test(s.type) && /\bCreature\b/.test(s.type));
+
+// Problemi del mazzo (mai bloccanti), ognuno con le righe da evidenziare. Il numero di carte resta
+// nel contatore della barra in alto. Casual: nessun controllo.
+export function validateDeck(deck) {
+  const f = deck.format;
+  if (f === 'casual') return [];
+  const out = [];
+  const counted = (r) => r.board === 'main' || (r.board === 'side' && f !== 'commander');
+  const names = (rows) => [...new Set(rows.map((r) => r.card.name))].join(', ');
+  const ids = (rows) => rows.map((r) => r.id);
+  const side = deck.cards.filter((r) => r.board === 'side');
+  if (f === 'commander') {
+    const cmd = commanderRows(deck);
+    if (!cmd.length) out.push({ key: 'nocmd', level: 'warn', label: 'No commander yet', ids: [] });
+    if (cmd.length > 2) out.push({ key: 'toomany', level: 'warn', label: `${cmd.length} commanders, max 2`, ids: ids(cmd) });
+    const bad = cmd.filter((r) => !canCommand(r.card));
+    if (bad.length) out.push({ key: 'notcmd', level: 'warn', label: `Can't be a commander: ${names(bad)}`, ids: ids(bad) });
+    if (cmd.length) {
+      const allowed = new Set(cmd.flatMap((r) => r.card.ci));
+      const off = deck.cards.filter((r) => r.board === 'main' && !r.commander && r.card.ci.some((c) => !allowed.has(c)));
+      if (off.length) out.push({ key: 'identity', level: 'warn', label: `Outside the commander's colors: ${names(off)}`, ids: ids(off) });
+    }
+    if (side.length) out.push({ key: 'side', level: 'warn', label: 'Commander has no sideboard', ids: ids(side) });
+  } else if (sum(side) > 15) {
+    out.push({ key: 'sidesize', level: 'warn', label: `Sideboard ${sum(side)}/15`, ids: ids(side) });
+  }
+  const over = overLimit(deck);
+  if (over.length) {
+    const oids = new Set(over.map((e) => e.oid));
+    out.push({
+      key: 'copies', level: 'warn', label: `Over the copy limit: ${over.map((e) => `${e.name} ${e.count}/${e.max}`).join(', ')}`,
+      ids: ids(deck.cards.filter((r) => counted(r) && oids.has(r.card.oid))),
+    });
+  }
+  const illegal = deck.cards.filter((r) => counted(r) && illegalIn(f, r.card));
+  if (illegal.length) {
+    const label = [...new Map(illegal.map((r) => [r.card.oid, `${r.card.name}${illegalIn(f, r.card) === 'banned' ? ' (banned)' : ''}`])).values()].join(', ');
+    out.push({ key: 'illegal', level: 'error', label: `Not allowed in ${formatLabel(f)}: ${label}`, ids: ids(illegal) });
+  }
+  return out;
 }
