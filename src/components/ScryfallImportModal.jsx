@@ -85,7 +85,7 @@ export default function ScryfallImportModal({ open, onClose, onImport }) {
                         value={link}
                         onChange={(e) => setLink(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') handleLoadLink(); }}
-                        placeholder="Deck link (Moxfield, Archidekt, Tappedout)"
+                        placeholder="Deck link (Moxfield, Archidekt)"
                         disabled={busy || loadingLink}
                         spellCheck={false}
                     />

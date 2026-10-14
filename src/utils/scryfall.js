@@ -7,6 +7,8 @@
  * (handleImagesAdded -> object URL -> preview/cache/PDF).
  */
 
+import { DECK_PROXY_URL } from './deckProxy.js';
+
 const COLLECTION_URL = 'https://api.scryfall.com/cards/collection';
 const CHUNK = 75;          // max identifiers per richiesta (limite Scryfall)
 const IMG_CONCURRENCY = 8; // fetch immagini in parallelo
@@ -273,30 +275,22 @@ export async function fetchScryfallImages(entries, onProgress) {
   return { files, notFound };
 }
 
-// ── Import lista da link deck (Moxfield / Archidekt / Tappedout) ───────────
-// Questi siti non mandano header CORS e l'app è statica (niente backend) → uso
-// proxy CORS pubblici. ponytail: un singolo proxy muore/limita spesso (corsproxy.io
-// è passato a richiedere una key), quindi provo una catena di fallback: il primo
-// che risponde ok vince. Tutti restituiscono il body raw. Aggiungere/riordinare qui.
-const CORS_PROXIES = [
-  (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  (u) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
-  (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-];
-
-// Prova ogni proxy finché uno risponde ok; ritorna la Response. Lancia un errore
-// leggibile se falliscono tutti (proxy giù o deck privato/inesistente).
+// ── Import lista da link deck (Moxfield / Archidekt) ───────────────────────
+// Questi siti non mandano header CORS e l'app è statica: le richieste passano dal nostro
+// Cloudflare Worker (proxy/deck-proxy.worker.js, solo questi due host). I proxy CORS pubblici
+// usati prima sono morti o a pagamento (verificato il 2026-10-14). Tappedout mette una verifica
+// anti-bot di Cloudflare anche davanti al server: niente import da link, si incolla la lista.
 async function fetchViaProxy(targetUrl) {
-  let lastErr;
-  for (const wrap of CORS_PROXIES) {
-    try {
-      // Un proxy che non risponde non deve bloccare l'import: dopo 15 s si passa al successivo.
-      const r = await fetch(wrap(targetUrl), { signal: AbortSignal.timeout(15000) });
-      if (r.ok) return r;
-      lastErr = new Error(`proxy responded ${r.status}`);
-    } catch (e) { lastErr = e; }
+  if (!DECK_PROXY_URL) throw new Error('Importing from a link is not set up yet. Paste the list instead.');
+  let r;
+  try {
+    r = await fetch(`${DECK_PROXY_URL}/?url=${encodeURIComponent(targetUrl)}`, { signal: AbortSignal.timeout(20000) });
+  } catch {
+    throw new Error('Could not reach the deck site. Check the connection and try again, or paste the list.');
   }
-  throw new Error(`Could not reach the deck site (CORS proxies failed${lastErr ? `: ${lastErr.message}` : ''}). Try again later, or paste the list by hand.`);
+  if (r.status === 404) throw new Error('Deck not found. Check the link and that the deck is public.');
+  if (!r.ok) throw Object.assign(new Error(`The deck site answered ${r.status}. Try again later, or paste the list.`), { status: r.status });
+  return r;
 }
 
 // "qty Nome (SET) cn", set+collector pinnano la stampa SCELTA NEL DECK; assenti →
@@ -347,8 +341,17 @@ async function archidektRows(id) {
   return { name: j.name || '', rows };
 }
 
+// Moxfield filtra i client con Cloudflare (impronta TLS: curl passa, fetch di Node no) e chiede
+// ai programmi esterni uno User-Agent autorizzato: con 403 si spiega come incollare la lista.
 async function moxfieldRows(pubId) {
-  const j = await (await fetchViaProxy(`https://api2.moxfield.com/v3/decks/all/${pubId}`)).json();
+  let res;
+  try {
+    res = await fetchViaProxy(`https://api2.moxfield.com/v3/decks/all/${pubId}`);
+  } catch (e) {
+    if (e.status === 403) throw new Error('Moxfield blocked the import. On Moxfield open the deck, choose Export, copy the text and paste the list here.');
+    throw e;
+  }
+  const j = await res.json();
   const boards = j.boards || {};
   const rows = [];
   for (const [key, board, commander] of [['commanders', 'main', true], ['mainboard', 'main', false], ['sideboard', 'side', false], ['maybeboard', 'maybe', false]]) {
@@ -361,24 +364,17 @@ async function moxfieldRows(pubId) {
   return { name: j.name || '', rows };
 }
 
-async function tappedoutRows(slug) {
-  const txt = await (await fetchViaProxy(`https://tappedout.net/mtg-decks/${slug}/?fmt=txt`)).text();
-  // fmt=txt è già "1 Nome" per riga; tieni solo le righe che iniziano con la quantità.
-  const lines = txt.replace(/\r/g, '').split('\n').filter((l) => /^\d+\s/.test(l.trim())).join('\n');
-  return { name: '', rows: parseCardList(lines).map((e) => ({ ...e, board: 'main', commander: false })) };
-}
-
 /**
  * Risolve un link deck nelle sue righe per zona (+ nome del deck se il sito lo dà).
- * @param {string} url link Moxfield / Archidekt / Tappedout
+ * @param {string} url link Moxfield / Archidekt
  */
 export async function fetchDeckBoards(url) {
   const u = (url || '').trim();
   let m;
   if ((m = u.match(/moxfield\.com\/decks\/([\w-]+)/i))) return moxfieldRows(m[1]);
   if ((m = u.match(/archidekt\.com\/(?:api\/)?decks\/(\d+)/i))) return archidektRows(m[1]);
-  if ((m = u.match(/tappedout\.net\/mtg-decks\/([\w-]+)/i))) return tappedoutRows(m[1]);
-  throw new Error('Unrecognized link. Supported: Moxfield, Archidekt, Tappedout.');
+  if (/tappedout\.net/i.test(u)) throw new Error('Tappedout blocks imports from other sites. On Tappedout export the deck as text and paste the list here.');
+  throw new Error('Unrecognized link. Supported: Moxfield, Archidekt.');
 }
 
 /**

@@ -89,7 +89,7 @@ export default function CardSearch({ format, onAdd, autoFocus }) {
           <input role="combobox" aria-label="Search cards" aria-expanded={visible.length > 0} aria-controls={listId}
             aria-autocomplete="list" aria-activedescendant={visible.length ? `${listId}-${active}` : undefined}
             value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onKeyDown}
-            placeholder="Search a card name" autoFocus={autoFocus} spellCheck={false} autoComplete="off" />
+            placeholder="Search a card name" autoFocus={autoFocus} data-autofocus={autoFocus || undefined} spellCheck={false} autoComplete="off" />
         </div>
         {visible.length > 0 && (
           <ul id={listId} role="listbox" className="search-suggest">

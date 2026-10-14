@@ -171,7 +171,7 @@ eq(refreshSnapshots(reordered, new Map([['bolt', boltCard]])).changed, false, 'c
 const banned = refreshSnapshots(g, new Map([['bolt', { ...boltCard, legalities: { commander: 'banned' } }]]));
 eq([banned.changed, banned.deck.cards.find((r) => r.card.sid === 'bolt').card.legal.commander], [true, 'banned'], 'refresh aggiorna le legalità');
 // Raggruppamenti: tipo avanzato (doppi tipi separati), mana value, sezioni custom
-const D = '—'; // trattino dei type line Scryfall
+const D = '\u2014'; // trattino dei type line Scryfall
 const gx0 = [
   snap({ id: 'golem', name: 'Steel Golem', mv: 3, type: `Artifact Creature ${D} Golem` }),
   snap({ id: 'elf', name: 'Llanowar Elves', mv: 1, type: `Creature ${D} Elf` }),

@@ -5,7 +5,7 @@ import { resolveEntries } from './scryfallSearch';
 import { FORMATS, newDeck, addEntries, parseDeckText } from './deckModel';
 import { IconX } from '../components/icons';
 
-// Import mazzo: link (Moxfield/Archidekt/Tappedout, con le zone) oppure lista incollata
+// Import mazzo: link (Moxfield/Archidekt, con le zone) oppure lista incollata
 // (intestazioni Commander / Deck / Sideboard / Maybeboard riconosciute).
 export default function ImportDeckDialog({ onClose, onImported }) {
   const [link, setLink] = useState('');
@@ -49,7 +49,7 @@ export default function ImportDeckDialog({ onClose, onImported }) {
         </div>
         <p className="modal-hint">Paste a deck link, or the list by hand. Lines like <code>1 Sol Ring (C21) 263</code>; headers <code>Commander</code>, <code>Deck</code>, <code>Sideboard</code> and <code>Maybeboard</code> pick the board.</p>
         <input type="url" className="import-link-input" value={link} onChange={(e) => setLink(e.target.value)}
-          placeholder="Deck link (Moxfield, Archidekt, Tappedout)" disabled={busy} spellCheck={false} />
+          placeholder="Deck link (Moxfield, Archidekt)" disabled={busy} spellCheck={false} />
         <textarea className="import-textarea" value={text} onChange={(e) => setText(e.target.value)} rows={8}
           placeholder={'Commander\n1 Atraxa, Praetors\' Voice\n\nDeck\n1 Sol Ring\n1 Command Tower'} disabled={busy || !!link.trim()} spellCheck={false} />
         <div className="import-meta-row">

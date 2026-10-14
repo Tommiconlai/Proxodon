@@ -149,8 +149,10 @@ export default function DeckSections({ deck, update, touch }) {
     if (menuRows.length === 1 && menuRows[0].qty > 1) {
       items.push({ key: 'split', Icon: IconCopy, label: 'Split row', run: () => update((d) => splitRow(d, ids[0])) });
     }
-    // Al massimo 2 comandanti: "Set" solo su 1-2 righe, "Remove" su qualsiasi gruppo di comandanti.
-    if (deck.format === 'commander' && allMain && (allCmd || ids.length <= 2)) {
+    // Al massimo 2 comandanti in tutto: "Set" solo se con quelli già presenti non si supera 2;
+    // "Remove" su qualsiasi gruppo di comandanti.
+    const cmdAfter = commanderRows(deck).length + menuRows.filter((r) => !r.commander).length;
+    if (deck.format === 'commander' && allMain && (allCmd || cmdAfter <= 2)) {
       items.push({ key: 'cmd', Icon: IconCrown, label: allCmd ? 'Remove as commander' : 'Set as commander', run: () => update((d) => setCommander(d, ids, !allCmd)) });
     }
     if (ids.every((id) => sectionable.has(id))) {
