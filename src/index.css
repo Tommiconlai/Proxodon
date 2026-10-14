@@ -2493,6 +2493,29 @@ body::before {
   border-radius: var(--radius-lg);
 }
 .signin-panel p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; }
+/* Separatore "or" tra Google ed email: linee magenta → ciano come il bordo del bottone. */
+.signin-or {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.signin-or::before, .signin-or::after { content: ''; flex: 1; height: 1px; }
+.signin-or::before { background: linear-gradient(90deg, transparent, rgba(255, 45, 149, 0.5)); }
+.signin-or::after { background: linear-gradient(90deg, rgba(0, 229, 255, 0.5), transparent); }
+.signin-form { display: flex; flex-direction: column; gap: 10px; }
+.signin-form .import-link-input { flex: none; font-size: 0.9rem; }
+.signin-submit { justify-content: center; padding: 10px 16px; }
+.signin-links { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.signin-link {
+  padding: 2px 0;
+  background: none; border: 0;
+  font-family: var(--font-mono); font-size: 0.72rem;
+  color: var(--cyan-soft);
+  cursor: pointer;
+  text-underline-offset: 3px;
+}
+.signin-link:hover:not(:disabled), .signin-link:focus-visible { text-decoration: underline; color: var(--cyan); }
+.signin-link:disabled { opacity: 0.5; cursor: default; }
 
 .account-btn {
   width: 34px; height: 34px;
