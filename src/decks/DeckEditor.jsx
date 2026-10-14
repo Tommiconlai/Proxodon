@@ -6,9 +6,10 @@ import { navigate } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
 import CardSearch from './CardSearch';
+import AdvancedSearch from './AdvancedSearch';
 import { MobilePage } from '../components/MobileLayout';
 import { PrintDeckDialog, CoverDialog } from './dialogs';
-import { IconPlus, IconPrinter } from '../components/icons';
+import { IconPlus, IconPrinter, IconX } from '../components/icons';
 
 // Editor del mazzo: testata con la copertina (arte della carta scelta, a sinistra, che verso destra
 // si sfoca e svanisce; click = scegli un'altra carta del mazzo, lo dice il cursore a mano) e sopra,
@@ -22,6 +23,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const [searchOpen, setSearchOpen] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
   const [coverOpen, setCoverOpen] = useState(false);
+  const [advOpen, setAdvOpen] = useState(false); // pannello della ricerca avanzata (desktop)
   const refreshed = useRef(false);
 
   useEffect(() => {
@@ -100,14 +102,29 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
             <button type="button" className="btn-secondary deck-print" onClick={startPrint} disabled={!c.main}><IconPrinter size={15} /> Print deck</button>
           </div>
         </div>
+        {!mobile && (
+          <div className="deck-hero-search">
+            <CardSearch format={deck.format} onAdd={add} advanced={advOpen} onAdvanced={setAdvOpen} />
+          </div>
+        )}
       </header>
       {coverOpen && (
         <CoverDialog deck={deck} onClose={() => setCoverOpen(false)}
           onPick={(oid) => { update((d) => ({ ...d, cover: oid })); setCoverOpen(false); }} />
       )}
       <div className="deck-body">
-        {!mobile && <aside className="deck-search"><CardSearch format={deck.format} onAdd={add} /></aside>}
-        <section className="deck-main"><DeckSections deck={deck} update={update} touch={mobile} /></section>
+        <section className="deck-main">
+          {!mobile && advOpen && (
+            <section className="deck-adv-panel" aria-label="Advanced search">
+              <div className="deck-adv-head">
+                <h2 className="decks-title">Advanced search</h2>
+                <button type="button" className="modal-close" onClick={() => setAdvOpen(false)} aria-label="Close advanced search"><IconX size={18} /></button>
+              </div>
+              <AdvancedSearch format={deck.format} onAdd={add} />
+            </section>
+          )}
+          <DeckSections deck={deck} update={update} touch={mobile} />
+        </section>
       </div>
       {mobile && <button type="button" className="fab deck-fab" onClick={() => setSearchOpen(true)} aria-label="Add cards"><IconPlus size={26} /></button>}
       {mobile && searchOpen && (

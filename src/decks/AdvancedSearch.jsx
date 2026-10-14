@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import { advancedQuery, withLegal, searchCards } from './scryfallSearch';
 import { ManaCost } from './Mana';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
+import { useAddCard } from './useAddCard';
 import { IconSearch, IconPlus, IconX } from '../components/icons';
 
 const EMPTY = {
@@ -17,8 +18,9 @@ const thumb = (c) => c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.norm
 
 // Ricerca avanzata: filtri → query Scryfall (sempre giocabile nel formato del mazzo), risultati con
 // immagine. Click sull'immagine = ingrandisci; + (o Invio sulla carta) aggiunge, con gli stessi
-// modificatori della ricerca per nome. onPick = add di CardSearch (controlla anche la legalità).
-export default function AdvancedSearch({ format, onPick }) {
+// modificatori della ricerca per nome (useAddCard, che controlla anche la legalità).
+export default function AdvancedSearch({ format, onAdd }) {
+  const { add: onPick, status, error: addError } = useAddCard(format, onAdd);
   const [f, setF] = useState(EMPTY);
   const [order, setOrder] = useState('name');
   const [results, setResults] = useState(null); // { cards, next, total }
@@ -138,7 +140,8 @@ export default function AdvancedSearch({ format, onPick }) {
         </div>
       </form>
 
-      {error && <div className="info-box info-box-error"><span>{error}</span></div>}
+      {(error || addError) && <div className="info-box info-box-error"><span>{error || addError}</span></div>}
+      <p className="search-status" role="status">{status}</p>
       {results && (
         results.cards.length === 0
           ? <p className="deck-empty">No cards found.</p>

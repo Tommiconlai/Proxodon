@@ -1,29 +1,28 @@
 import { useEffect, useId, useState } from 'react';
 import { autocomplete, namedCard } from './scryfallSearch';
 import { lookupCards } from '../utils/scryfall';
-import { snapshotFromCard, copiesToAdd, illegalIn, legalityLabel } from './deckModel';
+import { illegalIn } from './deckModel';
+import { useAddCard } from './useAddCard';
 import AdvancedSearch from './AdvancedSearch';
 import { IconSearch } from '../components/icons';
 
-// Modificatori di aggiunta, uguali da tastiera e da mouse: Alt = sideboard (maybeboard in
-// Commander, che non ha sideboard), Shift = 4 copie (con le regole di copiesToAdd).
-const target = (e, format) => ({ board: e.altKey ? (format === 'commander' ? 'maybe' : 'side') : 'main', four: e.shiftKey });
-const WHERE = { main: '', side: ' to sideboard', maybe: ' to maybeboard' };
 const front = (name) => name.split(' // ')[0];
 
 // Ricerca per nome: solo il menu a tendina dei suggerimenti; le frecce scelgono, Invio aggiunge
 // (Shift = 4, Alt = sideboard). Le carte bandite o non legali nel formato non compaiono.
-// "Advanced search" apre i filtri con le immagini.
-export default function CardSearch({ format, onAdd, autoFocus }) {
+// "Advanced search": se il genitore passa onAdvanced (desktop, ricerca nella testata) apre il suo
+// pannello fuori da qui; altrimenti (telefono) i filtri si aprono qui sotto.
+export default function CardSearch({ format, onAdd, autoFocus, advanced: advancedProp, onAdvanced }) {
   const [q, setQ] = useState('');
   const [sugg, setSugg] = useState([]);
   const [emptyFor, setEmptyFor] = useState(null); // testo per cui nessuna carta giocabile corrisponde
   const [active, setActive] = useState(0);
-  const [status, setStatus] = useState('');
-  const [error, setError] = useState(null);
-  const [advanced, setAdvanced] = useState(false);
+  const [ownAdvanced, setOwnAdvanced] = useState(false);
   const [hideFor, setHideFor] = useState(null); // dopo Esc la tendina resta chiusa per quel testo
+  const { add, status, error } = useAddCard(format, onAdd);
   const listId = useId();
+  const controlled = typeof onAdvanced === 'function';
+  const advanced = controlled ? !!advancedProp : ownAdvanced;
   const text = q.trim();
   const open = text.length >= 2 && hideFor !== text;
   const visible = open ? sugg : [];
@@ -55,20 +54,6 @@ export default function CardSearch({ format, onAdd, autoFocus }) {
     return () => { clearTimeout(t); ctrl.abort(); };
   }, [text, format]);
 
-  const add = async (getCard, e) => {
-    const { board, four } = target(e, format); // letti prima dell'await
-    setError(null);
-    try {
-      const snap = snapshotFromCard(await getCard());
-      const ban = illegalIn(format, snap);
-      if (ban) { setError(`${snap.name}: ${legalityLabel(ban, format)}.`); return; }
-      const qty = copiesToAdd(format, snap, four);
-      onAdd(snap, { board, qty });
-      setStatus(`Added ${qty} ${snap.name}${WHERE[board]}`);
-    } catch (err) {
-      if (err.name !== 'AbortError') setError(err.status === 404 ? 'Card not found.' : err.message || 'Could not add the card.');
-    }
-  };
   const addSuggestion = (name, e) => { setQ(''); setSugg([]); add(() => namedCard(name), e); };
 
   const onKeyDown = (e) => {
@@ -82,7 +67,7 @@ export default function CardSearch({ format, onAdd, autoFocus }) {
   };
 
   return (
-    <div className={`card-search${advanced ? ' adv-open' : ''}`}>
+    <div className="card-search">
       <div className="search-wrap">
         <div className="search-box">
           <IconSearch size={16} />
@@ -101,15 +86,17 @@ export default function CardSearch({ format, onAdd, autoFocus }) {
         )}
         {noMatch && <p className="search-suggest search-none" role="status">No playable card with this name.</p>}
       </div>
-      <p className="search-hint">Enter adds 1 · Shift+Enter 4 · Alt+Enter to {format === 'commander' ? 'maybeboard' : 'sideboard'} · ↑↓ to choose</p>
-      <button type="button" className="search-adv-toggle" aria-expanded={advanced} onClick={() => setAdvanced((v) => !v)}>
-        {advanced ? 'Hide advanced search' : 'Advanced search'}
-      </button>
+      <div className="search-foot">
+        <button type="button" className="search-adv-toggle" aria-expanded={advanced}
+          onClick={() => (controlled ? onAdvanced(!advanced) : setOwnAdvanced((v) => !v))}>
+          {advanced ? 'Hide advanced search' : 'Advanced search'}
+        </button>
+        <p className="search-hint">Enter adds 1 · Shift+Enter 4 · Alt+Enter to {format === 'commander' ? 'maybeboard' : 'sideboard'} · ↑↓ to choose</p>
+      </div>
       <p className="search-status" role="status">{status}</p>
       {error && <div className="info-box info-box-error"><span>{error}</span></div>}
 
-      {advanced && <AdvancedSearch format={format} onPick={add} />}
-
+      {advanced && !controlled && <AdvancedSearch format={format} onAdd={onAdd} />}
     </div>
   );
 }

@@ -344,7 +344,7 @@ export default function DeckSections({ deck, update, touch }) {
     return <p className="deck-empty deck-empty-big">{touch ? 'Tap + to search and add cards.' : 'Search a card on the left and press Enter to add it.'}</p>;
   }
   return (
-    <div className={`deck-sections view-${layout}`} {...marqueeHandlers}
+    <div className={`deck-sections view-${layout}${mode === 'stats' ? ' mode-stats' : ''}`} {...marqueeHandlers}
       onKeyDown={(e) => { if (e.key === 'Escape' && sel.size) { e.stopPropagation(); setSel(new Set()); } }}>
       {marquee && <div className="marquee" style={marquee} aria-hidden="true" />}
       <div className="deck-toolbar">
@@ -389,9 +389,14 @@ export default function DeckSections({ deck, update, touch }) {
         </ul>
       )}
       {mode === 'stats' ? <DeckStats deck={deck} onSelect={pick} /> : (<>
-      {blocks.commander && group(blocks.commander, 'deck-block')}
-      <div className={`deck-columns view-${layout}`}>{blocks.groups.map((g) => group(g, '', ['main', g.section]))}</div>
-      {blocks.side && group(blocks.side, 'deck-block', ['side'])}
+      {/* Negli stack comandante e sideboard sono colonne della stessa riga: il mazzo è un unico blocco centrato. */}
+      {blocks.commander && layout !== 'stacks' && group(blocks.commander, 'deck-block')}
+      <div className={`deck-columns view-${layout}`}>
+        {blocks.commander && layout === 'stacks' && group(blocks.commander, 'deck-block')}
+        {blocks.groups.map((g) => group(g, '', ['main', g.section]))}
+        {blocks.side && layout === 'stacks' && group(blocks.side, 'deck-block', ['side'])}
+      </div>
+      {blocks.side && layout !== 'stacks' && group(blocks.side, 'deck-block', ['side'])}
       {(blocks.maybe.rows.length > 0 || dragging) && (
         <details className={`deck-maybe${dropKey === 'maybe' ? ' drop-target' : ''}`} {...dropProps('maybe', 'maybe')}>
           <summary className="deck-group-head">Maybeboard <span className="n">{sum(blocks.maybe.rows)}</span></summary>

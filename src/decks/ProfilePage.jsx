@@ -3,7 +3,7 @@ import { listenDecks, saveProfilePhoto } from './deckStore';
 import { updateNickname, changePassword, authMessage } from './firebase';
 import { Avatar } from './AccountMenu';
 import PhotoDialog from './PhotoDialog';
-import { IconArrowLeft, IconUpload, IconTrash } from '../components/icons';
+import { IconUpload, IconTrash } from '../components/icons';
 
 const WRONG_PASSWORD = ['auth/invalid-credential', 'auth/wrong-password', 'auth/invalid-login-credentials'];
 const PROVIDERS = { 'google.com': 'Google', password: 'Email and password' };
@@ -24,7 +24,6 @@ export default function ProfilePage({ user, photo, notify, onChange }) {
   return (
     <div className="decks-root profile-page">
       <header className="decks-head">
-        <a className="deck-back" href="#/decks" aria-label="Back to decks"><IconArrowLeft size={18} /></a>
         <h2 className="decks-title">Profile</h2>
       </header>
       <div className="profile-grid">
