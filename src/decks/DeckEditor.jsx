@@ -8,12 +8,13 @@ import DeckSections from './DeckSections';
 import CardSearch from './CardSearch';
 import { MobilePage } from '../components/MobileLayout';
 import { PrintDeckDialog, CoverDialog } from './dialogs';
-import { IconArrowLeft, IconPlus, IconPrinter, IconImage } from '../components/icons';
+import { IconPlus, IconPrinter } from '../components/icons';
 
 // Editor del mazzo: testata con la copertina (arte della carta scelta, a sinistra, che verso destra
-// si sfoca e svanisce; click = scegli un'altra carta del mazzo) e sopra, a sinistra, nome, formato,
-// stato sync, conteggio e Print deck. Sotto il corpo con le sezioni; ricerca a sinistra (foglio a
-// tutto schermo su telefono).
+// si sfoca e svanisce; click = scegli un'altra carta del mazzo, lo dice il cursore a mano) e sopra,
+// a sinistra, il nome in alto e in basso formato, stato sync, conteggio e Print deck (si torna alla
+// lista con la tab Decks). Sotto il corpo con le sezioni; ricerca a sinistra (foglio a tutto
+// schermo su telefono).
 export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDeck }) {
   const { deck, update, saving, error } = useDeck(uid, id);
   const mobile = useIsMobile();
@@ -81,11 +82,9 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
               <span className="deck-hero-img" style={{ backgroundImage: `url("${cover.card.art}")` }} aria-hidden="true" />
             </>
           )}
-          {cover && <span className="deck-hero-change" aria-hidden="true"><IconImage size={13} /> Change cover</span>}
         </button>
         <div className="deck-hero-content">
           <div className="deck-hero-title">
-            <a className="deck-back" href="#/decks" aria-label="Back to decks"><IconArrowLeft size={18} /></a>
             <input className="deck-name" value={deck.name} maxLength={80} aria-label="Deck name" spellCheck={false}
               onChange={(e) => update((d) => ({ ...d, name: e.target.value }))}
               onBlur={() => update((d) => (d.name.trim() ? d : { ...d, name: 'Untitled deck' }))} />
