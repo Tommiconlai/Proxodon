@@ -2710,7 +2710,8 @@ body::before {
 /* Riga selezionata: velo magenta + barretta a sinistra (come il frame delle carte selezionate). */
 .deck-row.selected { background: rgba(255, 45, 149, 0.08); box-shadow: inset 2px 0 0 var(--accent); }
 .deck-row-qty { display: flex; gap: 2px; opacity: 0; transition: opacity var(--transition); }
-.deck-row:hover .deck-row-qty, .deck-row:focus-within .deck-row-qty { opacity: 1; }
+/* Focus solo da tastiera: dopo un click il pulsante resta focalizzato e +/- non devono restare. */
+.deck-row:hover .deck-row-qty, .deck-row:has(:focus-visible) .deck-row-qty { opacity: 1; }
 @media (hover: none) { .deck-row-qty { opacity: 1; } }
 .deck-row-qty button { display: flex; padding: 3px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-elevated); color: var(--text-secondary); cursor: pointer; }
 .deck-row-qty button:hover, .deck-row-qty button:focus-visible { color: var(--cyan-soft); border-color: var(--border-hover); outline: none; }
@@ -2727,11 +2728,22 @@ body::before {
 .deck-tool { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-secondary); }
 .deck-tool select { width: auto; }
 .deck-new-section { padding: 6px 12px; }
+/* Fantasma del trascinamento nelle viste a immagini: fuori schermo, solo per setDragImage. */
+.deck-ghost { position: fixed; top: -1000px; left: -1000px; width: 140px; pointer-events: none; }
+.deck-ghost img { display: block; width: 100%; border-radius: 4.75% / 3.4%; }
+.deck-ghost span {
+  position: absolute; top: 6px; right: 6px;
+  min-width: 24px; padding: 2px 7px;
+  border: 1px solid rgba(0, 229, 255, 0.6); border-radius: 999px;
+  background: #080712;
+  font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600; text-align: center;
+  color: var(--cyan);
+}
 .deck-hint { margin-left: auto; font-family: var(--font-mono); font-size: 0.66rem; color: var(--text-muted); }
 
 /* Sezioni custom: rinomina / elimina nell'intestazione, bersaglio del trascinamento. */
 .deck-group-actions { margin-left: auto; display: flex; gap: 2px; opacity: 0; transition: opacity var(--transition); }
-.deck-group:hover .deck-group-actions, .deck-group-head:focus-within .deck-group-actions { opacity: 1; }
+.deck-group:hover .deck-group-actions, .deck-group-head:has(:focus-visible) .deck-group-actions { opacity: 1; }
 @media (hover: none) { .deck-group-actions { opacity: 1; } }
 .deck-group-actions button { display: flex; padding: 3px; background: none; border: 0; border-radius: 4px; color: var(--text-secondary); cursor: pointer; }
 .deck-group-actions button:hover, .deck-group-actions button:focus-visible { color: var(--cyan-soft); outline: none; }

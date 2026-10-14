@@ -163,9 +163,24 @@ export default function DeckSections({ deck, update, touch }) {
   const dragProps = (r) => (touch ? {} : {
     draggable: true,
     onDragStart: (e) => {
-      dragIds.current = { ids: sel.has(r.id) && selected.length > 1 ? selected : [r.id], one: e.altKey };
+      const ids = sel.has(r.id) && selected.length > 1 ? selected : [r.id];
+      dragIds.current = { ids, one: e.altKey };
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', r.card.name);
+      // Viste a immagini: il fantasma è solo la carta (il riquadro della riga nello stack cattura
+      // anche le carte sovrapposte), con il numero di copie spostate se più di una.
+      const img = view !== 'list' && e.currentTarget.querySelector('img');
+      if (img) {
+        const rows = deck.cards.filter((x) => ids.includes(x.id));
+        const n = e.altKey ? rows.length : sum(rows);
+        const g = document.createElement('div');
+        g.className = 'deck-ghost';
+        g.append(img.cloneNode());
+        if (n > 1) g.append(Object.assign(document.createElement('span'), { textContent: n }));
+        document.body.append(g);
+        e.dataTransfer.setDragImage(g, 70, 24);
+        setTimeout(() => g.remove(), 0);
+      }
       setHover(null);
       setDragging(true);
     },
