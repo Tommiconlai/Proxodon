@@ -183,6 +183,27 @@ export function copiesToAdd(format, card, four) {
   return 1;
 }
 
+// Copie ammesse di una carta: Infinity = nessun limite (Casual, terre base, "any number"),
+// "up to N" = N, altrimenti 1 in Commander e 4 nei formati da 60.
+export function maxCopies(format, card) {
+  if (format === 'casual' || isBasicLand(card) || card.limit === 0) return Infinity;
+  if (card.limit > 0) return card.limit;
+  return format === 'commander' ? 1 : 4;
+}
+
+// Carte oltre il limite, contate per oracle id (stampe diverse insieme) su main e, fuori da
+// Commander, sideboard; maybeboard mai. → [{ oid, name, count, max }] nell'ordine del mazzo.
+export function overLimit(deck) {
+  const by = new Map();
+  for (const r of deck.cards) {
+    if (r.board === 'maybe' || (r.board === 'side' && deck.format === 'commander')) continue;
+    const e = by.get(r.card.oid) || { oid: r.card.oid, name: r.card.name, count: 0, max: maxCopies(deck.format, r.card) };
+    e.count += r.qty;
+    by.set(r.card.oid, e);
+  }
+  return [...by.values()].filter((e) => e.count > e.max);
+}
+
 // ── Viste ────────────────────────────────────────────────────
 
 // Tipo che decide il gruppo: il primo che combacia in quest'ordine (Artifact Creature → Creature,

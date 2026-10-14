@@ -6,15 +6,18 @@ import { ManaCost } from './Mana';
 import { NameFormatDialog } from './dialogs';
 import {
   GROUP_MODES, groupMain, commanderRows, boardRows, bumpQty, removeRows, setCommander, moveToBoard,
-  addSection, renameSection, deleteSection, moveToSection,
+  addSection, renameSection, deleteSection, moveToSection, overLimit, formatLabel,
 } from './deckModel';
-import { IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconGrid, IconStack, IconPencil } from '../components/icons';
+import {
+  IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconGrid, IconStack, IconStackSplit, IconPencil, IconAlert,
+} from '../components/icons';
 
 const BOARD_LABEL = { main: 'main deck', side: 'sideboard', maybe: 'maybeboard' };
 const VIEWS = [
   { id: 'list', label: 'List', Icon: IconList },
   { id: 'grid', label: 'Grid', Icon: IconGrid },
   { id: 'stacks', label: 'Stacks', Icon: IconStack },
+  { id: 'split', label: 'Stacks, every copy', Icon: IconStackSplit },
 ];
 const VIEW_KEY = 'ip:deckView'; // vista preferita, per dispositivo
 const PREVIEW_W = 244;
@@ -35,7 +38,9 @@ const readView = () => {
 };
 
 // Corpo dell'editor: barra (raggruppa, vista), comandante, gruppi, sideboard, maybeboard.
-// Viste: lista (righe), griglia (immagini), stack (immagini sovrapposte, si vede la parte alta).
+// Viste: lista (righe), griglia (immagini), stack (immagini sovrapposte, si vede la parte alta),
+// stack con ogni copia (3 copie = 3 carte impilate). Le carte oltre il limite di copie del formato
+// hanno un avviso, più un riepilogo in alto.
 // Selezione come le carte in stampa (click = aggiungi/togli, Shift = intervallo, Esc = svuota);
 // menu su click destro, Shift+F10 o pressione lunga, sulla selezione se la riga ne fa parte.
 // In modalità custom le righe del main si trascinano sulle sezioni (desktop) o si spostano dal menu.
@@ -52,6 +57,12 @@ export default function DeckSections({ deck, update, touch }) {
   const closeMenu = useCallback(() => setMenu(null), []);
   const custom = deck.groupBy === 'custom';
   const dnd = custom && !touch;
+  const split = view === 'split';
+  const layout = split ? 'stacks' : view; // classi CSS: lo split è uno stack
+  const over = useMemo(() => overLimit(deck), [deck]);
+  const overBy = useMemo(() => new Map(over.map((e) => [e.oid, e])), [over]);
+  // Avviso solo dove le copie contano: main e (fuori da Commander) sideboard.
+  const warnOf = (r) => (r.board === 'main' || (r.board === 'side' && deck.format !== 'commander') ? overBy.get(r.card.oid) : undefined);
 
   const setView = (v) => {
     setViewState(v);
@@ -167,41 +178,49 @@ export default function DeckSections({ deck, update, touch }) {
     },
   } : {});
 
-  const row = (r) => (
-    <li key={r.id} className={`deck-row${sel.has(r.id) ? ' selected' : ''}`} {...dragProps(r)}
-      onMouseEnter={touch ? undefined : (e) => showPreview(e, r)} onMouseLeave={touch ? undefined : () => setHover(null)}>
-      <button type="button" className="deck-row-main" aria-pressed={sel.has(r.id)}
-        aria-label={view === 'list' ? undefined : `${r.qty} ${r.card.name}`}
-        onClick={(e) => onRowClick(e, r.id)}
-        onContextMenu={(e) => { e.preventDefault(); const p = menuPoint(e); openMenu(r.id, p.x, p.y); }}
-        onKeyDown={(e) => {
-          if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
-            e.preventDefault();
-            const rc = e.currentTarget.getBoundingClientRect();
-            openMenu(r.id, rc.left + 24, rc.bottom);
-          }
-        }}
-        {...press.bind((x, y) => openMenu(r.id, x, y))}>
-        {view === 'list' ? (
-          <>
-            <span className="deck-qty">{r.qty}</span>
-            <span className="deck-name-cell">{r.card.name}</span>
-            <ManaCost cost={r.card.mana} />
-            <span className="deck-set">{r.card.set.toUpperCase()}</span>
-          </>
-        ) : (
-          <>
-            {r.card.img ? <img src={r.card.img} alt="" loading="lazy" draggable={false} /> : <span className="deck-card-ph">{r.card.name}</span>}
-            {r.qty > 1 && <span className="deck-card-qty">{r.qty}</span>}
-          </>
-        )}
-      </button>
-      <span className="deck-row-qty">
-        <button type="button" aria-label={`One less ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, -1))}><IconMinus size={13} /></button>
-        <button type="button" aria-label={`One more ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, 1))}><IconPlus size={13} /></button>
-      </span>
-    </li>
-  );
+  // copy = indice della copia nella vista split (ogni copia è una carta, tutte agiscono sulla riga).
+  const row = (r, copy = 0) => {
+    const warn = warnOf(r);
+    const warnText = warn && `${warn.count} copies, max ${warn.max} in ${formatLabel(deck.format)}`;
+    return (
+      <li key={copy ? `${r.id}:${copy}` : r.id} className={`deck-row${sel.has(r.id) ? ' selected' : ''}${warn ? ' over' : ''}`} {...dragProps(r)}
+        onMouseEnter={touch ? undefined : (e) => showPreview(e, r)} onMouseLeave={touch ? undefined : () => setHover(null)}>
+        <button type="button" className="deck-row-main" aria-pressed={sel.has(r.id)}
+          aria-label={view === 'list' ? undefined : `${split ? `${r.card.name}, copy ${copy + 1} of ${r.qty}` : `${r.qty} ${r.card.name}`}${warn ? `, ${warnText}` : ''}`}
+          onClick={(e) => onRowClick(e, r.id)}
+          onContextMenu={(e) => { e.preventDefault(); const p = menuPoint(e); openMenu(r.id, p.x, p.y); }}
+          onKeyDown={(e) => {
+            if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+              e.preventDefault();
+              const rc = e.currentTarget.getBoundingClientRect();
+              openMenu(r.id, rc.left + 24, rc.bottom);
+            }
+          }}
+          {...press.bind((x, y) => openMenu(r.id, x, y))}>
+          {view === 'list' ? (
+            <>
+              <span className="deck-qty">{r.qty}</span>
+              <span className="deck-name-cell">{r.card.name}</span>
+              {warn && <span className="deck-warn-icon" title={warnText}><IconAlert size={13} /><span className="sr-only">{warnText}</span></span>}
+              <ManaCost cost={r.card.mana} />
+              <span className="deck-set">{r.card.set.toUpperCase()}</span>
+            </>
+          ) : (
+            <>
+              {r.card.img ? <img src={r.card.img} alt="" loading="lazy" draggable={false} /> : <span className="deck-card-ph">{r.card.name}</span>}
+              {r.qty > 1 && !split && <span className="deck-card-qty">{r.qty}</span>}
+              {warn && <span className="deck-card-warn" title={warnText}><IconAlert size={12} /></span>}
+            </>
+          )}
+        </button>
+        <span className="deck-row-qty">
+          <button type="button" aria-label={`One less ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, -1))}><IconMinus size={13} /></button>
+          <button type="button" aria-label={`One more ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, 1))}><IconPlus size={13} /></button>
+        </span>
+      </li>
+    );
+  };
+  const cards = (rows) => (split ? rows.flatMap((r) => Array.from({ length: r.qty }, (_, i) => row(r, i))) : rows.map((r) => row(r)));
   const empty = (g) => {
     if (g.key === 'commander') return 'Right-click a card, then Set as commander.';
     if (custom && 'section' in g) return touch ? 'Long-press a card, then Move to.' : 'Drag cards here.';
@@ -218,7 +237,7 @@ export default function DeckSections({ deck, update, touch }) {
           </span>
         )}
       </h3>
-      {g.rows.length ? <ul className={`deck-rows view-${view}`}>{g.rows.map(row)}</ul> : <p className="deck-empty">{empty(g)}</p>}
+      {g.rows.length ? <ul className={`deck-rows view-${layout}`}>{cards(g.rows)}</ul> : <p className="deck-empty">{empty(g)}</p>}
     </section>
   );
 
@@ -226,7 +245,7 @@ export default function DeckSections({ deck, update, touch }) {
     return <p className="deck-empty deck-empty-big">{touch ? 'Tap + to search and add cards.' : 'Search a card on the left and press Enter to add it.'}</p>;
   }
   return (
-    <div className={`deck-sections view-${view}`} onKeyDown={(e) => { if (e.key === 'Escape' && sel.size) { e.stopPropagation(); setSel(new Set()); } }}>
+    <div className={`deck-sections view-${layout}`} onKeyDown={(e) => { if (e.key === 'Escape' && sel.size) { e.stopPropagation(); setSel(new Set()); } }}>
       <div className="deck-toolbar">
         <label className="deck-tool">
           <span>Group by</span>
@@ -241,13 +260,19 @@ export default function DeckSections({ deck, update, touch }) {
         </div>
         {custom && <button type="button" className="btn-secondary deck-new-section" onClick={() => setDialog({})}><IconPlus size={14} /> New section</button>}
       </div>
+      {over.length > 0 && (
+        <p className="deck-warn" role="status">
+          <IconAlert size={15} />
+          <span>Over the copy limit for {formatLabel(deck.format)}: {over.map((e) => `${e.name} ${e.count}/${e.max}`).join(', ')}.</span>
+        </p>
+      )}
       {blocks.commander && group(blocks.commander, 'deck-block')}
-      <div className={`deck-columns view-${view}`}>{blocks.groups.map((g) => group(g))}</div>
+      <div className={`deck-columns view-${layout}`}>{blocks.groups.map((g) => group(g))}</div>
       {blocks.side && group(blocks.side, 'deck-block')}
       {blocks.maybe && (
         <details className="deck-maybe">
           <summary className="deck-group-head">Maybeboard <span className="n">{sum(blocks.maybe.rows)}</span></summary>
-          <ul className={`deck-rows view-${view}`}>{blocks.maybe.rows.map(row)}</ul>
+          <ul className={`deck-rows view-${layout}`}>{cards(blocks.maybe.rows)}</ul>
         </details>
       )}
       {menu && items.length > 0 && (

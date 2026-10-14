@@ -7,7 +7,7 @@ import {
 import {
   groupMain, commanderRows, boardRows, deckIdentity, deckCover, toPrintEntries, exportText,
   parseDeckText, toBackup, fromBackup, duplicateDeck, refreshSnapshots, primaryType,
-  addSection, renameSection, deleteSection, moveToSection,
+  addSection, renameSection, deleteSection, moveToSection, overLimit,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl } from './scryfallSearch.js';
 
@@ -212,6 +212,23 @@ eq(cu.cards.filter((r) => r.card.sid === 'elf').map((r) => [r.section, r.qty]), 
 cu = deleteSection(cu, ramp.id);
 eq([cu.sections.length, cu.cards.filter((r) => r.card.sid === 'elf').map((r) => [r.section, r.qty])], [0, [[null, 2]]], 'elimina sezione: righe tornano in Deck e si fondono');
 eq(fromBackup({ app: 'proxoteca', kind: 'decks', v: 1, decks: [{ name: 'B', groupBy: 'typeAdv', cards: [] }] })[0].groupBy, 'typeAdv', 'backup: tipo avanzato accettato');
+
+// Avviso copie: 4 nei formati da 60 (main + sideboard, stampe diverse insieme), 1 in Commander
+// (solo main); terre base e "any number" esenti, "up to N" = N; Casual e maybeboard mai.
+let lim = newDeck({ name: 'L', format: 'modern' });
+lim = addCard(lim, bolt, { qty: 3 }).deck;
+lim = addCard(lim, { ...bolt, sid: 'bolt-m10', set: 'm10' }).deck;
+lim = addCard(lim, forest, { qty: 20 }).deck;
+lim = addCard(lim, rats, { qty: 30 }).deck;
+lim = addCard(lim, dwarves, { qty: 7 }).deck;
+lim = addCard(lim, bolt, { board: 'maybe', qty: 9 }).deck;
+eq(overLimit(lim), [], '4 Bolt su due stampe, base, any number, up to seven, maybeboard: nessun avviso');
+lim = addCard(lim, bolt, { board: 'side' }).deck;
+lim = addCard(lim, dwarves).deck;
+const overL = (d) => overLimit(d).map((e) => [e.name, e.count, e.max]);
+eq(overL(lim), [['Lightning Bolt', 5, 4], ['Seven Dwarves', 8, 7]], 'sideboard conta; up to N alza il limite');
+eq(overL({ ...lim, format: 'commander' }), [['Lightning Bolt', 4, 1], ['Seven Dwarves', 8, 7]], 'Commander: 1 copia, sideboard fuori');
+eq(overL({ ...lim, format: 'casual' }), [], 'Casual: nessun limite');
 
 // URL Scryfall con nomi difficili (Review Focus 4)
 eq(namedUrl('Kongming, "Sleeping Dragon"'), 'https://api.scryfall.com/cards/named?exact=Kongming%2C%20%22Sleeping%20Dragon%22', 'named: virgole e virgolette');

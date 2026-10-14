@@ -2785,6 +2785,27 @@ body::before {
 .deck-rows.view-grid .deck-row-qty { bottom: 6px; left: 50%; transform: translateX(-50%); }
 .deck-rows.view-stacks .deck-row-qty { top: 5px; right: 5px; }
 .deck-rows.view-stacks .deck-row:hover .deck-card-qty { opacity: 0; }
+/* Copie oltre il limite del formato: riepilogo sopra i gruppi, icona sulla riga o sulla carta. */
+.deck-warn {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin: -4px 0 16px; padding: 8px 12px;
+  border: 1px solid rgba(245, 158, 11, 0.45); border-radius: var(--radius-sm);
+  background: rgba(245, 158, 11, 0.08);
+  color: var(--warning);
+  font-size: 0.82rem; line-height: 1.45;
+}
+.deck-warn svg { flex: none; margin-top: 2px; }
+.deck-warn-icon { display: flex; flex: none; color: var(--warning); }
+.deck-row.over .deck-qty { color: var(--warning); }
+.deck-card-warn {
+  position: absolute; top: 5px; left: 5px;
+  display: grid; place-items: center;
+  width: 20px; height: 20px;
+  border: 1px solid var(--warning); border-radius: 50%;
+  background: rgba(8, 7, 18, 0.88);
+  color: var(--warning);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.45);
+}
 /* Touch: +/- solo sulla carta selezionata (tocco = seleziona), sennò coprono griglia e fasce. */
 @media (hover: none) {
   .deck-rows.view-grid .deck-row:not(.selected) .deck-row-qty,

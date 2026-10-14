@@ -229,6 +229,18 @@ export function IconStack(props) {
   );
 }
 
+// Stack con ogni copia: più bordi alti visibili.
+export function IconStackSplit(props) {
+  return (
+    <Svg {...props}>
+      <path d="M8 2h8" />
+      <path d="M6 5h12" />
+      <path d="M4 8h16" />
+      <rect width="18" height="11" x="3" y="11" rx="2" />
+    </Svg>
+  );
+}
+
 export function IconUser(props) {
   return (
     <Svg {...props}>
