@@ -2727,6 +2727,7 @@ body::before {
 .deck-tool { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-secondary); }
 .deck-tool select { width: auto; }
 .deck-new-section { padding: 6px 12px; }
+.deck-hint { margin-left: auto; font-family: var(--font-mono); font-size: 0.66rem; color: var(--text-muted); }
 
 /* Sezioni custom: rinomina / elimina nell'intestazione, bersaglio del trascinamento. */
 .deck-group-actions { margin-left: auto; display: flex; gap: 2px; opacity: 0; transition: opacity var(--transition); }

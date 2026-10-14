@@ -226,6 +226,19 @@ const pos = (sid) => { const r = pl.cards.find((x) => x.card.sid === sid); retur
 eq([pos('golem'), pos('emra'), pos('elf')], [['side', null, false], ['main', plRamp, false], ['main', null, false]],
   'placeRows: sideboard, sezione con comandante tolto, ritorno nel main senza sezione');
 eq(boardRows(pl, 'side', 'name').map((r) => r.card.name), ['Steel Golem'], 'boardRows con ordine');
+// Alt+trascina: una copia sola. La riga resta con una copia in meno, la copia si fonde con una
+// riga uguale nella destinazione; con una copia sola si sposta la riga intera.
+let one = addCard(newDeck({ name: 'O', format: 'modern' }), bolt, { qty: 4 }).deck;
+one = addCard(one, bolt, { board: 'side' }).deck;
+const boltMain = one.cards.find((r) => r.board === 'main').id;
+one = placeRows(one, [boltMain], 'side', undefined, { one: true });
+eq(one.cards.map((r) => [r.board, r.qty]), [['main', 3], ['side', 2]], 'una copia: 3 restano nel main, la sideboard sale a 2');
+one = placeRows(one, [one.cards.find((r) => r.board === 'side').id], 'maybe', undefined, { one: true });
+eq(one.cards.map((r) => [r.board, r.qty]), [['main', 3], ['side', 1], ['maybe', 1]], 'una copia in una zona vuota: riga nuova');
+const boltSide = one.cards.find((r) => r.board === 'side');
+one = placeRows(one, [boltSide.id], 'main', undefined, { one: true });
+eq([one.cards.map((r) => [r.board, r.qty]), one.cards.some((r) => r.id === boltSide.id)], [[['main', 4], ['maybe', 1]], false],
+  'ultima copia: la riga si sposta e si fonde');
 eq(fromBackup({ app: 'proxoteca', kind: 'decks', v: 1, decks: [{ name: 'B', groupBy: 'typeAdv', cards: [] }] })[0].groupBy, 'typeAdv', 'backup: tipo avanzato accettato');
 
 // Avviso copie: 4 nei formati da 60 (main + sideboard, stampe diverse insieme), 1 in Commander

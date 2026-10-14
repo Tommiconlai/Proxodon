@@ -153,10 +153,18 @@ export function deleteSection(deck, id) {
 }
 // Trascinamento: righe nella zona di destinazione, nella sezione se indicata (undefined = resta
 // la sua). Lasciata in un gruppo o in un'altra zona, una riga non è più comandante.
-export function placeRows(deck, ids, board, section) {
+// `one` (Alt+trascina): una copia per riga; la riga resta con una copia in meno.
+export function placeRows(deck, ids, board, section, { one = false } = {}) {
   const s = new Set(ids);
-  const cards = deck.cards.map((r) => (s.has(r.id) ? { ...r, board, commander: false, ...(section !== undefined && { section }) } : r));
-  return { ...deck, cards: mergeSame(cards) };
+  const moved = (r, extra) => ({ ...r, ...extra, board, commander: false, ...(section !== undefined && { section }) });
+  const cards = deck.cards.flatMap((r) => {
+    if (!s.has(r.id)) return [r];
+    if (one && r.qty > 1) return [{ ...r, qty: r.qty - 1 }, moved(r, { id: rid(), qty: 1 })];
+    return [moved(r)];
+  });
+  const merged = mergeSame(cards);
+  // ponytail: oltre MAX_ROWS lo spostamento non avviene (servirebbe un messaggio, caso rarissimo).
+  return merged.length > MAX_ROWS ? deck : { ...deck, cards: merged };
 }
 export function moveToSection(deck, ids, section) {
   const s = new Set(ids);

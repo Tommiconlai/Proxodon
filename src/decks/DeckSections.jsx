@@ -26,13 +26,13 @@ const menuPoint = (e) => {
   return { x: r.left + 24, y: r.bottom };
 };
 // Preferenza per dispositivo in localStorage (vista, ordine); storage bloccato = solo questa sessione.
-function usePref(key, modes) {
+function usePref(key, modes, fallback) {
   const [v, setV] = useState(() => {
     try {
       const x = localStorage.getItem(key);
-      return modes.some((m) => m.id === x) ? x : modes[0].id;
+      return modes.some((m) => m.id === x) ? x : fallback;
     } catch {
-      return modes[0].id;
+      return fallback;
     }
   });
   const set = (x) => {
@@ -55,12 +55,13 @@ export default function DeckSections({ deck, update, touch }) {
   const [anchor, setAnchor] = useState(null);
   const [menu, setMenu] = useState(null); // { ids, x, y }
   const [hover, setHover] = useState(null); // anteprima accanto alla riga: { img, x, y }
-  const [view, setView] = usePref('ip:deckView', VIEWS);
-  const [sort, setSort] = usePref('ip:deckSort', SORT_MODES);
+  // Default: stack ordinati per nome (Group by Type viene da newDeck).
+  const [view, setView] = usePref('ip:deckView', VIEWS, 'stacks');
+  const [sort, setSort] = usePref('ip:deckSort', SORT_MODES, 'name');
   const [dialog, setDialog] = useState(null); // { id?, name?, moveIds? } nuova sezione o rinomina
   const [dropKey, setDropKey] = useState(null);
   const [dragging, setDragging] = useState(false); // durante il trascinamento il maybeboard vuoto accetta il rilascio
-  const dragIds = useRef(null);
+  const dragIds = useRef(null); // { ids, one } durante un trascinamento; one = Alt, una copia sola
   const press = useLongPress();
   const closeMenu = useCallback(() => setMenu(null), []);
   const custom = deck.groupBy === 'custom';
@@ -157,12 +158,12 @@ export default function DeckSections({ deck, update, touch }) {
     setHover({ img: r.card.img, x, y });
   };
 
-  // Trascinamento (desktop): la riga, o tutta la selezione se ne fa parte.
+  // Trascinamento (desktop): la riga, o tutta la selezione se ne fa parte; con Alt una copia per riga.
   const endDrag = () => { dragIds.current = null; setDropKey(null); setDragging(false); };
   const dragProps = (r) => (touch ? {} : {
     draggable: true,
     onDragStart: (e) => {
-      dragIds.current = sel.has(r.id) && selected.length > 1 ? selected : [r.id];
+      dragIds.current = { ids: sel.has(r.id) && selected.length > 1 ? selected : [r.id], one: e.altKey };
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', r.card.name);
       setHover(null);
@@ -177,9 +178,9 @@ export default function DeckSections({ deck, update, touch }) {
     onDragLeave: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropKey((k) => (k === key ? null : k)); },
     onDrop: (e) => {
       e.preventDefault();
-      const ids = dragIds.current;
+      const drag = dragIds.current;
       endDrag();
-      if (ids) update((d) => placeRows(d, ids, board, section));
+      if (drag) update((d) => placeRows(d, drag.ids, board, section, { one: drag.one }));
     },
   });
 
@@ -272,6 +273,7 @@ export default function DeckSections({ deck, update, touch }) {
           </select>
         </label>
         <button type="button" className="btn-secondary deck-new-section" onClick={() => setDialog({})}><IconPlus size={14} /> New section</button>
+        {!touch && <span className="deck-hint">Drag to move · Alt+drag moves one copy</span>}
       </div>
       {over.length > 0 && (
         <p className="deck-warn" role="status">
