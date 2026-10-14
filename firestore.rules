@@ -7,6 +7,15 @@ service cloud.firestore {
         && (request.auth.token.email_verified == true
           || request.auth.token.firebase.sign_in_provider == 'google.com');
     }
+    // Profilo: solo la foto (data URL di un JPEG 256 px, ben sotto i 200k caratteri).
+    function validProfile(d) {
+      return d.keys().hasOnly(['photo', 'updatedAt'])
+        && (d.get('photo', null) == null || (d.photo is string && d.photo.size() <= 200000));
+    }
+    match /users/{uid} {
+      allow read, delete: if owner(uid);
+      allow create, update: if owner(uid) && validProfile(request.resource.data);
+    }
     match /users/{uid}/decks/{deckId} {
       allow read, delete: if owner(uid);
       allow create, update: if owner(uid) && request.resource.data.cards.size() <= 500;

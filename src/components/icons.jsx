@@ -207,6 +207,15 @@ export function IconLogOut(props) {
   );
 }
 
+export function IconUser(props) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M20 21a8 8 0 0 0-16 0" />
+    </Svg>
+  );
+}
+
 export function IconInfo(props) {
   return (
     <Svg {...props}>

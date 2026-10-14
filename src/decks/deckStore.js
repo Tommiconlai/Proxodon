@@ -37,11 +37,20 @@ export const saveDeck = (uid, deck) => setDoc(doc(decksCol(uid), deck.id), paylo
 
 export const deleteDeck = (uid, id) => deleteDoc(doc(decksCol(uid), id));
 
-export async function deleteAllDecks(uid) {
+// Profilo in users/{uid}: per ora solo la foto (data URL); il nickname vive in Firebase Auth.
+const profileDoc = (uid) => doc(db, 'users', uid);
+export const listenProfile = (uid, onChange, onError) =>
+  onSnapshot(profileDoc(uid), (s) => onChange(s.exists() ? s.data() : null), onError);
+export const saveProfilePhoto = (uid, photo) =>
+  setDoc(profileDoc(uid), { photo, updatedAt: serverTimestamp() }, { merge: true });
+
+// Elimina account: tutti i mazzi, poi il profilo.
+export async function deleteUserData(uid) {
   const snap = await getDocs(decksCol(uid));
   for (let i = 0; i < snap.docs.length; i += 400) {
     const batch = writeBatch(db);
     snap.docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
     await batch.commit();
   }
+  await deleteDoc(profileDoc(uid));
 }

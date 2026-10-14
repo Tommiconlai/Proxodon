@@ -3,16 +3,27 @@ import CardMenu from '../components/CardMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { PrivacyPanel } from './dialogs';
 import { signOut, deleteAccount } from './firebase';
-import { IconInfo, IconLogOut, IconTrash } from '../components/icons';
+import { navigate } from '../hooks/useHashRoute';
+import { IconInfo, IconLogOut, IconTrash, IconUser } from '../components/icons';
 
-// Avatar → menu: privacy, esci, elimina account e dati (con conferma).
-export default function AccountMenu({ user, notify, onDeleteData }) {
+// Foto personalizzata, poi quella di Google, poi l'iniziale (nickname o email).
+export function Avatar({ user, photo }) {
+  const src = photo || user.photoURL;
+  const label = user.displayName || user.email || 'Account';
+  return src
+    ? <img src={src} alt="" referrerPolicy="no-referrer" />
+    : <span aria-hidden="true">{label[0].toUpperCase()}</span>;
+}
+
+// Avatar → menu: profilo, privacy, esci, elimina account e dati (con conferma).
+export default function AccountMenu({ user, photo, notify, onDeleteData }) {
   const [menu, setMenu] = useState(null); // { x, y }
   const [privacy, setPrivacy] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
   const closeMenu = useCallback(() => setMenu(null), []);
   const label = user.displayName || user.email || 'Account';
   const items = [
+    { key: 'profile', Icon: IconUser, label: 'Profile', run: () => navigate('/profile') },
     { key: 'privacy', Icon: IconInfo, label: 'Privacy', run: () => setPrivacy(true) },
     { key: 'out', Icon: IconLogOut, label: 'Sign out', run: () => signOut().catch((e) => notify(e.message, 'error')) },
     { key: 'del', Icon: IconTrash, label: 'Delete account and data', danger: true, run: () => setConfirmDel(true) },
@@ -21,7 +32,7 @@ export default function AccountMenu({ user, notify, onDeleteData }) {
     <>
       <button type="button" className="account-btn" aria-haspopup="menu" aria-label={`Account: ${label}`}
         onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMenu({ x: r.right - 230, y: r.bottom + 6 }); }}>
-        {user.photoURL ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" /> : <span aria-hidden="true">{label[0].toUpperCase()}</span>}
+        <Avatar user={user} photo={photo} />
       </button>
       {menu && <CardMenu x={menu.x} y={menu.y} title={user.email || label} items={items} onClose={closeMenu} />}
       {privacy && <PrivacyPanel onClose={() => setPrivacy(false)} />}

@@ -6,19 +6,26 @@ import {
 import AccountMenu from './AccountMenu';
 import DeckList from './DeckList';
 import DeckEditor from './DeckEditor';
-import { deleteAllDecks } from './deckStore';
+import ProfilePage from './ProfilePage';
+import { deleteUserData, listenProfile } from './deckStore';
 
-// Radice dell'area mazzi (lazy): attende lo stato di login, poi lista o editor.
+// Radice dell'area mazzi (lazy): attende lo stato di login, poi lista, editor o profilo.
 export default function DecksView({ route, notify, printQueueCount, onPrintDeck }) {
   const [user, setUser] = useState(undefined); // undefined = in verifica, null = non loggato
   const [, rerender] = useReducer((n) => n + 1, 0); // reload() aggiorna l'utente sul posto
+  const [photo, setPhoto] = useState(null); // foto profilo personalizzata (data URL)
+  const ready = !!user && !needsVerification(user);
+  const uid = user?.uid;
   useEffect(() => watchUser(setUser), []);
+  // Solo da verificato: prima le regole rifiutano la lettura.
+  useEffect(() => (ready ? listenProfile(uid, (p) => setPhoto(p?.photo || null), () => setPhoto(null)) : undefined), [uid, ready]);
   if (user === undefined) return <div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>;
   if (!user) return <SignInPanel />;
   if (needsVerification(user)) return <VerifyEmailPanel email={user.email} onVerified={rerender} />;
+  if (route === '/profile') return <ProfilePage user={user} photo={photo} notify={notify} onChange={rerender} />;
   const id = route.split('/')[2];
   if (id) return <DeckEditor key={id} uid={user.uid} id={id} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} />;
-  return <DeckList uid={user.uid} notify={notify} account={<AccountMenu user={user} notify={notify} onDeleteData={deleteAllDecks} />} />;
+  return <DeckList uid={user.uid} notify={notify} account={<AccountMenu user={user} photo={photo} notify={notify} onDeleteData={deleteUserData} />} />;
 }
 
 // Login: Google oppure email + password (accedi / crea account / reimposta password).

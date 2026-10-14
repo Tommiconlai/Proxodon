@@ -7,6 +7,7 @@ import {
   getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged,
   signOut as fbSignOut, deleteUser, reauthenticateWithPopup,
   signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification,
+  updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider,
 } from 'firebase/auth';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { firebaseConfig } from './firebaseConfig';
@@ -69,6 +70,15 @@ const AUTH_MESSAGES = {
   'auth/network-request-failed': 'No connection. Check your network and try again.',
 };
 export const authMessage = (e) => AUTH_MESSAGES[e?.code] || e?.message || 'Sign-in failed.';
+
+// Nickname = displayName di Firebase Auth; vuoto = nessuno (si vede l'email).
+export const updateNickname = (name) => updateProfile(auth.currentUser, { displayName: name || null });
+// Cambio password: Firebase vuole un accesso recente, quindi prima la password attuale.
+export async function changePassword(current, next) {
+  const u = auth.currentUser;
+  await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, current));
+  await updatePassword(u, next);
+}
 
 export const signOut = () => fbSignOut(auth);
 export const watchUser = (cb) => onAuthStateChanged(auth, cb);

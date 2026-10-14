@@ -15,7 +15,7 @@ export function PrivacyPanel({ onClose }) {
         </div>
         <p className="modal-hint">Signing in (with Google, or with email and password) lets Proxoteca keep your decks on Firebase (Google Cloud), so they sync between your devices.</p>
         <ul className="privacy-list">
-          <li><b>Stored:</b> your account id and email, plus name and photo with Google (kept by Firebase Authentication; passwords are stored hashed by Firebase, never by Proxoteca) and your decks.</li>
+          <li><b>Stored:</b> your account id and email, plus name and photo with Google, and the nickname and profile photo if you set them (kept by Firebase Authentication; passwords are stored hashed by Firebase, never by Proxoteca) and your decks.</li>
           <li><b>Where:</b> Firebase, with the deck database in the EU.</li>
           <li><b>Who can read it:</b> only you. Access rules block every other account.</li>
           <li><b>How to delete it:</b> account menu, Delete account and data. It removes your decks and your account.</li>
