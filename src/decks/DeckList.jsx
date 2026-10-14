@@ -28,7 +28,7 @@ const menuPoint = (e) => {
   return { x: r.left + 24, y: r.top + 24 };
 };
 
-export default function DeckList({ uid, notify, account }) {
+export default function DeckList({ uid, notify }) {
   const [decks, setDecks] = useState(null); // null = caricamento
   const [dialog, setDialog] = useState(null); // 'new' | { rename: deck } | { del: deck }
   const [menu, setMenu] = useState(null); // { deck, x, y }
@@ -79,7 +79,6 @@ export default function DeckList({ uid, notify, account }) {
           <button type="button" className="btn-secondary" onClick={() => fileRef.current.click()}><IconUpload size={15} /> Restore</button>
           <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={restore} />
           <button type="button" className="btn-add deck-new" onClick={() => setDialog('new')}><IconPlus size={16} /> New deck</button>
-          {account}
         </div>
       </header>
 

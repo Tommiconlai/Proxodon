@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { createPortal } from 'react-dom';
 import CardMenu from '../components/CardMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { PrivacyPanel } from './dialogs';
@@ -15,7 +16,8 @@ export function Avatar({ user, photo }) {
     : <span aria-hidden="true">{label[0].toUpperCase()}</span>;
 }
 
-// Avatar → menu: profilo, privacy, esci, elimina account e dati (con conferma).
+// Avatar → menu: profilo, privacy, esci, elimina account e dati (con conferma). Sta nell'header, il cui
+// backdrop-filter farebbe da riferimento ai position: fixed: i dialoghi vanno nel body.
 export default function AccountMenu({ user, photo, notify, onDeleteData }) {
   const [menu, setMenu] = useState(null); // { x, y }
   const [privacy, setPrivacy] = useState(false);
@@ -35,6 +37,7 @@ export default function AccountMenu({ user, photo, notify, onDeleteData }) {
         <Avatar user={user} photo={photo} />
       </button>
       {menu && <CardMenu x={menu.x} y={menu.y} title={user.email || label} items={items} onClose={closeMenu} />}
+      {createPortal(<>
       {privacy && <PrivacyPanel onClose={() => setPrivacy(false)} />}
       <ConfirmDialog open={confirmDel} message="Delete your account and all your decks? This can’t be undone."
         confirmLabel="Delete everything" onCancel={() => setConfirmDel(false)}
@@ -44,6 +47,7 @@ export default function AccountMenu({ user, photo, notify, onDeleteData }) {
             .then(() => notify('Account and decks deleted'))
             .catch((e) => notify(e.message || 'Could not delete the account.', 'error'));
         }} />
+      </>, document.body)}
     </>
   );
 }

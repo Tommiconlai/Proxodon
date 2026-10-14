@@ -30,7 +30,7 @@ export function MobilePage({ title, onClose, children }) {
   );
 }
 
-export default function MobileLayout({ settingsProps, previewProps, actions, addMenu, tabs, altBody }) {
+export default function MobileLayout({ settingsProps, previewProps, actions, addMenu, tabs, altBody, headerSlot }) {
   const [addOpen, setAddOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [page, setPage] = useState(null); // null | 'settings' | 'export'
@@ -50,7 +50,7 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
       <header className="mobile-header">
         <h1 className="brand"><Wordmark height={26} className="wordmark" /></h1>
         {tabs}
-        {!altBody && (
+        {altBody ? <div className="header-slot" ref={headerSlot} /> : (
           <>
             {/* Pulsante ? con tap-toggle su mobile, riusa lo stesso markup del desktop */}
             <div className={`help${helpOpen ? ' open' : ''}`}>

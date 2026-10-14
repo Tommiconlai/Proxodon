@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   watchUser, signIn, signInEmail, signUpEmail, resetPassword, authMessage, signOut,
   needsVerification, sendVerification, checkVerified,
@@ -6,11 +7,13 @@ import {
 import AccountMenu from './AccountMenu';
 import DeckList from './DeckList';
 import DeckEditor from './DeckEditor';
+import DeckHelp from './DeckHelp';
 import ProfilePage from './ProfilePage';
 import { deleteUserData, listenProfile } from './deckStore';
 
-// Radice dell'area mazzi (lazy): attende lo stato di login, poi lista, editor o profilo.
-export default function DecksView({ route, notify, printQueueCount, onPrintDeck }) {
+// Radice dell'area mazzi (lazy): attende lo stato di login, poi lista, editor o profilo. Avatar (e
+// il ? nell'editor) vanno nell'header dell'app, in headerSlot.
+export default function DecksView({ route, notify, printQueueCount, onPrintDeck, headerSlot }) {
   const [user, setUser] = useState(undefined); // undefined = in verifica, null = non loggato
   const [, rerender] = useReducer((n) => n + 1, 0); // reload() aggiorna l'utente sul posto
   const [photo, setPhoto] = useState(null); // foto profilo personalizzata (data URL)
@@ -22,10 +25,18 @@ export default function DecksView({ route, notify, printQueueCount, onPrintDeck 
   if (user === undefined) return <div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>;
   if (!user) return <SignInPanel />;
   if (needsVerification(user)) return <VerifyEmailPanel email={user.email} onVerified={rerender} />;
-  if (route === '/profile') return <ProfilePage user={user} photo={photo} notify={notify} onChange={rerender} />;
   const id = route.split('/')[2];
-  if (id) return <DeckEditor key={id} uid={user.uid} id={id} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} />;
-  return <DeckList uid={user.uid} notify={notify} account={<AccountMenu user={user} photo={photo} notify={notify} onDeleteData={deleteUserData} />} />;
+  return (
+    <>
+      {headerSlot && createPortal(
+        <>{id && <DeckHelp />}<AccountMenu user={user} photo={photo} notify={notify} onDeleteData={deleteUserData} /></>,
+        headerSlot,
+      )}
+      {route === '/profile' ? <ProfilePage user={user} photo={photo} notify={notify} onChange={rerender} />
+        : id ? <DeckEditor key={id} uid={user.uid} id={id} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} />
+          : <DeckList uid={user.uid} notify={notify} />}
+    </>
+  );
 }
 
 // Login: Google oppure email + password (accedi / crea account / reimposta password).

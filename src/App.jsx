@@ -72,6 +72,7 @@ export default function App() {
   const [mpcOpen, setMpcOpen] = useState(false); // import da file XML MPCFill
   const [addMenuOpen, setAddMenuOpen] = useState(false); // menu "+" in sidebar (carica file / Scryfall)
   const [helpOpen, setHelpOpen] = useState(false); // tooltip "?" header (apri al click, non hover)
+  const [headerSlot, setHeaderSlot] = useState(null); // header, area mazzi: avatar e ? dell'editor
   const [editingIds, setEditingIds] = useState(null); // carte (stessa carta) di cui cambiare l'art
   // Foglio personalizzato in mm (sheetW/H sono nell'unità scelta: mm o inch).
   const customSheet = formatKey === 'custom'
@@ -463,7 +464,7 @@ export default function App() {
   const decksNode = (
     <ErrorBoundary>
       <Suspense fallback={<div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>}>
-        <DecksView route={route} notify={notify} printQueueCount={images.length} onPrintDeck={handlePrintDeck} />
+        <DecksView route={route} notify={notify} printQueueCount={images.length} onPrintDeck={handlePrintDeck} headerSlot={headerSlot} />
       </Suspense>
     </ErrorBoundary>
   );
@@ -500,6 +501,7 @@ export default function App() {
           addMenu={{ onFiles: handleImagesAdded, onImport: () => setImportOpen(true), onImportMpc: () => setMpcOpen(true) }}
           tabs={<NavTabs decks={inDecks} />}
           altBody={inDecks ? decksNode : null}
+          headerSlot={setHeaderSlot}
         />
         <ScryfallImportModal open={importOpen} onClose={() => setImportOpen(false)} onImport={addItems} />
         <MpcImportModal open={mpcOpen} onClose={() => setMpcOpen(false)} onImport={addItems} />
@@ -518,7 +520,7 @@ export default function App() {
       <header className="app-header">
         <h1 className="brand"><Wordmark height={30} className="wordmark" /></h1>
         <NavTabs decks={inDecks} />
-        {!inDecks && (
+        {inDecks ? <div className="header-slot" ref={setHeaderSlot} /> : (
           <div className={`help${helpOpen ? ' open' : ''}`} ref={helpRef}>
             <button type="button" className="help-btn" aria-label="How it works"
               aria-expanded={helpOpen}

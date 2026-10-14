@@ -91,7 +91,6 @@ export default function CardSearch({ format, onAdd, autoFocus, advanced: advance
           onClick={() => (controlled ? onAdvanced(!advanced) : setOwnAdvanced((v) => !v))}>
           {advanced ? 'Hide advanced search' : 'Advanced search'}
         </button>
-        <p className="search-hint">Enter adds 1 · Shift+Enter 4 · Alt+Enter to {format === 'commander' ? 'maybeboard' : 'sideboard'} · ↑↓ to choose</p>
       </div>
       <p className="search-status" role="status">{status}</p>
       {error && <div className="info-box info-box-error"><span>{error}</span></div>}

@@ -319,11 +319,8 @@ export default function DeckSections({ deck, update, touch }) {
     );
   };
   const cards = (rows) => (split ? rows.flatMap((r) => Array.from({ length: r.qty }, (_, i) => row(r, i))) : rows.map((r) => row(r)));
-  const empty = (g) => {
-    if (g.key === 'commander') return 'Right-click a card, then Set as commander.';
-    if (custom && 'section' in g) return touch ? 'Long-press a card, then Move to.' : 'Drag cards here.';
-    return 'No cards yet.';
-  };
+  // Niente istruzioni nella pagina: stanno nel ? dell'header (DeckHelp).
+  const empty = (g) => (g.key === 'commander' ? 'No commander yet.' : 'No cards yet.');
   // drop = [zona, sezione] per accettare il rilascio delle carte trascinate.
   const group = (g, extraClass = '', drop) => (
     <section key={g.key} className={`deck-group ${extraClass}${dropKey === g.key ? ' drop-target' : ''}`} aria-label={g.label} {...(drop && dropProps(g.key, ...drop))}>
@@ -341,7 +338,7 @@ export default function DeckSections({ deck, update, touch }) {
   );
 
   if (!deck.cards.length) {
-    return <p className="deck-empty deck-empty-big">{touch ? 'Tap + to search and add cards.' : 'Search a card on the left and press Enter to add it.'}</p>;
+    return <p className="deck-empty deck-empty-big">No cards yet.</p>;
   }
   return (
     <div className={`deck-sections view-${layout}${mode === 'stats' ? ' mode-stats' : ''}`} {...marqueeHandlers}
@@ -372,7 +369,6 @@ export default function DeckSections({ deck, update, touch }) {
           </select>
         </label>
         <button type="button" className="btn-secondary deck-new-section" onClick={() => setDialog({})}><IconPlus size={14} /> New section</button>
-        {!touch && <span className="deck-hint">Drag to move · Alt+drag moves one copy</span>}
         </>)}
       </div>
       {issues.length > 0 && (
