@@ -26,8 +26,8 @@ export function PrivacyPanel({ onClose }) {
   );
 }
 
-// Nuovo mazzo (nome + formato) e Rinomina (solo nome).
-export function NameFormatDialog({ title, confirmLabel, initialName = '', initialFormat = 'commander', showFormat = true, onSubmit, onClose }) {
+// Nuovo mazzo (nome + formato), Rinomina e le sezioni custom (solo nome).
+export function NameFormatDialog({ title, confirmLabel, initialName = '', initialFormat = 'commander', showFormat = true, placeholder = 'Atraxa superfriends', maxLength = 80, onSubmit, onClose }) {
   const [name, setName] = useState(initialName);
   const [format, setFormat] = useState(initialFormat);
   const ref = useOverlayDismiss(onClose, true, { focusContainer: false });
@@ -42,7 +42,7 @@ export function NameFormatDialog({ title, confirmLabel, initialName = '', initia
         <div className="modal-header"><h2>{title}</h2></div>
         <label className="field-label" htmlFor="deck-name">Name</label>
         <input id="deck-name" className="import-link-input" value={name} onChange={(e) => setName(e.target.value)}
-          autoFocus maxLength={80} placeholder="Atraxa superfriends" spellCheck={false} />
+          autoFocus maxLength={maxLength} placeholder={placeholder} spellCheck={false} />
         {showFormat && (
           <>
             <label className="field-label" htmlFor="deck-format">Format</label>

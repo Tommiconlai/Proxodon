@@ -7,6 +7,7 @@ import {
 import {
   groupMain, commanderRows, boardRows, deckIdentity, deckCover, toPrintEntries, exportText,
   parseDeckText, toBackup, fromBackup, duplicateDeck, refreshSnapshots, primaryType,
+  addSection, renameSection, deleteSection, moveToSection,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl } from './scryfallSearch.js';
 
@@ -168,6 +169,50 @@ const boltCard = sc({ id: 'bolt', name: 'Lightning Bolt', mana: '{R}', mv: 1, ty
 eq(refreshSnapshots(reordered, new Map([['bolt', boltCard]])).changed, false, 'chiavi in ordine diverso (come da Firestore) = invariato');
 const banned = refreshSnapshots(g, new Map([['bolt', { ...boltCard, legalities: { commander: 'banned' } }]]));
 eq([banned.changed, banned.deck.cards.find((r) => r.card.sid === 'bolt').card.legal.commander], [true, 'banned'], 'refresh aggiorna le legalità');
+// Raggruppamenti: tipo avanzato (doppi tipi separati), mana value, sezioni custom
+const D = '—'; // trattino dei type line Scryfall
+const gx0 = [
+  snap({ id: 'golem', name: 'Steel Golem', mv: 3, type: `Artifact Creature ${D} Golem` }),
+  snap({ id: 'elf', name: 'Llanowar Elves', mv: 1, type: `Creature ${D} Elf` }),
+  snap({ id: 'ench', name: 'Courser of Kruphix', mv: 3, type: `Enchantment Creature ${D} Centaur` }),
+  snap({ id: 'cit', name: 'Darksteel Citadel', mv: 0, type: 'Artifact Land' }),
+  snap({ id: 'fst', name: 'Forest', mv: 0, type: `Basic Land ${D} Forest` }),
+  snap({ id: 'emra', name: 'Emrakul', mv: 15, type: `Legendary Creature ${D} Eldrazi` }),
+  snap({ id: 'crib', name: 'Crib Swap', mv: 3, type: `Kindred Instant ${D} Shapeshifter` }),
+].reduce((d, c) => addCard(d, c).deck, newDeck({ name: 'G', format: 'casual' }));
+const lab = (d) => groupMain(d).map((x) => [x.label, x.rows.map((r) => r.card.name)]);
+eq(lab({ ...gx0, groupBy: 'typeAdv' }), [
+  ['Creatures', ['Llanowar Elves', 'Emrakul']],
+  ['Artifact Creatures', ['Steel Golem']],
+  ['Enchantment Creatures', ['Courser of Kruphix']],
+  ['Kindred Instants', ['Crib Swap']],
+  ['Lands', ['Forest']],
+  ['Artifact Lands', ['Darksteel Citadel']],
+], 'tipo avanzato: doppi tipi in gruppi propri, nella famiglia del tipo principale');
+eq(lab({ ...gx0, groupBy: 'mv' }), [
+  ['1 mana', ['Llanowar Elves']],
+  ['3 mana', ['Courser of Kruphix', 'Crib Swap', 'Steel Golem']],
+  ['7+ mana', ['Emrakul']],
+  ['Lands', ['Darksteel Citadel', 'Forest']],
+], 'mana value: 7+ in un gruppo, terre a parte');
+let cu = { ...gx0, groupBy: 'custom' };
+const ramp = addSection(cu, '  Ramp  ');
+cu = ramp.deck;
+eq(cu.sections, [{ id: ramp.id, name: 'Ramp' }], 'sezione: nome ripulito');
+const elfRow = () => cu.cards.find((r) => r.card.sid === 'elf' && r.board === 'main');
+cu = moveToSection(cu, [elfRow().id], ramp.id);
+eq(groupMain(cu).map((x) => [x.label, x.section, x.count]), [['Deck', null, 6], ['Ramp', ramp.id, 1]], 'custom: Deck poi le sezioni, con id');
+eq(groupMain({ ...cu, groupBy: 'type' })[0].rows.map((r) => r.card.name), ['Llanowar Elves', 'Courser of Kruphix', 'Steel Golem', 'Emrakul'], 'le sezioni non contano negli altri modi');
+cu = renameSection(cu, ramp.id, ' Mana ');
+eq(groupMain(cu)[1].label, 'Mana', 'rinomina sezione');
+const elfCard = elfRow().card;
+cu = addCard(cu, elfCard, { board: 'side' }).deck;
+cu = moveToBoard(cu, [cu.cards.find((r) => r.card.sid === 'elf' && r.board === 'side').id], 'main');
+eq(cu.cards.filter((r) => r.card.sid === 'elf').map((r) => [r.section, r.qty]), [[ramp.id, 1], [null, 1]], 'stessa carta in Deck e in sezione: righe distinte');
+cu = deleteSection(cu, ramp.id);
+eq([cu.sections.length, cu.cards.filter((r) => r.card.sid === 'elf').map((r) => [r.section, r.qty])], [0, [[null, 2]]], 'elimina sezione: righe tornano in Deck e si fondono');
+eq(fromBackup({ app: 'proxoteca', kind: 'decks', v: 1, decks: [{ name: 'B', groupBy: 'typeAdv', cards: [] }] })[0].groupBy, 'typeAdv', 'backup: tipo avanzato accettato');
+
 // URL Scryfall con nomi difficili (Review Focus 4)
 eq(namedUrl('Kongming, "Sleeping Dragon"'), 'https://api.scryfall.com/cards/named?exact=Kongming%2C%20%22Sleeping%20Dragon%22', 'named: virgole e virgolette');
 eq(autocompleteUrl('Æther Vi'), 'https://api.scryfall.com/cards/autocomplete?q=%C3%86ther%20Vi', 'autocomplete: unicode');

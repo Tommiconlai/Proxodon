@@ -2720,7 +2720,77 @@ body::before {
 .deck-empty { margin: 4px 0; font-size: 0.8rem; color: var(--text-muted); }
 .deck-empty-big { padding: 40px 0; font-size: 0.95rem; text-align: center; }
 /* Anteprima carta al passaggio (desktop): in basso a sinistra, sopra la colonna di ricerca. */
-.deck-hover { position: fixed; left: 24px; bottom: 24px; z-index: 200; width: 250px; border-radius: 12px; pointer-events: none; box-shadow: var(--shadow-lg), 0 0 24px rgba(0, 229, 255, 0.18); }
+.deck-hover { position: fixed; z-index: 200; border-radius: 12px; pointer-events: none; box-shadow: var(--shadow-lg), 0 0 24px rgba(0, 229, 255, 0.18); animation: fade-in 0.12s ease; }
+
+/* Barra sopra le carte: raggruppa per, vista (lista / griglia / stack), nuova sezione. */
+.deck-toolbar { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; margin-bottom: 16px; }
+.deck-tool { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-secondary); }
+.deck-tool select { width: auto; }
+.deck-views { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.deck-views button { display: flex; padding: 6px 10px; background: none; border: 0; color: var(--text-secondary); cursor: pointer; transition: color var(--transition), background var(--transition); }
+.deck-views button + button { border-left: 1px solid var(--border); }
+.deck-views button:hover { color: var(--cyan-soft); }
+.deck-views button[aria-pressed="true"] { color: var(--cyan); background: rgba(0, 229, 255, 0.1); box-shadow: inset 0 -2px 0 var(--cyan); }
+.deck-views button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.deck-new-section { padding: 6px 12px; }
+
+/* Sezioni custom: rinomina / elimina nell'intestazione, bersaglio del trascinamento. */
+.deck-group-actions { margin-left: auto; display: flex; gap: 2px; opacity: 0; transition: opacity var(--transition); }
+.deck-group:hover .deck-group-actions, .deck-group-head:focus-within .deck-group-actions { opacity: 1; }
+@media (hover: none) { .deck-group-actions { opacity: 1; } }
+.deck-group-actions button { display: flex; padding: 3px; background: none; border: 0; border-radius: 4px; color: var(--text-secondary); cursor: pointer; }
+.deck-group-actions button:hover, .deck-group-actions button:focus-visible { color: var(--cyan-soft); outline: none; }
+.deck-group.drop-target { outline: 1px dashed var(--cyan); outline-offset: 4px; border-radius: 6px; background: rgba(0, 229, 255, 0.05); }
+.deck-row[draggable="true"] .deck-row-main { cursor: grab; }
+
+/* Griglia e stack: immagini al posto delle righe. Stack = colonne da 160 px dove ogni carta
+   copre la precedente lasciando vedere solo la fascia del nome (margine in % della larghezza). */
+.deck-columns.view-grid, .deck-columns.view-stacks { columns: auto; }
+.deck-columns.view-stacks { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px 16px; }
+.deck-columns.view-stacks .deck-group { width: 160px; margin: 0; }
+.deck-rows.view-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
+.deck-rows.view-stacks { width: 160px; display: flex; flex-direction: column; }
+.deck-rows.view-stacks .deck-row + .deck-row { margin-top: -118%; }
+.deck-rows.view-grid .deck-row, .deck-rows.view-stacks .deck-row { position: relative; display: block; border: 0; }
+.deck-rows.view-grid .deck-row.selected, .deck-rows.view-stacks .deck-row.selected { background: none; box-shadow: none; }
+.deck-rows.view-grid .deck-row-main, .deck-rows.view-stacks .deck-row-main {
+  position: relative; display: block; width: 100%;
+  padding: 0;
+  border-radius: 4.75% / 3.4%;
+  overflow: hidden;
+  transition: filter var(--transition), box-shadow var(--transition);
+}
+.deck-rows .deck-row-main img { display: block; width: 100%; aspect-ratio: 488 / 680; }
+.deck-rows.view-stacks .deck-row:hover .deck-row-main { filter: brightness(1.15); }
+.deck-rows.view-grid .deck-row.selected .deck-row-main { box-shadow: 0 0 0 2px var(--accent), 0 0 14px rgba(255, 45, 149, 0.55); }
+/* Stack: bordo e velatura interni, così le carte sopra li coprono e resta segnata solo la fascia. */
+.deck-rows.view-stacks .deck-row.selected .deck-row-main::after {
+  content: ''; position: absolute; inset: 0;
+  border-radius: inherit;
+  background: rgba(255, 45, 149, 0.18);
+  box-shadow: inset 0 0 0 2px var(--accent);
+  pointer-events: none;
+}
+.deck-card-ph { display: grid; place-items: center; aspect-ratio: 488 / 680; padding: 8px; background: var(--bg-elevated); font-size: 0.75rem; text-align: center; color: var(--text-secondary); }
+.deck-card-qty {
+  position: absolute; top: 5px; right: 5px;
+  min-width: 22px; padding: 2px 6px;
+  border: 1px solid rgba(0, 229, 255, 0.6); border-radius: 999px;
+  background: rgba(8, 7, 18, 0.88);
+  font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600; text-align: center;
+  color: var(--cyan);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.35);
+}
+.deck-rows.view-grid .deck-row-qty, .deck-rows.view-stacks .deck-row-qty { position: absolute; z-index: 1; }
+.deck-rows.view-grid .deck-row-qty { bottom: 6px; left: 50%; transform: translateX(-50%); }
+.deck-rows.view-stacks .deck-row-qty { top: 5px; right: 5px; }
+.deck-rows.view-stacks .deck-row:hover .deck-card-qty { opacity: 0; }
+/* Touch: +/- solo sulla carta selezionata (tocco = seleziona), sennò coprono griglia e fasce. */
+@media (hover: none) {
+  .deck-rows.view-grid .deck-row:not(.selected) .deck-row-qty,
+  .deck-rows.view-stacks .deck-row:not(.selected) .deck-row-qty { display: none; }
+  .deck-rows.view-stacks .deck-row.selected .deck-card-qty { opacity: 0; }
+}
 .deck-editor.is-mobile .deck-bar { padding: 10px 12px; }
 .deck-editor.is-mobile .deck-main { padding: 14px 14px 110px; }
 .deck-editor.is-mobile .deck-columns { columns: auto; }
