@@ -16,10 +16,13 @@ eq(parseCardList('1996 World Champion'), [{ qty: 1, name: '1996 World Champion',
 eq(parseCardList('2x Fable of the Mirror-Breaker'), [{ qty: 2, name: 'Fable of the Mirror-Breaker', set: '', collector: '' }], 'nome con trattino');
 eq(parseCardList('1 Birgi, God of Storytelling // Harnfel, Horn of Bounty'), [{ qty: 1, name: 'Birgi, God of Storytelling', set: '', collector: '' }], 'DFC → faccia anteriore');
 eq(parseCardList('1x Fire // Ice (APC) 128'), [{ qty: 1, name: 'Fire', set: 'apc', collector: '128' }], 'split + faccia anteriore + set');
+// Barra singola (MTGO e altri export): stessa faccia anteriore, con o senza spazi.
+eq(parseCardList('1 Fire/Ice\n2 Delver of Secrets / Insectile Aberration (ISD) 51\n1 Fire//Ice').map((e) => [e.qty, e.name, e.set, e.collector]),
+  [[1, 'Fire', '', ''], [2, 'Delver of Secrets', 'isd', '51'], [1, 'Fire', '', '']], 'barra singola o doppia senza spazi → faccia anteriore');
 eq(parseCardList('1 Lotus Petal (PLST) TMP-294'), [{ qty: 1, name: 'Lotus Petal', set: 'plst', collector: 'TMP-294' }], 'collector case preservato (Scryfall è case-sensitive)');
 eq(parseCardList('\n  \n'), [], 'righe vuote');
 
-// deckLine (import da link) deve pinnare la stampa: round-trip set+collector
+// deckLine (lista salvata) deve pinnare la stampa: round-trip set+collector
 eq(deckLine(1, 'Command Tower', 'eld', '333'), '1 Command Tower (ELD) 333', 'deckLine set+cn');
 eq(parseCardList(deckLine(2, 'Sol Ring', 'c21', '263')),
   [{ qty: 2, name: 'Sol Ring', set: 'c21', collector: '263' }], 'deckLine→parse pinna la stampa');

@@ -7,8 +7,6 @@
  * (handleImagesAdded -> object URL -> preview/cache/PDF).
  */
 
-import { DECK_PROXY_URL } from './deckProxy.js';
-
 const COLLECTION_URL = 'https://api.scryfall.com/cards/collection';
 const CHUNK = 75;          // max identifiers per richiesta (limite Scryfall)
 const IMG_CONCURRENCY = 8; // fetch immagini in parallelo
@@ -84,9 +82,11 @@ export function parseCardList(text) {
       name = name.slice(0, tail.index);
     }
     name = name.trim();
-    // DFC / split: Scryfall /cards/collection matcha la faccia anteriore ("A"),
-    // non il nome pieno "A // B". imageFaces estrae poi entrambe le facce.
-    if (name.includes('//')) name = name.split('//')[0].trim();
+    // DFC / split: Scryfall /cards/collection matcha la faccia anteriore ("A"), non il nome
+    // pieno né "A / B". Vale per "A // B" e per la barra singola di MTGO e altri export ("Fire/Ice").
+    // Nessuna carta cartacea ha "/" nel nome se non come separatore di facce. imageFaces estrae
+    // poi entrambe le facce.
+    name = name.split('/')[0].trim();
     if (name) out.push({ qty, name, set, collector });
   }
   return out;
@@ -275,24 +275,6 @@ export async function fetchScryfallImages(entries, onProgress) {
   return { files, notFound };
 }
 
-// ── Import lista da link deck (Moxfield / Archidekt) ───────────────────────
-// Questi siti non mandano header CORS e l'app è statica: le richieste passano dal nostro
-// Cloudflare Worker (proxy/deck-proxy.worker.js, solo questi due host). I proxy CORS pubblici
-// usati prima sono morti o a pagamento (verificato il 2026-10-14). Tappedout mette una verifica
-// anti-bot di Cloudflare anche davanti al server: niente import da link, si incolla la lista.
-async function fetchViaProxy(targetUrl) {
-  if (!DECK_PROXY_URL) throw new Error('Importing from a link is not set up yet. Paste the list instead.');
-  let r;
-  try {
-    r = await fetch(`${DECK_PROXY_URL}/?url=${encodeURIComponent(targetUrl)}`, { signal: AbortSignal.timeout(20000) });
-  } catch {
-    throw new Error('Could not reach the deck site. Check the connection and try again, or paste the list.');
-  }
-  if (r.status === 404) throw new Error('Deck not found. Check the link and that the deck is public.');
-  if (!r.ok) throw Object.assign(new Error(`The deck site answered ${r.status}. Try again later, or paste the list.`), { status: r.status });
-  return r;
-}
-
 // "qty Nome (SET) cn", set+collector pinnano la stampa SCELTA NEL DECK; assenti →
 // solo nome (Scryfall sceglie la stampa di default). Il tail lo riparsa parseCardList.
 export function deckLine(qty, name, set, cn) {
@@ -324,64 +306,4 @@ export function buildDeckList(items) {
   }
   const text = [...map.values()].map((e) => deckLine(e.qty, e.name, e.set, e.collector)).join('\n');
   return { text, cards: map.size, custom };
-}
-
-// Righe strutturate di un deck da link: { qty, name, set, collector, board, commander }.
-async function archidektRows(id) {
-  const j = await (await fetchViaProxy(`https://archidekt.com/api/decks/${id}/`)).json();
-  const rows = (j.cards || []).map((c) => {
-    const cats = (c.categories || []).join(' ');
-    const board = /maybe|considering/i.test(cats) ? 'maybe' : /sideboard/i.test(cats) ? 'side' : 'main';
-    return {
-      qty: c.quantity || 1, name: c.card?.oracleCard?.name || '',
-      set: (c.card?.edition?.editioncode || '').toLowerCase(), collector: c.card?.collectorNumber || '',
-      board, commander: board === 'main' && /commander/i.test(cats),
-    };
-  }).filter((r) => r.name);
-  return { name: j.name || '', rows };
-}
-
-// Moxfield filtra i client con Cloudflare (impronta TLS: curl passa, fetch di Node no) e chiede
-// ai programmi esterni uno User-Agent autorizzato: con 403 si spiega come incollare la lista.
-async function moxfieldRows(pubId) {
-  let res;
-  try {
-    res = await fetchViaProxy(`https://api2.moxfield.com/v3/decks/all/${pubId}`);
-  } catch (e) {
-    if (e.status === 403) throw new Error('Moxfield blocked the import. On Moxfield open the deck, choose Export, copy the text and paste the list here.');
-    throw e;
-  }
-  const j = await res.json();
-  const boards = j.boards || {};
-  const rows = [];
-  for (const [key, board, commander] of [['commanders', 'main', true], ['mainboard', 'main', false], ['sideboard', 'side', false], ['maybeboard', 'maybe', false]]) {
-    const cards = boards[key]?.cards || {};
-    for (const k in cards) {
-      const c = cards[k].card || {};
-      if (c.name) rows.push({ qty: cards[k].quantity || 1, name: c.name, set: (c.set || '').toLowerCase(), collector: c.cn || '', board, commander });
-    }
-  }
-  return { name: j.name || '', rows };
-}
-
-/**
- * Risolve un link deck nelle sue righe per zona (+ nome del deck se il sito lo dà).
- * @param {string} url link Moxfield / Archidekt
- */
-export async function fetchDeckBoards(url) {
-  const u = (url || '').trim();
-  let m;
-  if ((m = u.match(/moxfield\.com\/decks\/([\w-]+)/i))) return moxfieldRows(m[1]);
-  if ((m = u.match(/archidekt\.com\/(?:api\/)?decks\/(\d+)/i))) return archidektRows(m[1]);
-  if (/tappedout\.net/i.test(u)) throw new Error('Tappedout blocks imports from other sites. On Tappedout export the deck as text and paste the list here.');
-  throw new Error('Unrecognized link. Supported: Moxfield, Archidekt.');
-}
-
-/**
- * Lista testuale "qty Nome (SET) num" del main (comandanti inclusi) per l'import in stampa:
- * stesso comportamento di prima (sideboard e maybeboard escluse).
- */
-export async function fetchDeckList(url) {
-  const { rows } = await fetchDeckBoards(url);
-  return rows.filter((r) => r.board === 'main').map((r) => deckLine(r.qty, r.name, r.set, r.collector)).join('\n');
 }

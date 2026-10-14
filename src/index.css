@@ -1511,13 +1511,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   border-color: var(--accent);
 }
 
-/* Riga "carica da link": input URL + bottone Carica */
-.import-link-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
+/* Campo di testo dei dialoghi (nome mazzo, ricerca avanzata, nickname...). */
 .import-link-input {
   flex: 1;
   min-width: 0;
@@ -1534,11 +1528,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .import-link-input:focus {
   outline: none;
   border-color: var(--accent);
-}
-
-.import-link-row .btn-secondary {
-  flex: none;
-  white-space: nowrap;
 }
 
 .import-status {

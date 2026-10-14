@@ -330,6 +330,7 @@ eq(advancedQuery({
 eq(advancedQuery({ colors: ['W'], colorless: true, identity: true, isCommander: true }), 'id:c is:commander', 'incolore vince sui colori, identità');
 eq(advancedQuery({ colors: ['U', 'B'], colorMode: '<=', identity: true, mv: '', pow: '' }), 'id<=ub', 'identità al massimo UB, numeri vuoti ignorati');
 eq(advancedQuery({}), '', 'nessun filtro');
+eq([advancedQuery({ name: 'Fire/Ice' }), advancedQuery({ name: 'Delver of Secrets / Insectile' })], ['"Fire // Ice"', '"Delver of Secrets // Insectile"'], 'nome con barra singola → separatore // di Scryfall');
 eq([withLegal('t:elf', 'modern'), withLegal('t:elf', 'casual'), withLegal('', 'pauper')], ['t:elf legal:modern', 't:elf', 'legal:pauper'], 'legalità del formato');
 
 console.log('deckModel selfcheck: ok');

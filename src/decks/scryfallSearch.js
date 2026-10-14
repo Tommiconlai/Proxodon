@@ -22,7 +22,8 @@ const phrase = (s) => `"${s.trim().replace(/"/g, '').replace(/\s+/g, ' ')}"`;
 const filled = (v) => v != null && String(v).trim() !== '';
 export function advancedQuery(f) {
   const out = [];
-  if (filled(f.name)) out.push(phrase(f.name));
+  // Il nome pieno delle carte a due facce su Scryfall usa " // ": "Fire/Ice" diventa "Fire // Ice".
+  if (filled(f.name)) out.push(phrase(f.name.replace(/\s*\/+\s*/g, ' // ')));
   if (filled(f.oracle)) out.push(`o:${phrase(f.oracle)}`);
   if (filled(f.manaCost)) out.push(`m:${f.manaCost.replace(/\s+/g, '')}`);
   if (filled(f.mv)) out.push(`mv${f.mvOp || '='}${Number(f.mv)}`);

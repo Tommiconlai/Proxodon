@@ -87,7 +87,7 @@ export default function DeckList({ uid, notify, account }) {
       {decks?.length === 0 && (
         <div className="decks-empty">
           <p className="decks-empty-title">Start your first deck</p>
-          <p className="field-hint">Create one from scratch, or import a list or a Moxfield or Archidekt link.</p>
+          <p className="field-hint">Create one from scratch, or import a list.</p>
         </div>
       )}
       {decks?.length > 0 && (

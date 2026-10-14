@@ -1,39 +1,20 @@
 import { useState } from 'react';
-import { parseCardList, fetchScryfallImages, fetchDeckList } from '../utils/scryfall';
+import { parseCardList, fetchScryfallImages } from '../utils/scryfall';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 import { IconX } from './icons';
 
 export default function ScryfallImportModal({ open, onClose, onImport }) {
     const [text, setText] = useState(() => localStorage.getItem('ip:cardlist') || ''); // sopravvive al reload
-    const [link, setLink] = useState('');
-    const [loadingLink, setLoadingLink] = useState(false);
     const [busy, setBusy] = useState(false);
     const [progress, setProgress] = useState({ done: 0, total: 0 });
     const [result, setResult] = useState(null); // { imported, notFound }
     const [error, setError] = useState(null);
 
-    // Esc chiude (ma non durante un import/caricamento) + focus dentro al modale.
-    const close = () => { if (!busy && !loadingLink) onClose(); };
+    // Esc chiude (ma non durante un import) + focus dentro al modale.
+    const close = () => { if (!busy) onClose(); };
     const dismissRef = useOverlayDismiss(close, open);
 
     if (!open) return null;
-
-    // Carica una lista da un link deck nella textarea (poi import normale).
-    const handleLoadLink = async () => {
-        const u = link.trim();
-        if (!u) return;
-        setError(null); setResult(null); setLoadingLink(true);
-        try {
-            const list = await fetchDeckList(u);
-            if (!list) { setError('No cards found in the deck (did the site format change?).'); return; }
-            setText(list);
-            localStorage.setItem('ip:cardlist', list);
-        } catch (e) {
-            setError(e.message || 'Error loading the deck.');
-        } finally {
-            setLoadingLink(false);
-        }
-    };
 
     const handleImport = async () => {
         const entries = parseCardList(text);
@@ -73,30 +54,10 @@ export default function ScryfallImportModal({ open, onClose, onImport }) {
                 </div>
 
                 <p className="modal-hint">
-                    Paste a deck link or the list by hand. One card per line, format
+                    Paste the list, one card per line, format
                     {' '}<code>1x Card Name</code>; add <code>(SET) num</code> to pick the printing.
-                    Double-faced cards import front and back.
+                    Double-faced cards import front and back; <code>A // B</code> and <code>A/B</code> both work.
                 </p>
-
-                <div className="import-link-row">
-                    <input
-                        type="url"
-                        className="import-link-input"
-                        value={link}
-                        onChange={(e) => setLink(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') handleLoadLink(); }}
-                        placeholder="Deck link (Moxfield, Archidekt)"
-                        disabled={busy || loadingLink}
-                        spellCheck={false}
-                    />
-                    <button
-                        className="btn-secondary"
-                        onClick={handleLoadLink}
-                        disabled={busy || loadingLink || !link.trim()}
-                    >
-                        {loadingLink ? <><span className="spinner" /> Loading…</> : 'Load'}
-                    </button>
-                </div>
 
                 <textarea
                     className="import-textarea"
@@ -104,7 +65,7 @@ export default function ScryfallImportModal({ open, onClose, onImport }) {
                     onChange={(e) => { setText(e.target.value); localStorage.setItem('ip:cardlist', e.target.value); if (result) setResult(null); }}
                     placeholder={'1x Sol Ring\n2x Brainstorm\n1x Fable of the Mirror-Breaker'}
                     rows={10}
-                    disabled={busy || loadingLink}
+                    disabled={busy}
                     spellCheck={false}
                 />
 
@@ -133,12 +94,12 @@ export default function ScryfallImportModal({ open, onClose, onImport }) {
 
                 <div className="modal-actions">
                     {!result && (
-                        <button className="btn-secondary" onClick={close} disabled={busy || loadingLink}>Close</button>
+                        <button className="btn-secondary" onClick={close} disabled={busy}>Close</button>
                     )}
                     <button
                         className="btn-generate import-btn"
                         onClick={busy ? undefined : (result ? onClose : handleImport)}
-                        disabled={busy || loadingLink || (!result && !text.trim())}
+                        disabled={busy || (!result && !text.trim())}
                     >
                         {busy ? <><span className="spinner" /> Importing…</> : result ? 'Done' : 'Import'}
                     </button>
