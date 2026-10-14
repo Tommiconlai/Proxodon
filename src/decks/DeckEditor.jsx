@@ -13,11 +13,11 @@ import { IconPlus, IconPrinter, IconX } from '../components/icons';
 
 // Editor del mazzo: testata con la copertina (arte della carta scelta, a sinistra, che verso destra
 // si sfoca e svanisce; click = scegli un'altra carta del mazzo, lo dice il cursore a mano) e sopra,
-// a sinistra, il nome in alto e in basso formato, stato sync, conteggio e Print deck (si torna alla
-// lista con la tab Decks). Sotto il corpo con le sezioni. Tutto scorre insieme (deck-scroll) tranne
-// la fascia della ricerca (desktop), che resta in alto: sopra la testata è trasparente, quando la
-// testata è uscita prende lo sfondo e mostra il nome del mazzo. Telefono: + apre la ricerca a
-// tutto schermo.
+// a sinistra, in basso formato, stato sync, conteggio e Print deck (si torna alla lista con la tab
+// Decks). Sotto il corpo con le sezioni. Tutto scorre insieme (deck-scroll) tranne la fascia con il
+// nome del mazzo e la ricerca (desktop), che resta in alto: sopra la testata è trasparente, quando
+// la testata è uscita prende lo sfondo. Telefono: il nome sta nella testata e scorre con lei, + apre
+// la ricerca a tutto schermo.
 export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDeck }) {
   const { deck, update, saving, error } = useDeck(uid, id);
   const mobile = useIsMobile();
@@ -83,13 +83,18 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const target = countTarget(deck.format);
   const cover = coverRow(deck);
   const sync = !online ? (saving ? 'Offline, saved on this device' : 'Offline') : saving ? 'Saving…' : 'Saved';
+  const name = (
+    <input className="deck-name" value={deck.name} maxLength={80} aria-label="Deck name" spellCheck={false}
+      onChange={(e) => update((d) => ({ ...d, name: e.target.value }))}
+      onBlur={() => update((d) => (d.name.trim() ? d : { ...d, name: 'Untitled deck' }))} />
+  );
   return (
     <div className={`deck-editor${mobile ? ' is-mobile' : ''}`}>
       <div className="deck-scroll" onScroll={mobile ? undefined : onScroll}>
       {!mobile && (
         <div className="deck-sticky">
           <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`} ref={barRef}>
-            <span className="deck-sticky-name" aria-hidden={!stuck}>{deck.name}</span>
+            {name}
             <div className="deck-hero-search">
               <CardSearch format={deck.format} onAdd={add} advanced={advOpen} onAdvanced={setAdvOpen} />
             </div>
@@ -107,11 +112,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
           )}
         </button>
         <div className="deck-hero-content">
-          <div className="deck-hero-title">
-            <input className="deck-name" value={deck.name} maxLength={80} aria-label="Deck name" spellCheck={false}
-              onChange={(e) => update((d) => ({ ...d, name: e.target.value }))}
-              onBlur={() => update((d) => (d.name.trim() ? d : { ...d, name: 'Untitled deck' }))} />
-          </div>
+          {mobile && <div className="deck-hero-title">{name}</div>}
           <div className="deck-hero-meta">
             <select className="deck-format" value={deck.format} aria-label="Format" onChange={(e) => update((d) => ({ ...d, format: e.target.value }))}>
               {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}

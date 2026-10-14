@@ -2705,10 +2705,10 @@ body::before {
 .deck-hero-content { position: relative; z-index: 2; flex: 1 1 auto; min-width: 0; max-width: 100%; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; pointer-events: none; }
 .deck-hero-content :is(a, input, select, button, .deck-sync, .deck-count) { pointer-events: auto; }
 .deck-hero-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.deck-hero .deck-name { flex: 0 1 auto; width: min(620px, 100%); font-size: 1.6rem; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85); }
+:is(.deck-hero, .deck-sticky-bar) .deck-name { flex: 0 1 auto; width: min(620px, 100%); font-size: 1.6rem; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85); }
 /* Largo quanto il testo dove supportato, così il resto della copertina resta cliccabile. */
-@supports (field-sizing: content) { .deck-hero .deck-name { width: auto; field-sizing: content; min-width: 6ch; max-width: min(620px, 100%); } }
-.deck-hero-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+@supports (field-sizing: content) { :is(.deck-hero, .deck-sticky-bar) .deck-name { width: auto; field-sizing: content; min-width: 6ch; max-width: min(620px, 100%); } }
+.deck-hero-meta { margin-top: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .deck-hero .deck-sync { color: var(--text-secondary); }
 .deck-hero .deck-count { background: rgba(8, 7, 15, 0.6); }
 /* Copertine nel dialogo: arte orizzontale, più colonne. */
@@ -3074,15 +3074,9 @@ body::before {
   border-bottom: 1px solid rgba(124, 92, 255, 0.16);
   box-shadow: var(--shadow-md);
 }
-.deck-sticky-name {
-  margin-right: auto; align-self: center; min-width: 0;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-family: var(--font-display); font-size: 1rem; font-weight: 600;
-  color: var(--text-primary);
-  opacity: 0; transition: opacity var(--transition);
-}
-.deck-sticky-bar:not(.stuck) .deck-sticky-name { pointer-events: none; }
-.deck-sticky-bar.stuck .deck-sticky-name { opacity: 1; }
+/* Il nome del mazzo, a sinistra, resta sempre visibile; nella barra (.stuck) si rimpicciolisce. */
+.deck-sticky-bar .deck-name { margin-right: auto; transition: font-size var(--transition); }
+.deck-sticky-bar.stuck .deck-name { font-size: 1.2rem; text-shadow: none; }
 .deck-hero-search { position: relative; z-index: 3; flex: 0 0 auto; width: min(400px, 40%); }
 .search-foot { display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; margin-top: 6px; }
 .search-foot .search-adv-toggle { margin-top: 0; }
