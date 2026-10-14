@@ -8,6 +8,7 @@ import {
   groupMain, commanderRows, boardRows, deckIdentity, deckCover, toPrintEntries, exportText,
   parseDeckText, toBackup, fromBackup, duplicateDeck, refreshSnapshots, primaryType,
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
+  splitRow, changeEdition,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
 
@@ -263,6 +264,18 @@ const legalCard = (l) => ({ legal: { modern: l, commander: 'legal' } });
 eq(['banned', 'not_legal', 'legal', 'restricted'].map((l) => illegalIn('modern', legalCard(l))), ['banned', 'not_legal', null, null], 'illegalIn per stato');
 eq([illegalIn('casual', legalCard('banned')), illegalIn('pioneer', { legal: {} }), illegalIn('modern', {})], [null, 'not_legal', 'not_legal'], 'Casual libero, dato mancante = non legale');
 eq([legalityLabel('banned', 'modern'), legalityLabel('not_legal', 'pauper')], ['Banned in Modern', 'Not legal in Pauper'], 'etichette');
+
+// Split row: una copia in una riga nuova subito dopo; poi cambio edizione di quella copia sola.
+let ed = addCard(newDeck({ name: 'E', format: 'modern' }), bolt, { qty: 4 }).deck;
+ed = addCard(ed, forest).deck;
+ed = splitRow(ed, ed.cards[0].id);
+eq(ed.cards.map((r) => [r.card.name, r.qty]), [['Lightning Bolt', 3], ['Lightning Bolt', 1], ['Forest', 1]], 'split: copia subito dopo, righe uguali non fuse');
+const boltM10 = { ...bolt, sid: 'bolt-m10', set: 'm10', cn: '146', img: 'n-m10', art: 'a-m10' };
+ed = changeEdition(ed, [ed.cards[1].id], boltM10);
+eq(ed.cards.map((r) => [r.qty, r.card.set]), [[3, 'tst'], [1, 'm10'], [1, 'tst']], 'cambio edizione della copia separata');
+ed = changeEdition(ed, [ed.cards[0].id], boltM10);
+eq(ed.cards.map((r) => [r.card.name, r.qty, r.card.set]), [['Lightning Bolt', 4, 'm10'], ['Forest', 1, 'tst']], 'stessa edizione nella stessa zona: righe fuse');
+eq([splitRow(ed, 'nope') === ed, splitRow(ed, ed.cards[1].id) === ed], [true, true], 'riga inesistente o da una copia: invariato');
 
 // URL Scryfall con nomi difficili (Review Focus 4)
 eq(namedUrl('Kongming, "Sleeping Dragon"'), 'https://api.scryfall.com/cards/named?exact=Kongming%2C%20%22Sleeping%20Dragon%22', 'named: virgole e virgolette');

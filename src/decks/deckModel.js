@@ -171,6 +171,24 @@ export function moveToSection(deck, ids, section) {
   return { ...deck, cards: mergeSame(deck.cards.map((r) => (s.has(r.id) ? { ...r, section } : r))) };
 }
 
+// Split row: una copia in una riga nuova subito dopo (stessa zona e sezione), per darle un'altra
+// edizione. Non si fonde subito; righe uguali tornano una sola al prossimo spostamento.
+export function splitRow(deck, rowId) {
+  const i = deck.cards.findIndex((r) => r.id === rowId);
+  const r = deck.cards[i];
+  if (!r || r.qty < 2 || deck.cards.length >= MAX_ROWS) return deck;
+  const cards = [...deck.cards];
+  cards.splice(i, 1, { ...r, qty: r.qty - 1 }, { ...r, id: rid(), qty: 1 });
+  return { ...deck, cards };
+}
+
+// Cambio edizione: le righe prendono lo snapshot della stampa scelta (stessa carta); righe che
+// diventano uguali nella stessa zona si fondono.
+export function changeEdition(deck, ids, card) {
+  const s = new Set(ids);
+  return { ...deck, cards: mergeSame(deck.cards.map((r) => (s.has(r.id) ? { ...r, card } : r))) };
+}
+
 export function moveToBoard(deck, ids, board) {
   const s = new Set(ids);
   const cards = deck.cards.map((r) => (s.has(r.id) ? { ...r, board, commander: board === 'main' && r.commander } : r));

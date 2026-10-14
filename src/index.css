@@ -1479,6 +1479,8 @@ input[type="range"]::-webkit-slider-thumb:hover {
   display: block;
 }
 
+.art-cell.current { border-color: var(--cyan); color: var(--cyan-soft); box-shadow: 0 0 12px var(--cyan-glow); }
+
 .art-cell:disabled {
   opacity: 0.5;
   cursor: default;

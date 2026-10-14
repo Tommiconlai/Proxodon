@@ -5,9 +5,11 @@ import { IconX } from './icons';
 
 // Box "cambia art": clic su una carta -> tutte le stampe Scryfall -> sostituisci.
 // `count` > 1 = la stampa scelta va su tutte le copie selezionate (stessa carta).
-export default function ArtPickerModal({ card, count = 1, onClose, onPick }) {
+// Mazzi ("Change edition"): `name` e `title` espliciti, `current` = { set, cn } evidenziata,
+// `onPickPrint(print)` riceve la stampa invece del file scaricato.
+export default function ArtPickerModal({ card, name: nameProp, title, current, count = 1, onClose, onPick, onPickPrint }) {
     // ponytail: nome dedotto dal filename; DFC / caratteri speciali -> niente stampe.
-    const name = artName(card);
+    const name = nameProp || artName(card);
     const [prints, setPrints] = useState(null); // null = caricamento, [] = nessuna
     const [error, setError] = useState(null);
     const [picking, setPicking] = useState(false);
@@ -36,6 +38,7 @@ export default function ArtPickerModal({ card, count = 1, onClose, onPick }) {
     const pick = async (p) => {
         setPicking(true);
         try {
+            if (onPickPrint) { await onPickPrint(p); return; }
             const file = await downloadAsFile(p.png, name);
             // come l'import Scryfall: full-art/borderless → mirror, altrimenti stretch
             await onPick(file, { bleedMode: (p.fullArt || p.borderless) ? 'mirror' : 'stretch', set: p.set, collector: p.collector });
@@ -46,7 +49,7 @@ export default function ArtPickerModal({ card, count = 1, onClose, onPick }) {
         <div className="modal-overlay" onClick={picking ? undefined : onClose}>
             <div className="modal modal-art" ref={dismissRef} tabIndex={-1} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={`Change art: ${name}`}>
                 <div className="modal-header">
-                    <h2>Change art, {name}{count > 1 ? ` (${count} cards)` : ''}</h2>
+                    <h2>{title || `Change art, ${name}${count > 1 ? ` (${count} cards)` : ''}`}</h2>
                     <button className="modal-close" onClick={onClose} aria-label="Close" disabled={picking}>
                         <IconX size={18} />
                     </button>
@@ -80,7 +83,7 @@ export default function ArtPickerModal({ card, count = 1, onClose, onPick }) {
                 {shown && shown.length > 0 && (
                     <div className="art-grid">
                         {shown.map((p) => (
-                            <button key={p.id} className="art-cell" onClick={() => pick(p)} disabled={picking}
+                            <button key={p.id} className={`art-cell${current && p.set === current.set.toUpperCase() && p.collector === current.cn ? ' current' : ''}`} onClick={() => pick(p)} disabled={picking}
                                 title={`${p.setName} (${p.set} #${p.collector})${p.year ? `, ${p.year}` : ''}${p.artist ? `, ${p.artist}` : ''}`}>
                                 <img src={p.thumb} alt={p.setName} loading="lazy" />
                                 <span>{p.set}</span>

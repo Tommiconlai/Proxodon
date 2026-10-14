@@ -4,11 +4,14 @@ import CardMenu from '../components/CardMenu';
 import { useLongPress } from '../hooks/useLongPress';
 import { ManaCost } from './Mana';
 import { NameFormatDialog } from './dialogs';
+import ArtPickerModal from '../components/ArtPickerModal';
+import { cardsByIds } from './scryfallSearch';
 import {
   GROUP_MODES, SORT_MODES, groupMain, commanderRows, boardRows, bumpQty, removeRows, setCommander, moveToBoard,
   addSection, renameSection, deleteSection, moveToSection, placeRows, overLimit, formatLabel, illegalIn, legalityLabel,
+  splitRow, changeEdition, snapshotFromCard,
 } from './deckModel';
-import { IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan } from '../components/icons';
+import { IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy } from '../components/icons';
 
 const BOARD_LABEL = { main: 'main deck', side: 'sideboard', maybe: 'maybeboard' };
 const VIEWS = [
@@ -60,6 +63,7 @@ export default function DeckSections({ deck, update, touch }) {
   const [view, setView] = usePref('ip:deckView', VIEWS, 'stacks');
   const [sort, setSort] = usePref('ip:deckSort', SORT_MODES, 'name');
   const [dialog, setDialog] = useState(null); // { id?, name?, moveIds? } nuova sezione o rinomina
+  const [edition, setEdition] = useState(null); // { ids, name, current } righe a cui cambiare edizione
   const [dropKey, setDropKey] = useState(null);
   const [dragging, setDragging] = useState(false); // durante il trascinamento il maybeboard vuoto accetta il rilascio
   const dragIds = useRef(null); // { ids, one } durante un trascinamento; one = Alt, una copia sola
@@ -142,6 +146,13 @@ export default function DeckSections({ deck, update, touch }) {
     const ids = menuRows.map((r) => r.id);
     const allMain = menuRows.every((r) => r.board === 'main');
     const allCmd = menuRows.every((r) => r.commander);
+    // Change edition su righe della stessa carta; Split row su una riga con più copie.
+    if (menuRows.every((r) => r.card.oid === menuRows[0].card.oid)) {
+      items.push({ key: 'ed', Icon: IconImage, label: 'Change edition', run: () => setEdition({ ids, name: menuRows[0].card.name, current: menuRows.length === 1 ? menuRows[0].card : null }) });
+    }
+    if (menuRows.length === 1 && menuRows[0].qty > 1) {
+      items.push({ key: 'split', Icon: IconCopy, label: 'Split row', run: () => update((d) => splitRow(d, ids[0])) });
+    }
     // Al massimo 2 comandanti: "Set" solo su 1-2 righe, "Remove" su qualsiasi gruppo di comandanti.
     if (deck.format === 'commander' && allMain && (allCmd || ids.length <= 2)) {
       items.push({ key: 'cmd', Icon: IconCrown, label: allCmd ? 'Remove as commander' : 'Set as commander', run: () => update((d) => setCommander(d, ids, !allCmd)) });
@@ -394,6 +405,17 @@ export default function DeckSections({ deck, update, touch }) {
               return dialog.moveIds ? moveToSection(r.deck, dialog.moveIds, r.id) : r.deck;
             });
             setDialog(null);
+          }} />
+      )}
+      {edition && (
+        <ArtPickerModal name={edition.name} current={edition.current} onClose={() => setEdition(null)}
+          title={`Change edition, ${edition.name}${edition.ids.length > 1 ? ` (${edition.ids.length} rows)` : ''}`}
+          onPickPrint={async (p) => {
+            const c = (await cardsByIds([p.id])).get(p.id);
+            if (!c) throw new Error('This print was not found on Scryfall.');
+            const snap = snapshotFromCard(c);
+            update((d) => changeEdition(d, edition.ids, snap));
+            setEdition(null);
           }} />
       )}
       {hover && createPortal(<img className="deck-hover" src={hover.img} alt="" style={{ left: hover.x, top: hover.y, width: PREVIEW_W }} />, document.body)}
