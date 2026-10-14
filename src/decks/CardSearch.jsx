@@ -1,14 +1,16 @@
 import { useEffect, useId, useState } from 'react';
 import { autocomplete, namedCard, searchCards } from './scryfallSearch';
-import { snapshotFromCard, copiesToAdd } from './deckModel';
+import { lookupCards } from '../utils/scryfall';
+import { snapshotFromCard, copiesToAdd, illegalIn, legalityLabel } from './deckModel';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
-import { IconSearch, IconPlus, IconX } from '../components/icons';
+import { IconSearch, IconPlus, IconX, IconBan } from '../components/icons';
 
 // Modificatori di aggiunta, uguali da tastiera e da mouse: Alt = sideboard (maybeboard in
 // Commander, che non ha sideboard), Shift = 4 copie (con le regole di copiesToAdd).
 const target = (e, format) => ({ board: e.altKey ? (format === 'commander' ? 'maybe' : 'side') : 'main', four: e.shiftKey });
 const thumb = (c) => c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.normal || '';
 const WHERE = { main: '', side: ' to sideboard', maybe: ' to maybeboard' };
+const front = (name) => name.split(' // ')[0];
 
 export default function CardSearch({ format, onAdd, autoFocus }) {
   const [q, setQ] = useState('');
@@ -19,6 +21,7 @@ export default function CardSearch({ format, onAdd, autoFocus }) {
   const [status, setStatus] = useState('');
   const [error, setError] = useState(null);
   const [zoom, setZoom] = useState(null); // carta Scryfall ingrandita
+  const [legalities, setLegalities] = useState(() => new Map()); // nome suggerito → legalities Scryfall
   const listId = useId();
   const text = q.trim();
   const visible = text.length >= 2 ? sugg : [];
@@ -29,17 +32,34 @@ export default function CardSearch({ format, onAdd, autoFocus }) {
     const ctrl = new AbortController();
     const t = setTimeout(() => {
       autocomplete(text, ctrl.signal)
-        .then((names) => { setSugg(names); setActive(0); })
+        .then(async (names) => {
+          setSugg(names);
+          setActive(0);
+          // Legalità dei suggerimenti (una richiesta /cards/collection): i nomi non giocabili nel
+          // formato restano in lista ma non si aggiungono. Se fallisce, ci pensa il controllo in add.
+          try {
+            const find = await lookupCards(names.map((n) => ({ name: front(n) })));
+            if (!ctrl.signal.aborted) setLegalities(new Map(names.map((n) => [n, find({ name: front(n) })?.legalities])));
+          } catch { /* senza dati: nessun nome bloccato in anticipo */ }
+        })
         .catch((e) => { if (e.name !== 'AbortError') setSugg([]); });
     }, 250);
     return () => { clearTimeout(t); ctrl.abort(); };
   }, [text]);
+
+  // Stato di legalità di un nome suggerito (null = giocabile o non ancora noto).
+  const banOf = (name) => {
+    const l = legalities.get(name);
+    return l ? illegalIn(format, { legal: l }) : null;
+  };
 
   const add = async (getCard, e) => {
     const { board, four } = target(e, format); // letti prima dell'await
     setError(null);
     try {
       const snap = snapshotFromCard(await getCard());
+      const ban = illegalIn(format, snap);
+      if (ban) { setError(`${snap.name}: ${legalityLabel(ban, format)}.`); return; }
       const qty = copiesToAdd(format, snap, four);
       onAdd(snap, { board, qty });
       setStatus(`Added ${qty} ${snap.name}${WHERE[board]}`);
@@ -47,7 +67,13 @@ export default function CardSearch({ format, onAdd, autoFocus }) {
       if (err.name !== 'AbortError') setError(err.status === 404 ? 'Card not found.' : err.message || 'Could not add the card.');
     }
   };
-  const addSuggestion = (name, e) => { setQ(''); setSugg([]); add(() => namedCard(name), e); };
+  const addSuggestion = (name, e) => {
+    const ban = banOf(name);
+    if (ban) { setError(`${name}: ${legalityLabel(ban, format)}.`); return; }
+    setQ('');
+    setSugg([]);
+    add(() => namedCard(name), e);
+  };
 
   const runSearch = async (pageUrl) => {
     if (!text && !pageUrl) return;
@@ -91,10 +117,17 @@ export default function CardSearch({ format, onAdd, autoFocus }) {
         </div>
         {visible.length > 0 && (
           <ul id={listId} role="listbox" className="search-suggest">
-            {visible.map((n, i) => (
-              <li key={n} id={`${listId}-${i}`} role="option" aria-selected={i === active} className={i === active ? 'active' : undefined}
-                onMouseDown={(e) => { e.preventDefault(); addSuggestion(n, e); }} onMouseEnter={() => setActive(i)}>{n}</li>
-            ))}
+            {visible.map((n, i) => {
+              const ban = banOf(n);
+              return (
+                <li key={n} id={`${listId}-${i}`} role="option" aria-selected={i === active} aria-disabled={ban ? true : undefined}
+                  className={`${i === active ? 'active' : ''}${ban ? ' banned' : ''}`} title={ban ? legalityLabel(ban, format) : undefined}
+                  onMouseDown={(e) => { e.preventDefault(); if (!ban) addSuggestion(n, e); }} onMouseEnter={() => setActive(i)}>
+                  <span className="search-suggest-name">{n}</span>
+                  {ban && <span className="search-ban"><IconBan size={12} /> {ban === 'banned' ? 'Banned' : 'Not legal'}</span>}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -109,18 +142,23 @@ export default function CardSearch({ format, onAdd, autoFocus }) {
             <>
               <p className="search-count">{results.total} result{results.total !== 1 ? 's' : ''}</p>
               <ul className="search-results">
-                {results.cards.map((c) => (
-                  <li key={c.id} className="search-card">
-                    <button type="button" className="search-card-img" onClick={() => setZoom(c)} onKeyDown={enterAdds(c)}
-                      aria-label={`${c.name}. Enter to add, Space to enlarge`}>
-                      <img src={thumb(c)} alt="" loading="lazy" />
-                    </button>
-                    <button type="button" className="search-card-add" aria-label={`Add ${c.name}`}
-                      onClick={(e) => add(async () => c, e)} onKeyDown={enterAdds(c)}>
-                      <IconPlus size={16} />
-                    </button>
-                  </li>
-                ))}
+                {results.cards.map((c) => {
+                  const ban = illegalIn(format, { legal: c.legalities });
+                  const why = ban && legalityLabel(ban, format);
+                  return (
+                    <li key={c.id} className={`search-card${ban ? ' banned' : ''}`}>
+                      <button type="button" className="search-card-img" onClick={() => setZoom(c)} onKeyDown={enterAdds(c)}
+                        aria-label={ban ? `${c.name}. ${why}. Space to enlarge` : `${c.name}. Enter to add, Space to enlarge`}>
+                        <img src={thumb(c)} alt="" loading="lazy" />
+                      </button>
+                      {ban && <span className="deck-card-ban search-card-ban" title={why}><IconBan size={13} /></span>}
+                      <button type="button" className="search-card-add" aria-label={ban ? `${c.name}: ${why}` : `Add ${c.name}`} title={why || undefined}
+                        disabled={!!ban} onClick={(e) => add(async () => c, e)} onKeyDown={enterAdds(c)}>
+                        {ban ? <IconBan size={16} /> : <IconPlus size={16} />}
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
               {results.next && <button type="button" className="btn-secondary search-more" onClick={() => runSearch(results.next)} disabled={busy}>Load more</button>}
             </>

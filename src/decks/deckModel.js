@@ -201,6 +201,16 @@ export function copiesToAdd(format, card, four) {
   return 1;
 }
 
+// Legalità nel formato del mazzo: 'banned' o 'not_legal' (dato mancante = non legale, come in
+// snapshotFromCard) bloccano l'aggiunta dalla ricerca; legal e restricted no; Casual nessun controllo.
+// Per una carta Scryfall grezza: illegalIn(format, { legal: c.legalities }).
+export function illegalIn(format, card) {
+  if (format === 'casual') return null;
+  const l = card.legal?.[format] || 'not_legal';
+  return l === 'banned' || l === 'not_legal' ? l : null;
+}
+export const legalityLabel = (status, format) => `${status === 'banned' ? 'Banned' : 'Not legal'} in ${formatLabel(format)}`;
+
 // Copie ammesse di una carta: Infinity = nessun limite (Casual, terre base, "any number"),
 // "up to N" = N, altrimenti 1 in Commander e 4 nei formati da 60.
 export function maxCopies(format, card) {

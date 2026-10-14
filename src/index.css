@@ -2807,8 +2807,9 @@ body::before {
 .deck-warn svg { flex: none; margin-top: 2px; }
 .deck-warn-icon { display: flex; flex: none; color: var(--warning); }
 .deck-row.over .deck-qty { color: var(--warning); }
+/* Chip in alto a sinistra sulla carta (griglia, stack, risultati): divieto, poi copie oltre il limite. */
+.deck-card-flags { position: absolute; top: 5px; left: 5px; display: flex; gap: 3px; }
 .deck-card-warn {
-  position: absolute; top: 5px; left: 5px;
   display: grid; place-items: center;
   width: 20px; height: 20px;
   border: 1px solid var(--warning); border-radius: 50%;
@@ -2843,7 +2844,19 @@ body::before {
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-md);
 }
-.search-suggest li { padding: 7px 10px; border-radius: 6px; font-size: 0.85rem; color: var(--text-primary); cursor: pointer; }
+.search-suggest li { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 6px; font-size: 0.85rem; color: var(--text-primary); cursor: pointer; }
+.search-suggest-name { flex: 1; min-width: 0; }
+/* Nome non giocabile nel formato: resta in lista, non si può scegliere. */
+.search-suggest li.banned { color: var(--text-muted); cursor: not-allowed; }
+.search-suggest li.banned.active { background: rgba(255, 77, 109, 0.08); color: var(--text-secondary); }
+.search-ban {
+  display: inline-flex; align-items: center; gap: 4px; flex: none;
+  padding: 1px 7px;
+  border: 1px solid rgba(255, 77, 109, 0.55); border-radius: 999px;
+  font-family: var(--font-mono); font-size: 0.66rem;
+  color: var(--danger);
+  white-space: nowrap;
+}
 .search-suggest li.active { background: rgba(0, 229, 255, 0.1); color: var(--cyan-soft); }
 .search-hint { margin: 8px 0 0; font-family: var(--font-mono); font-size: 0.66rem; color: var(--text-muted); }
 .search-status { min-height: 1.2em; margin: 6px 0 0; font-size: 0.75rem; color: var(--success); }
@@ -2856,6 +2869,23 @@ body::before {
 .search-card-img:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .search-card-add { position: absolute; right: 6px; bottom: 6px; display: flex; padding: 6px; border-radius: 50%; border: 1px solid rgba(0, 229, 255, 0.5); background: rgba(8, 7, 15, 0.85); color: var(--cyan-soft); cursor: pointer; }
 .search-card-add:hover, .search-card-add:focus-visible { border-color: var(--cyan); box-shadow: 0 0 12px var(--cyan-glow); outline: none; }
+.search-card-add:disabled { color: var(--danger); border-color: rgba(255, 77, 109, 0.6); box-shadow: none; cursor: not-allowed; }
+.search-card.banned .search-card-img img { filter: grayscale(0.6) brightness(0.7); }
+.search-card-ban { position: absolute; top: 6px; left: 6px; }
+/* Divieto: stesso chip del "!" della stampa (angolo smussato, bordo rosso interno) con il simbolo di divieto. */
+.deck-card-ban {
+  display: grid; place-items: center;
+  width: 20px; height: 20px;
+  color: var(--danger);
+  background:
+    linear-gradient(135deg, transparent 3.5px, rgba(255, 77, 109, 0.75) 3.5px 4.5px, transparent 4.5px),
+    rgba(8, 7, 15, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(255, 77, 109, 0.75);
+  clip-path: polygon(5px 0, 100% 0, 100% 100%, 0 100%, 0 5px);
+  cursor: help;
+}
+.deck-ban-icon { display: flex; flex: none; color: var(--danger); }
+.deck-warn.deck-illegal { border-color: rgba(255, 77, 109, 0.5); background: rgba(255, 77, 109, 0.08); color: var(--danger); }
 .search-more { width: 100%; justify-content: center; margin-top: 12px; }
 .card-zoom-wrap { position: relative; outline: none; }
 .card-zoom { display: block; max-width: 92vw; max-height: 86vh; border-radius: 18px; box-shadow: var(--shadow-lg); }

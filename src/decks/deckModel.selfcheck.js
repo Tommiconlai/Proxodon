@@ -7,7 +7,7 @@ import {
 import {
   groupMain, commanderRows, boardRows, deckIdentity, deckCover, toPrintEntries, exportText,
   parseDeckText, toBackup, fromBackup, duplicateDeck, refreshSnapshots, primaryType,
-  addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows,
+  addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl } from './scryfallSearch.js';
 
@@ -257,6 +257,12 @@ const overL = (d) => overLimit(d).map((e) => [e.name, e.count, e.max]);
 eq(overL(lim), [['Lightning Bolt', 5, 4], ['Seven Dwarves', 8, 7]], 'sideboard conta; up to N alza il limite');
 eq(overL({ ...lim, format: 'commander' }), [['Lightning Bolt', 4, 1], ['Seven Dwarves', 8, 7]], 'Commander: 1 copia, sideboard fuori');
 eq(overL({ ...lim, format: 'casual' }), [], 'Casual: nessun limite');
+
+// Legalità nel formato: banned e not_legal bloccano, legal e restricted no, Casual mai.
+const legalCard = (l) => ({ legal: { modern: l, commander: 'legal' } });
+eq(['banned', 'not_legal', 'legal', 'restricted'].map((l) => illegalIn('modern', legalCard(l))), ['banned', 'not_legal', null, null], 'illegalIn per stato');
+eq([illegalIn('casual', legalCard('banned')), illegalIn('pioneer', { legal: {} }), illegalIn('modern', {})], [null, 'not_legal', 'not_legal'], 'Casual libero, dato mancante = non legale');
+eq([legalityLabel('banned', 'modern'), legalityLabel('not_legal', 'pauper')], ['Banned in Modern', 'Not legal in Pauper'], 'etichette');
 
 // URL Scryfall con nomi difficili (Review Focus 4)
 eq(namedUrl('Kongming, "Sleeping Dragon"'), 'https://api.scryfall.com/cards/named?exact=Kongming%2C%20%22Sleeping%20Dragon%22', 'named: virgole e virgolette');

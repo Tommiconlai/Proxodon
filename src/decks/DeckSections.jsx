@@ -6,9 +6,9 @@ import { ManaCost } from './Mana';
 import { NameFormatDialog } from './dialogs';
 import {
   GROUP_MODES, SORT_MODES, groupMain, commanderRows, boardRows, bumpQty, removeRows, setCommander, moveToBoard,
-  addSection, renameSection, deleteSection, moveToSection, placeRows, overLimit, formatLabel,
+  addSection, renameSection, deleteSection, moveToSection, placeRows, overLimit, formatLabel, illegalIn, legalityLabel,
 } from './deckModel';
-import { IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert } from '../components/icons';
+import { IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan } from '../components/icons';
 
 const BOARD_LABEL = { main: 'main deck', side: 'sideboard', maybe: 'maybeboard' };
 const VIEWS = [
@@ -73,8 +73,19 @@ export default function DeckSections({ deck, update, touch }) {
   const layout = split ? 'stacks' : view; // classi CSS: lo split è uno stack
   const over = useMemo(() => overLimit(deck), [deck]);
   const overBy = useMemo(() => new Map(over.map((e) => [e.oid, e])), [over]);
-  // Avviso solo dove le copie contano: main e (fuori da Commander) sideboard.
-  const warnOf = (r) => (r.board === 'main' || (r.board === 'side' && deck.format !== 'commander') ? overBy.get(r.card.oid) : undefined);
+  // Avvisi solo dove le carte contano: main e (fuori da Commander) sideboard.
+  const counts = (r) => r.board === 'main' || (r.board === 'side' && deck.format !== 'commander');
+  const warnOf = (r) => (counts(r) ? overBy.get(r.card.oid) : undefined);
+  const banOf = (r) => (counts(r) ? illegalIn(deck.format, r.card) : null);
+  // Carte bandite o non legali nel formato (per nome, una volta): arrivano da import o cambio formato.
+  const illegal = useMemo(() => {
+    const by = new Map();
+    for (const r of deck.cards) {
+      const b = (r.board === 'main' || (r.board === 'side' && deck.format !== 'commander')) && illegalIn(deck.format, r.card);
+      if (b && !by.has(r.card.oid)) by.set(r.card.oid, `${r.card.name}${b === 'banned' ? ' (banned)' : ''}`);
+    }
+    return [...by.values()];
+  }, [deck]);
 
   // L'anteprima è fissa sullo schermo: sparisce appena qualcosa scorre.
   useEffect(() => {
@@ -252,11 +263,13 @@ export default function DeckSections({ deck, update, touch }) {
   const row = (r, copy = 0) => {
     const warn = warnOf(r);
     const warnText = warn && `${warn.count} copies, max ${warn.max} in ${formatLabel(deck.format)}`;
+    const ban = banOf(r);
+    const banText = ban && legalityLabel(ban, deck.format);
     return (
       <li key={copy ? `${r.id}:${copy}` : r.id} data-row-id={r.id} className={`deck-row${sel.has(r.id) ? ' selected' : ''}${warn ? ' over' : ''}`} {...dragProps(r)}
         onMouseEnter={touch ? undefined : (e) => showPreview(e, r)} onMouseLeave={touch ? undefined : () => setHover(null)}>
         <button type="button" className="deck-row-main" aria-pressed={sel.has(r.id)}
-          aria-label={view === 'list' ? undefined : `${split ? `${r.card.name}, copy ${copy + 1} of ${r.qty}` : `${r.qty} ${r.card.name}`}${warn ? `, ${warnText}` : ''}`}
+          aria-label={view === 'list' ? undefined : `${split ? `${r.card.name}, copy ${copy + 1} of ${r.qty}` : `${r.qty} ${r.card.name}`}${ban ? `, ${banText}` : ''}${warn ? `, ${warnText}` : ''}`}
           onClick={(e) => onRowClick(e, r.id)}
           onContextMenu={(e) => { e.preventDefault(); const p = menuPoint(e); openMenu(r.id, p.x, p.y); }}
           onKeyDown={(e) => {
@@ -271,7 +284,8 @@ export default function DeckSections({ deck, update, touch }) {
             <>
               <span className="deck-qty">{r.qty}</span>
               <span className="deck-name-cell">{r.card.name}</span>
-              {warn && <span className="deck-warn-icon" title={warnText}><IconAlert size={13} /><span className="sr-only">{warnText}</span></span>}
+              {ban && <span className="deck-ban-icon" title={banText}><IconBan size={13} /><span className="sr-only">{banText}</span></span>}
+            {warn && <span className="deck-warn-icon" title={warnText}><IconAlert size={13} /><span className="sr-only">{warnText}</span></span>}
               <ManaCost cost={r.card.mana} />
               <span className="deck-set">{r.card.set.toUpperCase()}</span>
             </>
@@ -279,7 +293,12 @@ export default function DeckSections({ deck, update, touch }) {
             <>
               {r.card.img ? <img src={r.card.img} alt="" loading="lazy" draggable={false} /> : <span className="deck-card-ph">{r.card.name}</span>}
               {r.qty > 1 && !split && <span className="deck-card-qty">{r.qty}</span>}
-              {warn && <span className="deck-card-warn" title={warnText}><IconAlert size={12} /></span>}
+              {(ban || warn) && (
+              <span className="deck-card-flags">
+                {ban && <span className="deck-card-ban" title={banText}><IconBan size={13} /></span>}
+                {warn && <span className="deck-card-warn" title={warnText}><IconAlert size={12} /></span>}
+              </span>
+            )}
             </>
           )}
         </button>
@@ -341,6 +360,12 @@ export default function DeckSections({ deck, update, touch }) {
         <button type="button" className="btn-secondary deck-new-section" onClick={() => setDialog({})}><IconPlus size={14} /> New section</button>
         {!touch && <span className="deck-hint">Drag to move · Alt+drag moves one copy</span>}
       </div>
+      {illegal.length > 0 && (
+        <p className="deck-warn deck-illegal" role="status">
+          <IconBan size={15} />
+          <span>Not allowed in {formatLabel(deck.format)}: {illegal.join(', ')}.</span>
+        </p>
+      )}
       {over.length > 0 && (
         <p className="deck-warn" role="status">
           <IconAlert size={15} />
