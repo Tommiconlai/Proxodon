@@ -447,6 +447,8 @@ export default function App() {
     try {
       const { files, notFound } = await fetchScryfallImages(entries,
         (done, total) => setToast({ kind: 'progress', msg: `Downloading card images ${done}/${total}` }));
+      // Nessuna immagine scaricata: la coda vecchia resta com'è.
+      if (!files.length) throw new Error('Could not download any card image. Your print queue was not changed.');
       setImages((prev) => { prev.forEach((i) => URL.revokeObjectURL(i.preview)); return []; });
       addItems(files);
       navigate('/print');
