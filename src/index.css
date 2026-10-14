@@ -2493,6 +2493,7 @@ body::before {
   border-radius: var(--radius-lg);
 }
 .signin-panel p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; }
+.signin-panel p b { color: var(--text-primary); font-weight: 600; overflow-wrap: anywhere; }
 /* Separatore "or" tra Google ed email: linee magenta → ciano come il bordo del bottone. */
 .signin-or {
   display: flex; align-items: center; gap: 10px;

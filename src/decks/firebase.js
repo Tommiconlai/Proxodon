@@ -6,7 +6,7 @@ import { initializeApp } from 'firebase/app';
 import {
   getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged,
   signOut as fbSignOut, deleteUser, reauthenticateWithPopup,
-  signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail,
+  signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification,
 } from 'firebase/auth';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { firebaseConfig } from './firebaseConfig';
@@ -35,7 +35,23 @@ export async function signIn() {
 
 // Email + password (provider "Email/Password" da attivare nella console Firebase).
 export const signInEmail = (email, password) => signInWithEmailAndPassword(auth, email, password);
-export const signUpEmail = (email, password) => createUserWithEmailAndPassword(auth, email, password);
+export async function signUpEmail(email, password) {
+  const { user } = await createUserWithEmailAndPassword(auth, email, password);
+  // Un invio fallito non blocca: il pannello di verifica ha "Send the link again".
+  await sendEmailVerification(user).catch(() => {});
+}
+export const sendVerification = () => sendEmailVerification(auth.currentUser);
+// Gli account email + password devono confermare l'indirizzo; Google è già verificato.
+// Stessa condizione delle regole Firestore (email_verified o login Google).
+export const needsVerification = (u) => !u.emailVerified && !u.providerData.some((p) => p.providerId === 'google.com');
+// Dopo il click sul link: rilegge l'utente e rinnova il token, così le regole vedono email_verified.
+export async function checkVerified() {
+  const u = auth.currentUser;
+  if (!u) return false;
+  await u.reload();
+  if (u.emailVerified) await u.getIdToken(true);
+  return u.emailVerified;
+}
 // Con la protezione anti-enumerazione Firebase non dice se l'email esiste: nessun errore in quel caso.
 export const resetPassword = (email) => sendPasswordResetEmail(auth, email);
 
