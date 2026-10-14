@@ -48,6 +48,7 @@ function usePref(key, modes, fallback) {
 // hanno un avviso, più un riepilogo in alto.
 // Selezione come le carte in stampa (click = aggiungi/togli, Shift = intervallo, Esc = svuota);
 // menu su click destro, Shift+F10 o pressione lunga, sulla selezione se la riga ne fa parte.
+// Click sul vuoto = deseleziona; trascinando sul vuoto col mouse = selezione ad area.
 // Desktop: le carte si trascinano tra gruppi del main, sezioni, sideboard e maybeboard. Creare una
 // sezione porta il mazzo in raggruppamento custom; da telefono si sposta tutto dal menu.
 export default function DeckSections({ deck, update, touch }) {
@@ -62,6 +63,9 @@ export default function DeckSections({ deck, update, touch }) {
   const [dropKey, setDropKey] = useState(null);
   const [dragging, setDragging] = useState(false); // durante il trascinamento il maybeboard vuoto accetta il rilascio
   const dragIds = useRef(null); // { ids, one } durante un trascinamento; one = Alt, una copia sola
+  const [marquee, setMarquee] = useState(null); // rettangolo della selezione ad area, relativo al contenitore
+  const marqueeRef = useRef(null); // { x0, y0, base: Set, active }
+  const swallowClick = useRef(false); // il click che chiude un'area non deve deselezionare
   const press = useLongPress();
   const closeMenu = useCallback(() => setMenu(null), []);
   const custom = deck.groupBy === 'custom';
@@ -158,6 +162,51 @@ export default function DeckSections({ deck, update, touch }) {
     setHover({ img: r.card.img, x, y });
   };
 
+  // Spazio vuoto (non carte, barra, menu o dialoghi): il click deseleziona, il trascinamento col mouse
+  // disegna un'area e aggiunge le carte che tocca (come nella stampa, non toglie le altre).
+  // Nello stack di una carta conta solo la fascia visibile, fino all'inizio della successiva.
+  const onEmpty = (e) => e.currentTarget.contains(e.target)
+    && !e.target.closest('.deck-row, .deck-toolbar, .deck-group-actions, .modal-overlay, button, select, input, summary, a');
+  const marqueeHandlers = {
+    onPointerDown: (e) => {
+      swallowClick.current = false; // nuovo gesto
+      if (touch || e.pointerType !== 'mouse' || e.button !== 0 || !onEmpty(e)) return;
+      e.preventDefault(); // niente selezione di testo mentre si trascina
+      marqueeRef.current = { x0: e.clientX, y0: e.clientY, base: new Set(selected), active: false };
+      e.currentTarget.setPointerCapture(e.pointerId);
+    },
+    onPointerMove: (e) => {
+      const m = marqueeRef.current;
+      if (!m || (!m.active && Math.hypot(e.clientX - m.x0, e.clientY - m.y0) < 4)) return;
+      m.active = true;
+      const box = e.currentTarget.getBoundingClientRect();
+      const cx = Math.min(Math.max(e.clientX, box.left), box.right);
+      const cy = Math.min(Math.max(e.clientY, box.top), box.bottom);
+      const [x1, x2] = m.x0 < cx ? [m.x0, cx] : [cx, m.x0];
+      const [y1, y2] = m.y0 < cy ? [m.y0, cy] : [cy, m.y0];
+      const n = new Set(m.base);
+      e.currentTarget.querySelectorAll('.deck-row').forEach((li) => {
+        const r = li.getBoundingClientRect();
+        const next = layout === 'stacks' && li.nextElementSibling;
+        const bottom = next ? Math.min(r.bottom, next.getBoundingClientRect().top) : r.bottom;
+        if (r.left < x2 && r.right > x1 && r.top < y2 && bottom > y1) n.add(li.dataset.rowId);
+      });
+      setSel(n);
+      setHover(null);
+      setMarquee({ left: x1 - box.left, top: y1 - box.top, width: x2 - x1, height: y2 - y1 });
+    },
+    onPointerUp: () => {
+      if (marqueeRef.current?.active) swallowClick.current = true;
+      marqueeRef.current = null;
+      setMarquee(null);
+    },
+    onPointerCancel: () => { marqueeRef.current = null; setMarquee(null); },
+    onClick: (e) => {
+      if (swallowClick.current) { swallowClick.current = false; return; }
+      if (onEmpty(e) && sel.size) setSel(new Set());
+    },
+  };
+
   // Trascinamento (desktop): la riga, o tutta la selezione se ne fa parte; con Alt una copia per riga.
   const endDrag = () => { dragIds.current = null; setDropKey(null); setDragging(false); };
   const dragProps = (r) => (touch ? {} : {
@@ -204,7 +253,7 @@ export default function DeckSections({ deck, update, touch }) {
     const warn = warnOf(r);
     const warnText = warn && `${warn.count} copies, max ${warn.max} in ${formatLabel(deck.format)}`;
     return (
-      <li key={copy ? `${r.id}:${copy}` : r.id} className={`deck-row${sel.has(r.id) ? ' selected' : ''}${warn ? ' over' : ''}`} {...dragProps(r)}
+      <li key={copy ? `${r.id}:${copy}` : r.id} data-row-id={r.id} className={`deck-row${sel.has(r.id) ? ' selected' : ''}${warn ? ' over' : ''}`} {...dragProps(r)}
         onMouseEnter={touch ? undefined : (e) => showPreview(e, r)} onMouseLeave={touch ? undefined : () => setHover(null)}>
         <button type="button" className="deck-row-main" aria-pressed={sel.has(r.id)}
           aria-label={view === 'list' ? undefined : `${split ? `${r.card.name}, copy ${copy + 1} of ${r.qty}` : `${r.qty} ${r.card.name}`}${warn ? `, ${warnText}` : ''}`}
@@ -267,7 +316,9 @@ export default function DeckSections({ deck, update, touch }) {
     return <p className="deck-empty deck-empty-big">{touch ? 'Tap + to search and add cards.' : 'Search a card on the left and press Enter to add it.'}</p>;
   }
   return (
-    <div className={`deck-sections view-${layout}`} onKeyDown={(e) => { if (e.key === 'Escape' && sel.size) { e.stopPropagation(); setSel(new Set()); } }}>
+    <div className={`deck-sections view-${layout}`} {...marqueeHandlers}
+      onKeyDown={(e) => { if (e.key === 'Escape' && sel.size) { e.stopPropagation(); setSel(new Set()); } }}>
+      {marquee && <div className="marquee" style={marquee} aria-hidden="true" />}
       <div className="deck-toolbar">
         <label className="deck-tool">
           <span>Group by</span>

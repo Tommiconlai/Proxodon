@@ -2673,7 +2673,10 @@ body::before {
 .deck-count.ok { color: var(--success); border-color: rgba(34, 197, 94, 0.35); }
 .deck-body { min-height: 0; display: grid; grid-template-columns: 300px 1fr; }
 .deck-editor.is-mobile .deck-body { grid-template-columns: 1fr; }
-.deck-main { min-height: 0; overflow-y: auto; padding: 18px 22px 40px; }
+/* Il padding sta in .deck-sections, alta quanto il contenitore: click e selezione ad area partono
+   da tutto lo spazio vuoto. */
+.deck-main { min-height: 0; overflow-y: auto; }
+.deck-sections { position: relative; min-height: 100%; padding: 18px 22px 40px; }
 
 .deck-columns { columns: 260px; column-gap: 28px; }
 .deck-group { break-inside: avoid; margin: 0 0 18px; }
@@ -2710,8 +2713,9 @@ body::before {
 /* Riga selezionata: velo magenta + barretta a sinistra (come il frame delle carte selezionate). */
 .deck-row.selected { background: rgba(255, 45, 149, 0.08); box-shadow: inset 2px 0 0 var(--accent); }
 .deck-row-qty { display: flex; gap: 2px; opacity: 0; transition: opacity var(--transition); }
-/* Focus solo da tastiera: dopo un click il pulsante resta focalizzato e +/- non devono restare. */
-.deck-row:hover .deck-row-qty, .deck-row:has(:focus-visible) .deck-row-qty { opacity: 1; }
+/* Solo hover (il focus della carta dopo un click non li mostra); visibili anche quando il
+   focus da tastiera è proprio su + o -, per non avere pulsanti invisibili. */
+.deck-row:hover .deck-row-qty, .deck-row-qty:has(:focus-visible) { opacity: 1; }
 @media (hover: none) { .deck-row-qty { opacity: 1; } }
 .deck-row-qty button { display: flex; padding: 3px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-elevated); color: var(--text-secondary); cursor: pointer; }
 .deck-row-qty button:hover, .deck-row-qty button:focus-visible { color: var(--cyan-soft); border-color: var(--border-hover); outline: none; }
@@ -2719,7 +2723,7 @@ body::before {
 .deck-maybe summary { cursor: pointer; list-style: none; }
 .deck-maybe summary::-webkit-details-marker { display: none; }
 .deck-empty { margin: 4px 0; font-size: 0.8rem; color: var(--text-muted); }
-.deck-empty-big { padding: 40px 0; font-size: 0.95rem; text-align: center; }
+.deck-empty-big { padding: 40px 22px; font-size: 0.95rem; text-align: center; }
 /* Anteprima carta al passaggio (desktop): in basso a sinistra, sopra la colonna di ricerca. */
 .deck-hover { position: fixed; z-index: 200; border-radius: 12px; pointer-events: none; box-shadow: var(--shadow-lg), 0 0 24px rgba(0, 229, 255, 0.18); animation: fade-in 0.12s ease; }
 
@@ -2819,7 +2823,7 @@ body::before {
   .deck-rows.view-stacks .deck-row.selected .deck-card-qty { opacity: 0; }
 }
 .deck-editor.is-mobile .deck-bar { padding: 10px 12px; }
-.deck-editor.is-mobile .deck-main { padding: 14px 14px 110px; }
+.deck-editor.is-mobile .deck-sections { padding: 14px 14px 110px; }
 .deck-editor.is-mobile .deck-columns { columns: auto; }
 
 .deck-search { min-height: 0; overflow-y: auto; padding: 18px; background: rgba(10, 9, 18, 0.4); border-right: 1px solid rgba(124, 92, 255, 0.16); }
