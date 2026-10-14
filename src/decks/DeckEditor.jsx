@@ -1,23 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDeck } from './useDeck';
-import { FORMATS, boardCounts, countTarget, countOk, refreshSnapshots, addCard, toPrintEntries } from './deckModel';
+import { FORMATS, boardCounts, countTarget, countOk, refreshSnapshots, addCard, toPrintEntries, coverRow } from './deckModel';
 import { cardsByIds } from './scryfallSearch';
 import { navigate } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
 import CardSearch from './CardSearch';
 import { MobilePage } from '../components/MobileLayout';
-import { PrintDeckDialog } from './dialogs';
-import { IconArrowLeft, IconPlus, IconPrinter } from '../components/icons';
+import { PrintDeckDialog, CoverDialog } from './dialogs';
+import { IconArrowLeft, IconPlus, IconPrinter, IconImage } from '../components/icons';
 
-// Editor del mazzo: barra in alto (nome, formato, stato sync, conteggio), corpo con le sezioni.
-// Ricerca a sinistra (foglio a tutto schermo su telefono) e Print deck.
+// Editor del mazzo: testata con la copertina (arte della carta scelta, a sinistra, che verso destra
+// si sfoca e svanisce; click = scegli un'altra carta del mazzo) e sopra, a sinistra, nome, formato,
+// stato sync, conteggio e Print deck. Sotto il corpo con le sezioni; ricerca a sinistra (foglio a
+// tutto schermo su telefono).
 export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDeck }) {
   const { deck, update, saving, error } = useDeck(uid, id);
   const mobile = useIsMobile();
   const [online, setOnline] = useState(() => navigator.onLine);
   const [searchOpen, setSearchOpen] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
+  const [coverOpen, setCoverOpen] = useState(false);
   const refreshed = useRef(false);
 
   useEffect(() => {
@@ -65,23 +68,44 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
     else setPrintOpen(true);
   };
   const target = countTarget(deck.format);
+  const cover = coverRow(deck);
   const sync = !online ? (saving ? 'Offline, saved on this device' : 'Offline') : saving ? 'Saving…' : 'Saved';
   return (
     <div className={`deck-editor${mobile ? ' is-mobile' : ''}`}>
-      <header className="deck-bar">
-        <a className="deck-back" href="#/decks" aria-label="Back to decks"><IconArrowLeft size={18} /></a>
-        <input className="deck-name" value={deck.name} maxLength={80} aria-label="Deck name" spellCheck={false}
-          onChange={(e) => update((d) => ({ ...d, name: e.target.value }))}
-          onBlur={() => update((d) => (d.name.trim() ? d : { ...d, name: 'Untitled deck' }))} />
-        <select className="deck-format" value={deck.format} aria-label="Format" onChange={(e) => update((d) => ({ ...d, format: e.target.value }))}>
-          {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
-        </select>
-        <span className={`deck-sync${online ? '' : ' offline'}`} role="status">{sync}</span>
-        <span className={`deck-count ${countOk(deck.format, c.main) ? 'ok' : 'warn'}`} title="Main deck">
-          {c.main}{target ? `/${target}` : ''}
-        </span>
-        <button type="button" className="btn-secondary deck-print" onClick={startPrint} disabled={!c.main}><IconPrinter size={15} /> Print deck</button>
+      <header className="deck-hero">
+        <button type="button" className="deck-hero-art" onClick={() => setCoverOpen(true)} disabled={!cover}
+          aria-label={cover ? `Deck cover: ${cover.card.name}. Change it` : 'Deck cover: add cards first'}>
+          {cover?.card.art && (
+            <>
+              <span className="deck-hero-blur" aria-hidden="true"><span style={{ backgroundImage: `url("${cover.card.art}")` }} /></span>
+              <span className="deck-hero-img" style={{ backgroundImage: `url("${cover.card.art}")` }} aria-hidden="true" />
+            </>
+          )}
+          {cover && <span className="deck-hero-change" aria-hidden="true"><IconImage size={13} /> Change cover</span>}
+        </button>
+        <div className="deck-hero-content">
+          <div className="deck-hero-title">
+            <a className="deck-back" href="#/decks" aria-label="Back to decks"><IconArrowLeft size={18} /></a>
+            <input className="deck-name" value={deck.name} maxLength={80} aria-label="Deck name" spellCheck={false}
+              onChange={(e) => update((d) => ({ ...d, name: e.target.value }))}
+              onBlur={() => update((d) => (d.name.trim() ? d : { ...d, name: 'Untitled deck' }))} />
+          </div>
+          <div className="deck-hero-meta">
+            <select className="deck-format" value={deck.format} aria-label="Format" onChange={(e) => update((d) => ({ ...d, format: e.target.value }))}>
+              {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+            </select>
+            <span className={`deck-sync${online ? '' : ' offline'}`} role="status">{sync}</span>
+            <span className={`deck-count ${countOk(deck.format, c.main) ? 'ok' : 'warn'}`} title="Main deck">
+              {c.main}{target ? `/${target}` : ''}
+            </span>
+            <button type="button" className="btn-secondary deck-print" onClick={startPrint} disabled={!c.main}><IconPrinter size={15} /> Print deck</button>
+          </div>
+        </div>
       </header>
+      {coverOpen && (
+        <CoverDialog deck={deck} onClose={() => setCoverOpen(false)}
+          onPick={(oid) => { update((d) => ({ ...d, cover: oid })); setCoverOpen(false); }} />
+      )}
       <div className="deck-body">
         {!mobile && <aside className="deck-search"><CardSearch format={deck.format} onAdd={add} /></aside>}
         <section className="deck-main"><DeckSections deck={deck} update={update} touch={mobile} /></section>

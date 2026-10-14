@@ -2646,7 +2646,78 @@ body::before {
 
 /* Editor mazzo: barra + corpo (ricerca a sinistra su desktop, dal task 10). */
 .deck-editor { height: 100%; min-height: 0; display: grid; grid-template-rows: auto 1fr; }
-.deck-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 18px; background: rgba(10, 9, 18, 0.55); border-bottom: 1px solid rgba(124, 92, 255, 0.16); }
+/* Testata del mazzo: copertina a sinistra (arte della carta scelta) che verso destra si sfoca e
+   svanisce nello sfondo: uno strato nitido che sfuma presto + uno sfocato che lo prosegue. Sopra,
+   allineati a sinistra, nome e comandi; il velo scuro in basso tiene leggibile il testo. Click
+   sull'immagine (anche fuori dai comandi: il contenuto lascia passare i click) = scegli copertina. */
+.deck-hero {
+  position: relative; isolation: isolate;
+  min-height: 200px;
+  display: flex; align-items: flex-end;
+  padding: 18px 22px 16px;
+  overflow: hidden;
+  background: var(--bg-surface);
+  border-bottom: 1px solid rgba(124, 92, 255, 0.16);
+}
+.deck-hero-art {
+  position: absolute; inset: 0 auto 0 0; z-index: 0;
+  width: min(640px, 72%);
+  padding: 0; border: 0; background: none;
+  cursor: pointer;
+}
+.deck-hero-art:disabled { cursor: default; }
+.deck-hero-art:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--cyan); }
+.deck-hero-img {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center 35%;
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 42%, transparent 74%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 42%, transparent 74%);
+}
+/* Strato sfocato sotto quello nitido, senza maschera (Chrome non maschera un figlio sfocato e
+   lasciava un bordo netto): lo dissolve verso destra il gradiente del colore di fondo (::after),
+   che al bordo coincide con lo sfondo della testata. */
+.deck-hero-blur { position: absolute; inset: 0; overflow: hidden; }
+.deck-hero-blur > span {
+  position: absolute; inset: -24px;
+  background-size: cover; background-position: center 35%;
+  filter: blur(16px) saturate(1.15);
+}
+.deck-hero-art::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 40%, var(--bg-surface) 92%);
+}
+.deck-hero::before {
+  content: ''; position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(0deg, rgba(8, 7, 15, 0.88) 0%, rgba(8, 7, 15, 0.35) 42%, transparent 72%);
+  pointer-events: none;
+}
+.deck-hero-change {
+  position: absolute; z-index: 1; left: 14px; top: 12px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid rgba(0, 229, 255, 0.45); border-radius: 999px;
+  background: rgba(8, 7, 15, 0.75);
+  font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.08em;
+  color: var(--cyan-soft);
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.deck-hero-art:hover .deck-hero-change, .deck-hero-art:focus-visible .deck-hero-change { opacity: 1; }
+@media (hover: none) { .deck-hero-change { opacity: 1; } }
+.deck-hero-content { position: relative; z-index: 2; min-width: 0; max-width: 100%; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+.deck-hero-content :is(a, input, select, button, .deck-sync, .deck-count) { pointer-events: auto; }
+.deck-hero-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.deck-hero .deck-name { flex: 0 1 auto; width: min(620px, 100%); font-size: 1.6rem; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85); }
+/* Largo quanto il testo dove supportato, così il resto della copertina resta cliccabile. */
+@supports (field-sizing: content) { .deck-hero .deck-name { width: auto; field-sizing: content; min-width: 6ch; max-width: min(620px, 100%); } }
+.deck-hero .deck-back { color: var(--text-primary); background: rgba(8, 7, 15, 0.55); }
+.deck-hero-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-left: 36px; }
+.deck-hero .deck-sync { color: var(--text-secondary); }
+.deck-hero .deck-count { background: rgba(8, 7, 15, 0.6); }
+/* Copertine nel dialogo: arte orizzontale, più colonne. */
+.cover-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.cover-grid .art-cell img { aspect-ratio: 626 / 457; object-fit: cover; }
+.cover-grid .art-cell span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .deck-back { display: flex; padding: 6px; border-radius: 6px; color: var(--text-secondary); }
 .deck-back:hover, .deck-back:focus-visible { color: var(--cyan-soft); background: var(--bg-glass-hover); outline: none; }
 .deck-name {
@@ -2885,7 +2956,10 @@ body::before {
   .deck-rows.view-stacks .deck-row:not(.selected) .deck-row-qty { display: none; }
   .deck-rows.view-stacks .deck-row.selected .deck-card-qty { opacity: 0; }
 }
-.deck-editor.is-mobile .deck-bar { padding: 10px 12px; }
+.deck-editor.is-mobile .deck-hero { min-height: 150px; padding: 14px 12px 12px; }
+.deck-editor.is-mobile .deck-hero-art { width: 100%; }
+.deck-editor.is-mobile .deck-hero .deck-name { font-size: 1.25rem; }
+.deck-editor.is-mobile .deck-hero-meta { padding-left: 0; gap: 8px; }
 .deck-editor.is-mobile .deck-sections { padding: 14px 14px 110px; }
 .deck-editor.is-mobile .deck-columns { columns: auto; }
 
@@ -2985,4 +3059,3 @@ body::before {
 .card-zoom { display: block; max-width: 92vw; max-height: 86vh; border-radius: 18px; box-shadow: var(--shadow-lg); }
 .card-zoom-close { position: absolute; top: -12px; right: -12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 50%; }
 .deck-fab { position: fixed; right: 18px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 50; }
-.deck-print { margin-left: auto; }

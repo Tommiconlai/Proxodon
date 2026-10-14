@@ -12,7 +12,7 @@ const decksCol = (uid) => collection(db, 'users', uid, 'decks');
 const fromDoc = (s) => ({ id: s.id, ...s.data({ serverTimestamps: 'estimate' }) });
 const ms = (t) => t?.toMillis?.() ?? 0;
 const payload = (d) => ({
-  v: 1, name: d.name, format: d.format, groupBy: d.groupBy, sections: d.sections, cards: d.cards,
+  v: 1, name: d.name, format: d.format, groupBy: d.groupBy, sections: d.sections, cover: d.cover ?? null, cards: d.cards,
   updatedAt: serverTimestamp(),
 });
 

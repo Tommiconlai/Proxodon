@@ -71,7 +71,7 @@ export const isLand = (s) => /\bLand\b/.test(s.type);
 export const isBasicLand = (s) => /\bBasic\b/.test(s.type) && isLand(s);
 
 export function newDeck({ name, format = 'commander' }) {
-  return { v: 1, name: String(name || '').trim() || 'Untitled deck', format, groupBy: 'type', sections: [], cards: [] };
+  return { v: 1, name: String(name || '').trim() || 'Untitled deck', format, groupBy: 'type', sections: [], cover: null, cards: [] };
 }
 
 const clampQty = (n) => Math.max(1, Math.min(MAX_QTY, Math.round(n) || 1));
@@ -342,10 +342,11 @@ export function deckIdentity(deck) {
   return WUBRG.filter((c) => set.has(c));
 }
 
-export function deckCover(deck) {
-  const r = commanderRows(deck)[0] || deck.cards.find((x) => x.board === 'main');
-  return r?.card.art || '';
-}
+// Copertina: la carta scelta (deck.cover = oracle id, così segue i cambi di edizione), altrimenti il
+// primo comandante, altrimenti la prima carta del main. Carta scelta tolta dal mazzo = automatica.
+export const coverRow = (deck) => (deck.cover && deck.cards.find((r) => r.card.oid === deck.cover))
+  || commanderRows(deck)[0] || deck.cards.find((x) => x.board === 'main');
+export const deckCover = (deck) => coverRow(deck)?.card.art || '';
 
 // ── Verso la stampa ──────────────────────────────────────────
 
@@ -408,7 +409,7 @@ export function toBackup(decks, now = new Date()) {
   return {
     app: 'proxoteca', kind: 'decks', v: 1, exportedAt: now.toISOString(),
     decks: decks.map((d) => ({
-      v: 1, name: d.name, format: d.format, groupBy: d.groupBy, sections: d.sections, cards: d.cards,
+      v: 1, name: d.name, format: d.format, groupBy: d.groupBy, sections: d.sections, cover: d.cover ?? null, cards: d.cards,
       createdAt: iso(d.createdAt), updatedAt: iso(d.updatedAt),
     })),
   };
@@ -427,6 +428,7 @@ export function fromBackup(json) {
   return json.decks.map((d) => ({
     ...newDeck({ name: d?.name, format: FORMATS.some((f) => f.id === d?.format) ? d.format : 'casual' }),
     groupBy: GROUP_MODES.some((m) => m.id === d?.groupBy) ? d.groupBy : 'type',
+    cover: typeof d?.cover === 'string' ? d.cover : null,
     sections: Array.isArray(d?.sections) ? d.sections.filter((s) => s && s.id && s.name) : [],
     cards: (Array.isArray(d?.cards) ? d.cards : []).filter(validRow).slice(0, MAX_ROWS)
       .map((r) => ({ id: rid(), qty: clampQty(r.qty), board: r.board, commander: r.board === 'main' && !!r.commander, section: r.section ?? null, card: r.card })),
@@ -437,6 +439,7 @@ export function duplicateDeck(deck) {
   return {
     ...newDeck({ name: `${deck.name} (copy)`, format: deck.format }),
     groupBy: deck.groupBy,
+    cover: deck.cover ?? null,
     sections: deck.sections.map((s) => ({ ...s })),
     cards: deck.cards.map((r) => ({ ...r, id: rid() })),
   };

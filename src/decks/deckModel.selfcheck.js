@@ -314,6 +314,17 @@ v60 = addCard(v60, forest, { board: 'side', qty: 16 }).deck;
 eq(issues(v60), [['sidesize', 1], ['copies', 1]], '60 carte: sideboard oltre 15, copie oltre 4');
 eq(validateDeck({ ...v60, format: 'casual' }), [], 'Casual: nessun controllo');
 
+// Copertina scelta: per oracle id (resta col cambio edizione); carta tolta = torna automatica.
+let cv = addCard(newDeck({ name: 'C', format: 'modern' }), bolt).deck;
+cv = addCard(cv, forest).deck;
+eq([newDeck({ name: 'x' }).cover, deckCover(cv)], [null, 'a-bolt'], 'senza scelta: la prima del main');
+cv = { ...cv, cover: forest.oid };
+eq(deckCover(cv), 'a-for', 'copertina scelta');
+eq(deckCover(changeEdition(cv, [cv.cards[1].id], { ...forest, sid: 'for2', art: 'a-for2' })), 'a-for2', 'cambio edizione: la copertina segue la carta');
+eq(deckCover(removeRows(cv, [cv.cards[1].id])), 'a-bolt', 'carta tolta: copertina automatica');
+eq([duplicateDeck(cv).cover, fromBackup(JSON.parse(JSON.stringify(toBackup([cv]))))[0].cover], [forest.oid, forest.oid], 'copertina in duplicato e backup');
+eq(fromBackup({ app: 'proxoteca', kind: 'decks', v: 1, decks: [{ name: 'B', cover: 42, cards: [] }] })[0].cover, null, 'backup: copertina non valida = automatica');
+
 // URL Scryfall con nomi difficili (Review Focus 4)
 eq(namedUrl('Kongming, "Sleeping Dragon"'), 'https://api.scryfall.com/cards/named?exact=Kongming%2C%20%22Sleeping%20Dragon%22', 'named: virgole e virgolette');
 eq(autocompleteUrl('Æther Vi'), 'https://api.scryfall.com/cards/autocomplete?q=%C3%86ther%20Vi', 'autocomplete: unicode');

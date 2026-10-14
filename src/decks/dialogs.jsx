@@ -1,7 +1,52 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
-import { FORMATS } from './deckModel';
+import { FORMATS, coverRow } from './deckModel';
 import { IconX } from '../components/icons';
+
+// Copertina del mazzo: l'arte di una sua carta (una per carta, maybeboard escluso) oppure
+// "Automatic" (primo comandante, sennò prima carta del main). onPick(oid | null).
+export function CoverDialog({ deck, onPick, onClose }) {
+  const ref = useOverlayDismiss(onClose);
+  const [q, setQ] = useState('');
+  const cards = useMemo(() => {
+    const by = new Map();
+    for (const r of deck.cards) if (r.board !== 'maybe' && r.card.art && !by.has(r.card.oid)) by.set(r.card.oid, r.card);
+    return [...by.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [deck]);
+  const shown = cards.filter((c) => c.name.toLowerCase().includes(q.trim().toLowerCase()));
+  const auto = coverRow({ ...deck, cover: null })?.card;
+  const current = deck.cover && cards.some((c) => c.oid === deck.cover) ? deck.cover : null;
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal modal-art" ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Deck cover" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>Deck cover</h2>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close"><IconX size={18} /></button>
+        </div>
+        <div className="art-search-row">
+          <input type="search" className="import-link-input" value={q} onChange={(e) => setQ(e.target.value)}
+            placeholder="Filter the deck's cards" aria-label="Filter cards" spellCheck={false} />
+          <span className="art-search-count" aria-live="polite">{shown.length} of {cards.length} cards</span>
+        </div>
+        <div className="art-grid cover-grid">
+          {auto && !q.trim() && (
+            <button type="button" className={`art-cell${current ? '' : ' current'}`} onClick={() => onPick(null)}
+              title={`Automatic: ${auto.name}`}>
+              <img src={auto.art} alt="" />
+              <span>Automatic</span>
+            </button>
+          )}
+          {shown.map((c) => (
+            <button key={c.oid} type="button" className={`art-cell${current === c.oid ? ' current' : ''}`} onClick={() => onPick(c.oid)} title={c.name}>
+              <img src={c.art} alt="" loading="lazy" />
+              <span>{c.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Cosa salviamo e come cancellarlo (menu account).
 export function PrivacyPanel({ onClose }) {
