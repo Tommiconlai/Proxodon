@@ -2833,8 +2833,6 @@ body::before {
 .search-box:focus-within { border-color: var(--cyan); box-shadow: var(--focus-ring); }
 .search-box input { flex: 1; min-width: 0; padding: 9px 0; background: none; border: none; color: var(--text-primary); font: inherit; font-size: 0.88rem; }
 .search-box input:focus { outline: none; }
-.search-go { display: flex; padding: 6px; background: none; border: none; border-radius: 4px; color: var(--text-secondary); cursor: pointer; }
-.search-go:hover:not(:disabled) { color: var(--cyan-soft); }
 .search-suggest {
   position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 20;
   max-height: 320px; overflow-y: auto;
@@ -2874,18 +2872,7 @@ body::before {
 .deck-warn.deck-illegal { border-color: rgba(255, 77, 109, 0.5); background: rgba(255, 77, 109, 0.08); color: var(--danger); }
 .search-more { width: 100%; justify-content: center; margin-top: 12px; }
 
-/* Risultati della ricerca per nome: elenco senza immagini, frecce + Invio come i suggerimenti. */
-.search-list { list-style: none; margin: 8px 0 0; padding: 0; }
-.search-list li {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 8px;
-  padding: 6px 8px;
-  border-top: 1px solid rgba(124, 92, 255, 0.12);
-  font-size: 0.84rem; color: var(--text-primary);
-  cursor: pointer;
-}
-.search-list li.active { background: rgba(0, 229, 255, 0.1); box-shadow: inset 2px 0 0 var(--cyan); }
-.search-list-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.search-list-type { grid-column: 1 / -1; font-size: 0.7rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-none { padding: 9px 12px; margin: 0; font-size: 0.8rem; color: var(--text-muted); }
 .search-adv-toggle {
   margin-top: 8px; padding: 2px 0;
   background: none; border: 0;

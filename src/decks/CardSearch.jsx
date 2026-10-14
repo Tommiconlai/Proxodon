@@ -1,8 +1,7 @@
 import { useEffect, useId, useState } from 'react';
-import { autocomplete, namedCard, searchCards, withLegal } from './scryfallSearch';
+import { autocomplete, namedCard } from './scryfallSearch';
 import { lookupCards } from '../utils/scryfall';
 import { snapshotFromCard, copiesToAdd, illegalIn, legalityLabel } from './deckModel';
-import { ManaCost } from './Mana';
 import AdvancedSearch from './AdvancedSearch';
 import { IconSearch } from '../components/icons';
 
@@ -11,30 +10,24 @@ import { IconSearch } from '../components/icons';
 const target = (e, format) => ({ board: e.altKey ? (format === 'commander' ? 'maybe' : 'side') : 'main', four: e.shiftKey });
 const WHERE = { main: '', side: ' to sideboard', maybe: ' to maybeboard' };
 const front = (name) => name.split(' // ')[0];
-const manaOf = (c) => c.mana_cost ?? c.card_faces?.[0]?.mana_cost ?? '';
-const typeOf = (c) => (c.type_line || c.card_faces?.[0]?.type_line || '').split(' // ')[0];
 
-// Ricerca per nome: suggerimenti mentre scrivi, Invio (o la lente) = elenco dei risultati, senza
-// immagini. Su entrambi le frecce scelgono e Invio aggiunge (Shift = 4, Alt = sideboard). Le carte
-// bandite o non legali nel formato non compaiono. "Advanced search" apre i filtri con le immagini.
+// Ricerca per nome: solo il menu a tendina dei suggerimenti; le frecce scelgono, Invio aggiunge
+// (Shift = 4, Alt = sideboard). Le carte bandite o non legali nel formato non compaiono.
+// "Advanced search" apre i filtri con le immagini.
 export default function CardSearch({ format, onAdd, autoFocus }) {
   const [q, setQ] = useState('');
   const [sugg, setSugg] = useState([]);
+  const [emptyFor, setEmptyFor] = useState(null); // testo per cui nessuna carta giocabile corrisponde
   const [active, setActive] = useState(0);
-  const [results, setResults] = useState(null); // { cards, next, total, q }
-  const [activeRes, setActiveRes] = useState(0);
-  const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState(null);
   const [advanced, setAdvanced] = useState(false);
-  // Testo per cui i suggerimenti restano chiusi: dopo una ricerca o Esc (anche se arrivano in ritardo).
-  const [hideFor, setHideFor] = useState(null);
+  const [hideFor, setHideFor] = useState(null); // dopo Esc la tendina resta chiusa per quel testo
   const listId = useId();
-  const resId = useId();
   const text = q.trim();
-  const visible = text.length >= 2 && hideFor !== text ? sugg : [];
-  // Le frecce guidano i suggerimenti se aperti, sennò i risultati della ricerca per questo testo.
-  const onResults = !visible.length && results?.cards.length > 0 && results.q === text;
+  const open = text.length >= 2 && hideFor !== text;
+  const visible = open ? sugg : [];
+  const noMatch = open && emptyFor === text;
 
   // Autocompletamento: 250 ms dopo l'ultima battuta, la richiesta precedente viene annullata. Fuori
   // da Casual i nomi passano da una richiesta /cards/collection per togliere bandite e non legali;
@@ -55,17 +48,12 @@ export default function CardSearch({ format, onAdd, autoFocus }) {
               });
             } catch { /* senza dati: nessun filtro */ }
           }
-          if (!ctrl.signal.aborted) { setSugg(shown); setActive(0); }
+          if (!ctrl.signal.aborted) { setSugg(shown); setActive(0); setEmptyFor(shown.length ? null : text); }
         })
         .catch((e) => { if (e.name !== 'AbortError') setSugg([]); });
     }, 250);
     return () => { clearTimeout(t); ctrl.abort(); };
   }, [text, format]);
-
-  // La riga attiva dei risultati resta visibile mentre si scorre con le frecce.
-  useEffect(() => {
-    if (onResults) document.getElementById(`${resId}-${activeRes}`)?.scrollIntoView({ block: 'nearest' });
-  }, [activeRes, onResults, resId]);
 
   const add = async (getCard, e) => {
     const { board, four } = target(e, format); // letti prima dell'await
@@ -83,33 +71,14 @@ export default function CardSearch({ format, onAdd, autoFocus }) {
   };
   const addSuggestion = (name, e) => { setQ(''); setSugg([]); add(() => namedCard(name), e); };
 
-  const runSearch = async (pageUrl) => {
-    if (!text && !pageUrl) return;
-    setBusy(true);
-    setError(null);
-    setHideFor(text);
-    try {
-      const r = await searchCards(withLegal(text, format), undefined, pageUrl);
-      setResults((prev) => (pageUrl && prev ? { ...r, cards: [...prev.cards, ...r.cards], q: prev.q } : { ...r, q: text }));
-      if (!pageUrl) setActiveRes(0);
-    } catch (err) {
-      setError(err.message || 'Search failed.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const onKeyDown = (e) => {
-    const n = visible.length || (onResults ? results.cards.length : 0);
-    const move = visible.length ? setActive : setActiveRes;
-    if (e.key === 'ArrowDown' && n) { e.preventDefault(); move((i) => (i + 1) % n); }
-    else if (e.key === 'ArrowUp' && n) { e.preventDefault(); move((i) => (i - 1 + n) % n); }
+    const n = visible.length;
+    if (e.key === 'ArrowDown' && n) { e.preventDefault(); setActive((i) => (i + 1) % n); }
+    else if (e.key === 'ArrowUp' && n) { e.preventDefault(); setActive((i) => (i - 1 + n) % n); }
     else if (e.key === 'Enter') {
       e.preventDefault();
-      if (visible.length) addSuggestion(visible[Math.min(active, visible.length - 1)], e);
-      else if (onResults) { const c = results.cards[Math.min(activeRes, results.cards.length - 1)]; add(async () => c, e); }
-      else runSearch();
-    } else if (e.key === 'Escape' && visible.length) { e.stopPropagation(); setHideFor(text); }
+      if (n) addSuggestion(visible[Math.min(active, n - 1)], e);
+    } else if (e.key === 'Escape' && (n || noMatch)) { e.stopPropagation(); setHideFor(text); }
   };
 
   return (
@@ -117,14 +86,10 @@ export default function CardSearch({ format, onAdd, autoFocus }) {
       <div className="search-wrap">
         <div className="search-box">
           <IconSearch size={16} />
-          <input role="combobox" aria-label="Search cards" aria-expanded={visible.length > 0 || onResults}
-            aria-controls={visible.length ? listId : resId} aria-autocomplete="list"
-            aria-activedescendant={visible.length ? `${listId}-${active}` : onResults ? `${resId}-${activeRes}` : undefined}
+          <input role="combobox" aria-label="Search cards" aria-expanded={visible.length > 0} aria-controls={listId}
+            aria-autocomplete="list" aria-activedescendant={visible.length ? `${listId}-${active}` : undefined}
             value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onKeyDown}
             placeholder="Search a card name" autoFocus={autoFocus} spellCheck={false} autoComplete="off" />
-          <button type="button" className="search-go" onClick={() => runSearch()} disabled={!text || busy} aria-label="Show results">
-            {busy ? <span className="import-spinner" /> : <IconSearch size={15} />}
-          </button>
         </div>
         {visible.length > 0 && (
           <ul id={listId} role="listbox" className="search-suggest">
@@ -134,6 +99,7 @@ export default function CardSearch({ format, onAdd, autoFocus }) {
             ))}
           </ul>
         )}
+        {noMatch && <p className="search-suggest search-none" role="status">No playable card with this name.</p>}
       </div>
       <p className="search-hint">Enter adds 1 · Shift+Enter 4 · Alt+Enter to {format === 'commander' ? 'maybeboard' : 'sideboard'} · ↑↓ to choose</p>
       <button type="button" className="search-adv-toggle" aria-expanded={advanced} onClick={() => setAdvanced((v) => !v)}>
@@ -144,27 +110,6 @@ export default function CardSearch({ format, onAdd, autoFocus }) {
 
       {advanced && <AdvancedSearch format={format} onPick={add} />}
 
-      {!advanced && results && (
-        results.cards.length === 0
-          ? <p className="deck-empty">No cards found.</p>
-          : (
-            <>
-              <p className="search-count">{results.total} result{results.total !== 1 ? 's' : ''}</p>
-              <ul id={resId} role="listbox" aria-label="Search results" className="search-list">
-                {results.cards.map((c, i) => (
-                  <li key={c.id} id={`${resId}-${i}`} role="option" aria-selected={onResults && i === activeRes}
-                    className={onResults && i === activeRes ? 'active' : undefined}
-                    onMouseDown={(e) => { e.preventDefault(); add(async () => c, e); }} onMouseEnter={() => setActiveRes(i)}>
-                    <span className="search-list-name">{c.name}</span>
-                    <ManaCost cost={manaOf(c)} />
-                    <span className="search-list-type">{typeOf(c)}</span>
-                  </li>
-                ))}
-              </ul>
-              {results.next && <button type="button" className="btn-secondary search-more" onClick={() => runSearch(results.next)} disabled={busy}>Load more</button>}
-            </>
-          )
-      )}
     </div>
   );
 }
