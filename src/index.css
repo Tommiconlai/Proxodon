@@ -3077,6 +3077,8 @@ body::before {
 /* Il nome del mazzo, a sinistra, resta sempre visibile; nella barra (.stuck) si rimpicciolisce. */
 .deck-sticky-bar .deck-name { margin-right: auto; transition: font-size var(--transition); }
 .deck-sticky-bar.stuck .deck-name { font-size: 1.2rem; text-shadow: none; }
+.deck-sticky-bar.stuck { padding-bottom: 12px; }
+.deck-sticky-bar.stuck :is(.search-foot, .search-status:empty) { display: none; }
 .deck-hero-search { position: relative; z-index: 3; flex: 0 0 auto; width: min(400px, 40%); }
 .search-foot { display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; margin-top: 6px; }
 .search-foot .search-adv-toggle { margin-top: 0; }

@@ -11,6 +11,8 @@ import { MobilePage } from '../components/MobileLayout';
 import { PrintDeckDialog, CoverDialog } from './dialogs';
 import { IconPlus, IconPrinter, IconX } from '../components/icons';
 
+const STUCK_AT = 72; // px: padding della barra + casella di ricerca, circa
+
 // Editor del mazzo: testata con la copertina (arte della carta scelta, a sinistra, che verso destra
 // si sfoca e svanisce; click = scegli un'altra carta del mazzo, lo dice il cursore a mano) e sopra,
 // a sinistra, in basso formato, stato sync, conteggio e Print deck (si torna alla lista con la tab
@@ -28,13 +30,10 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const [advOpen, setAdvOpen] = useState(false); // pannello della ricerca avanzata (desktop)
   const [stuck, setStuck] = useState(false); // la testata è uscita: la fascia ricerca ha lo sfondo
   const heroRef = useRef(null);
-  const barRef = useRef(null);
   const refreshed = useRef(false);
-  const onScroll = (e) => {
-    const hero = heroRef.current?.offsetHeight || 0;
-    const bar = barRef.current?.offsetHeight || 0;
-    setStuck(e.currentTarget.scrollTop > hero - bar);
-  };
+  // Barra quando della testata resta meno della riga nome + ricerca. Soglia fissa: la barra da
+  // .stuck è più bassa (niente Advanced search), misurarla farebbe oscillare lo stato.
+  const onScroll = (e) => setStuck(e.currentTarget.scrollTop > (heroRef.current?.offsetHeight || 0) - STUCK_AT);
 
   useEffect(() => {
     const on = () => setOnline(true);
@@ -93,7 +92,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
       <div className="deck-scroll" onScroll={mobile ? undefined : onScroll}>
       {!mobile && (
         <div className="deck-sticky">
-          <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`} ref={barRef}>
+          <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`}>
             {name}
             <div className="deck-hero-search">
               <CardSearch format={deck.format} onAdd={add} advanced={advOpen} onAdvanced={setAdvOpen} />
