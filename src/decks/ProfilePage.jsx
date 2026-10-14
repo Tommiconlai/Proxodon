@@ -1,7 +1,8 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { listenDecks, saveProfilePhoto } from './deckStore';
 import { updateNickname, changePassword, authMessage } from './firebase';
 import { Avatar } from './AccountMenu';
+import PhotoDialog from './PhotoDialog';
 import { IconArrowLeft, IconUpload, IconTrash } from '../components/icons';
 
 const WRONG_PASSWORD = ['auth/invalid-credential', 'auth/wrong-password', 'auth/invalid-login-credentials'];
@@ -9,22 +10,9 @@ const PROVIDERS = { 'google.com': 'Google', password: 'Email and password' };
 const day = (s) => (s ? new Date(s).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : '');
 const plural = (n, word) => `${n} ${word}${n !== 1 ? 's' : ''}`;
 
-// Foto profilo: ritaglio quadrato centrale a 256 px in JPEG (circa 20 KB), salvata come data URL nel
-// documento users/{uid}. ponytail: niente Firebase Storage (sui progetti nuovi richiede il piano a
-// pagamento); se servono foto più grandi, Storage + URL.
-async function squarePhoto(file, size = 256) {
-  const bmp = await createImageBitmap(file);
-  const s = Math.min(bmp.width, bmp.height);
-  const c = document.createElement('canvas');
-  c.width = size;
-  c.height = size;
-  const g = c.getContext('2d');
-  g.fillStyle = '#0b0a15'; // PNG trasparenti: sfondo scuro invece del nero del JPEG
-  g.fillRect(0, 0, size, size);
-  g.drawImage(bmp, (bmp.width - s) / 2, (bmp.height - s) / 2, s, s, 0, 0, size, size);
-  bmp.close();
-  return c.toDataURL('image/jpeg', 0.85);
-}
+// Foto profilo: JPEG 256 px (circa 20 KB) da PhotoDialog, salvato come data URL nel documento
+// users/{uid}. ponytail: niente Firebase Storage (sui progetti nuovi richiede il piano a pagamento);
+// se servono foto più grandi, Storage + URL.
 
 // Profilo: foto e nickname, riepilogo dell'account, cambio password (solo account email).
 export default function ProfilePage({ user, photo, notify, onChange }) {
@@ -69,8 +57,8 @@ export default function ProfilePage({ user, photo, notify, onChange }) {
 function IdentityCard({ user, photo, notify, onChange }) {
   const current = user.displayName || '';
   const [name, setName] = useState(current);
-  const [busy, setBusy] = useState(null); // 'name' | 'photo'
-  const fileRef = useRef(null);
+  const [busy, setBusy] = useState(false); // salvataggio nickname
+  const [photoOpen, setPhotoOpen] = useState(false);
   const nameId = useId();
   const savePhoto = (data, done) => saveProfilePhoto(user.uid, data)
     .then(() => notify(done))
@@ -78,7 +66,7 @@ function IdentityCard({ user, photo, notify, onChange }) {
 
   const saveName = async (e) => {
     e.preventDefault();
-    setBusy('name');
+    setBusy(true);
     try {
       await updateNickname(name.trim());
       setName(name.trim());
@@ -87,20 +75,7 @@ function IdentityCard({ user, photo, notify, onChange }) {
     } catch (err) {
       notify(authMessage(err), 'error');
     } finally {
-      setBusy(null);
-    }
-  };
-  const pickPhoto = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    setBusy('photo');
-    try {
-      savePhoto(await squarePhoto(file), 'Photo updated');
-    } catch {
-      notify('This file is not an image Proxoteca can read.', 'error');
-    } finally {
-      setBusy(null);
+      setBusy(false);
     }
   };
 
@@ -108,23 +83,23 @@ function IdentityCard({ user, photo, notify, onChange }) {
     <section className="profile-card profile-id" aria-label="Photo and nickname">
       <div className="profile-avatar"><Avatar user={user} photo={photo} /></div>
       <div className="profile-photo-actions">
-        <button type="button" className="btn-secondary" onClick={() => fileRef.current.click()} disabled={!!busy}>
-          {busy === 'photo' ? <span className="import-spinner" /> : <IconUpload size={15} />} Change photo
+        <button type="button" className="btn-secondary" onClick={() => setPhotoOpen(true)}>
+          <IconUpload size={15} /> Change photo
         </button>
         {photo && (
-          <button type="button" className="btn-secondary" onClick={() => savePhoto(null, 'Photo removed')} disabled={!!busy}>
+          <button type="button" className="btn-secondary" onClick={() => savePhoto(null, 'Photo removed')}>
             <IconTrash size={15} /> Remove photo
           </button>
         )}
-        <input ref={fileRef} type="file" accept="image/*" hidden onChange={pickPhoto} />
       </div>
+      {photoOpen && <PhotoDialog onClose={() => setPhotoOpen(false)} onSave={(data) => { setPhotoOpen(false); savePhoto(data, 'Photo updated'); }} />}
       <form className="profile-form" onSubmit={saveName}>
         <label className="profile-h" htmlFor={nameId}>Nickname</label>
         <div className="profile-row">
           <input id={nameId} className="import-link-input" value={name} onChange={(e) => setName(e.target.value)}
-            maxLength={40} placeholder={user.email?.split('@')[0]} autoComplete="nickname" spellCheck={false} disabled={busy === 'name'} />
-          <button type="submit" className="btn-secondary" disabled={!!busy || name.trim() === current}>
-            {busy === 'name' && <span className="import-spinner" />} Save
+            maxLength={40} placeholder={user.email?.split('@')[0]} autoComplete="nickname" spellCheck={false} disabled={busy} />
+          <button type="submit" className="btn-secondary" disabled={busy || name.trim() === current}>
+            {busy && <span className="import-spinner" />} Save
           </button>
         </div>
       </form>

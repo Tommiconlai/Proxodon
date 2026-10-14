@@ -108,17 +108,17 @@ export function imageFaces(card) {
 }
 
 /**
- * Tutte le stampe (printings) di una carta, per scambiare l'art.
- * ponytail: solo prima pagina (175 max); +paginazione se una carta ne ha di più.
- * @returns {Promise<{id,set,setName,thumb,png}[]>}
+ * Tutte le stampe (printings) di una carta, per scambiare l'art. `unique = 'art'` = una per
+ * illustrazione (foto profilo). ponytail: solo prima pagina (175 max); +paginazione se serve.
+ * @returns {Promise<{id,set,setName,thumb,png,art}[]>}
  */
 // Nome con cui "Cambia art" cerca le stampe: il filename senza estensione.
 // Due carte sono "la stessa" (cambio art multiplo consentito) se coincide.
 export const artName = (item) => item.file.name.replace(/\.[a-z0-9]+$/i, '');
 
-export async function fetchPrints(name) {
+export async function fetchPrints(name, unique = 'prints') {
   const q = encodeURIComponent(`!"${name}" game:paper`);
-  const res = await fetch(`https://api.scryfall.com/cards/search?q=${q}&unique=prints&order=released`);
+  const res = await fetch(`https://api.scryfall.com/cards/search?q=${q}&unique=${unique}&order=released`);
   if (res.status === 404) return []; // nessuna stampa
   if (!res.ok) throw new Error(`Scryfall responded ${res.status}`);
   const json = await res.json();
@@ -129,7 +129,7 @@ export async function fetchPrints(name) {
     .map((c) => {
       const face = c.card_faces?.find((f) => f.name?.toLowerCase() === target);
       const u = face?.image_uris || c.image_uris || c.card_faces?.[0]?.image_uris || {};
-      return { id: c.id, set: (c.set || '').toUpperCase(), collector: c.collector_number || '', setName: c.set_name || '', artist: c.artist || '', year: (c.released_at || '').slice(0, 4), thumb: u.small || u.normal, png: u.png || u.large, fullArt: !!c.full_art, borderless: c.border_color === 'borderless' };
+      return { id: c.id, set: (c.set || '').toUpperCase(), collector: c.collector_number || '', setName: c.set_name || '', artist: c.artist || '', year: (c.released_at || '').slice(0, 4), thumb: u.small || u.normal, png: u.png || u.large, art: u.art_crop, fullArt: !!c.full_art, borderless: c.border_color === 'borderless' };
     })
     .filter((p) => p.thumb && p.png);
 }
