@@ -9,7 +9,7 @@ import {
   parseDeckText, toBackup, fromBackup, duplicateDeck, refreshSnapshots, primaryType,
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
 } from './deckModel.js';
-import { autocompleteUrl, namedUrl, searchUrl } from './scryfallSearch.js';
+import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
 
 const eq = (a, b, msg) => {
   if (JSON.stringify(a) !== JSON.stringify(b)) {
@@ -268,5 +268,18 @@ eq([legalityLabel('banned', 'modern'), legalityLabel('not_legal', 'pauper')], ['
 eq(namedUrl('Kongming, "Sleeping Dragon"'), 'https://api.scryfall.com/cards/named?exact=Kongming%2C%20%22Sleeping%20Dragon%22', 'named: virgole e virgolette');
 eq(autocompleteUrl('Æther Vi'), 'https://api.scryfall.com/cards/autocomplete?q=%C3%86ther%20Vi', 'autocomplete: unicode');
 eq(searchUrl('t:goblin c<=r'), 'https://api.scryfall.com/cards/search?q=t%3Agoblin%20c%3C%3Dr%20game%3Apaper&unique=cards&order=name', 'search: sempre game:paper');
+
+eq(searchUrl('t:elf', 'edhrec'), 'https://api.scryfall.com/cards/search?q=t%3Aelf%20game%3Apaper&unique=cards&order=edhrec', 'search: ordine scelto');
+// Ricerca avanzata: filtri → sintassi Scryfall; la legalità del formato si aggiunge sempre (tranne Casual).
+eq(advancedQuery({
+  name: ' Lightning "Bolt" ', oracle: 'deal 3', manaCost: '{2} {R}', mvOp: '<=', mv: '3', colors: ['R', 'G'], colorMode: '>=',
+  type: 'creature  goblin', rarity: 'rare', set: 'M10', powOp: '>=', pow: '2', touOp: '=', tou: '0', keyword: 'first strike',
+  artist: 'Kev Walker', extra: 'is:spell',
+}), '"Lightning Bolt" o:"deal 3" m:{2}{R} mv<=3 c>=rg t:creature t:goblin r:rare s:m10 pow>=2 tou=0 kw:"first strike" a:"Kev Walker" is:spell',
+'avanzata: tutti i campi, virgolette tolte, spazi del costo tolti');
+eq(advancedQuery({ colors: ['W'], colorless: true, identity: true, isCommander: true }), 'id:c is:commander', 'incolore vince sui colori, identità');
+eq(advancedQuery({ colors: ['U', 'B'], colorMode: '<=', identity: true, mv: '', pow: '' }), 'id<=ub', 'identità al massimo UB, numeri vuoti ignorati');
+eq(advancedQuery({}), '', 'nessun filtro');
+eq([withLegal('t:elf', 'modern'), withLegal('t:elf', 'casual'), withLegal('', 'pauper')], ['t:elf legal:modern', 't:elf', 'legal:pauper'], 'legalità del formato');
 
 console.log('deckModel selfcheck: ok');

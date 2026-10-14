@@ -2845,18 +2845,7 @@ body::before {
   box-shadow: var(--shadow-md);
 }
 .search-suggest li { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 6px; font-size: 0.85rem; color: var(--text-primary); cursor: pointer; }
-.search-suggest-name { flex: 1; min-width: 0; }
-/* Nome non giocabile nel formato: resta in lista, non si può scegliere. */
-.search-suggest li.banned { color: var(--text-muted); cursor: not-allowed; }
-.search-suggest li.banned.active { background: rgba(255, 77, 109, 0.08); color: var(--text-secondary); }
-.search-ban {
-  display: inline-flex; align-items: center; gap: 4px; flex: none;
-  padding: 1px 7px;
-  border: 1px solid rgba(255, 77, 109, 0.55); border-radius: 999px;
-  font-family: var(--font-mono); font-size: 0.66rem;
-  color: var(--danger);
-  white-space: nowrap;
-}
+
 .search-suggest li.active { background: rgba(0, 229, 255, 0.1); color: var(--cyan-soft); }
 .search-hint { margin: 8px 0 0; font-family: var(--font-mono); font-size: 0.66rem; color: var(--text-muted); }
 .search-status { min-height: 1.2em; margin: 6px 0 0; font-size: 0.75rem; color: var(--success); }
@@ -2869,9 +2858,6 @@ body::before {
 .search-card-img:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .search-card-add { position: absolute; right: 6px; bottom: 6px; display: flex; padding: 6px; border-radius: 50%; border: 1px solid rgba(0, 229, 255, 0.5); background: rgba(8, 7, 15, 0.85); color: var(--cyan-soft); cursor: pointer; }
 .search-card-add:hover, .search-card-add:focus-visible { border-color: var(--cyan); box-shadow: 0 0 12px var(--cyan-glow); outline: none; }
-.search-card-add:disabled { color: var(--danger); border-color: rgba(255, 77, 109, 0.6); box-shadow: none; cursor: not-allowed; }
-.search-card.banned .search-card-img img { filter: grayscale(0.6) brightness(0.7); }
-.search-card-ban { position: absolute; top: 6px; left: 6px; }
 /* Divieto: stesso chip del "!" della stampa (angolo smussato, bordo rosso interno) con il simbolo di divieto. */
 .deck-card-ban {
   display: grid; place-items: center;
@@ -2887,6 +2873,66 @@ body::before {
 .deck-ban-icon { display: flex; flex: none; color: var(--danger); }
 .deck-warn.deck-illegal { border-color: rgba(255, 77, 109, 0.5); background: rgba(255, 77, 109, 0.08); color: var(--danger); }
 .search-more { width: 100%; justify-content: center; margin-top: 12px; }
+
+/* Risultati della ricerca per nome: elenco senza immagini, frecce + Invio come i suggerimenti. */
+.search-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.search-list li {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 8px;
+  padding: 6px 8px;
+  border-top: 1px solid rgba(124, 92, 255, 0.12);
+  font-size: 0.84rem; color: var(--text-primary);
+  cursor: pointer;
+}
+.search-list li.active { background: rgba(0, 229, 255, 0.1); box-shadow: inset 2px 0 0 var(--cyan); }
+.search-list-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-list-type { grid-column: 1 / -1; font-size: 0.7rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-adv-toggle {
+  margin-top: 8px; padding: 2px 0;
+  background: none; border: 0;
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em;
+  color: var(--cyan-soft);
+  cursor: pointer;
+  text-underline-offset: 3px;
+}
+.search-adv-toggle:hover, .search-adv-toggle:focus-visible { color: var(--cyan); text-decoration: underline; outline: none; }
+
+/* Ricerca avanzata: la colonna si allarga (desktop) per filtri e immagini. */
+.deck-editor:not(.is-mobile) .deck-body:has(.adv-open) { grid-template-columns: min(640px, 52vw) 1fr; }
+.adv-search { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+.adv-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
+.adv-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.adv-field > span, .adv-field > legend {
+  padding: 0;
+  font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.adv-field .import-link-input { flex: none; font-size: 0.84rem; }
+.adv-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.adv-row .import-link-input { flex: 1; min-width: 0; }
+.adv-op, .adv-row select { width: auto; }
+.adv-colors, .adv-wide, .adv-actions { grid-column: 1 / -1; }
+.adv-pips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.adv-pip {
+  position: relative;
+  display: grid; place-items: center;
+  width: 34px; height: 34px;
+  border: 1px solid var(--border); border-radius: 50%;
+  background: var(--bg-base);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+.adv-pip input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.adv-pip .mana img { width: 20px; height: 20px; }
+.adv-pip:hover { opacity: 0.85; }
+.adv-pip.on { opacity: 1; border-color: var(--cyan); box-shadow: 0 0 12px var(--cyan-glow); }
+.adv-pip:has(:focus-visible) { box-shadow: var(--focus-ring); }
+.adv-check { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-secondary); cursor: pointer; }
+.adv-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.adv-actions .deck-tool { margin-right: auto; }
+.adv-go { justify-content: center; }
+.adv-search .search-results { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+.mobile-page .adv-form { grid-template-columns: 1fr; }
 .card-zoom-wrap { position: relative; outline: none; }
 .card-zoom { display: block; max-width: 92vw; max-height: 86vh; border-radius: 18px; box-shadow: var(--shadow-lg); }
 .card-zoom-close { position: absolute; top: -12px; right: -12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 50%; }
