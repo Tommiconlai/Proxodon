@@ -2754,9 +2754,9 @@ body::before {
 .deck-body { flex: 1 0 auto; display: grid; grid-template-columns: 1fr; }
 .deck-editor.is-mobile .deck-body { grid-template-columns: 1fr; }
 /* .deck-sections va da bordo a bordo, alta quanto il contenitore: click e selezione ad area partono
-   da tutto lo spazio vuoto. Il padding laterale tiene il contenuto entro 1900 px, centrato. */
+   da tutto lo spazio vuoto. Margini laterali in percentuale (13% per lato), così seguono lo schermo. */
 .deck-main { min-width: 0; }
-.deck-sections { position: relative; min-height: 100%; padding: 22px max(28px, calc((100% - 1900px) / 2)) 56px; }
+.deck-sections { position: relative; min-height: 100%; padding: 22px 13% 56px; }
 /* Mazzo centrato: negli stack una sola colonna di griglia larga quanto il contenuto, al centro. */
 .deck-sections.view-stacks { display: grid; grid-template-columns: minmax(0, max-content); justify-content: center; align-content: start; }
 .deck-columns.view-stacks { justify-content: center; }
@@ -3139,7 +3139,7 @@ button.sample-card:hover, button.sample-card:focus-visible { outline: none; box-
 .search-foot .search-adv-toggle { margin-top: 0; }
 .deck-hero-search .search-status { margin-top: 4px; }
 .deck-adv-panel {
-  width: calc(100% - 56px); max-width: 1900px;
+  width: 74%;
   margin: 16px auto 0; padding: 16px 20px;
   background: linear-gradient(180deg, var(--bg-elevated), var(--bg-surface));
   border: 1px solid var(--border); border-radius: var(--radius-lg);
