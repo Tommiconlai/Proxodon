@@ -2629,8 +2629,12 @@ body::before {
   text-align: left;
   font: inherit;
   color: inherit;
-  background: var(--bg-surface);
-  border: 1px solid var(--accent);
+  /* Bordo sfumato del frame Figma: lineare #FF2E96 → #AB61ED → #00E5FF al 50%, da sinistra a destra.
+     Il fondo resta --bg-surface (padding-box), il gradiente si vede solo nel bordo trasparente. */
+  background:
+    linear-gradient(var(--bg-surface), var(--bg-surface)) padding-box,
+    linear-gradient(90deg, rgba(255, 46, 150, 0.5), rgba(171, 97, 237, 0.5) 50%, rgba(0, 229, 255, 0.5)) border-box;
+  border: 1px solid transparent;
   border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
