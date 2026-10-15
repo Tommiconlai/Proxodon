@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { listenPublicDeck, createDeck } from './deckStore';
-import { duplicateDeck, coverRow, formatLabel, priceLabel } from './deckModel';
+import { duplicateDeck, coverRow, formatLabel, priceLabel, refreshSnapshots } from './deckModel';
+import { cardsByIds } from './scryfallSearch';
 import { useSettings } from '../utils/settings';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { navigate } from '../hooks/useHashRoute';
@@ -18,6 +19,15 @@ export default function CommunityDeck({ uid, id, notify }) {
   const { currency } = useSettings();
   useEffect(() => listenPublicDeck(id, setDeck, (e) => { setDeck(null); notify(`Could not load this deck: ${e.message}`, 'error'); }), [id, notify]);
   const update = useCallback((fn) => setDeck((d) => d && fn(d)), []);
+  // Snapshot aggiornati da Scryfall solo sullo schermo (es. il retro delle carte a due facce nelle copie
+  // pubblicate prima che esistesse), come fa l'editor all'apertura.
+  const refreshed = useRef(false);
+  useEffect(() => {
+    if (!deck || refreshed.current) return;
+    refreshed.current = true;
+    const ids = deck.cards.map((r) => r.card.sid);
+    if (ids.length) cardsByIds(ids).then((map) => update((d) => refreshSnapshots(d, map).deck)).catch(() => {});
+  }, [deck, update]);
 
   if (deck === undefined) return <div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>;
   if (deck === null) {

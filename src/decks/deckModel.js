@@ -38,7 +38,8 @@ export function copyLimitFromText(text) {
 }
 
 // Dati Scryfall copiati nella riga al momento dell'aggiunta. Costo, tipo, colori e immagini
-// vengono dalla faccia anteriore (DFC, split, avventure). Nessun campo undefined: Firestore li rifiuta.
+// vengono dalla faccia anteriore (DFC, split, avventure); back = immagine del retro, solo per le carte a
+// due facce stampate (split e avventure hanno un'immagine sola). Nessun campo undefined: Firestore li rifiuta.
 export function snapshotFromCard(c) {
   const f0 = c.card_faces?.[0];
   const imgs = c.image_uris || f0?.image_uris || {};
@@ -60,6 +61,7 @@ export function snapshotFromCard(c) {
     set: c.set || '',
     cn: c.collector_number || '',
     img: imgs.normal || '',
+    back: (!c.image_uris && c.card_faces?.[1]?.image_uris?.normal) || '',
     art: imgs.art_crop || '',
     limit: copyLimitFromText(text || ''),
     // Può guidare un mazzo Commander: creatura leggendaria o "can be your commander".

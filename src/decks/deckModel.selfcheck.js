@@ -50,6 +50,10 @@ const delver = snapshotFromCard({
 });
 eq([delver.name, delver.oid, delver.mana, delver.type, delver.colors, delver.img, delver.art],
   ['Delver of Secrets // Insectile Aberration', 'o-dlv', '{U}', 'Creature', ['U'], 'n-front', 'a-front'], 'DFC: faccia anteriore');
+// Retro solo se le facce hanno immagini proprie (split / avventura: un'immagine sola).
+const adventure = snapshotFromCard({ ...sc({ id: 'adv', name: 'Bonecrusher Giant // Stomp' }),
+  card_faces: [{ name: 'Bonecrusher Giant', type_line: 'Creature' }, { name: 'Stomp', type_line: 'Instant' }] });
+eq([delver.back, adventure.back, snap({ id: 'x', name: 'X' }).back], ['n-back', '', ''], 'DFC: immagine del retro');
 
 // limite copie dal testo regole
 eq(copyLimitFromText('A deck can have any number of cards named Relentless Rats.'), 0, 'any number');

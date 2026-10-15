@@ -3162,6 +3162,26 @@ span.deck-hero-art { cursor: default; }
 .deck-rows.view-grid .deck-row-qty { bottom: 6px; left: 50%; transform: translateX(-50%); }
 .deck-rows.view-stacks .deck-row-qty { top: 5px; right: 5px; }
 .deck-rows.view-stacks .deck-row:hover .deck-card-qty { opacity: 0; }
+/* Carte a due facce: pulsante per girarle in alto a destra (copie e +/- si spostano a sinistra); la
+   faccia nuova entra ruotando. Anteprima al passaggio: fronte a sinistra, retro a destra. */
+.deck-card-flip {
+  position: absolute; z-index: 2; top: 5px; right: 5px;
+  display: grid; place-items: center;
+  width: 22px; height: 22px; padding: 0;
+  border: 1px solid rgba(0, 229, 255, 0.6); border-radius: 50%;
+  background: rgba(8, 7, 18, 0.88);
+  color: var(--cyan);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.35);
+  cursor: pointer;
+  transition: transform var(--transition), color var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+.deck-card-flip:hover, .deck-card-flip:focus-visible { color: #fff; border-color: var(--cyan); outline: none; transform: rotate(180deg); }
+.deck-card-flip[aria-pressed='true'] { color: var(--accent); border-color: rgba(255, 45, 149, 0.7); box-shadow: 0 0 10px rgba(255, 45, 149, 0.4); }
+.deck-row:has(.deck-card-flip) .deck-card-qty, .deck-rows.view-stacks .deck-row:has(.deck-card-flip) .deck-row-qty { right: 31px; }
+.deck-card-turned { animation: card-turn 0.32s ease-out; }
+@keyframes card-turn { from { transform: perspective(800px) rotateY(-90deg); } to { transform: none; } }
+.deck-hover-pair { display: flex; gap: 8px; border-radius: 0; box-shadow: none; }
+.deck-hover-pair img { display: block; border-radius: 12px; box-shadow: var(--shadow-lg), 0 0 24px rgba(0, 229, 255, 0.18); }
 /* Controlli del formato: chip sopra le carte (giallo = avviso, rosso = legalità), click = seleziona
    le carte coinvolte. Icona sulla riga o sulla carta per copie oltre il limite e divieto. */
 .deck-issues { list-style: none; margin: -4px 0 16px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }

@@ -16,7 +16,7 @@ import SampleHand from './SampleHand';
 import CardImg from './CardImg';
 import { cachedImg } from './cardLang';
 import { useSettings, setSetting } from '../utils/settings';
-import { IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy } from '../components/icons';
+import { IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy, IconFlip } from '../components/icons';
 
 const BOARD_LABEL = { main: 'main deck', side: 'sideboard', maybe: 'maybeboard' };
 // Larghezza dell'anteprima al passaggio (Settings → Card preview), 0 = spenta.
@@ -52,7 +52,11 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
   const [sel, setSel] = useState(() => new Set());
   const [anchor, setAnchor] = useState(null);
   const [menu, setMenu] = useState(null); // { ids, x, y }
-  const [hover, setHover] = useState(null); // anteprima accanto alla riga: { img, x, y }
+  const [hover, setHover] = useState(null); // anteprima accanto alla riga: { img, back, w, x, y }
+  // Carte a due facce girate: id riga → faccia mostrata (1 = retro); presente = girata almeno una volta,
+  // così l'immagine entra ruotando in entrambi i versi. Solo su questo schermo, non si salva.
+  const [flipped, setFlipped] = useState(() => new Map());
+  const flip = (id) => setFlipped((prev) => new Map(prev).set(id, prev.get(id) ? 0 : 1));
   // Vista, ordine, anteprima e densità dalle impostazioni del dispositivo (Settings); i menu View by e
   // Sort by le cambiano per tutti i mazzi. Default: stack ordinati per nome.
   const settings = useSettings();
@@ -186,14 +190,19 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
     });
   }
 
-  // Anteprima (desktop, lista e stack): accanto alla riga, a destra se c'è spazio, sennò a sinistra.
+  // Anteprima (desktop): accanto alla riga, a destra se c'è spazio, sennò a sinistra. Lista e stack
+  // sempre; griglia solo per le carte a due facce, che mostrano fronte a sinistra e retro a destra
+  // (strette se non stanno nella finestra).
   const showPreview = (e, r) => {
-    if (touch || !previewW || view === 'grid' || !r.card.img || dragIds.current) return;
-    const ph = Math.round((previewW * 680) / 488);
+    if (touch || !previewW || (view === 'grid' && !r.card.back) || !r.card.img || dragIds.current) return;
+    const back = r.card.back && cachedImg(r.card, 1);
+    const w = back ? Math.min(previewW, Math.floor((window.innerWidth - 40) / 2)) : previewW;
+    const total = back ? w * 2 + 8 : w;
+    const ph = Math.round((w * 680) / 488);
     const rc = e.currentTarget.getBoundingClientRect();
-    const x = rc.right + 12 + previewW <= window.innerWidth ? rc.right + 12 : Math.max(8, rc.left - previewW - 12);
+    const x = rc.right + 12 + total <= window.innerWidth ? rc.right + 12 : Math.max(8, rc.left - total - 12);
     const y = Math.min(Math.max(8, rc.top + rc.height / 2 - ph / 2), window.innerHeight - ph - 8);
-    setHover({ img: cachedImg(r.card), x, y });
+    setHover({ img: cachedImg(r.card), back, w, x, y });
   };
 
   // Spazio vuoto (non carte, barra, menu o dialoghi): il click deseleziona, il trascinamento col mouse
@@ -288,6 +297,7 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
     const warnText = warn && `${warn.count} copies, max ${warn.max} in ${formatLabel(deck.format)}`;
     const ban = banOf(r);
     const banText = ban && legalityLabel(ban, deck.format);
+    const side = (r.card.back && flipped.get(r.id)) || 0;
     return (
       <li key={copy ? `${r.id}:${copy}` : r.id} data-row-id={r.id} className={`deck-row${sel.has(r.id) ? ' selected' : ''}${warn ? ' over' : ''}`} {...dragProps(r)}
         onMouseEnter={touch ? undefined : (e) => showPreview(e, r)} onMouseLeave={touch ? undefined : () => setHover(null)}>
@@ -314,7 +324,9 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
             </>
           ) : (
             <>
-              {r.card.img ? <CardImg card={r.card} /> : <span className="deck-card-ph">{r.card.name}</span>}
+              {/* key: cambiare faccia rimonta l'immagine, che entra con la rotazione di .deck-card-turned. */}
+              {r.card.img ? <CardImg key={side} card={r.card} side={side} className={flipped.has(r.id) ? 'deck-card-turned' : undefined} />
+                : <span className="deck-card-ph">{r.card.name}</span>}
               {r.qty > 1 && !split && <span className="deck-card-qty">{r.qty}</span>}
               {(ban || warn) && (
               <span className="deck-card-flags">
@@ -325,6 +337,11 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
             </>
           )}
         </button>
+        {/* Fuori dalla carta (niente pulsanti annidati), anche in sola lettura. */}
+        {view !== 'list' && r.card.back && r.card.img && (
+          <button type="button" className="deck-card-flip" aria-pressed={side === 1} title="Flip"
+            aria-label={`Flip ${r.card.name}`} onClick={() => flip(r.id)}><IconFlip size={13} /></button>
+        )}
         {!readOnly && (
           <span className="deck-row-qty">
             <button type="button" aria-label={`One less ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, -1))}><IconMinus size={13} /></button>
@@ -457,7 +474,12 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
             setEdition(null);
           }} />
       )}
-      {hover && createPortal(<img className="deck-hover" src={hover.img} alt="" style={{ left: hover.x, top: hover.y, width: previewW }} />, document.body)}
+      {hover && createPortal(hover.back ? (
+        <div className="deck-hover deck-hover-pair" style={{ left: hover.x, top: hover.y }}>
+          <img src={hover.img} alt="" style={{ width: hover.w }} />
+          <img src={hover.back} alt="" style={{ width: hover.w }} />
+        </div>
+      ) : <img className="deck-hover" src={hover.img} alt="" style={{ left: hover.x, top: hover.y, width: hover.w }} />, document.body)}
     </div>
   );
 }
