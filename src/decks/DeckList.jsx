@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { listenDecks, createDeck, saveDeck, deleteDeck } from './deckStore';
+import { listenDecks, listenCommunity, createDeck, saveDeck, deleteDeck, setDeckPublic } from './deckStore';
 import {
-  newDeck, duplicateDeck, deckIdentity, deckCover, formatLabel, priceLabel,
+  FORMATS, newDeck, duplicateDeck, deckIdentity, deckCover, formatLabel, priceLabel, searchTerms, deckMatches,
 } from './deckModel';
 import { useSettings } from '../utils/settings';
 import { navigate } from '../hooks/useHashRoute';
@@ -12,7 +12,12 @@ import { ManaPips } from './Mana';
 import { NameFormatDialog, ExportDeckDialog } from './dialogs';
 import { timeAgo } from '../utils/timeAgo';
 import ImportDeckDialog from './ImportDeckDialog';
-import { IconPlus, IconCopy, IconTrash, IconPencil, IconDownload, IconExport } from '../components/icons';
+import {
+  IconPlus, IconCopy, IconTrash, IconPencil, IconDownload, IconExport, IconGlobe, IconSearch, IconFilter,
+} from '../components/icons';
+
+const COLORS = [['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green'], ['C', 'Colorless']];
+const NO_FILTERS = { format: '', colors: [] };
 
 // Shift+F10 / tasto menu arrivano con 0,0: ancora il menu all'elemento.
 const menuPoint = (e) => {
@@ -21,34 +26,88 @@ const menuPoint = (e) => {
   return { x: r.left + 24, y: r.top + 24 };
 };
 
-// Riquadro di un mazzo (lista e profilo), come il frame Figma "Proxoteca" 35:208: nome e ultima
-// modifica, formato, poi identità di colore e prezzo sulla stessa riga. props vanno sul pulsante.
-export function DeckTile({ deck: d, currency, ...props }) {
+// Riquadro di un mazzo (lista, Community, profilo): sull'arte, in alto a sinistra sotto una sfumatura
+// nera, nome e formato (globo = pubblico); sotto identità di colore e prezzo, poi autore (by, nella
+// Community) e ultima modifica. Testi in cqi: il riquadro è largo una percentuale della griglia e
+// tutto scala con lui. props vanno sul pulsante.
+export function DeckTile({ deck: d, currency, by, ...props }) {
   const cover = deckCover(d);
   const updated = d.updatedAt?.toMillis?.();
   const price = priceLabel(d, currency);
   return (
     <button type="button" className="deck-tile" {...props}>
-      <span className="deck-tile-art" style={cover ? { backgroundImage: `url("${cover}")` } : undefined} aria-hidden="true" />
-      <span className="deck-tile-body">
-        <span className="deck-tile-top">
+      <span className="deck-tile-art" style={cover ? { backgroundImage: `url("${cover}")` } : undefined}>
+        <span className="deck-tile-head">
           <span className="deck-tile-name">{d.name}</span>
-          {updated && <span className="deck-tile-updated">Last update<br />{timeAgo(updated)}</span>}
+          <span className="deck-tile-format">
+            {formatLabel(d.format)}
+            {d.public && !by && <span className="deck-tile-public" title="Public, in Community"><IconGlobe size={12} /><span className="sr-only">, public</span></span>}
+          </span>
         </span>
-        <span className="deck-tile-format">{formatLabel(d.format)}</span>
+      </span>
+      <span className="deck-tile-body">
         <span className="deck-tile-foot">
           <ManaPips colors={deckIdentity(d)} />
           {price && <span className="deck-tile-price">{price}</span>}
+        </span>
+        <span className="deck-tile-meta">
+          {by && <span className="deck-tile-by">by {by}</span>}
+          {updated && <span>Last update {timeAgo(updated)}</span>}
         </span>
       </span>
     </button>
   );
 }
 
-export default function DeckList({ uid, notify }) {
+const Empty = ({ title, hint }) => (
+  <div className="decks-empty">
+    <p className="decks-empty-title">{title}</p>
+    <p className="field-hint">{hint}</p>
+  </div>
+);
+
+// Community: gli ultimi 20 mazzi pubblici che passano ricerca e filtri. La query cerca la prima parola
+// (300 ms dopo l'ultimo tasto), il resto lo filtra deckMatches. I propri aprono l'editor.
+function CommunityGrid({ uid, terms, filters, currency }) {
+  const [decks, setDecks] = useState(null);
+  const [error, setError] = useState(null);
+  const word = terms[0] || '';
+  const [term, setTerm] = useState(word);
+  useEffect(() => {
+    const t = setTimeout(() => setTerm(word), 300);
+    return () => clearTimeout(t);
+  }, [word]);
+  useEffect(() => listenCommunity(term, (d) => { setDecks(d); setError(null); }, setError), [term]);
+
+  if (error) return <Empty title="Community is not available" hint={error.message} />;
+  if (!decks) return <span className="import-spinner" aria-label="Loading" />;
+  const shown = decks.filter((d) => deckMatches(d, terms, filters)).slice(0, 20);
+  if (!shown.length) {
+    return decks.length || terms.length
+      ? <Empty title="No decks match" hint="Try another name or clear the filters." />
+      : <Empty title="No public decks yet" hint="Share one of yours: Share in Community from its menu, or Public in the deck page." />;
+  }
+  return (
+    <ul className="deck-grid">
+      {shown.map((d) => (
+        <li key={d.id} className="deck-tile-wrap">
+          <DeckTile deck={d} currency={currency} by={d.owner || 'anonymous'}
+            onClick={() => navigate(d.uid === uid ? `/decks/${d.id}` : `/community/${d.id}`)} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// Lista mazzi: schede Community e My decks (rotte #/community e #/decks, stesso componente: ricerca e
+// filtri restano passando dall'una all'altra), ricerca per nome e Filters (formato, colori).
+export default function DeckList({ uid, notify, community }) {
   const [decks, setDecks] = useState(null); // null = caricamento
   const [dialog, setDialog] = useState(null); // 'new' | 'import' | { rename: deck } | { del: deck } | { exp: deck }
   const [menu, setMenu] = useState(null); // { deck, x, y }
+  const [q, setQ] = useState('');
+  const [filters, setFilters] = useState(NO_FILTERS);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const press = useLongPress();
   const closeMenu = useCallback(() => setMenu(null), []);
   const settings = useSettings(); // formato e raggruppamento dei nuovi mazzi, valuta dei prezzi
@@ -62,17 +121,32 @@ export default function DeckList({ uid, notify }) {
     return id;
   };
 
+  const terms = searchTerms(q);
+  const nFilters = (filters.format ? 1 : 0) + filters.colors.length;
+  const toggleColor = (c) => setFilters((f) => ({ ...f, colors: f.colors.includes(c) ? f.colors.filter((x) => x !== c) : [...f.colors, c] }));
+  const shown = decks?.filter((d) => deckMatches(d, terms, filters));
+
   const menuItems = menu ? [
     { key: 'rename', Icon: IconPencil, label: 'Rename', run: () => setDialog({ rename: menu.deck }) },
+    {
+      key: 'pub', Icon: IconGlobe, label: menu.deck.public ? 'Make private' : 'Share in Community',
+      run: () => {
+        setDeckPublic(uid, menu.deck, !menu.deck.public).catch(writeError);
+        notify(menu.deck.public ? 'Removed from Community' : 'Shared in Community');
+      },
+    },
     { key: 'dup', Icon: IconCopy, label: 'Duplicate', run: () => { create(duplicateDeck(menu.deck)); notify('Deck duplicated'); } },
     { key: 'txt', Icon: IconExport, label: 'Export…', run: () => setDialog({ exp: menu.deck }) },
     { key: 'del', Icon: IconTrash, label: 'Delete', danger: true, run: () => setDialog({ del: menu.deck }) },
   ] : [];
 
   return (
-    <div className="decks-root">
+    <div className="decks-root decks-page">
       <header className="decks-head">
-        <h2 className="decks-title">Your decks</h2>
+        <nav className="decks-tabs" aria-label="Decks">
+          <a href="#/community" className="decks-title decks-tab" aria-current={community ? 'page' : undefined}>Community</a>
+          <a href="#/decks" className="decks-title decks-tab" aria-current={community ? undefined : 'page'}>My decks</a>
+        </nav>
         <div className="decks-actions">
           {/* Solo icone (nome nel tooltip e per i lettori di schermo); backup e ripristino stanno in Settings. */}
           <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setDialog('import')} aria-label="Import a deck" title="Import a deck"><IconDownload size={18} /></button>
@@ -80,28 +154,61 @@ export default function DeckList({ uid, notify }) {
         </div>
       </header>
 
-      {decks === null && <span className="import-spinner" aria-label="Loading" />}
-      {decks?.length === 0 && (
-        <div className="decks-empty">
-          <p className="decks-empty-title">Start your first deck</p>
-          <p className="field-hint">Create one from scratch, or import a list.</p>
+      <div className="decks-search" role="search">
+        <label className="decks-search-box">
+          <IconSearch size={16} />
+          <input type="search" className="import-link-input" value={q} onChange={(e) => setQ(e.target.value)}
+            placeholder="Search decks by name" aria-label="Search decks by name" spellCheck={false} />
+        </label>
+        <button type="button" className={`btn-secondary decks-filter-btn${nFilters ? ' on' : ''}`} aria-expanded={filtersOpen}
+          aria-controls="deck-filters" onClick={() => setFiltersOpen((v) => !v)}>
+          <IconFilter size={16} /> Filters{nFilters > 0 && <span className="decks-filter-n">{nFilters}</span>}
+        </button>
+      </div>
+      {filtersOpen && (
+        <div id="deck-filters" className="decks-filters">
+          <label className="decks-filter">
+            <span>Format</span>
+            <select value={filters.format} onChange={(e) => setFilters((f) => ({ ...f, format: e.target.value }))}>
+              <option value="">Any</option>
+              {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+            </select>
+          </label>
+          <div className="decks-filter" role="group" aria-label="Colors">
+            <span aria-hidden="true">Colors</span>
+            <span className="decks-colors">
+              {COLORS.map(([c, label]) => (
+                <button key={c} type="button" className="decks-color" aria-pressed={filters.colors.includes(c)}
+                  aria-label={label} title={label} onClick={() => toggleColor(c)}>
+                  <ManaPips colors={c === 'C' ? [] : [c]} />
+                </button>
+              ))}
+            </span>
+          </div>
+          {nFilters > 0 && <button type="button" className="signin-link" onClick={() => setFilters(NO_FILTERS)}>Clear filters</button>}
         </div>
       )}
-      {decks?.length > 0 && (
-        <ul className="deck-grid">
-          {decks.map((d) => (
-            <li key={d.id} className="deck-tile-wrap">
-              <DeckTile deck={d} currency={settings.currency}
-                onClick={() => { if (!press.consumed()) navigate(`/decks/${d.id}`); }}
-                onContextMenu={(e) => { e.preventDefault(); setMenu({ deck: d, ...menuPoint(e) }); }}
-                {...press.bind((x, y) => setMenu({ deck: d, x, y }))} />
-              {/* Fuori dal riquadro (niente pulsanti annidati), posato sull'angolo dell'arte. */}
-              <button type="button" className="deck-tile-export" aria-label={`Export ${d.name}`} title="Export"
-                onClick={() => setDialog({ exp: d })}><IconExport size={16} /></button>
-            </li>
-          ))}
-        </ul>
-      )}
+
+      {community ? <CommunityGrid uid={uid} terms={terms} filters={filters} currency={settings.currency} /> : <>
+        {decks === null && <span className="import-spinner" aria-label="Loading" />}
+        {decks?.length === 0 && <Empty title="Start your first deck" hint="Create one from scratch, or import a list." />}
+        {decks?.length > 0 && !shown.length && <Empty title="No decks match" hint="Try another name or clear the filters." />}
+        {shown?.length > 0 && (
+          <ul className="deck-grid">
+            {shown.map((d) => (
+              <li key={d.id} className="deck-tile-wrap">
+                <DeckTile deck={d} currency={settings.currency}
+                  onClick={() => { if (!press.consumed()) navigate(`/decks/${d.id}`); }}
+                  onContextMenu={(e) => { e.preventDefault(); setMenu({ deck: d, ...menuPoint(e) }); }}
+                  {...press.bind((x, y) => setMenu({ deck: d, x, y }))} />
+                {/* Fuori dal riquadro (niente pulsanti annidati), posato sull'angolo dell'arte. */}
+                <button type="button" className="deck-tile-export" aria-label={`Export ${d.name}`} title="Export"
+                  onClick={() => setDialog({ exp: d })}><IconExport size={16} /></button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </>}
 
       {menu && <CardMenu x={menu.x} y={menu.y} title={menu.deck.name} items={menuItems} onClose={closeMenu} />}
       {dialog === 'import' && (
@@ -127,7 +234,7 @@ export default function DeckList({ uid, notify }) {
       )}
       <ConfirmDialog open={!!dialog?.del} message={`Delete “${dialog?.del?.name}”? This can’t be undone.`} confirmLabel="Delete deck"
         onCancel={() => setDialog(null)}
-        onConfirm={() => { deleteDeck(uid, dialog.del.id).catch(writeError); setDialog(null); }} />
+        onConfirm={() => { deleteDeck(uid, dialog.del).catch(writeError); setDialog(null); }} />
     </div>
   );
 }

@@ -255,6 +255,26 @@ export function IconArrowLeft(props) {
   );
 }
 
+export function IconGlobe(props) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+      <path d="M2 12h20" />
+    </Svg>
+  );
+}
+
+export function IconFilter(props) {
+  return (
+    <Svg {...props}>
+      <path d="M3 6h18" />
+      <path d="M7 12h10" />
+      <path d="M10 18h4" />
+    </Svg>
+  );
+}
+
 export function IconSearch(props) {
   return (
     <Svg {...props}>

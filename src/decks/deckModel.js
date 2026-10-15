@@ -376,6 +376,16 @@ export function deckIdentity(deck) {
   return WUBRG.filter((c) => set.has(c));
 }
 
+// Ricerca e filtri della lista mazzi: parole del testo (lettere e cifre), poi un mazzo passa se il nome
+// le contiene tutte, ha il formato scelto e ogni colore scelto è nella sua identità (C = incolore).
+export const searchTerms = (q) => q.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+export function deckMatches(deck, terms, { format, colors }) {
+  const name = deck.name.toLowerCase();
+  if (!terms.every((w) => name.includes(w)) || (format && deck.format !== format)) return false;
+  const id = deckIdentity(deck);
+  return colors.every((c) => (c === 'C' ? !id.length : id.includes(c)));
+}
+
 // Copertina: la carta scelta (deck.cover = oracle id, così segue i cambi di edizione), altrimenti il
 // primo comandante, altrimenti la prima carta del main. Carta scelta tolta dal mazzo = automatica.
 export const coverRow = (deck) => (deck.cover && deck.cards.find((r) => r.card.oid === deck.cover))

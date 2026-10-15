@@ -29,6 +29,21 @@ service cloud.firestore {
       allow read, delete: if owner(uid);
       allow create, update: if owner(uid) && request.resource.data.cards.size() <= 500;
     }
+    // Community: copia pubblica di un mazzo (stesso id), la legge chi ha un account. La firma (owner) è
+    // il nickname dell'autore in usernames/, o nessuna. Si può cancellare una copia che non c'è.
+    function validPublic(d) {
+      return d.uid == request.auth.uid
+        && d.cards.size() <= 500
+        && d.words.size() <= 200
+        && (d.get('owner', null) == null || (d.owner is string
+          && get(/databases/$(db)/documents/usernames/$(d.owner.lower())).data.uid == request.auth.uid));
+    }
+    match /publicDecks/{deckId} {
+      allow read: if verified();
+      allow create: if verified() && validPublic(request.resource.data);
+      allow update: if verified() && resource.data.uid == request.auth.uid && validPublic(request.resource.data);
+      allow delete: if verified() && (resource == null || resource.data.uid == request.auth.uid);
+    }
     // Nickname unici: usernames/{nome in minuscolo} = { uid }. Lo legge chi ha un account (per sapere
     // se è libero, mai l'elenco), lo prende chi lo trova libero, lo libera solo il proprietario.
     match /usernames/{name} {

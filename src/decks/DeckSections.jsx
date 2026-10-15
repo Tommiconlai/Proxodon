@@ -47,7 +47,8 @@ const menuPoint = (e) => {
 // Click sul vuoto = deseleziona; trascinando sul vuoto col mouse = selezione ad area.
 // Desktop: le carte si trascinano tra gruppi del main, sezioni, sideboard e maybeboard. Creare una
 // sezione porta il mazzo in raggruppamento custom; da telefono si sposta tutto dal menu.
-export default function DeckSections({ deck, update, touch }) {
+// readOnly (Community): niente menu, trascinamento, +/- e sezioni nuove; update cambia solo la vista.
+export default function DeckSections({ deck, update, touch, readOnly }) {
   const [sel, setSel] = useState(() => new Set());
   const [anchor, setAnchor] = useState(null);
   const [menu, setMenu] = useState(null); // { ids, x, y }
@@ -150,7 +151,7 @@ export default function DeckSections({ deck, update, touch }) {
 
   const menuRows = menu ? deck.cards.filter((r) => menu.ids.includes(r.id)) : [];
   const items = [];
-  if (menuRows.length) {
+  if (menuRows.length && !readOnly) {
     const ids = menuRows.map((r) => r.id);
     const allMain = menuRows.every((r) => r.board === 'main');
     const allCmd = menuRows.every((r) => r.commander);
@@ -242,7 +243,7 @@ export default function DeckSections({ deck, update, touch }) {
 
   // Trascinamento (desktop): la riga, o tutta la selezione se ne fa parte; con Alt una copia per riga.
   const endDrag = () => { dragIds.current = null; setDropKey(null); setDragging(false); };
-  const dragProps = (r) => (touch ? {} : {
+  const dragProps = (r) => (touch || readOnly ? {} : {
     draggable: true,
     onDragStart: (e) => {
       const ids = sel.has(r.id) && selected.length > 1 ? selected : [r.id];
@@ -270,7 +271,7 @@ export default function DeckSections({ deck, update, touch }) {
   });
   // Rilascio su un gruppo del main (con la sua sezione in custom), sul sideboard o sul maybeboard.
   // endDrag anche qui: la riga spostata può smontarsi prima del suo dragend.
-  const dropProps = (key, board, section) => (touch ? {} : {
+  const dropProps = (key, board, section) => (touch || readOnly ? {} : {
     onDragOver: (e) => { if (!dragIds.current) return; e.preventDefault(); setDropKey(key); },
     onDragLeave: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropKey((k) => (k === key ? null : k)); },
     onDrop: (e) => {
@@ -324,10 +325,12 @@ export default function DeckSections({ deck, update, touch }) {
             </>
           )}
         </button>
-        <span className="deck-row-qty">
-          <button type="button" aria-label={`One less ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, -1))}><IconMinus size={13} /></button>
-          <button type="button" aria-label={`One more ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, 1))}><IconPlus size={13} /></button>
-        </span>
+        {!readOnly && (
+          <span className="deck-row-qty">
+            <button type="button" aria-label={`One less ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, -1))}><IconMinus size={13} /></button>
+            <button type="button" aria-label={`One more ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, 1))}><IconPlus size={13} /></button>
+          </span>
+        )}
       </li>
     );
   };
@@ -339,7 +342,7 @@ export default function DeckSections({ deck, update, touch }) {
     <section key={g.key} className={`deck-group ${extraClass}${dropKey === g.key ? ' drop-target' : ''}`} aria-label={g.label} {...(drop && dropProps(g.key, ...drop))}>
       <h3 className="deck-group-head">
         <span className="deck-group-name">{g.label}</span> <span className="n">{sum(g.rows)}</span>
-        {g.section && (
+        {g.section && !readOnly && (
           <span className="deck-group-actions">
             <button type="button" aria-label={`Rename ${g.label}`} onClick={() => setDialog({ id: g.section, name: g.label })}><IconPencil size={13} /></button>
             <button type="button" aria-label={`Delete section ${g.label}`} onClick={() => update((d) => deleteSection(d, g.section))}><IconTrash size={13} /></button>
@@ -388,7 +391,7 @@ export default function DeckSections({ deck, update, touch }) {
             {GROUP_MODES.filter((m) => m.id !== 'custom' || custom || deck.sections.length).map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
           </select>
         </label>
-        <button type="button" className="btn-secondary deck-new-section" aria-label="New section" title="New section" onClick={() => setDialog({})}><IconPlus size={16} /></button>
+        {!readOnly && <button type="button" className="btn-secondary deck-new-section" aria-label="New section" title="New section" onClick={() => setDialog({})}><IconPlus size={16} /></button>}
       </div>
       {issues.length > 0 && (
         <ul className="deck-issues" aria-label={`${formatLabel(deck.format)} checks`}>

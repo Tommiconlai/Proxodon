@@ -439,7 +439,7 @@ export default function App() {
 
   const isMobile = useIsMobile();
   const route = useHashRoute();
-  const inDecks = route.startsWith('/decks') || route === '/profile' || route === '/settings';
+  const inDecks = route.startsWith('/decks') || route.startsWith('/community') || route === '/profile' || route === '/settings';
   // Feedback dai mazzi (stabile: i listener Firestore lo hanno tra le dipendenze).
   const notify = useCallback((msg, kind = 'success') => setToast({ kind, msg }), []);
 

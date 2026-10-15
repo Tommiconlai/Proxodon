@@ -9,7 +9,7 @@ import {
   parseDeckText, toBackup, fromBackup, duplicateDeck, refreshSnapshots, primaryType,
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
   splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies, packPiles,
-  libraryCards, shuffle, mulliganBottom, hyperAtLeast, deckPrice, addEntries,
+  libraryCards, shuffle, mulliganBottom, hyperAtLeast, deckPrice, addEntries, searchTerms, deckMatches,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
 
@@ -384,5 +384,14 @@ eq(newDeck({ name: 'g', groupBy: 'mv' }).groupBy, 'mv', 'nuovo mazzo con il ragg
 const twice = [{ card: bolt, qty: 2 }, { card: bolt, qty: 1 }];
 eq([addEntries(newDeck({ name: 'm' }), twice).cards.map((r) => r.qty), addEntries(newDeck({ name: 'k' }), twice, { merge: false }).cards.map((r) => r.qty)],
   [[3], [2, 1]], 'import: righe uguali unite o tenute separate');
+
+// Lista mazzi: ricerca per parole del nome, formato, colori dell'identità.
+const sd = { ...addCard(newDeck({ name: 'Mono-Red Burn', format: 'modern' }), bolt).deck };
+const none = { format: '', colors: [] };
+eq(searchTerms('  Red, burn! '), ['red', 'burn'], 'ricerca: parole senza punteggiatura');
+eq([deckMatches(sd, searchTerms('burn mono'), none), deckMatches(sd, searchTerms('blue'), none)], [true, false], 'ricerca: tutte le parole nel nome');
+eq([deckMatches(sd, [], { format: 'modern', colors: ['R'] }), deckMatches(sd, [], { format: 'legacy', colors: [] }),
+  deckMatches(sd, [], { format: '', colors: ['C'] }), deckMatches(newDeck({ name: 'x' }), [], { format: '', colors: ['C'] })],
+[true, false, false, true], "filtri: formato, colore nell'identità, C = incolore");
 
 console.log('deckModel selfcheck: ok');

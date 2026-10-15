@@ -2542,8 +2542,8 @@ body::before {
 .header-slot { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .header-slot .help { margin-left: 0; position: relative; }
 
-/* Profilo e Settings: contenuto in una colonna centrata (vince su .deck-grid e .decks-empty). */
-.decks-root.profile-page > * { max-width: 1240px; margin-inline: auto; }
+/* Lista mazzi, profilo e Settings: contenuto in una colonna centrata (vince su .deck-grid e .decks-empty). */
+.decks-root:is(.profile-page, .decks-page) > * { max-width: 1240px; margin-inline: auto; }
 /* Schede di Settings; una colonna su telefono. */
 .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; align-items: start; }
 .profile-card {
@@ -2767,8 +2767,60 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   animation-duration: 1ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important;
   transition-duration: 1ms !important; transition-delay: 0s !important; scroll-behavior: auto !important;
 }
-.deck-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+/* Schede Community / My decks: titoli [ ] come .decks-title, le parentesi solo su quella attiva. */
+.decks-tabs { display: flex; align-items: baseline; gap: 22px; flex-wrap: wrap; }
+.decks-tab { text-decoration: none; color: var(--text-muted); transition: color var(--transition); }
+.decks-tab::before, .decks-tab::after { opacity: 0; transition: opacity var(--transition); }
+.decks-tab:hover { color: var(--text-secondary); }
+.decks-tab[aria-current='page'] { color: var(--text-primary); }
+.decks-tab[aria-current='page']::before, .decks-tab[aria-current='page']::after { opacity: 1; }
+.decks-tab:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 4px; }
+/* Ricerca per nome + Filters (formato, colori) sopra la griglia. */
+.decks-search { display: flex; gap: 8px; margin-bottom: 16px; }
+.decks-search-box { flex: 1; min-width: 0; position: relative; display: flex; margin: 0; }
+.decks-search-box svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
+.decks-search-box .import-link-input { height: 40px; padding-left: 36px; font-size: 0.9rem; }
+.decks-filter-btn { flex: none; height: 40px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; }
+.decks-filter-btn.on, .decks-filter-btn[aria-expanded='true'] { border-color: var(--cyan); color: var(--cyan-soft); }
+.decks-filter-n {
+  display: grid; place-items: center;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent); color: #fff;
+  font-family: var(--font-mono); font-size: 0.7rem;
+}
+.decks-filters {
+  display: flex; align-items: center; gap: 12px 24px; flex-wrap: wrap;
+  margin-top: -6px; margin-bottom: 18px;
+  padding: 14px 16px;
+  background: linear-gradient(180deg, var(--bg-elevated), var(--bg-surface));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.decks-filter { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 0.8rem; color: var(--text-secondary); }
+.decks-filter select { width: auto; }
+.decks-colors { display: flex; gap: 6px; flex-wrap: wrap; }
+.decks-color {
+  display: grid; place-items: center;
+  width: 34px; height: 34px; padding: 0;
+  background: var(--bg-base);
+  border: 1px solid var(--border); border-radius: 50%;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+.decks-color img { width: 20px; height: 20px; }
+.decks-color:hover, .decks-color:focus-visible { opacity: 1; outline: none; border-color: var(--cyan-soft); }
+.decks-color[aria-pressed='true'] { opacity: 1; border-color: var(--cyan); box-shadow: 0 0 10px var(--cyan-glow); }
+/* Griglia mazzi: riquadri larghi una percentuale della riga (5, 4, 3 o 2 per riga secondo lo schermo),
+   righe centrate, anche l'ultima. Dentro il riquadro i testi sono in cqi e scalano con lui. */
+.deck-grid { --cols: 5; --gap: 16px; list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gap); }
+.deck-grid > li { width: calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols)); }
+@media (max-width: 1100px) { .deck-grid { --cols: 4; } }
+@media (max-width: 820px) { .deck-grid { --cols: 3; } }
+@media (max-width: 560px) { .deck-grid { --cols: 2; --gap: 12px; } }
 .deck-tile {
+  container-type: inline-size;
   width: 100%;
   display: flex; flex-direction: column;
   padding: 0;
@@ -2789,19 +2841,37 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 .deck-tile-wrap:hover .deck-tile, .deck-tile:focus-visible { box-shadow: 0 0 18px rgba(255, 45, 149, 0.35); transform: translateY(-2px); outline: none; }
-.deck-tile-art { position: relative; aspect-ratio: 626 / 457; background: var(--bg-elevated) center 22% / cover no-repeat; }
+.deck-tile-art { position: relative; display: block; aspect-ratio: 626 / 457; background: var(--bg-elevated) center 22% / cover no-repeat; }
+/* Nero dall'alto sotto nome e formato; in basso l'arte sfuma nel corpo. */
+.deck-tile-art::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.55) 32%, transparent 64%); }
 .deck-tile-art::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 76%, var(--bg-surface)); }
-/* Corpo come il frame Figma 35:208: tutto in JetBrains Mono bold, testi bianchi a opacità diverse. */
-.deck-tile-body { display: flex; flex-direction: column; padding: 4px 16px 19px; font-family: var(--font-mono); font-weight: 700; line-height: normal; color: var(--text-primary); }
-.deck-tile-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-.deck-tile-name { min-width: 0; font-size: 0.875rem; overflow-wrap: anywhere; }
-/* Come nel frame non occupa altezza: la riga resta alta quanto il nome, l'offset non sposta il resto. */
-.deck-tile-updated { flex: none; position: relative; top: 6px; height: 0; font-size: 0.5rem; line-height: 1.15; text-align: right; white-space: nowrap; opacity: 0.4; }
-.deck-tile-format { margin-top: 12px; font-size: 0.625rem; opacity: 0.6; }
-.deck-tile-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+/* Testi come il frame Figma 35:208: JetBrains Mono bold, bianchi a opacità diverse. */
+.deck-tile-head {
+  position: absolute; z-index: 1; inset: 0 0 auto 0;
+  display: flex; flex-direction: column; gap: 1.5cqi;
+  padding: 5cqi 6cqi 0;
+  font-family: var(--font-mono); font-weight: 700; line-height: 1.2; color: var(--text-primary);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+}
+/* Spazio per Export, sull'angolo in alto a destra (solo nei miei mazzi). */
+.deck-tile-wrap:has(.deck-tile-export) .deck-tile-head { padding-right: 46px; }
+.deck-tile-name {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+  font-size: clamp(13px, 6.4cqi, 20px); overflow-wrap: anywhere;
+}
+.deck-tile-format { display: flex; align-items: center; gap: 6px; font-size: clamp(10px, 4.6cqi, 14px); opacity: 0.75; }
+.deck-tile-public { display: inline-flex; color: var(--cyan); }
+.deck-tile-body {
+  display: flex; flex-direction: column; gap: 3cqi;
+  padding: 1cqi 6cqi 6cqi;
+  font-family: var(--font-mono); font-weight: 700; line-height: normal; color: var(--text-primary);
+}
+.deck-tile-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .deck-tile-foot .mana { gap: 4px; }
-.deck-tile-foot .mana img { width: 15px; height: 15px; }
-.deck-tile-price { font-size: 0.625rem; opacity: 0.6; }
+.deck-tile-foot .mana img { width: clamp(14px, 7cqi, 20px); height: clamp(14px, 7cqi, 20px); }
+.deck-tile-price { font-size: clamp(12px, 6cqi, 18px); opacity: 0.85; }
+.deck-tile-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; font-size: clamp(10px, 4.6cqi, 13px); color: rgba(255, 255, 255, 0.5); }
+.deck-tile-by { color: var(--cyan-soft); }
 /* Export sull'angolo dell'arte: fratello del riquadro (niente pulsanti annidati), sempre visibile. */
 .deck-tile-wrap { position: relative; }
 .deck-tile-export {
@@ -2910,6 +2980,11 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .deck-name:hover { border-color: var(--border); }
 .deck-name:focus { outline: none; border-color: var(--cyan); box-shadow: var(--focus-ring); }
 .deck-format { width: auto; }
+/* Mazzo della Community: nome non modificabile, arte non cliccabile; Public acceso nell'editor. */
+.deck-name-static { margin: 0; }
+.deck-name-static:hover { border-color: transparent; }
+span.deck-hero-art { cursor: default; }
+.deck-print.is-public { border-color: var(--cyan); color: var(--cyan-soft); box-shadow: 0 0 10px rgba(0, 229, 255, 0.25); }
 .deck-sync { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); }
 .deck-sync.offline { color: var(--warning); }
 .deck-body { flex: 1 0 auto; display: grid; grid-template-columns: 1fr; }
