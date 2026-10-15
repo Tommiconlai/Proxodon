@@ -314,6 +314,8 @@ eq([ss.pips, ss.sources], [6, 11], 'totale simboli e carte che producono mana');
 eq(ss.drawTypes.map((t) => [t.type, t.label, t.count]), [['Land', 'Lands', 10], ['Creature', 'Creatures', 4], ['Instant', 'Instants', 4], ['Artifact', 'Artifacts', 2]],
   'tipi nel grimorio per la probabilità di pescata (multi-tipo in ognuno)');
 eq(Math.round(hyperAtLeast(60, 24, 7, 1) * 1e4), 9784, 'ipergeometrica: almeno una terra in 7 carte, 24 terre su 60');
+eq([Math.round(hyperAtLeast(60, 41, 7, 1) * 1e5), Math.round(hyperAtLeast(60, 41, 7, 5) * 1e4)], [99987, 6112],
+  'ipergeometrica: 41 artefatti su 60, almeno 1 (99,987%, non 100) e almeno 5 in 7 carte (valori esatti con BigInt)');
 eq([hyperAtLeast(10, 0, 7, 1), hyperAtLeast(10, 10, 7, 7), hyperAtLeast(5, 2, 9, 2)], [0, 1, 1], 'ipergeometrica: casi limite');
 // Vintage restricted = 1 copia
 eq([maxCopies('vintage', { legal: { vintage: 'restricted' } }), maxCopies('vintage', { legal: { vintage: 'legal' } })], [1, 4], 'restricted = 1');

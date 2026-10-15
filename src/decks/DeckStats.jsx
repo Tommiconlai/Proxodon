@@ -173,13 +173,20 @@ function DrawOdds({ library, types }) {
   const pts = Array.from({ length: turns }, (_, i) => ({
     t: i + 1, play: hyperAtLeast(library, K, 7 + i, k), draw: hyperAtLeast(library, K, 8 + i, k),
   }));
-  const W = Math.max(280, Math.round(width)), H = 260, top = 14, bottom = 30, left = 44, right = 44;
+  const W = Math.max(280, Math.round(width)), H = 260, top = 14, bottom = 30, left = 44, right = 54;
   const plotW = W - left - right, plotH = H - top - bottom;
   const step = plotW / (turns - 1);
   const x = (i) => left + i * step;
   const y = (p) => top + (1 - p) * plotH;
   const path = (key) => pts.map((p, i) => `${i ? 'L' : 'M'}${x(i)},${y(p[key])}`).join('');
-  const f = (p) => `${Math.round(p * 100)}%`;
+  // Un decimale; vicino agli estremi senza toccarli ">99.9%" / "<0.1%" (es. 41 artefatti su 60:
+  // almeno uno in mano al 99,987%, arrotondato all'intero sembrava 100%).
+  const f = (p) => {
+    const v = p * 100;
+    if (v > 99.95 && v < 100) return '>99.9%';
+    if (v > 0 && v < 0.05) return '<0.1%';
+    return `${Number(v.toFixed(1))}%`;
+  };
   const every = step < 34 ? 2 : 1; // etichette dei turni alterne quando sono strette, contate dall'ultimo
   const series = [['play', 'On the play', 1], ['draw', 'On the draw', 2]];
   const last = pts[turns - 1];
@@ -222,7 +229,7 @@ function DrawOdds({ library, types }) {
           {[0, 0.25, 0.5, 0.75, 1].map((p) => (
             <g key={p}>
               <line x1={left} x2={W - right} y1={y(p) + 0.5} y2={y(p) + 0.5} className={p ? 'stat-grid' : 'stat-axis'} />
-              <text x={left - 8} y={y(p) + 4} className="stat-tick" textAnchor="end">{f(p)}</text>
+              <text x={left - 8} y={y(p) + 4} className="stat-tick" textAnchor="end">{p * 100}%</text>
             </g>
           ))}
           {pts.map((p, i) => (turns - 1 - i) % every === 0 && (
