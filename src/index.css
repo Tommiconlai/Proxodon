@@ -2835,22 +2835,30 @@ body::before {
 .sample-hand-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .sample-hand-status { margin-left: 6px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-secondary); }
 .sample-hand-status.pick { color: var(--warning); }
-/* Carte a ventaglio: si sovrappongono di un quarto, quella sotto il mouse sale. */
-.sample-hand-cards { --w: clamp(140px, 16vw, 220px); list-style: none; margin: 0; padding: 14px 4px 6px; display: flex; overflow-x: auto; }
-.sample-hand-cards li { position: relative; flex: none; width: var(--w); }
-.sample-hand-cards li + li { margin-left: calc(var(--w) * -0.26); }
-.sample-hand-cards li:hover { z-index: 1; }
+/* Carte una di fianco all'altra (vanno a capo sugli schermi stretti); quella sotto il mouse sale.
+   Click = giocata: scende e svanisce (card-play), poi esce dalla mano. Le non terra che le terre in
+   campo non pagano restano visibili ma sbiadite. */
+.sample-hand-cards { --w: clamp(110px, 9.5vw, 200px); list-style: none; margin: 0; padding: 14px 0 6px; display: flex; flex-wrap: wrap; gap: 8px; }
+.sample-hand-cards li { flex: none; width: var(--w); transition: opacity var(--transition), filter var(--transition); }
+.sample-hand-cards li.uncastable { opacity: 0.45; filter: saturate(0.6); }
+.sample-hand-cards li.leaving { animation: card-play 0.34s cubic-bezier(0.4, 0, 1, 1) forwards; pointer-events: none; }
+@keyframes card-play { to { opacity: 0; transform: translateY(70px) scale(0.94); } }
+@media (prefers-reduced-motion: reduce) { .sample-hand-cards li.leaving { animation-duration: 1ms; } }
 .sample-card {
   display: block; width: 100%; padding: 0;
   background: none; border: 0; border-radius: 4.75% / 3.4%;
   overflow: hidden;
-  box-shadow: -6px 0 16px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
   transition: transform var(--transition), box-shadow var(--transition);
 }
 .sample-card img { display: block; width: 100%; aspect-ratio: 488 / 680; }
-.sample-hand-cards li:hover .sample-card { transform: translateY(-12px); }
-button.sample-card { cursor: pointer; }
-button.sample-card:hover, button.sample-card:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--warning), 0 0 16px rgba(245, 158, 11, 0.45); }
+.sample-hand-cards li:hover .sample-card { transform: translateY(-8px); }
+.sample-card:hover, .sample-card:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--cyan), 0 0 16px rgba(0, 229, 255, 0.4); }
+/* Scelta del mulligan: bordo ambra, il click manda la carta in fondo. */
+.sample-hand-cards.pick .sample-card:hover, .sample-hand-cards.pick .sample-card:focus-visible { box-shadow: 0 0 0 2px var(--warning), 0 0 16px rgba(245, 158, 11, 0.45); }
+.sample-lands { display: inline-flex; align-items: baseline; gap: 8px; margin-left: 6px; padding: 6px 12px; border: 1px solid rgba(0, 229, 255, 0.35); border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-secondary); }
+.sample-lands b { font-size: 1.05rem; letter-spacing: 0; color: var(--cyan); }
 .sample-hand-note { margin: 0; font-size: 0.85rem; color: var(--text-secondary); }
 /* Fantasma del trascinamento nelle viste a immagini: fuori schermo, solo per setDragImage. */
 .deck-ghost { position: fixed; top: -1000px; left: -1000px; width: 140px; pointer-events: none; }
