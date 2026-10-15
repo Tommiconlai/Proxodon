@@ -5,11 +5,11 @@ import { IconInfo } from '../components/icons';
 
 // Statistiche sotto il mazzo (main board), sul modello di Moxfield ma con lo stile del sito:
 // 1. curva di mana a colonne impilate (permanenti / magie); la barra scelta (all'inizio la più alta)
-//    mostra a fianco le sue carte divise per tipo, l'anteprima della carta sotto il mouse e la
-//    probabilità di avere le terre per giocarle in curva;
+//    mostra a fianco le sue carte divise per tipo;
 // 2. una frase con conteggi, media e mediana del costo con e senza terre, costo totale;
 // 3. una scheda per colore: quota dei simboli nei costi, simboli per costo, fonti di mana
-//    (sbiadita se nessun costo usa quel colore).
+//    (sbiadita se nessun costo usa quel colore);
+// 4. probabilità di pescata per turno (DrawOdds).
 // SVG scritto a mano (niente librerie), colori delle serie --chart-1 / --chart-2.
 
 const COLOR_NAME = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green', C: 'Colorless' };
@@ -112,47 +112,116 @@ function CurveChart({ curve, pick, onPick }) {
   );
 }
 
-// Carte della barra scelta: per tipo, click = selezionala nel mazzo, hover / focus = anteprima.
-// In curva = almeno N terre entro il turno N (7 carte + una pescata a turno, senza la prima se si gioca per primi).
-function CurveCards({ bin, s, onSelect }) {
-  const [hover, setHover] = useState(null);
-  const shown = hover || bin.groups[0]?.rows[0];
-  const n = bin.mv;
-  const odds = (draws) => (hyperAtLeast(s.library, s.lands, draws, n) * 100).toFixed(1);
+// Carte della barra scelta, per tipo: click = selezionala nel mazzo.
+function CurveCards({ bin, onSelect }) {
   return (
-    <>
-      <div className="stat-card stat-mv">
-        <div className="stat-mv-head">
-          <span className="stat-title">Mana value {mvLabel(n)}</span>
-          <span className="n">{plural(bin.count, 'card')}</span>
-          {bin.ids.length > 0 && <button type="button" className="btn-secondary stat-mv-select" onClick={() => onSelect(bin.ids)}>Select in deck</button>}
-        </div>
-        {!bin.count && <p className="deck-empty">No cards at this mana value.</p>}
-        {bin.groups.map((g) => (
-          <section key={g.label} className="stat-mv-group" aria-label={g.label}>
-            <h4>{g.label} <span className="n">{sum(g.rows)}</span></h4>
-            <ul>
-              {g.rows.map((r) => (
-                <li key={r.id}>
-                  <button type="button" className="stat-mv-row" onMouseEnter={() => setHover(r)} onFocus={() => setHover(r)}
-                    onClick={() => onSelect([r.id])} aria-label={`${r.qty} ${r.card.name}. Select in deck`}>
-                    <span className="deck-qty">{r.qty}</span>
-                    <span className="stat-mv-name">{r.card.name}</span>
-                    <ManaCost cost={r.card.mana} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
-        {n > 0 && bin.count > 0 && s.lands > 0 && (
-          <p className="stat-note">
-            Chance to have {plural(n, 'land')} by turn {n}: <b>{odds(6 + n)}%</b> on the play, <b>{odds(7 + n)}%</b> on the draw.
-          </p>
-        )}
+    <div className="stat-card stat-mv">
+      <div className="stat-mv-head">
+        <span className="stat-title">Mana value {mvLabel(bin.mv)}</span>
+        <span className="n">{plural(bin.count, 'card')}</span>
+        {bin.ids.length > 0 && <button type="button" className="btn-secondary stat-mv-select" onClick={() => onSelect(bin.ids)}>Select in deck</button>}
       </div>
-      <div className="stat-preview" aria-hidden="true">{shown?.card.img && <img src={shown.card.img} alt="" />}</div>
-    </>
+      {!bin.count && <p className="deck-empty">No cards at this mana value.</p>}
+      {bin.groups.map((g) => (
+        <section key={g.label} className="stat-mv-group" aria-label={g.label}>
+          <h4>{g.label} <span className="n">{sum(g.rows)}</span></h4>
+          <ul>
+            {g.rows.map((r) => (
+              <li key={r.id}>
+                <button type="button" className="stat-mv-row" onClick={() => onSelect([r.id])} aria-label={`${r.qty} ${r.card.name}. Select in deck`}>
+                  <span className="deck-qty">{r.qty}</span>
+                  <span className="stat-mv-name">{r.card.name}</span>
+                  <ManaCost cost={r.card.mana} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+// Probabilità di pescata: almeno una delle N copie di una carta (4 di default, modificabile) entro
+// il turno T, ipergeometrica sul grimorio. Due linee: per primi (7 + T - 1 carte, niente pescata al
+// primo turno) e per secondi (7 + T). Crosshair + tooltip per turno, tabella per i lettori di schermo.
+const TURNS = 10;
+function DrawOdds({ library }) {
+  const [copies, setCopies] = useState('4');
+  const [at, setAt] = useState(null); // indice del turno sotto il mouse / focus
+  const k = Math.max(1, Math.min(library, Math.round(Number(copies)) || 1));
+  const pts = Array.from({ length: TURNS }, (_, i) => ({
+    t: i + 1, play: hyperAtLeast(library, k, 7 + i, 1), draw: hyperAtLeast(library, k, 8 + i, 1),
+  }));
+  const W = 480, H = 240, top = 14, bottom = 42, left = 44, right = 40;
+  const plotW = W - left - right, plotH = H - top - bottom;
+  const x = (i) => left + (i / (TURNS - 1)) * plotW;
+  const y = (p) => top + (1 - p) * plotH;
+  const path = (key) => pts.map((p, i) => `${i ? 'L' : 'M'}${x(i)},${y(p[key])}`).join('');
+  const f = (p) => `${Math.round(p * 100)}%`;
+  const series = [['play', 'On the play', 1], ['draw', 'On the draw', 2]];
+  const last = pts[TURNS - 1];
+  const tip = at != null && pts[at];
+  return (
+    <figure className="stat-card stat-odds">
+      <figcaption className="stat-odds-head">
+        <span className="stat-odds-title">
+          <span className="stat-title">Draw odds</span>
+          <span className="stat-sub">Chance to draw at least one of {k} {k === 1 ? 'copy' : 'copies'} of a card by each turn</span>
+        </span>
+        <label className="stat-odds-copies">
+          <span>Copies</span>
+          <input type="number" min="1" max={library} step="1" value={copies} onChange={(e) => setCopies(e.target.value)} />
+        </label>
+      </figcaption>
+      <div className="stat-legend">
+        {series.map(([key, label, n]) => <span key={key}><i className={`stat-swatch s${n}`} aria-hidden="true" />{label}</span>)}
+      </div>
+      <div className="stat-plot" onPointerLeave={() => setAt(null)}>
+        <svg viewBox={`0 0 ${W} ${H}`} className="stat-svg" role="group" aria-label="Draw odds chart">
+          {[0, 0.25, 0.5, 0.75, 1].map((p) => (
+            <g key={p}>
+              <line x1={left} x2={W - right} y1={y(p) + 0.5} y2={y(p) + 0.5} className={p ? 'stat-grid' : 'stat-axis'} />
+              <text x={left - 8} y={y(p) + 4} className="stat-tick" textAnchor="end">{f(p)}</text>
+            </g>
+          ))}
+          {pts.map((p, i) => <text key={p.t} x={x(i)} y={H - bottom + 16} className="stat-tick" textAnchor="middle">{p.t}</text>)}
+          <text className="stat-axis-title" textAnchor="middle" transform={`translate(11 ${top + plotH / 2}) rotate(-90)`}>Probability</text>
+          <text x={left + plotW / 2} y={H - 4} className="stat-axis-title" textAnchor="middle">Turn</text>
+          {tip && <line x1={x(at)} x2={x(at)} y1={top} y2={H - bottom} className="stat-crosshair" />}
+          {series.map(([key, , n]) => (
+            <g key={key}>
+              <path d={path(key)} className={`stat-line s${n}`} />
+              {pts.map((p, i) => <circle key={p.t} cx={x(i)} cy={y(p[key])} r={at === i ? 5 : 3.5} className={`stat-dot s${n}`} />)}
+            </g>
+          ))}
+          {/* Etichette a fine linea: per secondi sopra, per primi sotto (per secondi è sempre più alta). */}
+          <text x={x(TURNS - 1) + 8} y={y(last.draw) - 2} className="stat-val">{f(last.draw)}</text>
+          <text x={x(TURNS - 1) + 8} y={y(last.play) + 12} className="stat-val">{f(last.play)}</text>
+          {pts.map((p, i) => (
+            <rect key={p.t} x={x(i) - plotW / (TURNS - 1) / 2} y={top} width={plotW / (TURNS - 1)} height={plotH} fill="transparent"
+              tabIndex={0} className="stat-hit" aria-label={`Turn ${p.t}: ${f(p.play)} on the play, ${f(p.draw)} on the draw`}
+              onPointerEnter={() => setAt(i)} onFocus={() => setAt(i)} onBlur={() => setAt(null)} />
+          ))}
+        </svg>
+        {tip && (
+          <div className="stat-tip" style={{ left: `${(x(at) / W) * 100}%`, top: `${(y(tip.draw) / H) * 100}%` }} role="status">
+            <div className="stat-tip-row"><strong>Turn {tip.t}</strong></div>
+            {series.map(([key, label, n]) => (
+              <div key={key} className="stat-tip-row">
+                <span className="stat-key" style={{ background: `var(--chart-${n})` }} aria-hidden="true" />
+                <strong>{f(tip[key])}</strong> <span>{label.toLowerCase()}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <table className="sr-only">
+          <caption>Draw odds for {k} copies</caption>
+          <thead><tr><th>Turn</th><th>On the play</th><th>On the draw</th></tr></thead>
+          <tbody>{pts.map((p) => <tr key={p.t}><td>{p.t}</td><td>{f(p.play)}</td><td>{f(p.draw)}</td></tr>)}</tbody>
+        </table>
+      </div>
+    </figure>
   );
 }
 
@@ -185,7 +254,7 @@ export default function DeckStats({ deck, onSelect }) {
     <div className="deck-stats">
       <div className="stat-curve-row">
         <CurveChart curve={s.curve} pick={sel} onPick={setPick} />
-        <CurveCards key={sel} bin={s.curve[sel]} s={s} onSelect={onSelect} />
+        <CurveCards bin={s.curve[sel]} onSelect={onSelect} />
       </div>
       <p className="stat-summary">
         <IconInfo size={16} />
@@ -197,6 +266,7 @@ export default function DeckStats({ deck, onSelect }) {
       </p>
       <div className="stat-colors">{s.colors.map((c) => <ColorCard key={c.c} c={c} s={s} />)}</div>
       <p className="stat-foot">A card that makes more than one color counts as a source of each, so sources can add up to more than 100%.</p>
+      {s.library > 0 && <DrawOdds library={s.library} />}
     </div>
   );
 }
