@@ -12,6 +12,7 @@ import {
   splitRow, changeEdition, snapshotFromCard, validateDeck, packPiles,
 } from './deckModel';
 import DeckStats from './DeckStats';
+import SampleHand from './SampleHand';
 import { IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy } from '../components/icons';
 
 const BOARD_LABEL = { main: 'main deck', side: 'sideboard', maybe: 'maybeboard' };
@@ -52,7 +53,8 @@ function usePref(key, modes, fallback) {
   return [v, set];
 }
 
-// Corpo dell'editor: barra (ordina, vista, raggruppa, + nuova sezione), comandante, gruppi, sideboard, maybeboard.
+// Corpo dell'editor: barra (ordina, vista, raggruppa, + nuova sezione), comandante, gruppi, sideboard, maybeboard,
+// poi statistiche e mano di prova sotto tutto.
 // Viste: lista (righe), griglia (immagini), stack (immagini sovrapposte, si vede la riga del nome;
 // le pile riempiono colonne alte quanto la pila più alta, nell'ordine dei gruppi),
 // stack con ogni copia (3 copie = 3 carte impilate). Le carte oltre il limite di copie del formato
@@ -91,8 +93,11 @@ export default function DeckSections({ deck, update, touch }) {
   const banOf = (r) => (counts(r) ? illegalIn(deck.format, r.card) : null);
   // Controlli del formato (mai bloccanti): chip sopra le carte, il click seleziona le carte coinvolte.
   const issues = useMemo(() => validateDeck(deck), [deck]);
-  const [mode, setMode] = useState('deck'); // 'deck' | 'stats'
-  const pick = (ids) => { setMode('deck'); setSel(new Set(ids)); };
+  // Chip dei controlli e barre dei grafici: seleziona quelle carte e porta in vista la prima.
+  const pick = (ids) => {
+    setSel(new Set(ids));
+    document.querySelector(`.deck-row[data-row-id="${ids[0]}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
   // L'anteprima è fissa sullo schermo: sparisce appena qualcosa scorre.
   useEffect(() => {
@@ -194,7 +199,7 @@ export default function DeckSections({ deck, update, touch }) {
   // disegna un'area e aggiunge le carte che tocca (come nella stampa, non toglie le altre).
   // Nello stack di una carta conta solo la fascia visibile, fino all'inizio della successiva.
   const onEmpty = (e) => e.currentTarget.contains(e.target)
-    && !e.target.closest('.deck-row, .deck-toolbar, .deck-group-actions, .deck-issues, .deck-stats, .modal-overlay, button, select, input, summary, a');
+    && !e.target.closest('.deck-row, .deck-toolbar, .deck-group-actions, .deck-issues, .deck-analysis, .modal-overlay, button, select, input, summary, a');
   const marqueeHandlers = {
     onPointerDown: (e) => {
       swallowClick.current = false; // nuovo gesto
@@ -356,15 +361,10 @@ export default function DeckSections({ deck, update, touch }) {
   ].filter(Boolean) : [];
   const stackCols = packPiles(piles.map(([g]) => pileHeight(split ? sum(g.rows) : g.rows.length)), STACK_GAP);
   return (
-    <div className={`deck-sections view-${layout}${mode === 'stats' ? ' mode-stats' : ''}`} {...marqueeHandlers}
+    <div className={`deck-sections view-${layout}`} {...marqueeHandlers}
       onKeyDown={(e) => { if (e.key === 'Escape' && sel.size) { e.stopPropagation(); setSel(new Set()); } }}>
       {marquee && <div className="marquee" style={marquee} aria-hidden="true" />}
       <div className="deck-toolbar">
-        <div className="deck-mode" role="group" aria-label="Show">
-          <button type="button" aria-pressed={mode === 'deck'} onClick={() => setMode('deck')}>Deck</button>
-          <button type="button" aria-pressed={mode === 'stats'} onClick={() => { setMode('stats'); setHover(null); }}>Stats</button>
-        </div>
-        {mode === 'deck' && (<>
         <label className="deck-tool">
           <span>Sort by</span>
           <select value={sort} onChange={(e) => setSort(e.target.value)}>
@@ -384,7 +384,6 @@ export default function DeckSections({ deck, update, touch }) {
           </select>
         </label>
         <button type="button" className="btn-secondary deck-new-section" aria-label="New section" title="New section" onClick={() => setDialog({})}><IconPlus size={16} /></button>
-        </>)}
       </div>
       {issues.length > 0 && (
         <ul className="deck-issues" aria-label={`${formatLabel(deck.format)} checks`}>
@@ -399,7 +398,6 @@ export default function DeckSections({ deck, update, touch }) {
           ))}
         </ul>
       )}
-      {mode === 'stats' ? <DeckStats deck={deck} onSelect={pick} /> : (<>
       {/* Negli stack comandante e sideboard sono pile come le altre: il mazzo è un unico blocco centrato. */}
       {blocks.commander && layout !== 'stacks' && group(blocks.commander, 'deck-block')}
       <div className={`deck-columns view-${layout}`}>
@@ -414,7 +412,17 @@ export default function DeckSections({ deck, update, touch }) {
           <ul className={`deck-rows view-${layout}`}>{cards(blocks.maybe.rows)}</ul>
         </details>
       )}
-      </>)}
+      {/* Sotto tutto il mazzo, come Moxfield: statistiche e mano di prova. */}
+      <div className="deck-analysis">
+        <section aria-labelledby="deck-stats-head">
+          <h3 className="deck-analysis-head" id="deck-stats-head">Stats</h3>
+          <DeckStats deck={deck} onSelect={pick} />
+        </section>
+        <section aria-labelledby="deck-hand-head">
+          <h3 className="deck-analysis-head" id="deck-hand-head">Sample hand</h3>
+          <SampleHand deck={deck} />
+        </section>
+      </div>
       {menu && items.length > 0 && (
         <CardMenu x={menu.x} y={menu.y} title={menuRows.length === 1 ? menuRows[0].card.name : `${menuRows.length} cards selected`} items={items} onClose={closeMenu} />
       )}

@@ -2675,7 +2675,8 @@ body::before {
    contenuto lascia passare i click) = scegli copertina; lo segnala solo il cursore a mano. */
 .deck-hero {
   position: relative; isolation: isolate;
-  min-height: 200px;
+  /* Alta quanto l'arte alla sua larghezza (art_crop 626x457, larga min(640px, 72%)): si vede intera. */
+  min-height: min(468px, 52.5vw);
   z-index: 5; /* la tendina dei suggerimenti esce sopra il mazzo */
   display: flex; align-items: stretch; gap: 24px;
   padding: 14px 22px 16px;
@@ -2720,7 +2721,7 @@ body::before {
 .deck-hero-content { position: relative; z-index: 2; flex: 1 1 auto; min-width: 0; max-width: 100%; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; pointer-events: none; }
 .deck-hero-content :is(a, input, select, button, .deck-sync, .deck-count) { pointer-events: auto; }
 .deck-hero-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
-:is(.deck-hero, .deck-sticky-bar) .deck-name { flex: 0 1 auto; width: min(620px, 100%); font-size: 1.6rem; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85); }
+:is(.deck-hero, .deck-sticky-bar) .deck-name { flex: 0 1 auto; width: min(620px, 100%); font-size: 2rem; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85); }
 /* Largo quanto il testo dove supportato, così il resto della copertina resta cliccabile. */
 @supports (field-sizing: content) { :is(.deck-hero, .deck-sticky-bar) .deck-name { width: auto; field-sizing: content; min-width: 6ch; max-width: min(620px, 100%); } }
 .deck-hero-meta { margin-top: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -2753,23 +2754,23 @@ body::before {
 .deck-body { flex: 1 0 auto; display: grid; grid-template-columns: 1fr; }
 .deck-editor.is-mobile .deck-body { grid-template-columns: 1fr; }
 /* .deck-sections va da bordo a bordo, alta quanto il contenitore: click e selezione ad area partono
-   da tutto lo spazio vuoto. Il padding laterale tiene il contenuto entro 1320 px, centrato. */
+   da tutto lo spazio vuoto. Il padding laterale tiene il contenuto entro 1600 px, centrato. */
 .deck-main { min-width: 0; }
-.deck-sections { position: relative; min-height: 100%; padding: 18px max(22px, calc((100% - 1276px) / 2)) 40px; }
+.deck-sections { position: relative; min-height: 100%; padding: 22px max(28px, calc((100% - 1544px) / 2)) 56px; }
 /* Mazzo centrato: negli stack una sola colonna di griglia larga quanto il contenuto, al centro. */
-.deck-sections.view-stacks:not(.mode-stats) { display: grid; grid-template-columns: minmax(0, max-content); justify-content: center; align-content: start; padding-inline: 22px; }
+.deck-sections.view-stacks { display: grid; grid-template-columns: minmax(0, max-content); justify-content: center; align-content: start; padding-inline: 28px; }
 .deck-columns.view-stacks { justify-content: center; }
 
-.deck-columns { columns: 260px; column-gap: 28px; }
-.deck-group { break-inside: avoid; margin: 0 0 18px; }
+.deck-columns { columns: 300px; column-gap: 40px; }
+.deck-group { break-inside: avoid; margin: 0 0 26px; }
 .deck-block { margin-bottom: 22px; }
 .deck-group-head {
   display: flex; align-items: baseline; gap: 8px;
-  margin: 0 0 6px;
+  margin: 0 0 10px;
   font-family: var(--font-display);
-  font-size: 0.72rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #c9c4ea;
 }
@@ -2779,10 +2780,10 @@ body::before {
 .deck-row-main {
   flex: 1; min-width: 0;
   display: flex; align-items: center; gap: 8px;
-  padding: 5px 4px;
+  padding: 7px 6px;
   background: none; border: none; border-radius: 4px;
   color: var(--text-primary);
-  font: inherit; font-size: 0.85rem;
+  font: inherit; font-size: 0.95rem;
   text-align: left;
   cursor: pointer;
   -webkit-touch-callout: none;
@@ -2791,7 +2792,8 @@ body::before {
 .deck-row-main:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .deck-qty { min-width: 1.6em; text-align: right; font-family: var(--font-mono); color: var(--cyan-soft); }
 .deck-name-cell { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.deck-set { font-family: var(--font-mono); font-size: 0.66rem; color: var(--text-muted); }
+.deck-set { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); }
+.deck-row .mana img { width: 16px; height: 16px; }
 /* Riga selezionata: velo magenta + barretta a sinistra (come il frame delle carte selezionate). */
 .deck-row.selected { background: rgba(255, 45, 149, 0.08); box-shadow: inset 2px 0 0 var(--accent); }
 .deck-row-qty { display: flex; gap: 2px; opacity: 0; transition: opacity var(--transition); }
@@ -2811,13 +2813,44 @@ body::before {
 
 /* Barra sopra le carte: raggruppa, ordina, vista, nuova sezione. */
 .deck-toolbar { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; margin-bottom: 16px; }
-.deck-tool { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-secondary); }
+.deck-tool { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-secondary); }
 .deck-tool select { width: auto; }
 /* Solo "+": alto quanto i select accanto (stretch sulla riga della barra), quadrato (icona 16 + 2×10,5 + bordi = 39). */
 .deck-new-section { align-self: stretch; padding: 0 10.5px; }
 /* Dialog Export: scelta del formato (stile Deck / Stats), lista in mono. */
 .export-mode { align-self: flex-start; }
 .export-text { min-height: 280px; font-family: var(--font-mono); font-size: 0.78rem; white-space: pre; }
+
+/* Sotto il mazzo (come Moxfield): statistiche e mano di prova. width 0 + min-width 100%: negli
+   stack non allarga la colonna della griglia (larga quanto le pile), ne prende la larghezza. */
+.deck-analysis { width: 0; min-width: 100%; margin-top: 48px; display: flex; flex-direction: column; gap: 44px; }
+.deck-analysis-head {
+  margin: 0 0 16px; padding-bottom: 10px;
+  border-bottom: 1px solid rgba(124, 92, 255, 0.2);
+  font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--text-primary);
+}
+.sample-hand { display: flex; flex-direction: column; gap: 14px; }
+.sample-hand-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.sample-hand-status { margin-left: 6px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-secondary); }
+.sample-hand-status.pick { color: var(--warning); }
+/* Carte a ventaglio: si sovrappongono di un quarto, quella sotto il mouse sale. */
+.sample-hand-cards { --w: clamp(140px, 16vw, 220px); list-style: none; margin: 0; padding: 14px 4px 6px; display: flex; overflow-x: auto; }
+.sample-hand-cards li { position: relative; flex: none; width: var(--w); }
+.sample-hand-cards li + li { margin-left: calc(var(--w) * -0.26); }
+.sample-hand-cards li:hover { z-index: 1; }
+.sample-card {
+  display: block; width: 100%; padding: 0;
+  background: none; border: 0; border-radius: 4.75% / 3.4%;
+  overflow: hidden;
+  box-shadow: -6px 0 16px rgba(0, 0, 0, 0.55);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.sample-card img { display: block; width: 100%; aspect-ratio: 488 / 680; }
+.sample-hand-cards li:hover .sample-card { transform: translateY(-12px); }
+button.sample-card { cursor: pointer; }
+button.sample-card:hover, button.sample-card:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--warning), 0 0 16px rgba(245, 158, 11, 0.45); }
+.sample-hand-note { margin: 0; font-size: 0.85rem; color: var(--text-secondary); }
 /* Fantasma del trascinamento nelle viste a immagini: fuori schermo, solo per setDragImage. */
 .deck-ghost { position: fixed; top: -1000px; left: -1000px; width: 140px; pointer-events: none; }
 .deck-ghost img { display: block; width: 100%; border-radius: 4.75% / 3.4%; }
@@ -2927,12 +2960,12 @@ body::before {
   border-radius: var(--radius-md);
 }
 .stat-tile { display: flex; flex-direction: column; gap: 4px; }
-.stat-tile-label { font-size: 0.75rem; color: var(--text-secondary); }
-.stat-tile-value { font-family: var(--font-display); font-size: 1.6rem; font-weight: 600; color: var(--text-primary); }
+.stat-tile-label { font-size: 0.85rem; color: var(--text-secondary); }
+.stat-tile-value { font-family: var(--font-display); font-size: 1.9rem; font-weight: 600; color: var(--text-primary); }
 .stat-card figcaption { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
-.stat-title { font-family: var(--font-display); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-primary); }
-.stat-sub { font-size: 0.74rem; color: var(--text-secondary); }
-.stat-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 8px; font-size: 0.74rem; color: var(--text-secondary); }
+.stat-title { font-family: var(--font-display); font-size: 0.9rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-primary); }
+.stat-sub { font-size: 0.84rem; color: var(--text-secondary); }
+.stat-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 8px; font-size: 0.84rem; color: var(--text-secondary); }
 .stat-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .stat-swatch { width: 10px; height: 10px; border-radius: 2px; }
 .stat-swatch.s1, .stat-bar.s1 { background: var(--chart-1); fill: var(--chart-1); }
@@ -2940,8 +2973,8 @@ body::before {
 .stat-plot { position: relative; }
 .stat-svg { display: block; width: 100%; height: auto; overflow: visible; }
 .stat-axis { stroke: rgba(167, 161, 201, 0.25); stroke-width: 1; }
-.stat-val { font-family: var(--font-mono); font-size: 10px; fill: var(--text-secondary); }
-.stat-tick { font-family: var(--font-mono); font-size: 10px; fill: var(--text-muted); }
+.stat-val { font-family: var(--font-mono); font-size: 11px; fill: var(--text-secondary); }
+.stat-tick { font-family: var(--font-mono); font-size: 11px; fill: var(--text-muted); }
 .stat-hit { outline: none; }
 .stat-hit.clickable { cursor: pointer; }
 .stat-hit:focus-visible { stroke: var(--cyan); stroke-width: 1.5; }
@@ -2977,7 +3010,7 @@ body::before {
   .deck-rows.view-stacks .deck-row:not(.selected) .deck-row-qty { display: none; }
   .deck-rows.view-stacks .deck-row.selected .deck-card-qty { opacity: 0; }
 }
-.deck-editor.is-mobile .deck-hero { min-height: 150px; padding: 14px 12px 12px; }
+.deck-editor.is-mobile .deck-hero { min-height: 73vw; padding: 14px 12px 12px; }
 .deck-editor.is-mobile .deck-hero-art { width: 100%; }
 .deck-editor.is-mobile .deck-hero .deck-name { font-size: 1.25rem; }
 .deck-editor.is-mobile .deck-hero-meta { gap: 8px; }
@@ -3106,7 +3139,7 @@ body::before {
 .search-foot .search-adv-toggle { margin-top: 0; }
 .deck-hero-search .search-status { margin-top: 4px; }
 .deck-adv-panel {
-  width: calc(100% - 44px); max-width: 1276px;
+  width: calc(100% - 56px); max-width: 1544px;
   margin: 16px auto 0; padding: 16px 20px;
   background: linear-gradient(180deg, var(--bg-elevated), var(--bg-surface));
   border: 1px solid var(--border); border-radius: var(--radius-lg);

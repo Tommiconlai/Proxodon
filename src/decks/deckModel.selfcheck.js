@@ -9,6 +9,7 @@ import {
   parseDeckText, toBackup, fromBackup, duplicateDeck, refreshSnapshots, primaryType,
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
   splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies, packPiles,
+  libraryCards, shuffle, mulliganBottom,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
 
@@ -123,6 +124,15 @@ eq(groupMain(g).map((x) => [x.label, x.rows.map((r) => r.card.name), x.count]),
   'gruppi per tipo: ordine, senza comandante e sideboard, ordinati per costo e nome');
 eq(commanderRows(g).map((r) => r.card.name), ["Atraxa, Praetors' Voice"], 'riga comandante');
 eq(boardRows(g, 'side').map((r) => r.card.name), ['Pyroblast'], 'righe sideboard');
+// mano di prova: grimorio = main senza comandanti, una voce per copia
+eq(libraryCards(g).map((e) => e.card.name), ['Lightning Bolt', 'Forest', 'Sol Ring', 'Goblin Guide', 'Solemn Simulacrum'], 'grimorio senza comandante né sideboard');
+const lib4 = libraryCards(addCard(newDeck({ name: 'l', format: 'modern' }), bolt, { qty: 4 }).deck);
+eq([lib4.length, new Set(lib4.map((e) => e.key)).size], [4, 4], 'grimorio: 4 copie, chiavi distinte');
+const deckOrder = [1, 2, 3, 4];
+eq([shuffle(deckOrder, () => 0), deckOrder], [[2, 3, 4, 1], [1, 2, 3, 4]], 'shuffle: Fisher-Yates su una copia');
+eq([...shuffle(deckOrder)].sort(), [1, 2, 3, 4], 'shuffle: permutazione');
+eq([mulliganBottom('commander', 1), mulliganBottom('commander', 2), mulliganBottom('modern', 1), mulliganBottom('modern', 0)], [0, 1, 1, 0],
+  'mulligan London, il primo gratis in Commander');
 eq([deckIdentity(g), deckCover(g)], [['W', 'U', 'B', 'G'], 'a-atx'], 'identità e copertina dal comandante');
 eq(deckIdentity(addCard(newDeck({ name: 'x', format: 'modern' }), bolt).deck), ['R'], 'identità senza comandante = carte del main');
 

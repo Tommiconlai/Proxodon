@@ -564,3 +564,25 @@ export function packPiles(heights, gap) {
   });
   return cols.map((c) => c.ids);
 }
+
+// ── Mano di prova ────────────────────────────────────────────
+
+// Grimorio: una voce per copia del main board, comandanti esclusi (partono dalla zona di comando).
+export function libraryCards(deck) {
+  return deck.cards.filter((r) => r.board === 'main' && !r.commander)
+    .flatMap((r) => Array.from({ length: r.qty }, (_, i) => ({ key: `${r.id}:${i}`, card: r.card })));
+}
+
+// Fisher-Yates su una copia; rng iniettabile per il self-check.
+export function shuffle(list, rng = Math.random) {
+  const a = [...list];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Mulligan London: dopo N mulligan si pescano 7 carte e se ne mettono N in fondo. In Commander
+// (multiplayer) il primo non conta (regola 103.5c).
+export const mulliganBottom = (format, mulls) => Math.max(0, format === 'commander' ? mulls - 1 : mulls);
