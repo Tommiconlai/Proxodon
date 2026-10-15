@@ -10,16 +10,9 @@ import AdvancedSearch from './AdvancedSearch';
 import { MobilePage } from '../components/MobileLayout';
 import { PrintDeckDialog, CoverDialog, ExportDeckDialog } from './dialogs';
 import { IconPlus, IconPrinter, IconX, IconExport } from '../components/icons';
+import { timeAgo } from '../utils/timeAgo';
 
 const STUCK_AT = 72; // px: padding della barra + casella di ricerca, circa
-// "Saved 10 minutes ago": tempo dall'ultima scrittura (updatedAt del documento).
-const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-const UNITS = [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]];
-const ago = (ms) => {
-  const sec = (Date.now() - ms) / 1000;
-  const u = UNITS.find(([, n]) => sec >= n);
-  return u ? rtf.format(-Math.floor(sec / u[1]), u[0]) : 'just now';
-};
 
 // Editor del mazzo: testata con la copertina (arte della carta scelta, a sinistra, che verso destra
 // si sfoca e svanisce; click = scegli un'altra carta del mazzo, lo dice il cursore a mano) e sopra,
@@ -97,7 +90,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   };
   const cover = coverRow(deck);
   const savedAt = deck.updatedAt?.toMillis?.();
-  const sync = !online ? (saving ? 'Offline, saved on this device' : 'Offline') : saving ? 'Saving…' : savedAt ? `Saved ${ago(savedAt)}` : 'Saved';
+  const sync = !online ? (saving ? 'Offline, saved on this device' : 'Offline') : saving ? 'Saving…' : savedAt ? `Saved ${timeAgo(savedAt)}` : 'Saved'; // tempo dall'ultima scrittura (updatedAt)
   const name = (
     <input className="deck-name" value={deck.name} maxLength={80} aria-label="Deck name" spellCheck={false}
       onChange={(e) => update((d) => ({ ...d, name: e.target.value }))}

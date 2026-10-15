@@ -11,6 +11,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { ManaPips } from './Mana';
 import { NameFormatDialog, ExportDeckDialog } from './dialogs';
 import { downloadText } from '../utils/download';
+import { timeAgo } from '../utils/timeAgo';
 import ImportDeckDialog from './ImportDeckDialog';
 import { IconPlus, IconList, IconUpload, IconCopy, IconTrash, IconPencil, IconDownload, IconExport } from '../components/icons';
 
@@ -88,6 +89,7 @@ export default function DeckList({ uid, notify }) {
             const main = boardCounts(d).main;
             const target = countTarget(d.format);
             const cover = deckCover(d);
+            const updated = d.updatedAt?.toMillis?.();
             return (
               <li key={d.id} className="deck-tile-wrap">
                 <button type="button" className="deck-tile"
@@ -95,12 +97,18 @@ export default function DeckList({ uid, notify }) {
                   onContextMenu={(e) => { e.preventDefault(); setMenu({ deck: d, ...menuPoint(e) }); }}
                   {...press.bind((x, y) => setMenu({ deck: d, x, y }))}>
                   <span className="deck-tile-art" style={cover ? { backgroundImage: `url("${cover}")` } : undefined} aria-hidden="true" />
+                  {/* Come il frame Figma "Proxoteca" 35:208: nome e ultima modifica, formato, poi
+                      identità di colore e numero di carte sulla stessa riga. */}
                   <span className="deck-tile-body">
-                    <span className="deck-tile-name">{d.name}</span>
-                    <span className="deck-tile-meta">
-                      {formatLabel(d.format)} · <span className={countOk(d.format, main) ? undefined : 'warn'}>{main}{target ? `/${target}` : ''}</span>
+                    <span className="deck-tile-top">
+                      <span className="deck-tile-name">{d.name}</span>
+                      {updated && <span className="deck-tile-updated">Last update<br />{timeAgo(updated)}</span>}
                     </span>
-                    <ManaPips colors={deckIdentity(d)} />
+                    <span className="deck-tile-format">{formatLabel(d.format)}</span>
+                    <span className="deck-tile-foot">
+                      <ManaPips colors={deckIdentity(d)} />
+                      <span className={`deck-tile-count${countOk(d.format, main) ? '' : ' warn'}`}>{main}{target ? `/${target}` : ''}</span>
+                    </span>
                   </span>
                 </button>
                 {/* Fuori dal riquadro (niente pulsanti annidati), posato sull'angolo dell'arte. */}

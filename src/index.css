@@ -2630,21 +2630,29 @@ body::before {
   font: inherit;
   color: inherit;
   background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
   -webkit-touch-callout: none;
   user-select: none;
   transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
-.deck-tile-wrap:hover .deck-tile, .deck-tile:focus-visible { border-color: var(--border-hover); box-shadow: 0 0 18px rgba(0, 229, 255, 0.16); transform: translateY(-2px); outline: none; }
+.deck-tile-wrap:hover .deck-tile, .deck-tile:focus-visible { box-shadow: 0 0 18px rgba(255, 45, 149, 0.35); transform: translateY(-2px); outline: none; }
 .deck-tile-art { position: relative; aspect-ratio: 626 / 457; background: var(--bg-elevated) center 22% / cover no-repeat; }
-.deck-tile-art::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, var(--bg-surface)); }
-.deck-tile-body { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px 12px; }
-.deck-tile-name { font-family: var(--font-display); font-weight: 600; font-size: 0.95rem; color: var(--text-primary); }
-.deck-tile-meta { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-secondary); }
-.deck-tile-meta .warn { color: var(--warning); }
+.deck-tile-art::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 76%, var(--bg-surface)); }
+/* Corpo come il frame Figma 35:208: tutto in JetBrains Mono bold, testi bianchi a opacità diverse. */
+.deck-tile-body { display: flex; flex-direction: column; padding: 4px 16px 19px; font-family: var(--font-mono); font-weight: 700; line-height: normal; color: var(--text-primary); }
+.deck-tile-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.deck-tile-name { min-width: 0; font-size: 0.875rem; overflow-wrap: anywhere; }
+/* Come nel frame non occupa altezza: la riga resta alta quanto il nome, l'offset non sposta il resto. */
+.deck-tile-updated { flex: none; position: relative; top: 6px; height: 0; font-size: 0.5rem; line-height: 1.15; text-align: right; white-space: nowrap; opacity: 0.4; }
+.deck-tile-format { margin-top: 12px; font-size: 0.625rem; opacity: 0.6; }
+.deck-tile-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+.deck-tile-foot .mana { gap: 4px; }
+.deck-tile-foot .mana img { width: 15px; height: 15px; }
+.deck-tile-count { font-size: 0.625rem; opacity: 0.6; }
+.deck-tile-count.warn { color: var(--warning); opacity: 1; }
 /* Export sull'angolo dell'arte: fratello del riquadro (niente pulsanti annidati), sempre visibile. */
 .deck-tile-wrap { position: relative; }
 .deck-tile-export {
