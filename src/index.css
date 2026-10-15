@@ -2742,7 +2742,7 @@ body::before {
 .deck-main { min-width: 0; }
 .deck-sections { position: relative; min-height: 100%; padding: 18px max(22px, calc((100% - 1276px) / 2)) 40px; }
 /* Mazzo centrato: negli stack una sola colonna di griglia larga quanto il contenuto, al centro. */
-.deck-sections.view-stacks:not(.mode-stats) { display: grid; grid-template-columns: minmax(0, max-content); justify-content: center; padding-inline: 22px; }
+.deck-sections.view-stacks:not(.mode-stats) { display: grid; grid-template-columns: minmax(0, max-content); justify-content: center; align-content: start; padding-inline: 22px; }
 .deck-columns.view-stacks { justify-content: center; }
 
 .deck-columns { columns: 260px; column-gap: 28px; }
@@ -2796,9 +2796,10 @@ body::before {
 
 /* Barra sopra le carte: raggruppa, ordina, vista, nuova sezione. */
 .deck-toolbar { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; margin-bottom: 16px; }
-.deck-tool { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-secondary); }
+.deck-tool { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-secondary); }
 .deck-tool select { width: auto; }
-.deck-new-section { padding: 6px 12px; }
+/* Solo "+": alto quanto i select accanto (stretch sulla riga della barra), quadrato (icona 16 + 2×10,5 + bordi = 39). */
+.deck-new-section { align-self: stretch; padding: 0 10.5px; }
 /* Fantasma del trascinamento nelle viste a immagini: fuori schermo, solo per setDragImage. */
 .deck-ghost { position: fixed; top: -1000px; left: -1000px; width: 140px; pointer-events: none; }
 .deck-ghost img { display: block; width: 100%; border-radius: 4.75% / 3.4%; }
@@ -2825,6 +2826,8 @@ body::before {
 .deck-columns.view-grid, .deck-columns.view-stacks { columns: auto; }
 .deck-columns.view-stacks { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px 16px; }
 .deck-columns.view-stacks .deck-group { width: 200px; margin: 0; }
+/* Colonna di pile (packPiles): gap = STACK_GAP in DeckSections. */
+.deck-stack-col { display: flex; flex-direction: column; gap: 20px; }
 .deck-rows.view-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 12px; }
 .deck-rows.view-stacks { width: 200px; display: flex; flex-direction: column; }
 .deck-rows.view-stacks .deck-row + .deck-row { margin-top: -125.3%; }

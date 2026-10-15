@@ -9,7 +9,7 @@ import { cardsByIds } from './scryfallSearch';
 import {
   GROUP_MODES, SORT_MODES, groupMain, commanderRows, boardRows, bumpQty, removeRows, setCommander, moveToBoard,
   addSection, renameSection, deleteSection, moveToSection, placeRows, overLimit, formatLabel, illegalIn, legalityLabel,
-  splitRow, changeEdition, snapshotFromCard, validateDeck,
+  splitRow, changeEdition, snapshotFromCard, validateDeck, packPiles,
 } from './deckModel';
 import DeckStats from './DeckStats';
 import { IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy } from '../components/icons';
@@ -23,6 +23,12 @@ const VIEWS = [
 ];
 const PREVIEW_W = 244;
 const PREVIEW_H = Math.round((PREVIEW_W * 680) / 488);
+// Stack: altezza di una pila dal numero di carte, la larghezza è fissa (.deck-rows.view-stacks).
+const STACK_W = 200;
+const STACK_GAP = 20; // spazio verticale tra pile nella stessa colonna, = gap di .deck-stack-col
+const CARD_H = (STACK_W * 680) / 488;
+const STRIP = CARD_H - STACK_W * 1.253; // riga del nome lasciata da ogni carta coperta (margin-top -125.3%)
+const pileHeight = (n) => 25 + (n ? CARD_H + (n - 1) * STRIP : 26); // 25 = intestazione; 0 carte = "No commander yet."
 const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 const menuPoint = (e) => {
   if (e.clientX || e.clientY) return { x: e.clientX, y: e.clientY };
@@ -46,8 +52,9 @@ function usePref(key, modes, fallback) {
   return [v, set];
 }
 
-// Corpo dell'editor: barra (raggruppa, ordina, vista, nuova sezione), comandante, gruppi, sideboard, maybeboard.
-// Viste: lista (righe), griglia (immagini), stack (immagini sovrapposte, si vede la parte alta),
+// Corpo dell'editor: barra (ordina, vista, raggruppa, + nuova sezione), comandante, gruppi, sideboard, maybeboard.
+// Viste: lista (righe), griglia (immagini), stack (immagini sovrapposte, si vede la riga del nome;
+// le pile riempiono colonne alte quanto la pila più alta, nell'ordine dei gruppi),
 // stack con ogni copia (3 copie = 3 carte impilate). Le carte oltre il limite di copie del formato
 // hanno un avviso, più un riepilogo in alto.
 // Selezione come le carte in stampa (click = aggiungi/togli, Shift = intervallo, Esc = svuota);
@@ -112,6 +119,7 @@ export default function DeckSections({ deck, update, touch }) {
   const selected = order.filter((id) => sel.has(id)); // righe ancora esistenti
   // Righe che possono stare in una sezione custom: main board, non comandanti.
   const sectionable = useMemo(() => new Set(blocks.groups.flatMap((g) => g.rows.map((r) => r.id))), [blocks]);
+
 
   const onRowClick = (e, id) => {
     if (press.consumed()) return;
@@ -340,6 +348,13 @@ export default function DeckSections({ deck, update, touch }) {
   if (!deck.cards.length) {
     return <p className="deck-empty deck-empty-big">No cards yet.</p>;
   }
+  // Stack: comandante, gruppi e sideboard sono pile (argomenti di group) impacchettate in colonne.
+  const piles = layout === 'stacks' ? [
+    blocks.commander && [blocks.commander, 'deck-block'],
+    ...blocks.groups.map((g) => [g, '', ['main', g.section]]),
+    blocks.side && [blocks.side, 'deck-block', ['side']],
+  ].filter(Boolean) : [];
+  const stackCols = packPiles(piles.map(([g]) => pileHeight(split ? sum(g.rows) : g.rows.length)), STACK_GAP);
   return (
     <div className={`deck-sections view-${layout}${mode === 'stats' ? ' mode-stats' : ''}`} {...marqueeHandlers}
       onKeyDown={(e) => { if (e.key === 'Escape' && sel.size) { e.stopPropagation(); setSel(new Set()); } }}>
@@ -350,12 +365,6 @@ export default function DeckSections({ deck, update, touch }) {
           <button type="button" aria-pressed={mode === 'stats'} onClick={() => { setMode('stats'); setHover(null); }}>Stats</button>
         </div>
         {mode === 'deck' && (<>
-        <label className="deck-tool">
-          <span>Group by</span>
-          <select value={deck.groupBy} onChange={(e) => update((d) => ({ ...d, groupBy: e.target.value }))}>
-            {GROUP_MODES.filter((m) => m.id !== 'custom' || custom || deck.sections.length).map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-          </select>
-        </label>
         <label className="deck-tool">
           <span>Sort by</span>
           <select value={sort} onChange={(e) => setSort(e.target.value)}>
@@ -368,7 +377,13 @@ export default function DeckSections({ deck, update, touch }) {
             {VIEWS.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
           </select>
         </label>
-        <button type="button" className="btn-secondary deck-new-section" onClick={() => setDialog({})}><IconPlus size={14} /> New section</button>
+        <label className="deck-tool">
+          <span>Group by</span>
+          <select value={deck.groupBy} onChange={(e) => update((d) => ({ ...d, groupBy: e.target.value }))}>
+            {GROUP_MODES.filter((m) => m.id !== 'custom' || custom || deck.sections.length).map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+          </select>
+        </label>
+        <button type="button" className="btn-secondary deck-new-section" aria-label="New section" title="New section" onClick={() => setDialog({})}><IconPlus size={16} /></button>
         </>)}
       </div>
       {issues.length > 0 && (
@@ -385,12 +400,12 @@ export default function DeckSections({ deck, update, touch }) {
         </ul>
       )}
       {mode === 'stats' ? <DeckStats deck={deck} onSelect={pick} /> : (<>
-      {/* Negli stack comandante e sideboard sono colonne della stessa riga: il mazzo è un unico blocco centrato. */}
+      {/* Negli stack comandante e sideboard sono pile come le altre: il mazzo è un unico blocco centrato. */}
       {blocks.commander && layout !== 'stacks' && group(blocks.commander, 'deck-block')}
       <div className={`deck-columns view-${layout}`}>
-        {blocks.commander && layout === 'stacks' && group(blocks.commander, 'deck-block')}
-        {blocks.groups.map((g) => group(g, '', ['main', g.section]))}
-        {blocks.side && layout === 'stacks' && group(blocks.side, 'deck-block', ['side'])}
+        {layout === 'stacks'
+          ? stackCols.map((ids) => <div key={piles[ids[0]][0].key} className="deck-stack-col">{ids.map((i) => group(...piles[i]))}</div>)
+          : blocks.groups.map((g) => group(g, '', ['main', g.section]))}
       </div>
       {blocks.side && layout !== 'stacks' && group(blocks.side, 'deck-block', ['side'])}
       {(blocks.maybe.rows.length > 0 || dragging) && (

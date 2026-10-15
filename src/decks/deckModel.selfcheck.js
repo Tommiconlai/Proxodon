@@ -8,7 +8,7 @@ import {
   groupMain, commanderRows, boardRows, deckIdentity, deckCover, toPrintEntries, exportText,
   parseDeckText, toBackup, fromBackup, duplicateDeck, refreshSnapshots, primaryType,
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
-  splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies,
+  splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies, packPiles,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
 
@@ -343,5 +343,10 @@ eq(advancedQuery({ colors: ['U', 'B'], colorMode: '<=', identity: true, mv: '', 
 eq(advancedQuery({}), '', 'nessun filtro');
 eq([advancedQuery({ name: 'Fire/Ice' }), advancedQuery({ name: 'Delver of Secrets / Insectile' })], ['"Fire // Ice"', '"Delver of Secrets // Insectile"'], 'nome con barra singola → separatore // di Scryfall');
 eq([withLegal('t:elf', 'modern'), withLegal('t:elf', 'casual'), withLegal('', 'pauper')], ['t:elf legal:modern', 't:elf', 'legal:pauper'], 'legalità del formato');
+
+// Stack: colonne alte al massimo quanto la pila più alta, ogni pila nella prima colonna dove ci sta.
+eq(packPiles([300, 500, 150, 400, 100], 20), [[0, 2], [1], [3], [4]], 'pile: la 3a sotto la 1a, le altre non ci stanno');
+eq(packPiles([100, 100, 100, 340], 20), [[0, 1, 2], [3]], 'pile: tre piccole in una colonna alta quanto la grande');
+eq(packPiles([], 20), [], 'pile: nessuna');
 
 console.log('deckModel selfcheck: ok');

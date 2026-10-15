@@ -551,3 +551,16 @@ export function validateDeck(deck) {
   }
   return out;
 }
+
+// Vista stack: pile (altezze in px, nell'ordine dei gruppi) in colonne alte al massimo quanto la
+// pila più alta. Ogni pila va nella prima colonna in cui ci sta (es. sotto il comandante), sennò
+// ne apre una nuova. Ritorna gli indici delle pile per colonna.
+export function packPiles(heights, gap) {
+  const max = Math.max(0, ...heights);
+  const cols = [];
+  heights.forEach((h, i) => {
+    const col = cols.find((c) => c.h + gap + h <= max);
+    if (col) { col.ids.push(i); col.h += gap + h; } else cols.push({ h, ids: [i] });
+  });
+  return cols.map((c) => c.ids);
+}
