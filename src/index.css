@@ -2737,12 +2737,12 @@ body::before {
 .deck-count.ok { color: var(--success); border-color: rgba(34, 197, 94, 0.35); }
 .deck-body { flex: 1 0 auto; display: grid; grid-template-columns: 1fr; }
 .deck-editor.is-mobile .deck-body { grid-template-columns: 1fr; }
-/* Il padding sta in .deck-sections, alta quanto il contenitore: click e selezione ad area partono
-   da tutto lo spazio vuoto. */
+/* .deck-sections va da bordo a bordo, alta quanto il contenitore: click e selezione ad area partono
+   da tutto lo spazio vuoto. Il padding laterale tiene il contenuto entro 1320 px, centrato. */
 .deck-main { min-width: 0; }
-.deck-sections { position: relative; min-height: 100%; padding: 18px 22px 40px; max-width: 1320px; margin-inline: auto; }
-/* Mazzo centrato: negli stack il contenitore si stringe al contenuto e le colonne stanno al centro. */
-.deck-sections.view-stacks:not(.mode-stats) { width: fit-content; max-width: 100%; }
+.deck-sections { position: relative; min-height: 100%; padding: 18px max(22px, calc((100% - 1276px) / 2)) 40px; }
+/* Mazzo centrato: negli stack una sola colonna di griglia larga quanto il contenuto, al centro. */
+.deck-sections.view-stacks:not(.mode-stats) { display: grid; grid-template-columns: minmax(0, max-content); justify-content: center; padding-inline: 22px; }
 .deck-columns.view-stacks { justify-content: center; }
 
 .deck-columns { columns: 260px; column-gap: 28px; }
@@ -2819,14 +2819,15 @@ body::before {
 .deck-group-actions button:hover, .deck-group-actions button:focus-visible { color: var(--cyan-soft); outline: none; }
 .deck-group.drop-target { outline: 1px dashed var(--cyan); outline-offset: 4px; border-radius: 6px; background: rgba(0, 229, 255, 0.05); }
 
-/* Griglia e stack: immagini al posto delle righe. Stack = colonne da 160 px dove ogni carta
-   copre la precedente lasciando vedere solo la fascia del nome (margine in % della larghezza). */
+/* Griglia e stack: immagini al posto delle righe. Stack = colonne da 200 px dove ogni carta
+   copre la precedente lasciando vedere solo la riga del nome (margine in % della larghezza:
+   la carta è alta il 139,3%, ne resta visibile il 14%). */
 .deck-columns.view-grid, .deck-columns.view-stacks { columns: auto; }
 .deck-columns.view-stacks { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px 16px; }
-.deck-columns.view-stacks .deck-group { width: 160px; margin: 0; }
-.deck-rows.view-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
-.deck-rows.view-stacks { width: 160px; display: flex; flex-direction: column; }
-.deck-rows.view-stacks .deck-row + .deck-row { margin-top: -118%; }
+.deck-columns.view-stacks .deck-group { width: 200px; margin: 0; }
+.deck-rows.view-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 12px; }
+.deck-rows.view-stacks { width: 200px; display: flex; flex-direction: column; }
+.deck-rows.view-stacks .deck-row + .deck-row { margin-top: -125.3%; }
 .deck-rows.view-grid .deck-row, .deck-rows.view-stacks .deck-row { position: relative; display: block; border: 0; }
 .deck-rows.view-grid .deck-row.selected, .deck-rows.view-stacks .deck-row.selected { background: none; box-shadow: none; }
 .deck-rows.view-grid .deck-row-main, .deck-rows.view-stacks .deck-row-main {
