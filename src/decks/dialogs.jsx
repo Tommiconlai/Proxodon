@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
-import { FORMATS, coverRow } from './deckModel';
-import { IconX } from '../components/icons';
+import { FORMATS, coverRow, exportText } from './deckModel';
+import { IconX, IconCopy, IconDownload } from '../components/icons';
+import { downloadText } from '../utils/download';
+
+const safeName = (s) => s.replace(/[\\/:*?"<>|]+/g, '-').trim() || 'deck';
 
 // Copertina del mazzo: l'arte di una sua carta (una per carta, maybeboard escluso) oppure
 // "Automatic" (primo comandante, sennò prima carta del main). onPick(oid | null).
@@ -42,6 +45,41 @@ export function CoverDialog({ deck, onPick, onClose }) {
               <span>{c.name}</span>
             </button>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Export del mazzo: testo semplice ("4 Lightning Bolt") o con espansione e numero
+// ("4 Lightning Bolt (M10) 146", reimportabile con la stessa stampa). Copia o scarica .txt.
+export function ExportDeckDialog({ deck, onClose }) {
+  const [specs, setSpecs] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const ref = useOverlayDismiss(onClose);
+  const text = exportText(deck, { specs });
+  const pick = (v) => { setSpecs(v); setCopied(false); };
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(text); setCopied(true); } catch { /* appunti bloccati: il testo resta selezionabile */ }
+  };
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Export ${deck.name}`} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>Export deck</h2>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close"><IconX size={18} /></button>
+        </div>
+        <div className="deck-mode export-mode" role="group" aria-label="Export format">
+          <button type="button" aria-pressed={!specs} onClick={() => pick(false)}>Plain text</button>
+          <button type="button" aria-pressed={specs} onClick={() => pick(true)}>With set and number</button>
+        </div>
+        <textarea className="import-textarea export-text" value={text} readOnly rows={12} spellCheck={false} aria-label="Deck list"
+          onFocus={(e) => e.target.select()} />
+        <div className="modal-actions">
+          <button type="button" className="btn-secondary" onClick={() => downloadText(`${safeName(deck.name)}.txt`, `${text}\n`)}>
+            <IconDownload size={15} /> Download .txt
+          </button>
+          <button type="button" className="btn-generate import-btn" onClick={copy}><IconCopy size={15} /> {copied ? 'Copied' : 'Copy'}</button>
         </div>
       </div>
     </div>

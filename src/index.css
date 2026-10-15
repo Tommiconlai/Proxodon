@@ -2634,13 +2634,28 @@ body::before {
   user-select: none;
   transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
-.deck-tile:hover, .deck-tile:focus-visible { border-color: var(--border-hover); box-shadow: 0 0 18px rgba(0, 229, 255, 0.16); transform: translateY(-2px); outline: none; }
+.deck-tile-wrap:hover .deck-tile, .deck-tile:focus-visible { border-color: var(--border-hover); box-shadow: 0 0 18px rgba(0, 229, 255, 0.16); transform: translateY(-2px); outline: none; }
 .deck-tile-art { position: relative; aspect-ratio: 626 / 457; background: var(--bg-elevated) center 22% / cover no-repeat; }
 .deck-tile-art::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, var(--bg-surface)); }
 .deck-tile-body { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px 12px; }
 .deck-tile-name { font-family: var(--font-display); font-weight: 600; font-size: 0.95rem; color: var(--text-primary); }
 .deck-tile-meta { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-secondary); }
 .deck-tile-meta .warn { color: var(--warning); }
+/* Export sull'angolo dell'arte: fratello del riquadro (niente pulsanti annidati), sempre visibile. */
+.deck-tile-wrap { position: relative; }
+.deck-tile-export {
+  position: absolute; top: 8px; right: 8px; z-index: 1;
+  display: grid; place-items: center;
+  width: 32px; height: 32px; padding: 0;
+  background: rgba(8, 7, 18, 0.72); backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.16); border-radius: var(--radius-sm);
+  color: #d6d2ef;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+.deck-tile-export:hover, .deck-tile-export:focus-visible { color: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 12px rgba(0, 229, 255, 0.3); outline: none; }
+/* In hover (sul riquadro o sull'export) si alzano insieme. */
+.deck-tile-wrap:hover .deck-tile-export { transform: translateY(-2px); }
 .mana { display: inline-flex; align-items: center; gap: 2px; }
 .mana img { display: block; }
 .decks-empty { max-width: 420px; padding: 28px 0; }
@@ -2800,6 +2815,9 @@ body::before {
 .deck-tool select { width: auto; }
 /* Solo "+": alto quanto i select accanto (stretch sulla riga della barra), quadrato (icona 16 + 2×10,5 + bordi = 39). */
 .deck-new-section { align-self: stretch; padding: 0 10.5px; }
+/* Dialog Export: scelta del formato (stile Deck / Stats), lista in mono. */
+.export-mode { align-self: flex-start; }
+.export-text { min-height: 280px; font-family: var(--font-mono); font-size: 0.78rem; white-space: pre; }
 /* Fantasma del trascinamento nelle viste a immagini: fuori schermo, solo per setDragImage. */
 .deck-ghost { position: fixed; top: -1000px; left: -1000px; width: 140px; pointer-events: none; }
 .deck-ghost img { display: block; width: 100%; border-radius: 4.75% / 3.4%; }

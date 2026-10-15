@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { listenDecks, createDeck, saveDeck, deleteDeck } from './deckStore';
 import {
-  newDeck, duplicateDeck, boardCounts, countTarget, countOk, deckIdentity, deckCover, exportText,
+  newDeck, duplicateDeck, boardCounts, countTarget, countOk, deckIdentity, deckCover,
   toBackup, fromBackup, formatLabel,
 } from './deckModel';
 import { navigate } from '../hooks/useHashRoute';
@@ -9,18 +9,11 @@ import { useLongPress } from '../hooks/useLongPress';
 import CardMenu from '../components/CardMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { ManaPips } from './Mana';
-import { NameFormatDialog } from './dialogs';
+import { NameFormatDialog, ExportDeckDialog } from './dialogs';
+import { downloadText } from '../utils/download';
 import ImportDeckDialog from './ImportDeckDialog';
-import { IconPlus, IconList, IconUpload, IconCopy, IconTrash, IconPencil, IconDownload } from '../components/icons';
+import { IconPlus, IconList, IconUpload, IconCopy, IconTrash, IconPencil, IconDownload, IconExport } from '../components/icons';
 
-const download = (filename, text, type) => {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([text], { type }));
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(a.href);
-};
-const safeName = (s) => s.replace(/[\\/:*?"<>|]+/g, '-').trim() || 'deck';
 // Shift+F10 / tasto menu arrivano con 0,0: ancora il menu all'elemento.
 const menuPoint = (e) => {
   if (e.clientX || e.clientY) return { x: e.clientX, y: e.clientY };
@@ -30,7 +23,7 @@ const menuPoint = (e) => {
 
 export default function DeckList({ uid, notify }) {
   const [decks, setDecks] = useState(null); // null = caricamento
-  const [dialog, setDialog] = useState(null); // 'new' | { rename: deck } | { del: deck }
+  const [dialog, setDialog] = useState(null); // 'new' | 'import' | { rename: deck } | { del: deck } | { exp: deck }
   const [menu, setMenu] = useState(null); // { deck, x, y }
   const fileRef = useRef(null);
   const press = useLongPress();
@@ -46,7 +39,7 @@ export default function DeckList({ uid, notify }) {
   };
 
   const exportBackup = () => {
-    download(`proxoteca-decks-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(toBackup(decks), null, 2), 'application/json');
+    downloadText(`proxoteca-decks-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(toBackup(decks), null, 2), 'application/json');
     notify(`Backup of ${decks.length} deck${decks.length !== 1 ? 's' : ''} downloaded`);
   };
   const restore = async (e) => {
@@ -65,7 +58,7 @@ export default function DeckList({ uid, notify }) {
   const menuItems = menu ? [
     { key: 'rename', Icon: IconPencil, label: 'Rename', run: () => setDialog({ rename: menu.deck }) },
     { key: 'dup', Icon: IconCopy, label: 'Duplicate', run: () => { create(duplicateDeck(menu.deck)); notify('Deck duplicated'); } },
-    { key: 'txt', Icon: IconDownload, label: 'Export text', run: () => download(`${safeName(menu.deck.name)}.txt`, `${exportText(menu.deck)}\n`, 'text/plain') },
+    { key: 'txt', Icon: IconExport, label: 'Export…', run: () => setDialog({ exp: menu.deck }) },
     { key: 'del', Icon: IconTrash, label: 'Delete', danger: true, run: () => setDialog({ del: menu.deck }) },
   ] : [];
 
@@ -96,7 +89,7 @@ export default function DeckList({ uid, notify }) {
             const target = countTarget(d.format);
             const cover = deckCover(d);
             return (
-              <li key={d.id}>
+              <li key={d.id} className="deck-tile-wrap">
                 <button type="button" className="deck-tile"
                   onClick={() => { if (!press.consumed()) navigate(`/decks/${d.id}`); }}
                   onContextMenu={(e) => { e.preventDefault(); setMenu({ deck: d, ...menuPoint(e) }); }}
@@ -110,6 +103,9 @@ export default function DeckList({ uid, notify }) {
                     <ManaPips colors={deckIdentity(d)} />
                   </span>
                 </button>
+                {/* Fuori dal riquadro (niente pulsanti annidati), posato sull'angolo dell'arte. */}
+                <button type="button" className="deck-tile-export" aria-label={`Export ${d.name}`} title="Export"
+                  onClick={() => setDialog({ exp: d })}><IconExport size={16} /></button>
               </li>
             );
           })}
@@ -132,6 +128,7 @@ export default function DeckList({ uid, notify }) {
         <NameFormatDialog title="New deck" confirmLabel="Create" onClose={() => setDialog(null)}
           onSubmit={(v) => { setDialog(null); navigate(`/decks/${create(newDeck(v))}`); }} />
       )}
+      {dialog?.exp && <ExportDeckDialog deck={dialog.exp} onClose={() => setDialog(null)} />}
       {dialog?.rename && (
         <NameFormatDialog title="Rename deck" confirmLabel="Rename" initialName={dialog.rename.name} showFormat={false}
           onClose={() => setDialog(null)}

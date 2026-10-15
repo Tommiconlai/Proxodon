@@ -21,7 +21,7 @@ const VIEWS = [
   { id: 'stacks', label: 'Stacks' },
   { id: 'split', label: 'Stacks, every copy' },
 ];
-const PREVIEW_W = 244;
+const PREVIEW_W = 320;
 const PREVIEW_H = Math.round((PREVIEW_W * 680) / 488);
 // Stack: altezza di una pila dal numero di carte, la larghezza è fissa (.deck-rows.view-stacks).
 const STACK_W = 200;

@@ -364,9 +364,9 @@ export function toPrintEntries(deck, { includeSide = false } = {}) {
 // ── Testo ────────────────────────────────────────────────────
 
 // Formato MTGA: "Commander" / "Deck" / "Sideboard" come intestazioni (solo quando servono),
-// "qty Nome (SET) num" per riga. La maybeboard resta solo nel backup JSON.
-export function exportText(deck) {
-  const line = (r) => deckLine(r.qty, frontName(r.card.name), r.card.set, r.card.cn);
+// "qty Nome (SET) num" per riga, solo "qty Nome" con specs: false. La maybeboard resta solo nel backup JSON.
+export function exportText(deck, { specs = true } = {}) {
+  const line = (r) => deckLine(r.qty, frontName(r.card.name), specs && r.card.set, r.card.cn);
   const cmd = commanderRows(deck).map(line);
   const main = deck.cards.filter((r) => r.board === 'main' && !r.commander).map(line);
   const side = deck.cards.filter((r) => r.board === 'side').map(line);

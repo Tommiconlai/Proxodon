@@ -8,14 +8,14 @@ import DeckSections from './DeckSections';
 import CardSearch from './CardSearch';
 import AdvancedSearch from './AdvancedSearch';
 import { MobilePage } from '../components/MobileLayout';
-import { PrintDeckDialog, CoverDialog } from './dialogs';
-import { IconPlus, IconPrinter, IconX } from '../components/icons';
+import { PrintDeckDialog, CoverDialog, ExportDeckDialog } from './dialogs';
+import { IconPlus, IconPrinter, IconX, IconExport } from '../components/icons';
 
 const STUCK_AT = 72; // px: padding della barra + casella di ricerca, circa
 
 // Editor del mazzo: testata con la copertina (arte della carta scelta, a sinistra, che verso destra
 // si sfoca e svanisce; click = scegli un'altra carta del mazzo, lo dice il cursore a mano) e sopra,
-// a sinistra, in basso formato, stato sync, conteggio e Print deck (si torna alla lista con la tab
+// a sinistra, in basso formato, stato sync, conteggio, Print deck ed Export (si torna alla lista con la tab
 // Decks). Sotto il corpo con le sezioni. Tutto scorre insieme (deck-scroll) tranne la fascia con il
 // nome del mazzo e la ricerca (desktop), che resta in alto: sopra la testata è trasparente, quando
 // la testata è uscita prende lo sfondo. Telefono: il nome sta nella testata e scorre con lei, + apre
@@ -26,6 +26,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const [online, setOnline] = useState(() => navigator.onLine);
   const [searchOpen, setSearchOpen] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [coverOpen, setCoverOpen] = useState(false);
   const [advOpen, setAdvOpen] = useState(false); // pannello della ricerca avanzata (desktop)
   const [stuck, setStuck] = useState(false); // la testata è uscita: la fascia ricerca ha lo sfondo
@@ -121,6 +122,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
               {c.main}{target ? `/${target}` : ''}
             </span>
             <button type="button" className="btn-secondary deck-print" onClick={startPrint} disabled={!c.main}><IconPrinter size={15} /> Print deck</button>
+            <button type="button" className="btn-secondary deck-print" onClick={() => setExportOpen(true)} disabled={!deck.cards.length}><IconExport size={15} /> Export</button>
           </div>
         </div>
       </header>
@@ -139,6 +141,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
         </section>
       </div>
       </div>
+      {exportOpen && <ExportDeckDialog deck={deck} onClose={() => setExportOpen(false)} />}
       {coverOpen && (
         <CoverDialog deck={deck} onClose={() => setCoverOpen(false)}
           onPick={(oid) => { update((d) => ({ ...d, cover: oid })); setCoverOpen(false); }} />

@@ -141,6 +141,8 @@ eq(parseDeckText(txt).map((e) => [e.board, e.commander, e.name]),
   [['main', true, "Atraxa, Praetors' Voice"], ['main', false, 'Lightning Bolt'], ['main', false, 'Forest'], ['main', false, 'Sol Ring'],
     ['main', false, 'Goblin Guide'], ['main', false, 'Solemn Simulacrum'], ['side', false, 'Pyroblast']], 'import con intestazioni');
 eq(exportText(addCard(newDeck({ name: 'n', format: 'modern' }), bolt, { qty: 4 }).deck), '4 Lightning Bolt (TST) 1', 'export senza comandante né sideboard');
+eq(exportText(g, { specs: false }).split('\n'), ['Commander', "1 Atraxa, Praetors' Voice", '', 'Deck', '1 Lightning Bolt', '1 Forest',
+  '1 Sol Ring', '1 Goblin Guide', '1 Solemn Simulacrum', '', 'Sideboard', '1 Pyroblast'], 'export testo semplice, senza set e numero');
 // input disordinato (Review Focus 2)
 eq(parseDeckText('4x Lightning Bolt\r\n\r\nSIDEBOARD:\r\n2 Pyroblast\r\n// Maybeboard\r\n1 Sol Ring (C21) 263').map((e) => [e.board, e.qty, e.name, e.set, e.collector]),
   [['main', 4, 'Lightning Bolt', '', ''], ['side', 2, 'Pyroblast', '', ''], ['maybe', 1, 'Sol Ring', 'c21', '263']], 'import tollerante');
