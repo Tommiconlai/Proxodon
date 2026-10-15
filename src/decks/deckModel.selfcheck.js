@@ -311,6 +311,8 @@ eq(ss.curve[1].groups.map((g) => [g.label, g.rows.map((r) => r.card.name)]), [['
 eq([ss.avgAll, ss.medianAll, ss.medianMv, ss.totalMv, ss.library], [1.37, 0, 1, 26, 19], 'media con terre, mediane, totale, grimorio');
 eq(ss.colors.filter((c) => c.pips || c.sources).map((c) => [c.c, c.landSources, c.byMv[1]]), [['R', 10, 6], ['C', 0, 0]], 'colori: fonti terra e simboli per costo');
 eq([ss.pips, ss.sources], [6, 11], 'totale simboli e carte che producono mana');
+eq(ss.drawTypes.map((t) => [t.type, t.label, t.count]), [['Land', 'Lands', 10], ['Creature', 'Creatures', 4], ['Instant', 'Instants', 4], ['Artifact', 'Artifacts', 2]],
+  'tipi nel grimorio per la probabilità di pescata (multi-tipo in ognuno)');
 eq(Math.round(hyperAtLeast(60, 24, 7, 1) * 1e4), 9784, 'ipergeometrica: almeno una terra in 7 carte, 24 terre su 60');
 eq([hyperAtLeast(10, 0, 7, 1), hyperAtLeast(10, 10, 7, 7), hyperAtLeast(5, 2, 9, 2)], [0, 1, 1], 'ipergeometrica: casi limite');
 // Vintage restricted = 1 copia

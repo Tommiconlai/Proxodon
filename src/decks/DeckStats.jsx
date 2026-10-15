@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { deckStats, hyperAtLeast } from './deckModel';
 import { ManaCost } from './Mana';
 import { IconInfo } from '../components/icons';
@@ -142,42 +142,82 @@ function CurveCards({ bin, onSelect }) {
   );
 }
 
-// Probabilità di pescata: almeno una delle N copie di una carta (4 di default, modificabile) entro
-// il turno T, ipergeometrica sul grimorio. Due linee: per primi (7 + T - 1 carte, niente pescata al
-// primo turno) e per secondi (7 + T). Crosshair + tooltip per turno, tabella per i lettori di schermo.
-const TURNS = 10;
-function DrawOdds({ library }) {
+// Numero da un campo: arrotondato e limitato a [lo, hi]; vuoto o non valido = def.
+const num = (v, lo, hi, def) => {
+  const n = Math.round(Number(v));
+  return v === '' || !Number.isFinite(n) ? def : Math.min(hi, Math.max(lo, n));
+};
+
+// Probabilità di pescata: cosa (le copie di una carta, 4 di default, oppure un tipo del mazzo con
+// le sue copie nel grimorio), almeno quante, fino a che turno (10 di default). Ipergeometrica sul
+// grimorio: per primi 7 + T - 1 carte (niente pescata al primo turno), per secondi 7 + T. Il grafico
+// è largo quanto la sezione (larghezza misurata, testi a dimensione fissa). Crosshair + tooltip per
+// turno, tabella per i lettori di schermo.
+function DrawOdds({ library, types }) {
+  const [what, setWhat] = useState('copies');
   const [copies, setCopies] = useState('4');
+  const [least, setLeast] = useState('1');
+  const [turnsIn, setTurns] = useState('10');
   const [at, setAt] = useState(null); // indice del turno sotto il mouse / focus
-  const k = Math.max(1, Math.min(library, Math.round(Number(copies)) || 1));
-  const pts = Array.from({ length: TURNS }, (_, i) => ({
-    t: i + 1, play: hyperAtLeast(library, k, 7 + i, 1), draw: hyperAtLeast(library, k, 8 + i, 1),
+  const [width, setWidth] = useState(0);
+  const plotRef = useRef(null);
+  useEffect(() => {
+    const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width));
+    ro.observe(plotRef.current);
+    return () => ro.disconnect();
+  }, []);
+  const type = types.find((t) => t.type === what);
+  const K = type ? type.count : num(copies, 1, library, 4);
+  const k = num(least, 1, K, 1);
+  const turns = num(turnsIn, 2, 20, 10);
+  const pts = Array.from({ length: turns }, (_, i) => ({
+    t: i + 1, play: hyperAtLeast(library, K, 7 + i, k), draw: hyperAtLeast(library, K, 8 + i, k),
   }));
-  const W = 480, H = 240, top = 14, bottom = 42, left = 44, right = 40;
+  const W = Math.max(280, Math.round(width)), H = 260, top = 14, bottom = 30, left = 44, right = 44;
   const plotW = W - left - right, plotH = H - top - bottom;
-  const x = (i) => left + (i / (TURNS - 1)) * plotW;
+  const step = plotW / (turns - 1);
+  const x = (i) => left + i * step;
   const y = (p) => top + (1 - p) * plotH;
   const path = (key) => pts.map((p, i) => `${i ? 'L' : 'M'}${x(i)},${y(p[key])}`).join('');
   const f = (p) => `${Math.round(p * 100)}%`;
+  const every = step < 34 ? 2 : 1; // etichette dei turni alterne quando sono strette, contate dall'ultimo
   const series = [['play', 'On the play', 1], ['draw', 'On the draw', 2]];
-  const last = pts[TURNS - 1];
+  const last = pts[turns - 1];
   const tip = at != null && pts[at];
+  const what2 = type ? `the ${K} ${type.label.toLowerCase()}` : `${K} ${K === 1 ? 'copy' : 'copies'} of a card`;
   return (
     <figure className="stat-card stat-odds">
-      <figcaption className="stat-odds-head">
-        <span className="stat-odds-title">
-          <span className="stat-title">Draw odds</span>
-          <span className="stat-sub">Chance to draw at least one of {k} {k === 1 ? 'copy' : 'copies'} of a card by each turn</span>
-        </span>
-        <label className="stat-odds-copies">
-          <span>Copies</span>
-          <input type="number" min="1" max={library} step="1" value={copies} onChange={(e) => setCopies(e.target.value)} />
-        </label>
+      <figcaption className="stat-odds-title">
+        <span className="stat-title">Draw odds</span>
+        <span className="stat-sub">Chance to draw at least {k} of {what2} by each turn</span>
       </figcaption>
+      <div className="stat-odds-controls">
+        <label className="stat-odds-field">
+          <span>Draw</span>
+          <select value={what} onChange={(e) => setWhat(e.target.value)}>
+            <option value="copies">Copies of a card</option>
+            {types.map((t) => <option key={t.type} value={t.type}>{t.label} ({t.count})</option>)}
+          </select>
+        </label>
+        {!type && (
+          <label className="stat-odds-field">
+            <span>Copies</span>
+            <input type="number" min="1" max={library} value={copies} onChange={(e) => setCopies(e.target.value)} />
+          </label>
+        )}
+        <label className="stat-odds-field">
+          <span>At least</span>
+          <input type="number" min="1" max={K} value={least} onChange={(e) => setLeast(e.target.value)} />
+        </label>
+        <label className="stat-odds-field">
+          <span>Turns</span>
+          <input type="number" min="2" max="20" value={turnsIn} onChange={(e) => setTurns(e.target.value)} />
+        </label>
+      </div>
       <div className="stat-legend">
         {series.map(([key, label, n]) => <span key={key}><i className={`stat-swatch s${n}`} aria-hidden="true" />{label}</span>)}
       </div>
-      <div className="stat-plot" onPointerLeave={() => setAt(null)}>
+      <div className="stat-plot" ref={plotRef} onPointerLeave={() => setAt(null)}>
         <svg viewBox={`0 0 ${W} ${H}`} className="stat-svg" role="group" aria-label="Draw odds chart">
           {[0, 0.25, 0.5, 0.75, 1].map((p) => (
             <g key={p}>
@@ -185,9 +225,9 @@ function DrawOdds({ library }) {
               <text x={left - 8} y={y(p) + 4} className="stat-tick" textAnchor="end">{f(p)}</text>
             </g>
           ))}
-          {pts.map((p, i) => <text key={p.t} x={x(i)} y={H - bottom + 16} className="stat-tick" textAnchor="middle">{p.t}</text>)}
-          <text className="stat-axis-title" textAnchor="middle" transform={`translate(11 ${top + plotH / 2}) rotate(-90)`}>Probability</text>
-          <text x={left + plotW / 2} y={H - 4} className="stat-axis-title" textAnchor="middle">Turn</text>
+          {pts.map((p, i) => (turns - 1 - i) % every === 0 && (
+            <text key={p.t} x={x(i)} y={H - bottom + 18} className="stat-tick" textAnchor="middle">T{p.t}</text>
+          ))}
           {tip && <line x1={x(at)} x2={x(at)} y1={top} y2={H - bottom} className="stat-crosshair" />}
           {series.map(([key, , n]) => (
             <g key={key}>
@@ -196,17 +236,17 @@ function DrawOdds({ library }) {
             </g>
           ))}
           {/* Etichette a fine linea: per secondi sopra, per primi sotto (per secondi è sempre più alta). */}
-          <text x={x(TURNS - 1) + 8} y={y(last.draw) - 2} className="stat-val">{f(last.draw)}</text>
-          <text x={x(TURNS - 1) + 8} y={y(last.play) + 12} className="stat-val">{f(last.play)}</text>
+          <text x={x(turns - 1) + 8} y={y(last.draw) - 2} className="stat-val">{f(last.draw)}</text>
+          <text x={x(turns - 1) + 8} y={y(last.play) + 12} className="stat-val">{f(last.play)}</text>
           {pts.map((p, i) => (
-            <rect key={p.t} x={x(i) - plotW / (TURNS - 1) / 2} y={top} width={plotW / (TURNS - 1)} height={plotH} fill="transparent"
+            <rect key={p.t} x={x(i) - step / 2} y={top} width={step} height={plotH} fill="transparent"
               tabIndex={0} className="stat-hit" aria-label={`Turn ${p.t}: ${f(p.play)} on the play, ${f(p.draw)} on the draw`}
               onPointerEnter={() => setAt(i)} onFocus={() => setAt(i)} onBlur={() => setAt(null)} />
           ))}
         </svg>
         {tip && (
           <div className="stat-tip" style={{ left: `${(x(at) / W) * 100}%`, top: `${(y(tip.draw) / H) * 100}%` }} role="status">
-            <div className="stat-tip-row"><strong>Turn {tip.t}</strong></div>
+            <div className="stat-tip-row"><strong>T{tip.t}</strong></div>
             {series.map(([key, label, n]) => (
               <div key={key} className="stat-tip-row">
                 <span className="stat-key" style={{ background: `var(--chart-${n})` }} aria-hidden="true" />
@@ -216,7 +256,7 @@ function DrawOdds({ library }) {
           </div>
         )}
         <table className="sr-only">
-          <caption>Draw odds for {k} copies</caption>
+          <caption>Chance to draw at least {k} of {what2}</caption>
           <thead><tr><th>Turn</th><th>On the play</th><th>On the draw</th></tr></thead>
           <tbody>{pts.map((p) => <tr key={p.t}><td>{p.t}</td><td>{f(p.play)}</td><td>{f(p.draw)}</td></tr>)}</tbody>
         </table>
@@ -266,7 +306,7 @@ export default function DeckStats({ deck, onSelect }) {
       </p>
       <div className="stat-colors">{s.colors.map((c) => <ColorCard key={c.c} c={c} s={s} />)}</div>
       <p className="stat-foot">A card that makes more than one color counts as a source of each, so sources can add up to more than 100%.</p>
-      {s.library > 0 && <DrawOdds library={s.library} />}
+      {s.library > 0 && <DrawOdds library={s.library} types={s.drawTypes} />}
     </div>
   );
 }

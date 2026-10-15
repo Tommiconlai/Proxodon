@@ -481,6 +481,8 @@ export function manaPips(cost) {
   return out;
 }
 
+// Tipi per la probabilità di pescata, terre per prime (la domanda più comune).
+const DRAW_TYPES = ['Land', 'Creature', 'Instant', 'Sorcery', 'Artifact', 'Enchantment', 'Planeswalker', 'Battle'];
 const PERMANENT = /\b(Creature|Artifact|Enchantment|Planeswalker|Battle)\b/;
 const round2 = (x) => Math.round(x * 100) / 100;
 const median = (xs) => {
@@ -492,7 +494,8 @@ const median = (xs) => {
 // Statistiche del main board (comandanti inclusi; sideboard e maybeboard mai). Curva dei non terra
 // 0..7+: permanenti e magie, righe della barra e le stesse divise per tipo. Media e mediana del
 // costo con e senza terre, costo totale. Per colore: simboli nei costi (anche per costo) contro
-// carte che producono quel mana (e quante sono terre). library = main senza comandanti.
+// carte che producono quel mana (e quante sono terre). library = main senza comandanti;
+// drawTypes = copie per tipo nel grimorio (una carta multi-tipo conta in ognuno), solo i presenti.
 export function deckStats(deck) {
   const main = deck.cards.filter((r) => r.board === 'main');
   const spells = main.filter((r) => !isLand(r.card));
@@ -523,6 +526,9 @@ export function deckStats(deck) {
     avgMv: nonLand.length ? round2(total / nonLand.length) : null, avgAll: all.length ? round2(total / all.length) : null,
     medianMv: median(nonLand), medianAll: median(all), totalMv: total,
     curve, colors, pips: colors.reduce((n, c) => n + c.pips, 0), sources: sum(makers),
+    drawTypes: DRAW_TYPES.map((type) => ({
+      type, label: TYPE_LABEL[type], count: sum(main.filter((r) => !r.commander && new RegExp(`\\b${type}\\b`).test(r.card.type))),
+    })).filter((t) => t.count),
   };
 }
 

@@ -3001,13 +3001,13 @@ button.sample-card:hover, button.sample-card:focus-visible { outline: none; box-
 .stat-meter { width: 100%; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.06); overflow: hidden; }
 .stat-meter > span { display: block; height: 100%; border-radius: inherit; background: var(--chart-2); box-shadow: 0 0 10px rgba(255, 45, 149, 0.4); }
 .stat-foot { margin: -8px 0 0; text-align: center; font-size: 0.8rem; color: var(--text-muted); }
-/* Probabilità di pescata: titolo a sinistra, numero di copie a destra; linee 2 px, punti con
-   anello del colore di fondo, crosshair tratteggiato sul turno sotto il mouse. */
-.stat-card .stat-odds-head { flex-direction: row; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px; }
-.stat-odds-title { display: flex; flex-direction: column; gap: 2px; }
-.stat-odds-copies { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-secondary); }
-.stat-odds-copies input { width: 76px; }
-.stat-odds .stat-plot { max-width: 720px; margin-inline: auto; }
+/* Probabilità di pescata: titolo, poi una riga di opzioni (Draw, Copies, At least, Turns) che va a
+   capo sugli schermi stretti; grafico largo quanto la sezione. Linee 2 px, punti con anello del
+   colore di fondo, crosshair tratteggiato sul turno sotto il mouse. */
+.stat-odds-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-bottom: 12px; }
+.stat-odds-field { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-secondary); }
+.stat-odds-field select { width: auto; }
+.stat-odds-field input { width: 76px; }
 .stat-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .stat-line.s1 { stroke: var(--chart-1); }
 .stat-line.s2 { stroke: var(--chart-2); }
