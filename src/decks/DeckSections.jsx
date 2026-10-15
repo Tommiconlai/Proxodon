@@ -24,12 +24,15 @@ const VIEWS = [
 ];
 const PREVIEW_W = 320;
 const PREVIEW_H = Math.round((PREVIEW_W * 680) / 488);
-// Stack: altezza di una pila dal numero di carte, la larghezza è fissa (.deck-rows.view-stacks).
-const STACK_W = 200;
+// Stack: le pile si allargano (da 200 a 400 px, --stack-w) per riempire l'area del mazzo; l'altezza
+// di una pila viene dal numero di carte e dalla larghezza: carta 680/488, poi la riga del nome di
+// ogni carta coperta (margin-top -125.3% della larghezza).
+const STACK_MIN = 200;
+const STACK_MAX = 400;
 const STACK_GAP = 20; // spazio verticale tra pile nella stessa colonna, = gap di .deck-stack-col
-const CARD_H = (STACK_W * 680) / 488;
-const STRIP = CARD_H - STACK_W * 1.253; // riga del nome lasciata da ogni carta coperta (margin-top -125.3%)
-const pileHeight = (n) => 25 + (n ? CARD_H + (n - 1) * STRIP : 26); // 25 = intestazione; 0 carte = "No commander yet."
+const COL_GAP = 16; // spazio tra le colonne, = gap orizzontale di .deck-columns.view-stacks
+const PILE_HEAD = 34; // intestazione del gruppo con il suo margine
+const pileHeight = (n, w) => PILE_HEAD + (n ? (w * 680) / 488 + (n - 1) * w * (680 / 488 - 1.253) : 26); // 0 carte = "No commander yet."
 const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 const menuPoint = (e) => {
   if (e.clientX || e.clientY) return { x: e.clientX, y: e.clientY };
@@ -98,6 +101,17 @@ export default function DeckSections({ deck, update, touch }) {
     setSel(new Set(ids));
     document.querySelector(`.deck-row[data-row-id="${ids[0]}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
+
+  // Larghezza utile dell'area del mazzo (senza padding): decide quanto si allargano le pile.
+  const rootRef = useRef(null);
+  const [areaW, setAreaW] = useState(0);
+  const hasCards = deck.cards.length > 0;
+  useEffect(() => {
+    if (!rootRef.current) return undefined;
+    const ro = new ResizeObserver(([e]) => setAreaW(e.contentRect.width));
+    ro.observe(rootRef.current);
+    return () => ro.disconnect();
+  }, [hasCards]);
 
   // L'anteprima è fissa sullo schermo: sparisce appena qualcosa scorre.
   useEffect(() => {
@@ -359,9 +373,14 @@ export default function DeckSections({ deck, update, touch }) {
     ...blocks.groups.map((g) => [g, '', ['main', g.section]]),
     blocks.side && [blocks.side, 'deck-block', ['side']],
   ].filter(Boolean) : [];
-  const stackCols = packPiles(piles.map(([g]) => pileHeight(split ? sum(g.rows) : g.rows.length)), STACK_GAP);
+  const pileN = piles.map(([g]) => (split ? sum(g.rows) : g.rows.length));
+  const pack = (w) => packPiles(pileN.map((n) => pileHeight(n, w)), STACK_GAP);
+  // Colonne contate a 200 px, poi pile allargate fino a riempire l'area (impacchettate di nuovo).
+  const n0 = pack(STACK_MIN).length || 1;
+  const stackW = Math.max(STACK_MIN, Math.min(STACK_MAX, Math.floor((areaW - (n0 - 1) * COL_GAP) / n0)));
+  const stackCols = pack(stackW);
   return (
-    <div className={`deck-sections view-${layout}`} {...marqueeHandlers}
+    <div className={`deck-sections view-${layout}`} ref={rootRef} {...marqueeHandlers}
       onKeyDown={(e) => { if (e.key === 'Escape' && sel.size) { e.stopPropagation(); setSel(new Set()); } }}>
       {marquee && <div className="marquee" style={marquee} aria-hidden="true" />}
       <div className="deck-toolbar">
@@ -400,7 +419,7 @@ export default function DeckSections({ deck, update, touch }) {
       )}
       {/* Negli stack comandante e sideboard sono pile come le altre: il mazzo è un unico blocco centrato. */}
       {blocks.commander && layout !== 'stacks' && group(blocks.commander, 'deck-block')}
-      <div className={`deck-columns view-${layout}`}>
+      <div className={`deck-columns view-${layout}`} style={layout === 'stacks' ? { '--stack-w': `${stackW}px` } : undefined}>
         {layout === 'stacks'
           ? stackCols.map((ids) => <div key={piles[ids[0]][0].key} className="deck-stack-col">{ids.map((i) => group(...piles[i]))}</div>)
           : blocks.groups.map((g) => group(g, '', ['main', g.section]))}
