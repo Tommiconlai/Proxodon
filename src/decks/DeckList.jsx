@@ -17,7 +17,7 @@ import {
 } from '../components/icons';
 
 const COLORS = [['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green'], ['C', 'Colorless']];
-const NO_FILTERS = { format: '', colors: [] };
+const NO_FILTERS = { format: '', colors: [], card: '' };
 
 // Shift+F10 / tasto menu arrivano con 0,0: ancora il menu all'elemento.
 const menuPoint = (e) => {
@@ -100,7 +100,7 @@ function CommunityGrid({ uid, terms, filters, currency }) {
 }
 
 // Lista mazzi: schede Community e My decks (rotte #/community e #/decks, stesso componente: ricerca e
-// filtri restano passando dall'una all'altra), ricerca per nome e Filters (formato, colori).
+// filtri restano passando dall'una all'altra), ricerca per nome e Filters (formato, colori, carta).
 export default function DeckList({ uid, notify, community }) {
   const [decks, setDecks] = useState(null); // null = caricamento
   const [dialog, setDialog] = useState(null); // 'new' | 'import' | { rename: deck } | { del: deck } | { exp: deck }
@@ -122,7 +122,7 @@ export default function DeckList({ uid, notify, community }) {
   };
 
   const terms = searchTerms(q);
-  const nFilters = (filters.format ? 1 : 0) + filters.colors.length;
+  const nFilters = (filters.format ? 1 : 0) + filters.colors.length + (filters.card.trim() ? 1 : 0);
   const toggleColor = (c) => setFilters((f) => ({ ...f, colors: f.colors.includes(c) ? f.colors.filter((x) => x !== c) : [...f.colors, c] }));
   const shown = decks?.filter((d) => deckMatches(d, terms, filters));
 
@@ -173,6 +173,11 @@ export default function DeckList({ uid, notify, community }) {
               <option value="">Any</option>
               {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
             </select>
+          </label>
+          <label className="decks-filter">
+            <span>Contains card</span>
+            <input type="search" className="import-link-input decks-card-filter" value={filters.card} placeholder="Card name"
+              spellCheck={false} onChange={(e) => setFilters((f) => ({ ...f, card: e.target.value }))} />
           </label>
           <div className="decks-filter" role="group" aria-label="Colors">
             <span aria-hidden="true">Colors</span>

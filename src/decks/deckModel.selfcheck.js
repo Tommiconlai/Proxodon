@@ -393,5 +393,8 @@ eq([deckMatches(sd, searchTerms('burn mono'), none), deckMatches(sd, searchTerms
 eq([deckMatches(sd, [], { format: 'modern', colors: ['R'] }), deckMatches(sd, [], { format: 'legacy', colors: [] }),
   deckMatches(sd, [], { format: '', colors: ['C'] }), deckMatches(newDeck({ name: 'x' }), [], { format: '', colors: ['C'] })],
 [true, false, false, true], "filtri: formato, colore nell'identità, C = incolore");
+const maybeOnly = addCard(newDeck({ name: 'm' }), bolt, { board: 'maybe' }).deck;
+eq([deckMatches(sd, [], { ...none, card: ' lightning ' }), deckMatches(sd, [], { ...none, card: 'counterspell' }),
+  deckMatches(maybeOnly, [], { ...none, card: 'bolt' })], [true, false, false], 'filtri: contiene carta, maybeboard esclusa');
 
 console.log('deckModel selfcheck: ok');

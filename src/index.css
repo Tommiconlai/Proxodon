@@ -2799,6 +2799,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 }
 .decks-filter { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 0.8rem; color: var(--text-secondary); }
 .decks-filter select { width: auto; }
+.decks-card-filter { flex: none; width: 200px; }
 .decks-colors { display: flex; gap: 6px; flex-wrap: wrap; }
 .decks-color {
   display: grid; place-items: center;

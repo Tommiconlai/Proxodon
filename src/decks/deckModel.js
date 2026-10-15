@@ -377,11 +377,14 @@ export function deckIdentity(deck) {
 }
 
 // Ricerca e filtri della lista mazzi: parole del testo (lettere e cifre), poi un mazzo passa se il nome
-// le contiene tutte, ha il formato scelto e ogni colore scelto è nella sua identità (C = incolore).
+// le contiene tutte, ha il formato scelto, ogni colore scelto è nella sua identità (C = incolore) e una
+// carta fuori dal maybeboard ha nel nome il testo di card.
 export const searchTerms = (q) => q.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
-export function deckMatches(deck, terms, { format, colors }) {
+export function deckMatches(deck, terms, { format, colors, card = '' }) {
   const name = deck.name.toLowerCase();
   if (!terms.every((w) => name.includes(w)) || (format && deck.format !== format)) return false;
+  const c = card.trim().toLowerCase();
+  if (c && !deck.cards.some((r) => r.board !== 'maybe' && r.card.name.toLowerCase().includes(c))) return false;
   const id = deckIdentity(deck);
   return colors.every((c) => (c === 'C' ? !id.length : id.includes(c)));
 }
