@@ -12,14 +12,14 @@ const front = (name) => name.split(' // ')[0];
 // (Shift = 4, Alt = sideboard). Le carte bandite o non legali nel formato non compaiono.
 // "Advanced search": se il genitore passa onAdvanced (desktop, ricerca nella testata) apre il suo
 // pannello fuori da qui; altrimenti (telefono) i filtri si aprono qui sotto.
-export default function CardSearch({ format, onAdd, autoFocus, advanced: advancedProp, onAdvanced }) {
+export default function CardSearch({ format, onAdd, notify, autoFocus, advanced: advancedProp, onAdvanced }) {
   const [q, setQ] = useState('');
   const [sugg, setSugg] = useState([]);
   const [emptyFor, setEmptyFor] = useState(null); // testo per cui nessuna carta giocabile corrisponde
   const [active, setActive] = useState(0);
   const [ownAdvanced, setOwnAdvanced] = useState(false);
   const [hideFor, setHideFor] = useState(null); // dopo Esc la tendina resta chiusa per quel testo
-  const { add, status, error } = useAddCard(format, onAdd);
+  const { add } = useAddCard(format, onAdd, notify);
   const listId = useId();
   const controlled = typeof onAdvanced === 'function';
   const advanced = controlled ? !!advancedProp : ownAdvanced;
@@ -92,10 +92,7 @@ export default function CardSearch({ format, onAdd, autoFocus, advanced: advance
           {advanced ? 'Hide advanced search' : 'Advanced search'}
         </button>
       </div>
-      <p className="search-status" role="status">{status}</p>
-      {error && <div className="info-box info-box-error"><span>{error}</span></div>}
-
-      {advanced && !controlled && <AdvancedSearch format={format} onAdd={onAdd} />}
+      {advanced && !controlled && <AdvancedSearch format={format} onAdd={onAdd} notify={notify} />}
     </div>
   );
 }

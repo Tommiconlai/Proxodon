@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDeck } from './useDeck';
-import { FORMATS, boardCounts, countTarget, countOk, refreshSnapshots, addCard, toPrintEntries, coverRow } from './deckModel';
+import { FORMATS, boardCounts, refreshSnapshots, addCard, toPrintEntries, coverRow } from './deckModel';
 import { cardsByIds } from './scryfallSearch';
 import { navigate } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -12,6 +12,14 @@ import { PrintDeckDialog, CoverDialog, ExportDeckDialog } from './dialogs';
 import { IconPlus, IconPrinter, IconX, IconExport } from '../components/icons';
 
 const STUCK_AT = 72; // px: padding della barra + casella di ricerca, circa
+// "Saved 10 minutes ago": tempo dall'ultima scrittura (updatedAt del documento).
+const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+const UNITS = [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]];
+const ago = (ms) => {
+  const sec = (Date.now() - ms) / 1000;
+  const u = UNITS.find(([, n]) => sec >= n);
+  return u ? rtf.format(-Math.floor(sec / u[1]), u[0]) : 'just now';
+};
 
 // Editor del mazzo: testata con la copertina (arte della carta scelta, a sinistra, che verso destra
 // si sfoca e svanisce; click = scegli un'altra carta del mazzo, lo dice il cursore a mano) e sopra,
@@ -35,6 +43,13 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   // Barra quando della testata resta meno della riga nome + ricerca. Soglia fissa: la barra da
   // .stuck è più bassa (niente Advanced search), misurarla farebbe oscillare lo stato.
   const onScroll = (e) => setStuck(e.currentTarget.scrollTop > (heroRef.current?.offsetHeight || 0) - STUCK_AT);
+
+  // Ridisegno ogni 30 s: il "minutes ago" va avanti da solo.
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 30000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     const on = () => setOnline(true);
@@ -80,9 +95,9 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
     if (!printQueueCount && !c.side) onPrintDeck(toPrintEntries(deck));
     else setPrintOpen(true);
   };
-  const target = countTarget(deck.format);
   const cover = coverRow(deck);
-  const sync = !online ? (saving ? 'Offline, saved on this device' : 'Offline') : saving ? 'Saving…' : 'Saved';
+  const savedAt = deck.updatedAt?.toMillis?.();
+  const sync = !online ? (saving ? 'Offline, saved on this device' : 'Offline') : saving ? 'Saving…' : savedAt ? `Saved ${ago(savedAt)}` : 'Saved';
   const name = (
     <input className="deck-name" value={deck.name} maxLength={80} aria-label="Deck name" spellCheck={false}
       onChange={(e) => update((d) => ({ ...d, name: e.target.value }))}
@@ -96,7 +111,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
           <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`}>
             {name}
             <div className="deck-hero-search">
-              <CardSearch format={deck.format} onAdd={add} advanced={advOpen} onAdvanced={setAdvOpen} />
+              <CardSearch format={deck.format} onAdd={add} notify={notify} advanced={advOpen} onAdvanced={setAdvOpen} />
             </div>
           </div>
         </div>
@@ -117,12 +132,9 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
             <select className="deck-format" value={deck.format} aria-label="Format" onChange={(e) => update((d) => ({ ...d, format: e.target.value }))}>
               {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
             </select>
-            <span className={`deck-sync${online ? '' : ' offline'}`} role="status">{sync}</span>
-            <span className={`deck-count ${countOk(deck.format, c.main) ? 'ok' : 'warn'}`} title="Main deck">
-              {c.main}{target ? `/${target}` : ''}
-            </span>
             <button type="button" className="btn-secondary deck-print" onClick={startPrint} disabled={!c.main}><IconPrinter size={15} /> Print deck</button>
             <button type="button" className="btn-secondary deck-print" onClick={() => setExportOpen(true)} disabled={!deck.cards.length}><IconExport size={15} /> Export</button>
+            <span className={`deck-sync${online ? '' : ' offline'}`} role="status">{sync}</span>
           </div>
         </div>
       </header>
@@ -134,7 +146,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
                 <h2 className="decks-title">Advanced search</h2>
                 <button type="button" className="modal-close" onClick={() => setAdvOpen(false)} aria-label="Close advanced search"><IconX size={18} /></button>
               </div>
-              <AdvancedSearch format={deck.format} onAdd={add} />
+              <AdvancedSearch format={deck.format} onAdd={add} notify={notify} />
             </section>
           )}
           <DeckSections deck={deck} update={update} touch={mobile} />
@@ -149,7 +161,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
       {mobile && <button type="button" className="fab deck-fab" onClick={() => setSearchOpen(true)} aria-label="Add cards"><IconPlus size={26} /></button>}
       {mobile && searchOpen && (
         <MobilePage title="Add cards" onClose={() => setSearchOpen(false)}>
-          <CardSearch format={deck.format} onAdd={add} autoFocus />
+          <CardSearch format={deck.format} onAdd={add} notify={notify} autoFocus />
         </MobilePage>
       )}
       {printOpen && (

@@ -481,38 +481,71 @@ export function manaPips(cost) {
   return out;
 }
 
-const STAT_TYPES = ['Creature', 'Instant', 'Sorcery', 'Artifact', 'Enchantment', 'Planeswalker', 'Battle', 'Land'];
-// Statistiche del main board (comandanti inclusi; sideboard e maybeboard mai): curva dei non terra
-// 0..7+ con le righe di ogni barra, media del costo dei non terra, simboli nei costi contro fonti di
-// mana per colore, tipi (una carta multi-tipo conta in ognuno; solo quelli presenti).
+const PERMANENT = /\b(Creature|Artifact|Enchantment|Planeswalker|Battle)\b/;
+const round2 = (x) => Math.round(x * 100) / 100;
+const median = (xs) => {
+  if (!xs.length) return null;
+  const a = [...xs].sort((x, y) => x - y);
+  const m = a.length >> 1;
+  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+};
+// Statistiche del main board (comandanti inclusi; sideboard e maybeboard mai). Curva dei non terra
+// 0..7+: permanenti e magie, righe della barra e le stesse divise per tipo. Media e mediana del
+// costo con e senza terre, costo totale. Per colore: simboli nei costi (anche per costo) contro
+// carte che producono quel mana (e quante sono terre). library = main senza comandanti.
 export function deckStats(deck) {
   const main = deck.cards.filter((r) => r.board === 'main');
   const spells = main.filter((r) => !isLand(r.card));
-  const curve = Array.from({ length: 8 }, (_, mv) => ({ mv, count: 0, ids: [] }));
+  const curve = Array.from({ length: 8 }, (_, mv) => ({ mv, count: 0, perm: 0, spell: 0, ids: [], groups: [] }));
   for (const r of spells) {
     const b = curve[Math.min(7, Math.floor(r.card.mv))];
     b.count += r.qty;
+    b[PERMANENT.test(r.card.type) ? 'perm' : 'spell'] += r.qty;
     b.ids.push(r.id);
   }
-  const nSpells = sum(spells);
-  const colors = PIP_COLORS.map((c) => ({
-    c,
-    pips: main.reduce((n, r) => n + manaPips(r.card.mana)[c] * r.qty, 0),
-    sources: sum(main.filter((r) => (r.card.produced || []).includes(c))),
-  }));
-  const types = STAT_TYPES.map((type) => {
-    const rows = main.filter((r) => new RegExp(`\\b${type}\\b`).test(r.card.type));
-    return { type, count: sum(rows), ids: rows.map((r) => r.id) };
-  }).filter((t) => t.count);
-  const avgMv = nSpells ? Math.round((spells.reduce((n, r) => n + r.card.mv * r.qty, 0) / nSpells) * 100) / 100 : null;
-  return { cards: sum(main), lands: sum(main) - nSpells, avgMv, curve, colors, types };
+  for (const b of curve) {
+    const rows = spells.filter((r) => b.ids.includes(r.id)).sort(byName);
+    b.groups = TYPE_ORDER.map((t) => ({ label: TYPE_LABEL[t], rows: rows.filter((r) => primaryType(r.card.type) === t) })).filter((g) => g.rows.length);
+  }
+  const mvs = (rows) => rows.flatMap((r) => Array(r.qty).fill(r.card.mv));
+  const all = mvs(main);
+  const nonLand = mvs(spells);
+  const total = all.reduce((n, x) => n + x, 0);
+  const makers = main.filter((r) => r.card.produced?.length);
+  const colors = PIP_COLORS.map((c) => {
+    const byMv = Array(8).fill(0);
+    for (const r of main) byMv[Math.min(7, Math.floor(r.card.mv))] += manaPips(r.card.mana)[c] * r.qty;
+    const src = makers.filter((r) => r.card.produced.includes(c));
+    return { c, pips: byMv.reduce((n, x) => n + x, 0), byMv, sources: sum(src), landSources: sum(src.filter((r) => isLand(r.card))) };
+  });
+  return {
+    cards: sum(main), lands: sum(main) - sum(spells), library: sum(main.filter((r) => !r.commander)),
+    avgMv: nonLand.length ? round2(total / nonLand.length) : null, avgAll: all.length ? round2(total / all.length) : null,
+    medianMv: median(nonLand), medianAll: median(all), totalMv: total,
+    curve, colors, pips: colors.reduce((n, c) => n + c.pips, 0), sources: sum(makers),
+  };
+}
+
+// Probabilità ipergeometrica di avere almeno k successi pescando n carte da N con K successi
+// (es. almeno 3 terre entro il turno 3). Coefficienti binomiali in virgola mobile: bastano fino a ~1000 carte.
+const choose = (n, k) => {
+  if (k < 0 || k > n) return 0;
+  let r = 1;
+  for (let i = 1; i <= k; i++) r = (r * (n - k + i)) / i;
+  return r;
+};
+export function hyperAtLeast(N, K, n, k) {
+  const draws = Math.min(n, N);
+  let p = 0;
+  for (let i = 0; i < k; i++) p += (choose(K, i) * choose(N - K, draws - i)) / choose(N, draws);
+  return Math.min(1, Math.max(0, 1 - p));
 }
 
 // Snapshot vecchi senza cmdr: si deduce dal tipo finché il riallineamento non lo aggiunge.
 const canCommand = (s) => s.cmdr ?? (/\bLegendary\b/.test(s.type) && /\bCreature\b/.test(s.type));
 
-// Problemi del mazzo (mai bloccanti), ognuno con le righe da evidenziare. Il numero di carte resta
-// nel contatore della barra in alto. Casual: nessun controllo.
+// Problemi del mazzo (mai bloccanti), ognuno con le righe da evidenziare. Il numero di carte sta
+// nelle statistiche e nel riquadro della lista mazzi. Casual: nessun controllo.
 export function validateDeck(deck) {
   const f = deck.format;
   if (f === 'casual') return [];

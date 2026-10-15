@@ -9,7 +9,7 @@ import {
   parseDeckText, toBackup, fromBackup, duplicateDeck, refreshSnapshots, primaryType,
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
   splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies, packPiles,
-  libraryCards, shuffle, mulliganBottom,
+  libraryCards, shuffle, mulliganBottom, hyperAtLeast,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
 
@@ -305,7 +305,14 @@ eq([ss.cards, ss.lands, ss.avgMv], [19, 10, 2.89], 'statistiche: solo main, medi
 eq(ss.curve.map((b) => b.count), [0, 6, 1, 1, 0, 0, 0, 1], 'curva 0..7+, terre escluse');
 eq(ss.curve[1].ids.length, 2, 'la barra conosce le sue righe');
 eq(ss.colors.filter((c) => c.pips || c.sources).map((c) => [c.c, c.pips, c.sources]), [['R', 6, 10], ['C', 0, 1]], 'colori: simboli contro fonti');
-eq(ss.types.map((t) => [t.type, t.count]), [['Creature', 4], ['Instant', 4], ['Artifact', 2], ['Land', 10]], 'tipi: una carta multi-tipo conta in ognuno');
+eq(ss.curve.map((b) => [b.perm, b.spell]), [[0, 0], [2, 4], [1, 0], [1, 0], [0, 0], [0, 0], [0, 0], [1, 0]], 'curva: permanenti e magie');
+eq(ss.curve[1].groups.map((g) => [g.label, g.rows.map((r) => r.card.name)]), [['Creatures', ['Goblin Guide']], ['Instants', ['Lightning Bolt']]],
+  'carte di una barra divise per tipo');
+eq([ss.avgAll, ss.medianAll, ss.medianMv, ss.totalMv, ss.library], [1.37, 0, 1, 26, 19], 'media con terre, mediane, totale, grimorio');
+eq(ss.colors.filter((c) => c.pips || c.sources).map((c) => [c.c, c.landSources, c.byMv[1]]), [['R', 10, 6], ['C', 0, 0]], 'colori: fonti terra e simboli per costo');
+eq([ss.pips, ss.sources], [6, 11], 'totale simboli e carte che producono mana');
+eq(Math.round(hyperAtLeast(60, 24, 7, 1) * 1e4), 9784, 'ipergeometrica: almeno una terra in 7 carte, 24 terre su 60');
+eq([hyperAtLeast(10, 0, 7, 1), hyperAtLeast(10, 10, 7, 7), hyperAtLeast(5, 2, 9, 2)], [0, 1, 1], 'ipergeometrica: casi limite');
 // Vintage restricted = 1 copia
 eq([maxCopies('vintage', { legal: { vintage: 'restricted' } }), maxCopies('vintage', { legal: { vintage: 'legal' } })], [1, 4], 'restricted = 1');
 // Comandante: legendary creature o "can be your commander"
