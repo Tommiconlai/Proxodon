@@ -1,11 +1,14 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { listenDecks, createDeck } from './deckStore';
+import { changePassword, authMessage } from './firebase';
 import { toBackup, fromBackup, FORMATS, GROUP_MODES, SORT_MODES, VIEWS } from './deckModel';
 import { downloadText } from '../utils/download';
 import { useSettings, setSetting } from '../utils/settings';
 import { IconDownload, IconUpload } from '../components/icons';
 
 const plural = (n, word) => `${n} ${word}${n !== 1 ? 's' : ''}`;
+const WRONG_PASSWORD = ['auth/invalid-credential', 'auth/wrong-password', 'auth/invalid-login-credentials'];
+const PROVIDERS = { 'google.com': 'Google', password: 'Email and password' };
 const opts = (list) => list.map(({ id, label }) => <option key={String(id)} value={String(id)}>{label}</option>);
 const LANGS = [
   ['en', 'English'], ['it', 'Italiano'], ['fr', 'Français'], ['de', 'Deutsch'], ['es', 'Español'], ['pt', 'Português'],
@@ -53,10 +56,13 @@ function Card({ id, title, children }) {
   );
 }
 
-// Impostazioni (menu dell'avatar → Settings, #/settings), salvate su questo dispositivo
-// (utils/settings): mazzi nuovi, stampa, lingua delle carte, import, aspetto, prezzi, poi backup e
-// ripristino dei mazzi (il ripristino aggiunge i mazzi del file accanto a quelli che ci sono).
-export default function SettingsPage({ uid, notify }) {
+// Impostazioni (menu dell'avatar → Settings, #/settings): account (email, accesso) e password, poi le
+// preferenze salvate su questo dispositivo (utils/settings): mazzi nuovi, stampa, lingua delle carte,
+// import, aspetto, prezzi, poi backup e ripristino dei mazzi (il ripristino aggiunge i mazzi del file
+// accanto a quelli che ci sono).
+export default function SettingsPage({ user, notify }) {
+  const uid = user.uid;
+  const providers = user.providerData.map((p) => p.providerId);
   const [decks, setDecks] = useState(null); // null = caricamento
   const fileRef = useRef(null);
   useEffect(() => listenDecks(uid, setDecks, (e) => notify(`Could not load your decks: ${e.message}`, 'error')), [uid, notify]);
@@ -79,12 +85,27 @@ export default function SettingsPage({ uid, notify }) {
   };
 
   return (
-    <div className="decks-root profile-page settings-page">
+    <div className="decks-root profile-page">
       <header className="decks-head">
         <h2 className="decks-title">Settings</h2>
       </header>
-      <p className="settings-note">Saved on this device.</p>
-      <div className="profile-grid settings-grid">
+      <p className="settings-note">Preferences are saved on this device.</p>
+      <div className="profile-grid">
+        <Card id="settings-account" title="Account">
+          <dl className="profile-data">
+            <dt>Email</dt>
+            <dd>
+              {user.email}
+              <span className={`profile-badge${user.emailVerified ? ' ok' : ''}`}>{user.emailVerified ? 'verified' : 'not verified'}</span>
+            </dd>
+            <dt>Sign-in</dt><dd>{providers.map((p) => PROVIDERS[p] || p).join(', ')}</dd>
+          </dl>
+        </Card>
+        <Card id="settings-password" title="Password">
+          {providers.includes('password')
+            ? <PasswordForm email={user.email} />
+            : <p className="profile-note">You sign in with Google, so your password is managed by your Google account.</p>}
+        </Card>
         <Card id="settings-decks" title="Decks">
           <Choice k="deckFormat" label="Format of new decks" options={FORMATS} />
           <Choice k="deckGroupBy" label="Group new decks by" options={GROUP_MODES.filter((m) => m.id !== 'custom')} />
@@ -129,5 +150,48 @@ export default function SettingsPage({ uid, notify }) {
         </Card>
       </div>
     </div>
+  );
+}
+
+function PasswordForm({ email }) {
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [info, setInfo] = useState(null);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    setInfo(null);
+    try {
+      await changePassword(current, next);
+      setCurrent('');
+      setNext('');
+      setInfo('Password changed.');
+    } catch (err) {
+      setError(WRONG_PASSWORD.includes(err.code) ? 'The current password is wrong.' : authMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form className="profile-form" onSubmit={submit}>
+      {/* Per i password manager: a quale account appartiene la nuova password. */}
+      <input type="email" autoComplete="username" value={email} readOnly hidden />
+      <input type="password" className="import-link-input" value={current} onChange={(e) => setCurrent(e.target.value)}
+        placeholder="Current password" aria-label="Current password" autoComplete="current-password" required disabled={busy} />
+      <input type="password" className="import-link-input" value={next} onChange={(e) => setNext(e.target.value)}
+        placeholder="New password, at least 6 characters" aria-label="New password" autoComplete="new-password"
+        minLength={6} required disabled={busy} />
+      <button type="submit" className="btn-secondary signin-submit" disabled={busy}>
+        {busy && <span className="import-spinner" />} Change password
+      </button>
+      {error && <div className="info-box info-box-error" role="alert"><span>{error}</span></div>}
+      {info && <div className="info-box" role="status"><span>{info}</span></div>}
+      <p className="field-hint">Forgot it? Sign out and use “Forgot password?” on the sign-in page.</p>
+    </form>
   );
 }

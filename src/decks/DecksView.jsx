@@ -28,7 +28,7 @@ export default function DecksView({ route, notify, printQueueCount, onPrintDeck,
         headerSlot,
       )}
       {route === '/profile' ? <ProfilePage user={user} photo={photo} notify={notify} onChange={rerender} />
-        : route === '/settings' ? <SettingsPage uid={user.uid} notify={notify} />
+        : route === '/settings' ? <SettingsPage user={user} notify={notify} />
         : id ? <DeckEditor key={id} uid={user.uid} id={id} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} />
           : <DeckList uid={user.uid} notify={notify} />}
     </>

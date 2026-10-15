@@ -2542,8 +2542,10 @@ body::before {
 .header-slot { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .header-slot .help { margin-left: 0; position: relative; }
 
-/* Profilo: tre schede (foto e nickname, account, password); una colonna su telefono. */
-.profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; max-width: 1040px; align-items: start; }
+/* Profilo e Settings: contenuto in una colonna centrata (vince su .deck-grid e .decks-empty). */
+.decks-root.profile-page > * { max-width: 1240px; margin-inline: auto; }
+/* Schede di Settings; una colonna su telefono. */
+.profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; align-items: start; }
 .profile-card {
   min-width: 0;
   display: flex; flex-direction: column; gap: 14px;
@@ -2552,20 +2554,111 @@ body::before {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
 }
-.profile-id { align-items: center; }
+
+/* Profilo: testata con l'arte del mazzo modificato per ultimo (senza mazzi, bagliore magenta / ciano),
+   foto sul bordo, nickname con l'aberrazione cromatica del wordmark, numeri in mono sotto una hairline. */
+.profile-hero {
+  position: relative;
+  margin-bottom: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--bg-elevated), var(--bg-surface));
+}
+.profile-banner {
+  position: relative;
+  height: 220px;
+  background:
+    radial-gradient(90% 120% at 10% 0%, rgba(255, 45, 149, 0.38), transparent 60%),
+    radial-gradient(90% 120% at 92% 0%, rgba(0, 229, 255, 0.3), transparent 60%),
+    var(--bg-base);
+}
+.profile-banner.art { background-size: cover; background-position: center 28%; }
+/* Scanline e velo: l'arte sfuma nel fondo della testata, dove stanno foto e nome. */
+.profile-banner::after {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, rgba(8, 7, 15, 0.05) 30%, rgba(20, 17, 42, 0.75) 78%, var(--bg-elevated));
+}
+.profile-hero-body {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "avatar who" "stats stats";
+  align-items: end;
+  gap: 20px 24px;
+  margin-top: -64px;
+  padding: 0 28px 24px;
+}
+.profile-avatar-wrap { grid-area: avatar; position: relative; }
 .profile-avatar {
-  width: 104px; height: 104px;
+  width: 128px; height: 128px;
   display: grid; place-items: center;
   border-radius: 50%;
   overflow: hidden;
   border: 1px solid rgba(0, 229, 255, 0.55);
-  box-shadow: 0 0 0 4px var(--bg-surface), 0 0 0 5px rgba(255, 45, 149, 0.45), 0 0 22px var(--cyan-glow);
+  box-shadow: 0 0 0 4px var(--bg-elevated), 0 0 0 5px rgba(255, 45, 149, 0.45), 0 0 26px var(--cyan-glow);
   background: var(--bg-elevated);
   color: var(--cyan-soft);
-  font-family: var(--font-display); font-size: 2.4rem; font-weight: 600;
+  font-family: var(--font-display); font-size: 2.8rem; font-weight: 600;
 }
 .profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.profile-photo-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.profile-avatar-edit {
+  position: absolute; right: 0; bottom: 4px;
+  width: 34px; height: 34px; padding: 0;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 229, 255, 0.55);
+  background: rgba(8, 7, 18, 0.88);
+  color: var(--cyan-soft);
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+.profile-avatar-edit:hover, .profile-avatar-edit:focus-visible { color: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 12px var(--cyan-glow); outline: none; }
+.profile-who { grid-area: who; min-width: 0; padding-bottom: 14px; }
+.profile-name-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.profile-name {
+  margin: 0 6px 0 0; min-width: 0;
+  font-family: var(--font-display); font-size: clamp(1.4rem, 2.6vw, 2rem); font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: #f5f3ff;
+  text-shadow: -1.5px 0 rgba(0, 229, 255, 0.7), 1.5px 0 rgba(255, 45, 149, 0.7);
+  overflow-wrap: anywhere;
+}
+.profile-icon-btn {
+  flex: none;
+  width: 32px; height: 32px; padding: 0;
+  display: grid; place-items: center;
+  background: transparent;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+.profile-icon-btn:hover, .profile-icon-btn:focus-visible { color: var(--cyan); border-color: var(--cyan); outline: none; }
+.profile-name-form { max-width: 480px; }
+.profile-name-form .import-link-input { flex: 1; min-width: 0; }
+.profile-stats {
+  grid-area: stats;
+  margin: 0; padding-top: 18px;
+  display: flex; flex-wrap: wrap; row-gap: 14px;
+  border-top: 1px solid var(--border);
+}
+.profile-stats div { padding: 0 32px; border-left: 1px solid var(--border); }
+.profile-stats div:first-child { padding-left: 0; border-left: 0; }
+.profile-stats dt { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); }
+.profile-stats dd { margin: 6px 0 0; font-family: var(--font-mono); font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+@media (max-width: 640px) {
+  .profile-banner { height: 150px; }
+  .profile-hero-body { grid-template-columns: 1fr; grid-template-areas: "avatar" "who" "stats"; justify-items: center; text-align: center; gap: 14px; margin-top: -56px; padding: 0 16px 20px; }
+  .profile-avatar { width: 104px; height: 104px; font-size: 2.4rem; }
+  .profile-who { padding-bottom: 0; }
+  .profile-name-row { justify-content: center; }
+  .profile-stats { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+  .profile-stats div, .profile-stats div:first-child { padding: 0; border: 0; }
+}
 .profile-form { width: 100%; display: flex; flex-direction: column; gap: 10px; }
 .profile-row { display: flex; gap: 8px; }
 .profile-h {
@@ -2631,9 +2724,6 @@ body::before {
 .settings-btn { align-self: flex-start; }
 /* Pagina Settings: riquadri del profilo con righe etichetta + select. */
 .settings-note { margin: -6px 0 16px; font-size: 0.85rem; color: var(--text-muted); }
-.settings-grid { max-width: 1240px; }
-/* Settings: titolo, nota e schede in una colonna centrata. */
-.settings-page > * { max-width: 1240px; margin-inline: auto; }
 .settings-field { display: flex; flex-direction: column; gap: 6px; }
 .settings-field label { margin: 0; font-size: 0.8rem; color: var(--text-secondary); }
 .settings-hint { margin: 0; font-size: 0.78rem; line-height: 1.45; color: var(--text-muted); }
@@ -2676,12 +2766,11 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .deck-tile-name { min-width: 0; font-size: 0.875rem; overflow-wrap: anywhere; }
 /* Come nel frame non occupa altezza: la riga resta alta quanto il nome, l'offset non sposta il resto. */
 .deck-tile-updated { flex: none; position: relative; top: 6px; height: 0; font-size: 0.5rem; line-height: 1.15; text-align: right; white-space: nowrap; opacity: 0.4; }
-.deck-tile-format { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; font-size: 0.625rem; opacity: 0.6; }
+.deck-tile-format { margin-top: 12px; font-size: 0.625rem; opacity: 0.6; }
 .deck-tile-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
 .deck-tile-foot .mana { gap: 4px; }
 .deck-tile-foot .mana img { width: 15px; height: 15px; }
-.deck-tile-count { font-size: 0.625rem; opacity: 0.6; }
-.deck-tile-count.warn { color: var(--warning); opacity: 1; }
+.deck-tile-price { font-size: 0.625rem; opacity: 0.6; }
 /* Export sull'angolo dell'arte: fratello del riquadro (niente pulsanti annidati), sempre visibile. */
 .deck-tile-wrap { position: relative; }
 .deck-tile-export {
@@ -2700,6 +2789,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .mana { display: inline-flex; align-items: center; gap: 2px; }
 .mana img { display: block; }
 .decks-empty { max-width: 420px; padding: 28px 0; }
+.decks-empty a { color: var(--cyan-soft); }
 .decks-empty-title { margin: 0 0 6px; font-family: var(--font-display); font-size: 1.1rem; color: var(--text-primary); }
 .deck-form select { width: 100%; }
 .import-meta-row { display: grid; grid-template-columns: 1fr 160px; gap: 8px; }

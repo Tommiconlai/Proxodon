@@ -1,67 +1,82 @@
 import { useEffect, useId, useState } from 'react';
 import { listenDecks, saveProfilePhoto } from './deckStore';
-import { updateNickname, changePassword, authMessage } from './firebase';
+import { updateNickname, authMessage } from './firebase';
+import { deckCover } from './deckModel';
+import { useSettings } from '../utils/settings';
+import { navigate } from '../hooks/useHashRoute';
 import { Avatar } from './AccountMenu';
+import { DeckTile } from './DeckList';
 import PhotoDialog from './PhotoDialog';
-import { IconUpload, IconTrash } from '../components/icons';
+import { IconImage, IconPencil } from '../components/icons';
 
-const WRONG_PASSWORD = ['auth/invalid-credential', 'auth/wrong-password', 'auth/invalid-login-credentials'];
-const PROVIDERS = { 'google.com': 'Google', password: 'Email and password' };
-const day = (s) => (s ? new Date(s).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : '');
-const plural = (n, word) => `${n} ${word}${n !== 1 ? 's' : ''}`;
+const day = (s) => (s ? new Date(s).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 
 // Foto profilo: JPEG 256 px (circa 20 KB) da PhotoDialog, salvato come data URL nel documento
 // users/{uid}. ponytail: niente Firebase Storage (sui progetti nuovi richiede il piano a pagamento);
 // se servono foto più grandi, Storage + URL.
 
-// Profilo: foto e nickname, riepilogo dell'account, cambio password (solo account email).
+// Profilo: testata con l'arte del mazzo modificato per ultimo come sfondo, foto, nickname, iscrizione,
+// ultimo accesso, mazzi e carte; sotto, i mazzi. Email, metodo di accesso e password stanno in Settings.
 export default function ProfilePage({ user, photo, notify, onChange }) {
-  const [decks, setDecks] = useState(null);
+  const [decks, setDecks] = useState(null); // null = caricamento
+  const { currency } = useSettings();
   useEffect(() => listenDecks(user.uid, setDecks, () => setDecks(null)), [user.uid]);
-  const providers = user.providerData.map((p) => p.providerId);
   const cards = decks?.reduce((n, d) => n + d.cards.reduce((m, r) => m + r.qty, 0), 0);
+  const banner = decks?.map(deckCover).find(Boolean);
+  const stats = [
+    ['Member since', day(user.metadata.creationTime)],
+    ['Last sign-in', day(user.metadata.lastSignInTime)],
+    ['Decks', decks ? decks.length : '…'],
+    ['Cards', decks ? cards : '…'],
+  ];
 
   return (
     <div className="decks-root profile-page">
-      <header className="decks-head">
-        <h2 className="decks-title">Profile</h2>
-      </header>
-      <div className="profile-grid">
-        <IdentityCard user={user} photo={photo} notify={notify} onChange={onChange} />
-        <section className="profile-card" aria-labelledby="profile-account">
-          <h3 id="profile-account" className="profile-h">Account</h3>
-          <dl className="profile-data">
-            <dt>Email</dt>
-            <dd>
-              {user.email}
-              <span className={`profile-badge${user.emailVerified ? ' ok' : ''}`}>{user.emailVerified ? 'verified' : 'not verified'}</span>
-            </dd>
-            <dt>Sign-in</dt><dd>{providers.map((p) => PROVIDERS[p] || p).join(', ')}</dd>
-            <dt>Member since</dt><dd>{day(user.metadata.creationTime)}</dd>
-            <dt>Last sign-in</dt><dd>{day(user.metadata.lastSignInTime)}</dd>
-            <dt>Decks</dt><dd>{decks ? `${plural(decks.length, 'deck')}, ${plural(cards, 'card')}` : '…'}</dd>
+      <section className="profile-hero" aria-label="Profile">
+        <div className={`profile-banner${banner ? ' art' : ''}`} style={banner ? { backgroundImage: `url("${banner}")` } : undefined} aria-hidden="true" />
+        <div className="profile-hero-body">
+          <Identity user={user} photo={photo} notify={notify} onChange={onChange} />
+          <dl className="profile-stats">
+            {stats.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
           </dl>
-        </section>
-        <section className="profile-card" aria-labelledby="profile-password">
-          <h3 id="profile-password" className="profile-h">Password</h3>
-          {providers.includes('password')
-            ? <PasswordForm email={user.email} />
-            : <p className="profile-note">You sign in with Google, so your password is managed by your Google account.</p>}
-        </section>
-      </div>
+        </div>
+      </section>
+
+      <header className="decks-head">
+        <h2 className="decks-title">Decks</h2>
+      </header>
+      {decks === null && <span className="import-spinner" aria-label="Loading" />}
+      {decks?.length === 0 && (
+        <div className="decks-empty">
+          <p className="decks-empty-title">No decks yet</p>
+          <p className="field-hint">Create or import one in <a href="#/decks">Decks</a>.</p>
+        </div>
+      )}
+      {decks?.length > 0 && (
+        <ul className="deck-grid">
+          {decks.map((d) => (
+            <li key={d.id} className="deck-tile-wrap">
+              <DeckTile deck={d} currency={currency} onClick={() => navigate(`/decks/${d.id}`)} />
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
 
-function IdentityCard({ user, photo, notify, onChange }) {
+// Foto (il tasto sul cerchio apre PhotoDialog: nuova o rimuovi) e nickname (matita → campo in linea, Esc annulla).
+function Identity({ user, photo, notify, onChange }) {
   const current = user.displayName || '';
   const [name, setName] = useState(current);
+  const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false); // salvataggio nickname
   const [photoOpen, setPhotoOpen] = useState(false);
   const nameId = useId();
   const savePhoto = (data, done) => saveProfilePhoto(user.uid, data)
     .then(() => notify(done))
     .catch((e) => notify(`Could not save the photo: ${e.message}`, 'error'));
+  const cancel = () => { setName(current); setEditing(false); };
 
   const saveName = async (e) => {
     e.preventDefault();
@@ -69,6 +84,7 @@ function IdentityCard({ user, photo, notify, onChange }) {
     try {
       await updateNickname(name.trim());
       setName(name.trim());
+      setEditing(false);
       onChange();
       notify('Nickname saved');
     } catch (err) {
@@ -79,72 +95,38 @@ function IdentityCard({ user, photo, notify, onChange }) {
   };
 
   return (
-    <section className="profile-card profile-id" aria-label="Photo and nickname">
-      <div className="profile-avatar"><Avatar user={user} photo={photo} /></div>
-      <div className="profile-photo-actions">
-        <button type="button" className="btn-secondary" onClick={() => setPhotoOpen(true)}>
-          <IconUpload size={15} /> Change photo
+    <>
+      <div className="profile-avatar-wrap">
+        <div className="profile-avatar"><Avatar user={user} photo={photo} /></div>
+        <button type="button" className="profile-avatar-edit" onClick={() => setPhotoOpen(true)} aria-label="Change photo" title="Change photo">
+          <IconImage size={16} />
         </button>
-        {photo && (
-          <button type="button" className="btn-secondary" onClick={() => savePhoto(null, 'Photo removed')}>
-            <IconTrash size={15} /> Remove photo
-          </button>
+      </div>
+      <div className="profile-who">
+        {editing ? (
+          <form className="profile-row profile-name-form" onSubmit={saveName} onKeyDown={(e) => { if (e.key === 'Escape') cancel(); }}>
+            <label className="sr-only" htmlFor={nameId}>Nickname</label>
+            <input id={nameId} className="import-link-input" value={name} onChange={(e) => setName(e.target.value)} autoFocus
+              maxLength={40} placeholder={user.email?.split('@')[0]} autoComplete="nickname" spellCheck={false} disabled={busy} />
+            <button type="submit" className="btn-secondary" disabled={busy || name.trim() === current}>
+              {busy && <span className="import-spinner" />} Save
+            </button>
+            <button type="button" className="btn-secondary" onClick={cancel} disabled={busy}>Cancel</button>
+          </form>
+        ) : (
+          <div className="profile-name-row">
+            <h2 className="profile-name">{current || user.email?.split('@')[0]}</h2>
+            <button type="button" className="profile-icon-btn" onClick={() => setEditing(true)} aria-label="Edit nickname" title="Edit nickname">
+              <IconPencil size={15} />
+            </button>
+          </div>
         )}
       </div>
-      {photoOpen && <PhotoDialog onClose={() => setPhotoOpen(false)} onSave={(data) => { setPhotoOpen(false); savePhoto(data, 'Photo updated'); }} />}
-      <form className="profile-form" onSubmit={saveName}>
-        <label className="profile-h" htmlFor={nameId}>Nickname</label>
-        <div className="profile-row">
-          <input id={nameId} className="import-link-input" value={name} onChange={(e) => setName(e.target.value)}
-            maxLength={40} placeholder={user.email?.split('@')[0]} autoComplete="nickname" spellCheck={false} disabled={busy} />
-          <button type="submit" className="btn-secondary" disabled={busy || name.trim() === current}>
-            {busy && <span className="import-spinner" />} Save
-          </button>
-        </div>
-      </form>
-    </section>
-  );
-}
-
-function PasswordForm({ email }) {
-  const [current, setCurrent] = useState('');
-  const [next, setNext] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
-  const [info, setInfo] = useState(null);
-
-  const submit = async (e) => {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    setInfo(null);
-    try {
-      await changePassword(current, next);
-      setCurrent('');
-      setNext('');
-      setInfo('Password changed.');
-    } catch (err) {
-      setError(WRONG_PASSWORD.includes(err.code) ? 'The current password is wrong.' : authMessage(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <form className="profile-form" onSubmit={submit}>
-      {/* Per i password manager: a quale account appartiene la nuova password. */}
-      <input type="email" autoComplete="username" value={email} readOnly hidden />
-      <input type="password" className="import-link-input" value={current} onChange={(e) => setCurrent(e.target.value)}
-        placeholder="Current password" aria-label="Current password" autoComplete="current-password" required disabled={busy} />
-      <input type="password" className="import-link-input" value={next} onChange={(e) => setNext(e.target.value)}
-        placeholder="New password, at least 6 characters" aria-label="New password" autoComplete="new-password"
-        minLength={6} required disabled={busy} />
-      <button type="submit" className="btn-secondary signin-submit" disabled={busy}>
-        {busy && <span className="import-spinner" />} Change password
-      </button>
-      {error && <div className="info-box info-box-error" role="alert"><span>{error}</span></div>}
-      {info && <div className="info-box" role="status"><span>{info}</span></div>}
-      <p className="field-hint">Forgot it? Sign out and use “Forgot password?” on the sign-in page.</p>
-    </form>
+      {photoOpen && (
+        <PhotoDialog onClose={() => setPhotoOpen(false)}
+          onSave={(data) => { setPhotoOpen(false); savePhoto(data, 'Photo updated'); }}
+          onRemove={photo ? () => { setPhotoOpen(false); savePhoto(null, 'Photo removed'); } : undefined} />
+      )}
+    </>
   );
 }

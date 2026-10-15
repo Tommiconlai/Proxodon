@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 import { fetchPrints } from '../utils/scryfall';
 import { autocomplete } from './scryfallSearch';
-import { IconX, IconUpload, IconSearch } from '../components/icons';
+import { IconX, IconUpload, IconSearch, IconTrash } from '../components/icons';
 
 const OUT = 256; // lato della foto salvata (px)
 const MAX_ZOOM = 4;
@@ -164,7 +164,8 @@ function SourcePicker({ busy, onFile, onArt }) {
 }
 
 // Nuova foto profilo: scegli la sorgente, poi centrala nel cerchio. onSave riceve un JPEG 256 px.
-export default function PhotoDialog({ onClose, onSave }) {
+// onRemove (solo con una foto personalizzata): torna alla foto di Google o all'iniziale.
+export default function PhotoDialog({ onClose, onSave, onRemove }) {
   const [img, setImg] = useState(null); // { url, w, h, bmp }
   const [crop, setCrop] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -219,6 +220,11 @@ export default function PhotoDialog({ onClose, onSave }) {
         {error && <div className="info-box info-box-error"><span>{error}</span></div>}
         {busy && <div className="import-status"><span className="import-spinner" /> Loading the image…</div>}
         {!img && <SourcePicker busy={busy} onFile={(f) => load(async () => f)} onArt={loadArt} />}
+        {!img && onRemove && (
+          <div className="modal-actions">
+            <button type="button" className="btn-secondary" onClick={onRemove} disabled={busy}><IconTrash size={15} /> Remove current photo</button>
+          </div>
+        )}
         {img && (
           <>
             <div className="photo-crop">

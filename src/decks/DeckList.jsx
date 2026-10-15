@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { listenDecks, createDeck, saveDeck, deleteDeck } from './deckStore';
 import {
-  newDeck, duplicateDeck, boardCounts, countTarget, countOk, deckIdentity, deckCover, formatLabel, priceLabel,
+  newDeck, duplicateDeck, deckIdentity, deckCover, formatLabel, priceLabel,
 } from './deckModel';
 import { useSettings } from '../utils/settings';
 import { navigate } from '../hooks/useHashRoute';
@@ -20,6 +20,30 @@ const menuPoint = (e) => {
   const r = e.currentTarget.getBoundingClientRect();
   return { x: r.left + 24, y: r.top + 24 };
 };
+
+// Riquadro di un mazzo (lista e profilo), come il frame Figma "Proxoteca" 35:208: nome e ultima
+// modifica, formato, poi identità di colore e prezzo sulla stessa riga. props vanno sul pulsante.
+export function DeckTile({ deck: d, currency, ...props }) {
+  const cover = deckCover(d);
+  const updated = d.updatedAt?.toMillis?.();
+  const price = priceLabel(d, currency);
+  return (
+    <button type="button" className="deck-tile" {...props}>
+      <span className="deck-tile-art" style={cover ? { backgroundImage: `url("${cover}")` } : undefined} aria-hidden="true" />
+      <span className="deck-tile-body">
+        <span className="deck-tile-top">
+          <span className="deck-tile-name">{d.name}</span>
+          {updated && <span className="deck-tile-updated">Last update<br />{timeAgo(updated)}</span>}
+        </span>
+        <span className="deck-tile-format">{formatLabel(d.format)}</span>
+        <span className="deck-tile-foot">
+          <ManaPips colors={deckIdentity(d)} />
+          {price && <span className="deck-tile-price">{price}</span>}
+        </span>
+      </span>
+    </button>
+  );
+}
 
 export default function DeckList({ uid, notify }) {
   const [decks, setDecks] = useState(null); // null = caricamento
@@ -65,39 +89,17 @@ export default function DeckList({ uid, notify }) {
       )}
       {decks?.length > 0 && (
         <ul className="deck-grid">
-          {decks.map((d) => {
-            const main = boardCounts(d).main;
-            const target = countTarget(d.format);
-            const cover = deckCover(d);
-            const updated = d.updatedAt?.toMillis?.();
-            const price = priceLabel(d, settings.currency);
-            return (
-              <li key={d.id} className="deck-tile-wrap">
-                <button type="button" className="deck-tile"
-                  onClick={() => { if (!press.consumed()) navigate(`/decks/${d.id}`); }}
-                  onContextMenu={(e) => { e.preventDefault(); setMenu({ deck: d, ...menuPoint(e) }); }}
-                  {...press.bind((x, y) => setMenu({ deck: d, x, y }))}>
-                  <span className="deck-tile-art" style={cover ? { backgroundImage: `url("${cover}")` } : undefined} aria-hidden="true" />
-                  {/* Come il frame Figma "Proxoteca" 35:208: nome e ultima modifica, formato, poi
-                      identità di colore e numero di carte sulla stessa riga. */}
-                  <span className="deck-tile-body">
-                    <span className="deck-tile-top">
-                      <span className="deck-tile-name">{d.name}</span>
-                      {updated && <span className="deck-tile-updated">Last update<br />{timeAgo(updated)}</span>}
-                    </span>
-                    <span className="deck-tile-format"><span>{formatLabel(d.format)}</span>{price && <span>{price}</span>}</span>
-                    <span className="deck-tile-foot">
-                      <ManaPips colors={deckIdentity(d)} />
-                      <span className={`deck-tile-count${countOk(d.format, main) ? '' : ' warn'}`}>{main}{target ? `/${target}` : ''}</span>
-                    </span>
-                  </span>
-                </button>
-                {/* Fuori dal riquadro (niente pulsanti annidati), posato sull'angolo dell'arte. */}
-                <button type="button" className="deck-tile-export" aria-label={`Export ${d.name}`} title="Export"
-                  onClick={() => setDialog({ exp: d })}><IconExport size={16} /></button>
-              </li>
-            );
-          })}
+          {decks.map((d) => (
+            <li key={d.id} className="deck-tile-wrap">
+              <DeckTile deck={d} currency={settings.currency}
+                onClick={() => { if (!press.consumed()) navigate(`/decks/${d.id}`); }}
+                onContextMenu={(e) => { e.preventDefault(); setMenu({ deck: d, ...menuPoint(e) }); }}
+                {...press.bind((x, y) => setMenu({ deck: d, x, y }))} />
+              {/* Fuori dal riquadro (niente pulsanti annidati), posato sull'angolo dell'arte. */}
+              <button type="button" className="deck-tile-export" aria-label={`Export ${d.name}`} title="Export"
+                onClick={() => setDialog({ exp: d })}><IconExport size={16} /></button>
+            </li>
+          ))}
         </ul>
       )}
 
