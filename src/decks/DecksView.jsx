@@ -1,28 +1,22 @@
-import { useCallback, useEffect, useReducer, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  watchUser, signIn, signInEmail, signUpEmail, resetPassword, authMessage, signOut,
+  signIn, signInEmail, signUpEmail, resetPassword, authMessage, signOut,
   needsVerification, sendVerification, checkVerified,
 } from './firebase';
 import AccountMenu from './AccountMenu';
+import { useAccount } from './useAccount';
 import DeckList from './DeckList';
 import DeckEditor from './DeckEditor';
 import DeckHelp from './DeckHelp';
 import ProfilePage from './ProfilePage';
 import SettingsPage from './SettingsPage';
-import { deleteUserData, listenProfile } from './deckStore';
+import { deleteUserData } from './deckStore';
 
 // Radice dell'area mazzi (lazy): attende lo stato di login, poi lista, editor, profilo o impostazioni. Avatar (e
 // il ? nell'editor) vanno nell'header dell'app, in headerSlot.
 export default function DecksView({ route, notify, printQueueCount, onPrintDeck, headerSlot }) {
-  const [user, setUser] = useState(undefined); // undefined = in verifica, null = non loggato
-  const [, rerender] = useReducer((n) => n + 1, 0); // reload() aggiorna l'utente sul posto
-  const [photo, setPhoto] = useState(null); // foto profilo personalizzata (data URL)
-  const ready = !!user && !needsVerification(user);
-  const uid = user?.uid;
-  useEffect(() => watchUser(setUser), []);
-  // Solo da verificato: prima le regole rifiutano la lettura.
-  useEffect(() => (ready ? listenProfile(uid, (p) => setPhoto(p?.photo || null), () => setPhoto(null)) : undefined), [uid, ready]);
+  const { user, photo, rerender } = useAccount();
   if (user === undefined) return <div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>;
   if (!user) return <SignInPanel />;
   if (needsVerification(user)) return <VerifyEmailPanel email={user.email} onVerified={rerender} />;

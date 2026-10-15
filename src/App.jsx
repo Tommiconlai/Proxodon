@@ -24,6 +24,7 @@ import { useHashRoute, navigate } from './hooks/useHashRoute';
 
 // Area mazzi caricata solo quando serve (porta con sé Firebase): la stampa resta leggera.
 const DecksView = lazy(() => import('./decks/DecksView'));
+const HeaderAccount = lazy(() => import('./decks/AccountMenu').then((m) => ({ default: m.HeaderAccount })));
 
 // Lettura numerica da localStorage con default (null/NaN → default, 0 valido).
 const readNum = (k, d) => {
@@ -470,6 +471,14 @@ export default function App() {
       </Suspense>
     </ErrorBoundary>
   );
+  // Avatar anche nell'header della stampa (nei mazzi lo porta DecksView nell'headerSlot).
+  const accountNode = (
+    <ErrorBoundary>
+      <Suspense fallback={<span className="account-btn account-placeholder" aria-hidden="true" />}>
+        <HeaderAccount notify={notify} />
+      </Suspense>
+    </ErrorBoundary>
+  );
 
   // Bundle props condivisi: sia il ramo desktop sia MobileLayout (Tasks 2–4) li consumano.
   const settingsProps = {
@@ -504,6 +513,7 @@ export default function App() {
           tabs={<NavTabs decks={inDecks} />}
           altBody={inDecks ? decksNode : null}
           headerSlot={setHeaderSlot}
+          account={accountNode}
         />
         <ScryfallImportModal open={importOpen} onClose={() => setImportOpen(false)} onImport={addItems} />
         <MpcImportModal open={mpcOpen} onClose={() => setMpcOpen(false)} onImport={addItems} />
@@ -539,6 +549,7 @@ export default function App() {
             </div>
           </div>
         )}
+        {!inDecks && accountNode}
       </header>
 
       {/* ── Body ── */}

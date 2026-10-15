@@ -2520,6 +2520,8 @@ body::before {
 .signin-link:disabled { opacity: 0.5; cursor: default; }
 
 .account-btn {
+  flex: none;
+  display: grid; place-items: center;
   width: 34px; height: 34px;
   padding: 0;
   border-radius: 50%;
@@ -2533,6 +2535,9 @@ body::before {
 }
 .account-btn img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .account-btn:hover, .account-btn:focus-visible { border-color: var(--cyan); box-shadow: 0 0 12px var(--cyan-glow); outline: none; }
+/* Stampa: icona di accesso da non loggato, posto vuoto mentre verifica il login. */
+.account-placeholder { border-color: var(--border); cursor: default; }
+.account-placeholder:hover { border-color: var(--border); box-shadow: none; }
 /* Header, area mazzi: il ? della pagina mazzo e l'avatar, a destra (li porta qui DecksView). */
 .header-slot { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .header-slot .help { margin-left: 0; position: relative; }
@@ -2627,6 +2632,8 @@ body::before {
 /* Pagina Settings: riquadri del profilo con righe etichetta + select. */
 .settings-note { margin: -6px 0 16px; font-size: 0.85rem; color: var(--text-muted); }
 .settings-grid { max-width: 1240px; }
+/* Settings: titolo, nota e schede in una colonna centrata. */
+.settings-page > * { max-width: 1240px; margin-inline: auto; }
 .settings-field { display: flex; flex-direction: column; gap: 6px; }
 .settings-field label { margin: 0; font-size: 0.8rem; color: var(--text-secondary); }
 .settings-hint { margin: 0; font-size: 0.78rem; line-height: 1.45; color: var(--text-muted); }

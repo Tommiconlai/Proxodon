@@ -30,7 +30,7 @@ export function MobilePage({ title, onClose, children }) {
   );
 }
 
-export default function MobileLayout({ settingsProps, previewProps, actions, addMenu, tabs, altBody, headerSlot }) {
+export default function MobileLayout({ settingsProps, previewProps, actions, addMenu, tabs, altBody, headerSlot, account }) {
   const [addOpen, setAddOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [page, setPage] = useState(null); // null | 'settings' | 'export'
@@ -67,6 +67,7 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
                 <p className="help-controls"><b>Tap</b> select or deselect · <b>Long-press</b> options</p>
               </div>
             </div>
+            {account}
           </>
         )}
       </header>

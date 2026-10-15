@@ -4,8 +4,20 @@ import CardMenu from '../components/CardMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { PrivacyPanel } from './dialogs';
 import { signOut, deleteAccount } from './firebase';
+import { deleteUserData } from './deckStore';
+import { useAccount } from './useAccount';
 import { navigate } from '../hooks/useHashRoute';
 import { IconInfo, IconLogOut, IconTrash, IconUser, IconSettings } from '../components/icons';
+
+// Header della stampa: avatar e menu da loggato, altrimenti l'icona porta all'accesso (area mazzi).
+// In verifica resta il posto vuoto, così il ? non si sposta.
+export function HeaderAccount({ notify }) {
+  const { user, photo, ready } = useAccount();
+  if (user === undefined) return <span className="account-btn account-placeholder" aria-hidden="true" />;
+  return ready
+    ? <AccountMenu user={user} photo={photo} notify={notify} onDeleteData={deleteUserData} />
+    : <a href="#/decks" className="account-btn account-signin" aria-label="Sign in" title="Sign in"><IconUser size={16} /></a>;
+}
 
 // Foto personalizzata, poi quella di Google, poi l'iniziale (nickname o email).
 export function Avatar({ user, photo }) {

@@ -79,7 +79,7 @@ export default function SettingsPage({ uid, notify }) {
   };
 
   return (
-    <div className="decks-root profile-page">
+    <div className="decks-root profile-page settings-page">
       <header className="decks-head">
         <h2 className="decks-title">Settings</h2>
       </header>
