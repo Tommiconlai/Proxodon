@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { listenDecks, createDeck, saveDeck, deleteDeck } from './deckStore';
 import {
-  newDeck, duplicateDeck, boardCounts, countTarget, countOk, deckIdentity, deckCover, formatLabel,
+  newDeck, duplicateDeck, boardCounts, countTarget, countOk, deckIdentity, deckCover, formatLabel, priceLabel,
 } from './deckModel';
+import { useSettings } from '../utils/settings';
 import { navigate } from '../hooks/useHashRoute';
 import { useLongPress } from '../hooks/useLongPress';
 import CardMenu from '../components/CardMenu';
@@ -26,6 +27,7 @@ export default function DeckList({ uid, notify }) {
   const [menu, setMenu] = useState(null); // { deck, x, y }
   const press = useLongPress();
   const closeMenu = useCallback(() => setMenu(null), []);
+  const settings = useSettings(); // formato e raggruppamento dei nuovi mazzi, valuta dei prezzi
 
   useEffect(() => listenDecks(uid, setDecks, (e) => notify(`Could not load your decks: ${e.message}`, 'error')), [uid, notify]);
 
@@ -68,6 +70,7 @@ export default function DeckList({ uid, notify }) {
             const target = countTarget(d.format);
             const cover = deckCover(d);
             const updated = d.updatedAt?.toMillis?.();
+            const price = priceLabel(d, settings.currency);
             return (
               <li key={d.id} className="deck-tile-wrap">
                 <button type="button" className="deck-tile"
@@ -82,7 +85,7 @@ export default function DeckList({ uid, notify }) {
                       <span className="deck-tile-name">{d.name}</span>
                       {updated && <span className="deck-tile-updated">Last update<br />{timeAgo(updated)}</span>}
                     </span>
-                    <span className="deck-tile-format">{formatLabel(d.format)}</span>
+                    <span className="deck-tile-format"><span>{formatLabel(d.format)}</span>{price && <span>{price}</span>}</span>
                     <span className="deck-tile-foot">
                       <ManaPips colors={deckIdentity(d)} />
                       <span className={`deck-tile-count${countOk(d.format, main) ? '' : ' warn'}`}>{main}{target ? `/${target}` : ''}</span>
@@ -111,8 +114,8 @@ export default function DeckList({ uid, notify }) {
           }} />
       )}
       {dialog === 'new' && (
-        <NameFormatDialog title="New deck" confirmLabel="Create" onClose={() => setDialog(null)}
-          onSubmit={(v) => { setDialog(null); navigate(`/decks/${create(newDeck(v))}`); }} />
+        <NameFormatDialog title="New deck" confirmLabel="Create" initialFormat={settings.deckFormat} onClose={() => setDialog(null)}
+          onSubmit={(v) => { setDialog(null); navigate(`/decks/${create(newDeck({ ...v, groupBy: settings.deckGroupBy }))}`); }} />
       )}
       {dialog?.exp && <ExportDeckDialog deck={dialog.exp} onClose={() => setDialog(null)} />}
       {dialog?.rename && (

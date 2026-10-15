@@ -11,6 +11,7 @@ import CookieBanner from './components/CookieBanner';
 import ConfirmDialog from './components/ConfirmDialog';
 import ExportProgress from './components/ExportProgress';
 import Toast from './components/Toast';
+import { getSettings } from './utils/settings';
 import MobileLayout from './components/MobileLayout';
 import { useIsMobile } from './hooks/useIsMobile';
 import { generatePDF, getGridInfo, PAPER_FORMATS, nextBleedMode } from './utils/pdfGenerator';
@@ -441,16 +442,17 @@ export default function App() {
   // Feedback dai mazzi (stabile: i listener Firestore lo hanno tra le dipendenze).
   const notify = useCallback((msg, kind = 'success') => setToast({ kind, msg }), []);
 
-  // "Print deck": scarica le immagini, poi SOSTITUISCE la coda di stampa (la conferma la chiede
-  // l'editor) e apre la stampa. La coda vecchia resta intatta se il download fallisce.
-  const handlePrintDeck = async (entries) => {
+  // "Print deck": scarica le immagini (nella lingua di Settings dove c'è), poi SOSTITUISCE la coda di
+  // stampa, o la allunga con add (Settings), e apre la stampa. La conferma la chiede l'editor; la coda
+  // vecchia resta intatta se il download fallisce.
+  const handlePrintDeck = async (entries, add = false) => {
     setToast({ kind: 'progress', msg: 'Downloading card images…' });
     try {
       const { files, notFound } = await fetchScryfallImages(entries,
-        (done, total) => setToast({ kind: 'progress', msg: `Downloading card images ${done}/${total}` }));
+        (done, total) => setToast({ kind: 'progress', msg: `Downloading card images ${done}/${total}` }), { lang: getSettings().cardLang });
       // Nessuna immagine scaricata: la coda vecchia resta com'è.
       if (!files.length) throw new Error('Could not download any card image. Your print queue was not changed.');
-      setImages((prev) => { prev.forEach((i) => URL.revokeObjectURL(i.preview)); return []; });
+      if (!add) setImages((prev) => { prev.forEach((i) => URL.revokeObjectURL(i.preview)); return []; });
       addItems(files);
       navigate('/print');
       setToast(notFound.length

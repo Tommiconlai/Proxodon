@@ -64,14 +64,39 @@ export function snapshotFromCard(c) {
     limit: copyLimitFromText(text || ''),
     // Può guidare un mazzo Commander: creatura leggendaria o "can be your commander".
     cmdr: (/\bLegendary\b/.test(type) && /\bCreature\b/.test(type)) || /can be your commander/i.test(text || ''),
+    // Prezzi Scryfall (eur = Cardmarket, usd = TCGplayer), aggiornati dal riallineamento all'apertura.
+    eur: Number(c.prices?.eur) || null,
+    usd: Number(c.prices?.usd) || null,
   };
 }
 
 export const isLand = (s) => /\bLand\b/.test(s.type);
 export const isBasicLand = (s) => /\bBasic\b/.test(s.type) && isLand(s);
 
-export function newDeck({ name, format = 'commander' }) {
-  return { v: 1, name: String(name || '').trim() || 'Untitled deck', format, groupBy: 'type', sections: [], cover: null, cards: [] };
+export function newDeck({ name, format = 'commander', groupBy = 'type' }) {
+  return { v: 1, name: String(name || '').trim() || 'Untitled deck', format, groupBy, sections: [], cover: null, cards: [] };
+}
+
+// Prezzo formattato ("€312.40") o null: valuta 'off' o nessuna carta con prezzo (mazzo non ancora
+// riallineato con Scryfall dopo l'aggiunta dei prezzi).
+export function priceLabel(deck, cur) {
+  if (cur !== 'eur' && cur !== 'usd') return null;
+  const p = deckPrice(deck, cur);
+  if (!p.total && p.missing) return null;
+  return new Intl.NumberFormat('en', { style: 'currency', currency: cur.toUpperCase() }).format(p.total);
+}
+
+// Prezzo del mazzo nella valuta scelta ('eur' | 'usd'): main e sideboard, maybeboard esclusa.
+// missing = righe senza prezzo (il totale le esclude).
+export function deckPrice(deck, cur) {
+  let total = 0;
+  let missing = 0;
+  for (const r of deck.cards) {
+    if (r.board === 'maybe') continue;
+    if (r.card[cur] == null) missing += 1;
+    else total += r.card[cur] * r.qty;
+  }
+  return { total: Math.round(total * 100) / 100, missing };
 }
 
 const clampQty = (n) => Math.max(1, Math.min(MAX_QTY, Math.round(n) || 1));
@@ -92,10 +117,12 @@ export function addCard(deck, card, { board = 'main', qty = 1 } = {}) {
 }
 
 // Import: items = [{ card: Snapshot, qty, board, commander }]. Le righe oltre MAX_ROWS si perdono.
-export function addEntries(deck, items) {
+// merge: false = una riga per voce anche se la stessa stampa compare più volte (impostazione).
+export function addEntries(deck, items, { merge = true } = {}) {
   let d = deck;
   for (const it of items) {
-    d = addCard(d, it.card, { board: it.board || 'main', qty: it.qty || 1 }).deck;
+    const opts = { board: it.board || 'main', qty: it.qty || 1 };
+    d = merge || d.cards.length >= MAX_ROWS ? addCard(d, it.card, opts).deck : { ...d, cards: [...d.cards, newRow(it.card, opts)] };
     if (it.commander) {
       const row = d.cards.find((r) => r.board === 'main' && r.card.sid === it.card.sid);
       if (row) d = setCommander(d, [row.id], true);
@@ -284,6 +311,13 @@ const byName = (a, b) => a.card.name.localeCompare(b.card.name);
 const byMvName = (a, b) => a.card.mv - b.card.mv || byName(a, b);
 // Ordine dentro un gruppo: 'mv' = costo poi nome, 'name' = solo nome.
 export const SORT_MODES = [{ id: 'mv', label: 'Mana value' }, { id: 'name', label: 'Name' }];
+// Viste dell'editor (menu View by e Settings).
+export const VIEWS = [
+  { id: 'list', label: 'List' },
+  { id: 'grid', label: 'Grid' },
+  { id: 'stacks', label: 'Stacks' },
+  { id: 'split', label: 'Stacks, every copy' },
+];
 const sorter = (sort) => (sort === 'name' ? byName : byMvName);
 
 export const commanderRows = (deck) => deck.cards.filter((r) => r.board === 'main' && r.commander);

@@ -7,23 +7,20 @@ import { NameFormatDialog } from './dialogs';
 import ArtPickerModal from '../components/ArtPickerModal';
 import { cardsByIds } from './scryfallSearch';
 import {
-  GROUP_MODES, SORT_MODES, groupMain, commanderRows, boardRows, bumpQty, removeRows, setCommander, moveToBoard,
+  GROUP_MODES, SORT_MODES, VIEWS, groupMain, commanderRows, boardRows, bumpQty, removeRows, setCommander, moveToBoard,
   addSection, renameSection, deleteSection, moveToSection, placeRows, overLimit, formatLabel, illegalIn, legalityLabel,
   splitRow, changeEdition, snapshotFromCard, validateDeck, packPiles,
 } from './deckModel';
 import DeckStats from './DeckStats';
 import SampleHand from './SampleHand';
+import CardImg from './CardImg';
+import { cachedImg } from './cardLang';
+import { useSettings, setSetting } from '../utils/settings';
 import { IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy } from '../components/icons';
 
 const BOARD_LABEL = { main: 'main deck', side: 'sideboard', maybe: 'maybeboard' };
-const VIEWS = [
-  { id: 'list', label: 'List' },
-  { id: 'grid', label: 'Grid' },
-  { id: 'stacks', label: 'Stacks' },
-  { id: 'split', label: 'Stacks, every copy' },
-];
-const PREVIEW_W = 320;
-const PREVIEW_H = Math.round((PREVIEW_W * 680) / 488);
+// Larghezza dell'anteprima al passaggio (Settings → Card preview), 0 = spenta.
+const PREVIEW = { off: 0, small: 240, medium: 320, large: 400 };
 // Stack: le pile si allargano (da 200 a 400 px, --stack-w) per riempire l'area del mazzo; l'altezza
 // di una pila viene dal numero di carte e dalla larghezza: carta 680/488, poi la riga del nome di
 // ogni carta coperta (margin-top -125.3% della larghezza).
@@ -39,23 +36,6 @@ const menuPoint = (e) => {
   const r = e.currentTarget.getBoundingClientRect();
   return { x: r.left + 24, y: r.bottom };
 };
-// Preferenza per dispositivo in localStorage (vista, ordine); storage bloccato = solo questa sessione.
-function usePref(key, modes, fallback) {
-  const [v, setV] = useState(() => {
-    try {
-      const x = localStorage.getItem(key);
-      return modes.some((m) => m.id === x) ? x : fallback;
-    } catch {
-      return fallback;
-    }
-  });
-  const set = (x) => {
-    setV(x);
-    try { localStorage.setItem(key, x); } catch { /* storage bloccato */ }
-  };
-  return [v, set];
-}
-
 // Corpo dell'editor: barra (ordina, vista, raggruppa, + nuova sezione), comandante, gruppi, sideboard, maybeboard,
 // poi statistiche e mano di prova sotto tutto.
 // Viste: lista (righe), griglia (immagini), stack (immagini sovrapposte, si vede la riga del nome;
@@ -72,9 +52,14 @@ export default function DeckSections({ deck, update, touch }) {
   const [anchor, setAnchor] = useState(null);
   const [menu, setMenu] = useState(null); // { ids, x, y }
   const [hover, setHover] = useState(null); // anteprima accanto alla riga: { img, x, y }
-  // Default: stack ordinati per nome (Group by Type viene da newDeck).
-  const [view, setView] = usePref('ip:deckView', VIEWS, 'stacks');
-  const [sort, setSort] = usePref('ip:deckSort', SORT_MODES, 'name');
+  // Vista, ordine, anteprima e densità dalle impostazioni del dispositivo (Settings); i menu View by e
+  // Sort by le cambiano per tutti i mazzi. Default: stack ordinati per nome.
+  const settings = useSettings();
+  const view = VIEWS.some((v) => v.id === settings.deckView) ? settings.deckView : 'stacks';
+  const sort = SORT_MODES.some((m) => m.id === settings.deckSort) ? settings.deckSort : 'name';
+  const setView = (v) => setSetting('deckView', v);
+  const setSort = (v) => setSetting('deckSort', v);
+  const previewW = PREVIEW[settings.preview] ?? PREVIEW.medium;
   const [dialog, setDialog] = useState(null); // { id?, name?, moveIds? } nuova sezione o rinomina
   const [edition, setEdition] = useState(null); // { ids, name, current } righe a cui cambiare edizione
   const [dropKey, setDropKey] = useState(null);
@@ -202,11 +187,12 @@ export default function DeckSections({ deck, update, touch }) {
 
   // Anteprima (desktop, lista e stack): accanto alla riga, a destra se c'è spazio, sennò a sinistra.
   const showPreview = (e, r) => {
-    if (touch || view === 'grid' || !r.card.img || dragIds.current) return;
+    if (touch || !previewW || view === 'grid' || !r.card.img || dragIds.current) return;
+    const ph = Math.round((previewW * 680) / 488);
     const rc = e.currentTarget.getBoundingClientRect();
-    const x = rc.right + 12 + PREVIEW_W <= window.innerWidth ? rc.right + 12 : Math.max(8, rc.left - PREVIEW_W - 12);
-    const y = Math.min(Math.max(8, rc.top + rc.height / 2 - PREVIEW_H / 2), window.innerHeight - PREVIEW_H - 8);
-    setHover({ img: r.card.img, x, y });
+    const x = rc.right + 12 + previewW <= window.innerWidth ? rc.right + 12 : Math.max(8, rc.left - previewW - 12);
+    const y = Math.min(Math.max(8, rc.top + rc.height / 2 - ph / 2), window.innerHeight - ph - 8);
+    setHover({ img: cachedImg(r.card), x, y });
   };
 
   // Spazio vuoto (non carte, barra, menu o dialoghi): il click deseleziona, il trascinamento col mouse
@@ -327,7 +313,7 @@ export default function DeckSections({ deck, update, touch }) {
             </>
           ) : (
             <>
-              {r.card.img ? <img src={r.card.img} alt="" loading="lazy" draggable={false} /> : <span className="deck-card-ph">{r.card.name}</span>}
+              {r.card.img ? <CardImg card={r.card} /> : <span className="deck-card-ph">{r.card.name}</span>}
               {r.qty > 1 && !split && <span className="deck-card-qty">{r.qty}</span>}
               {(ban || warn) && (
               <span className="deck-card-flags">
@@ -380,7 +366,7 @@ export default function DeckSections({ deck, update, touch }) {
   const stackW = Math.max(STACK_MIN, Math.min(STACK_MAX, Math.floor((areaW - (n0 - 1) * COL_GAP) / n0)));
   const stackCols = pack(stackW);
   return (
-    <div className={`deck-sections view-${layout}`} ref={rootRef} {...marqueeHandlers}
+    <div className={`deck-sections view-${layout}${settings.density === 'compact' ? ' density-compact' : ''}`} ref={rootRef} {...marqueeHandlers}
       onKeyDown={(e) => { if (e.key === 'Escape' && sel.size) { e.stopPropagation(); setSel(new Set()); } }}>
       {marquee && <div className="marquee" style={marquee} aria-hidden="true" />}
       <div className="deck-toolbar">
@@ -468,7 +454,7 @@ export default function DeckSections({ deck, update, touch }) {
             setEdition(null);
           }} />
       )}
-      {hover && createPortal(<img className="deck-hover" src={hover.img} alt="" style={{ left: hover.x, top: hover.y, width: PREVIEW_W }} />, document.body)}
+      {hover && createPortal(<img className="deck-hover" src={hover.img} alt="" style={{ left: hover.x, top: hover.y, width: previewW }} />, document.body)}
     </div>
   );
 }

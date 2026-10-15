@@ -3,13 +3,15 @@ import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 import { resolveEntries } from './scryfallSearch';
 import { FORMATS, newDeck, addEntries, parseDeckText } from './deckModel';
 import { IconX } from '../components/icons';
+import { getSettings } from '../utils/settings';
 
 // Import mazzo da lista incollata (intestazioni Commander / Deck / Sideboard / Maybeboard
-// riconosciute; carte a due facce sia "A // B" sia "A/B").
+// riconosciute; carte a due facce sia "A // B" sia "A/B"). Formato, raggruppamento, stampa non
+// trovata e righe ripetute seguono Settings.
 export default function ImportDeckDialog({ onClose, onImported }) {
   const [text, setText] = useState('');
   const [name, setName] = useState('');
-  const [format, setFormat] = useState('commander');
+  const [format, setFormat] = useState(() => getSettings().deckFormat);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const close = () => { if (!busy) onClose(); };
@@ -21,9 +23,10 @@ export default function ImportDeckDialog({ onClose, onImported }) {
     try {
       const rows = parseDeckText(text);
       if (!rows.length) throw new Error('No cards found. Check the list.');
-      const { items, notFound } = await resolveEntries(rows);
+      const s = getSettings();
+      const { items, notFound } = await resolveEntries(rows, { fallback: s.importFallback });
       if (!items.length) throw new Error(`None of the ${notFound.length} cards was found. Check the spelling, or the (SET) number.`);
-      onImported(addEntries(newDeck({ name: name.trim() || 'Imported deck', format }), items), notFound);
+      onImported(addEntries(newDeck({ name: name.trim() || 'Imported deck', format, groupBy: s.deckGroupBy }), items, { merge: s.importMerge }), notFound);
     } catch (e) {
       setError(e.message || 'Import failed.');
       setBusy(false);

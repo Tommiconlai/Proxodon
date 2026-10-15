@@ -205,7 +205,37 @@ export async function lookupCards(list) {
  * @param {(done:number, total:number)=>void} [onProgress]
  * @returns {Promise<{files: {file: File, bleedMode: string}[], notFound: string[]}>}
  */
-export async function fetchScryfallImages(entries, onProgress) {
+// Stampa di una carta in un'altra lingua (impostazione Card language): /cards/:set/:number/:lang.
+// null se Scryfall non ce l'ha, o ce l'ha senza scansione (image_status missing / placeholder: l'immagine
+// sarebbe il segnaposto "Not Available"). Una richiesta ogni 110 ms (Scryfall chiede al massimo ~10 al
+// secondo), risultati tenuti in memoria per la sessione.
+const LOC = new Map(); // "set/numero/lingua" -> Promise<card | null>
+let nextSlot = 0;
+const slot = () => {
+  const now = Date.now();
+  const at = Math.max(now, nextSlot);
+  nextSlot = at + 110;
+  return sleep(at - now);
+};
+export function localizedCard(set, cn, lang) {
+  const k = `${set}/${cn}/${lang}`;
+  if (!LOC.has(k)) {
+    LOC.set(k, (async () => {
+      await slot();
+      try {
+        const res = await scryfallFetch(`https://api.scryfall.com/cards/${encodeURIComponent(set)}/${encodeURIComponent(cn)}/${lang}`);
+        const card = await res.json();
+        return card.image_status === 'missing' || card.image_status === 'placeholder' ? null : card;
+      } catch {
+        return null; // 404 = non esiste in quella lingua; altri errori = inglese
+      }
+    })());
+  }
+  return LOC.get(k);
+}
+
+// lang: lingua preferita per le immagini (Card language); dove la stampa non esiste resta l'inglese.
+export async function fetchScryfallImages(entries, onProgress, { lang = 'en' } = {}) {
   // Aggrega le quantità per (nome|set|collector), preservando l'ordine.
   const byKey = new Map();
   for (const e of entries) {
@@ -219,8 +249,16 @@ export async function fetchScryfallImages(entries, onProgress) {
   const list = [...byKey.values()];
   if (!list.length) return { files: [], notFound: [] };
 
-  // 1) Risolvi via /cards/collection.
-  const find = await lookupCards(list);
+  // 1) Risolvi via /cards/collection, poi (lingua diversa dall'inglese) la stessa stampa localizzata.
+  const english = await lookupCards(list);
+  const local = new Map();
+  if (lang !== 'en') {
+    await Promise.all(list.map(async (e) => {
+      const c = english(e);
+      if (c && c.lang !== lang) local.set(e, await localizedCard(c.set, c.collector_number, lang));
+    }));
+  }
+  const find = (e) => local.get(e) || english(e);
 
   // 2) Costruisci i task immagine nell'ordine della lista; raccogli i mancanti.
   const notFound = [];

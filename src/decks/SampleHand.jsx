@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { libraryCards, shuffle, mulliganBottom, isLand } from './deckModel';
+import CardImg from './CardImg';
 
 const HAND = 7;
 const deal = (lib, mulls) => ({ order: shuffle(lib), drawn: HAND, mulls, bottom: [], played: [], leaving: [], lands: 0 });
@@ -49,7 +50,7 @@ export default function SampleHand({ deck }) {
               <button type="button" className="sample-card" disabled={leaving}
                 aria-label={toBottom > 0 ? `Put ${e.card.name} on the bottom` : `Play ${e.card.name}${castable ? '' : ', not enough lands'}`}
                 onClick={() => (toBottom > 0 ? setH({ ...h, bottom: [...h.bottom, e.key] }) : play(e))}>
-                {e.card.img ? <img src={e.card.img} alt="" loading="lazy" draggable={false} /> : <span className="deck-card-ph">{e.card.name}</span>}
+                {e.card.img ? <CardImg card={e.card} /> : <span className="deck-card-ph">{e.card.name}</span>}
               </button>
             </li>
           );

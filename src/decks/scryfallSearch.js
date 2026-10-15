@@ -82,13 +82,18 @@ export async function cardsByIds(ids) {
 
 // Voci importate ({ qty, name, set, collector, board, commander }) → righe pronte per addEntries.
 // Le DFC si cercano per faccia anteriore (come parseCardList).
-export async function resolveEntries(entries) {
+// fallback: una stampa (set, numero) che Scryfall non trova si cerca per nome (stampa di default);
+// false = la carta resta tra le non trovate (Settings → Import).
+export async function resolveEntries(entries, { fallback = true } = {}) {
   const key = (e) => ({ name: e.name.split(' // ')[0], set: e.set || '', collector: e.collector || '' });
+  const byName = (e) => ({ name: key(e).name, set: '', collector: '' });
   const find = await lookupCards(entries.map(key));
+  const missing = fallback ? entries.filter((e) => e.set && !find(key(e))) : [];
+  const findName = missing.length ? await lookupCards(missing.map(byName)) : null;
   const items = [];
   const notFound = [];
   for (const e of entries) {
-    const c = find(key(e));
+    const c = find(key(e)) || (e.set && findName?.(byName(e)));
     if (c) items.push({ card: snapshotFromCard(c), qty: e.qty || 1, board: e.board || 'main', commander: !!e.commander });
     else notFound.push(e.set ? `${e.name} (${e.set.toUpperCase()})` : e.name);
   }

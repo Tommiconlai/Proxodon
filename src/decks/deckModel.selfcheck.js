@@ -9,7 +9,7 @@ import {
   parseDeckText, toBackup, fromBackup, duplicateDeck, refreshSnapshots, primaryType,
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
   splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies, packPiles,
-  libraryCards, shuffle, mulliganBottom, hyperAtLeast,
+  libraryCards, shuffle, mulliganBottom, hyperAtLeast, deckPrice, addEntries,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
 
@@ -35,6 +35,8 @@ eq([bolt.sid, bolt.oid, bolt.mana, bolt.mv, bolt.type, bolt.colors, bolt.ci, bol
   ['bolt', 'o-bolt', '{R}', 1, 'Instant', ['R'], ['R'], [], 'tst', '1', 'n-bolt', 'a-bolt', null], 'snapshot base');
 eq(Object.keys(bolt.legal), ['commander', 'standard', 'pioneer', 'modern', 'legacy', 'vintage', 'pauper'], 'legal: 7 formati');
 eq([bolt.legal.commander, bolt.legal.standard], ['legal', 'not_legal'], 'legal: mancante = not_legal');
+const priced = snapshotFromCard({ ...sc({ id: 'p1', name: 'P' }), prices: { eur: '1.50', usd: null } });
+eq([priced.eur, priced.usd, bolt.eur], [1.5, null, null], 'snapshot: prezzi Scryfall in numero, mancante = null');
 
 // DFC (Review Focus 1): faccia anteriore per costo, tipo, colori, immagini; nome pieno
 const delver = snapshotFromCard({
@@ -371,5 +373,16 @@ eq([withLegal('t:elf', 'modern'), withLegal('t:elf', 'casual'), withLegal('', 'p
 eq(packPiles([300, 500, 150, 400, 100], 20), [[0, 2], [1], [3], [4]], 'pile: la 3a sotto la 1a, le altre non ci stanno');
 eq(packPiles([100, 100, 100, 340], 20), [[0, 1, 2], [3]], 'pile: tre piccole in una colonna alta quanto la grande');
 eq(packPiles([], 20), [], 'pile: nessuna');
+
+// Impostazioni: prezzo del mazzo, raggruppamento del nuovo mazzo, import con righe separate.
+let pd = addCard(newDeck({ name: 'p', format: 'modern' }), priced, { qty: 4 }).deck;
+pd = addCard(pd, { ...priced, sid: 'p2', eur: 2 }, { board: 'side' }).deck;
+pd = addCard(pd, { ...priced, sid: 'p3', eur: 10 }, { board: 'maybe' }).deck;
+pd = addCard(pd, bolt).deck;
+eq(deckPrice(pd, 'eur'), { total: 8, missing: 1 }, 'prezzo: main + sideboard, maybeboard esclusa, senza prezzo contate a parte');
+eq(newDeck({ name: 'g', groupBy: 'mv' }).groupBy, 'mv', 'nuovo mazzo con il raggruppamento scelto');
+const twice = [{ card: bolt, qty: 2 }, { card: bolt, qty: 1 }];
+eq([addEntries(newDeck({ name: 'm' }), twice).cards.map((r) => r.qty), addEntries(newDeck({ name: 'k' }), twice, { merge: false }).cards.map((r) => r.qty)],
+  [[3], [2, 1]], 'import: righe uguali unite o tenute separate');
 
 console.log('deckModel selfcheck: ok');

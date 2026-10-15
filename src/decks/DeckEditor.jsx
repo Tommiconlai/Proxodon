@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDeck } from './useDeck';
-import { FORMATS, boardCounts, refreshSnapshots, addCard, toPrintEntries, coverRow } from './deckModel';
+import { FORMATS, boardCounts, refreshSnapshots, addCard, toPrintEntries, coverRow, priceLabel } from './deckModel';
+import { useSettings } from '../utils/settings';
 import { cardsByIds } from './scryfallSearch';
 import { navigate } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -24,6 +25,7 @@ const STUCK_AT = 72; // px: padding della barra + casella di ricerca, circa
 export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDeck }) {
   const { deck, update, saving, error } = useDeck(uid, id);
   const mobile = useIsMobile();
+  const settings = useSettings(); // stampa (aggiungi o sostituisci, sideboard), valuta dei prezzi
   const [online, setOnline] = useState(() => navigator.onLine);
   const [searchOpen, setSearchOpen] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
@@ -85,11 +87,12 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const c = boardCounts(deck);
   // Nessuna domanda se la coda è vuota e non c'è sideboard.
   const startPrint = () => {
-    if (!printQueueCount && !c.side) onPrintDeck(toPrintEntries(deck));
+    if (!c.side && (!printQueueCount || settings.printAdd)) onPrintDeck(toPrintEntries(deck), settings.printAdd);
     else setPrintOpen(true);
   };
   const cover = coverRow(deck);
   const savedAt = deck.updatedAt?.toMillis?.();
+  const price = priceLabel(deck, settings.currency);
   const sync = !online ? (saving ? 'Offline, saved on this device' : 'Offline') : saving ? 'Saving…' : savedAt ? `Saved ${timeAgo(savedAt)}` : 'Saved'; // tempo dall'ultima scrittura (updatedAt)
   const name = (
     <input className="deck-name" value={deck.name} maxLength={80} aria-label="Deck name" spellCheck={false}
@@ -127,6 +130,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
             </select>
             <button type="button" className="btn-secondary deck-print" onClick={startPrint} disabled={!c.main}><IconPrinter size={15} /> Print deck</button>
             <button type="button" className="btn-secondary deck-print" onClick={() => setExportOpen(true)} disabled={!deck.cards.length}><IconExport size={15} /> Export</button>
+            {price && <span className="deck-price" title={`${settings.currency === 'eur' ? 'Cardmarket' : 'TCGplayer'} price on Scryfall, main deck and sideboard`}>{price}</span>}
             <span className={`deck-sync${online ? '' : ' offline'}`} role="status">{sync}</span>
           </div>
         </div>
@@ -158,8 +162,9 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
         </MobilePage>
       )}
       {printOpen && (
-        <PrintDeckDialog queueCount={printQueueCount} sideCount={c.side} onClose={() => setPrintOpen(false)}
-          onConfirm={(side) => { setPrintOpen(false); onPrintDeck(toPrintEntries(deck, { includeSide: side })); }} />
+        <PrintDeckDialog queueCount={printQueueCount} sideCount={c.side} add={settings.printAdd} defaultSide={settings.printSide}
+          onClose={() => setPrintOpen(false)}
+          onConfirm={(side) => { setPrintOpen(false); onPrintDeck(toPrintEntries(deck, { includeSide: side }), settings.printAdd); }} />
       )}
     </div>
   );

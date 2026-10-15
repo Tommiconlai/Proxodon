@@ -2624,6 +2624,21 @@ body::before {
 /* Import e New deck solo icona: quadrati da 40 px. */
 .decks-actions .deck-icon-btn { width: 40px; height: 40px; padding: 0; justify-content: center; }
 .settings-btn { align-self: flex-start; }
+/* Pagina Settings: riquadri del profilo con righe etichetta + select. */
+.settings-note { margin: -6px 0 16px; font-size: 0.85rem; color: var(--text-muted); }
+.settings-grid { max-width: 1240px; }
+.settings-field { display: flex; flex-direction: column; gap: 6px; }
+.settings-field label { margin: 0; font-size: 0.8rem; color: var(--text-secondary); }
+.settings-hint { margin: 0; font-size: 0.78rem; line-height: 1.45; color: var(--text-muted); }
+/* Vista lista compatta (Settings → List view). */
+.deck-sections.density-compact .deck-rows.view-list .deck-row-main { padding: 3px 6px; font-size: 0.86rem; }
+.deck-sections.density-compact .deck-group { margin-bottom: 16px; }
+/* Settings → Reduce motion: animazioni e transizioni quasi istantanee (1 ms, così animationend
+   arriva comunque, es. la carta giocata nella mano di prova). */
+html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
+  animation-duration: 1ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important; transition-delay: 0s !important; scroll-behavior: auto !important;
+}
 .deck-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
 .deck-tile {
   width: 100%;
@@ -2654,7 +2669,7 @@ body::before {
 .deck-tile-name { min-width: 0; font-size: 0.875rem; overflow-wrap: anywhere; }
 /* Come nel frame non occupa altezza: la riga resta alta quanto il nome, l'offset non sposta il resto. */
 .deck-tile-updated { flex: none; position: relative; top: 6px; height: 0; font-size: 0.5rem; line-height: 1.15; text-align: right; white-space: nowrap; opacity: 0.4; }
-.deck-tile-format { margin-top: 12px; font-size: 0.625rem; opacity: 0.6; }
+.deck-tile-format { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; font-size: 0.625rem; opacity: 0.6; }
 .deck-tile-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
 .deck-tile-foot .mana { gap: 4px; }
 .deck-tile-foot .mana img { width: 15px; height: 15px; }
@@ -2738,7 +2753,9 @@ body::before {
   pointer-events: none;
 }
 .deck-hero-content { position: relative; z-index: 2; flex: 1 1 auto; min-width: 0; max-width: 100%; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; pointer-events: none; }
-.deck-hero-content :is(a, input, select, button, .deck-sync) { pointer-events: auto; }
+.deck-hero-content :is(a, input, select, button, .deck-sync, .deck-price) { pointer-events: auto; }
+/* Prezzo del mazzo (Settings → Prices), accanto allo stato del salvataggio. */
+.deck-price { padding: 3px 8px; border: 1px solid var(--border); border-radius: 6px; background: rgba(8, 7, 15, 0.6); font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-primary); }
 .deck-hero-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
 :is(.deck-hero, .deck-sticky-bar) .deck-name { flex: 0 1 auto; width: min(620px, 100%); font-size: 2rem; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85); }
 /* Largo quanto il testo dove supportato, così il resto della copertina resta cliccabile. */

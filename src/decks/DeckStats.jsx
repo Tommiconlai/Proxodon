@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { deckStats, hyperAtLeast } from './deckModel';
+import { deckStats, hyperAtLeast, priceLabel } from './deckModel';
+import { useSettings } from '../utils/settings';
 import { ManaCost } from './Mana';
 import { IconInfo } from '../components/icons';
 
@@ -298,6 +299,8 @@ function ColorCard({ c, s }) {
 export default function DeckStats({ deck, onSelect }) {
   const s = useMemo(() => deckStats(deck), [deck]);
   const [pick, setPick] = useState(null);
+  const { currency } = useSettings();
+  const price = priceLabel(deck, currency);
   if (!s.cards) return <p className="deck-empty deck-empty-big">Add cards to the main deck to see its stats.</p>;
   const sel = pick ?? s.curve.reduce((best, b, i) => (b.count > s.curve[best].count ? i : best), 0);
   const v = (x) => (x == null ? '-' : x);
@@ -313,6 +316,7 @@ export default function DeckStats({ deck, onSelect }) {
           The main deck has <b>{s.cards}</b> cards: <b>{s.lands}</b> lands and <b>{s.cards - s.lands}</b> nonlands.
           Its average mana value is <b>{v(s.avgAll)}</b> with lands and <b>{v(s.avgMv)}</b> without, the median <b>{v(s.medianAll)}</b> with
           lands and <b>{v(s.medianMv)}</b> without. Total mana value: <b>{s.totalMv}</b>.
+          {price && <> Price with the sideboard: <b>{price}</b> ({currency === 'eur' ? 'Cardmarket' : 'TCGplayer'}).</>}
         </span>
       </p>
       <div className="stat-colors">{s.colors.map((c) => <ColorCard key={c.c} c={c} s={s} />)}</div>

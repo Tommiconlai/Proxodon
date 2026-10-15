@@ -143,15 +143,18 @@ export function NameFormatDialog({ title, confirmLabel, initialName = '', initia
   );
 }
 
-// Conferma "Print deck": sostituzione della coda (se non vuota) e sideboard opzionale.
-export function PrintDeckDialog({ queueCount, sideCount, onConfirm, onClose }) {
-  const [side, setSide] = useState(false);
+// Conferma "Print deck": sostituzione della coda (se non vuota) o aggiunta (add, da Settings) e
+// sideboard opzionale (spuntata di default se lo dice Settings).
+export function PrintDeckDialog({ queueCount, sideCount, add, defaultSide, onConfirm, onClose }) {
+  const [side, setSide] = useState(!!defaultSide);
   const ref = useOverlayDismiss(onClose, true, { focusContainer: false });
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-confirm" ref={ref} role="dialog" aria-modal="true" aria-label="Print deck" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header"><h2>Print deck</h2></div>
-        {queueCount > 0 && <p className="modal-hint">Replace the {queueCount} card{queueCount !== 1 ? 's' : ''} in the print queue?</p>}
+        {queueCount > 0 && (add
+          ? <p className="modal-hint">The deck goes after the {queueCount} card{queueCount !== 1 ? 's' : ''} already in the print queue.</p>
+          : <p className="modal-hint">Replace the {queueCount} card{queueCount !== 1 ? 's' : ''} in the print queue?</p>)}
         {sideCount > 0 && (
           <label className="checkbox-row">
             <input type="checkbox" checked={side} onChange={(e) => setSide(e.target.checked)} />
@@ -166,7 +169,7 @@ export function PrintDeckDialog({ queueCount, sideCount, onConfirm, onClose }) {
         )}
         <div className="modal-actions">
           <button type="button" className="btn-secondary" onClick={onClose} autoFocus>Cancel</button>
-          <button type="button" className="btn-generate import-btn" onClick={() => onConfirm(side)}>{queueCount > 0 ? 'Replace and print' : 'Print'}</button>
+          <button type="button" className="btn-generate import-btn" onClick={() => onConfirm(side)}>{queueCount > 0 ? (add ? 'Add and print' : 'Replace and print') : 'Print'}</button>
         </div>
       </div>
     </div>
