@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { listenDecks, saveProfilePhoto } from './deckStore';
+import { listenDecks, saveProfile, claimNickname } from './deckStore';
 import { updateNickname, authMessage } from './firebase';
 import { deckCover } from './deckModel';
 import { useSettings } from '../utils/settings';
@@ -10,32 +10,50 @@ import PhotoDialog from './PhotoDialog';
 import { IconImage, IconPencil } from '../components/icons';
 
 const day = (s) => (s ? new Date(s).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+const LABEL = { photo: 'photo', banner: 'background' };
 
-// Foto profilo: JPEG 256 px (circa 20 KB) da PhotoDialog, salvato come data URL nel documento
-// users/{uid}. ponytail: niente Firebase Storage (sui progetti nuovi richiede il piano a pagamento);
-// se servono foto più grandi, Storage + URL.
+// Foto profilo e sfondo: JPEG da PhotoDialog salvati come data URL nel documento users/{uid}.
+// ponytail: niente Firebase Storage (sui progetti nuovi richiede il piano a pagamento); se servono
+// immagini più grandi, Storage + URL.
 
-// Profilo: testata con l'arte del mazzo modificato per ultimo come sfondo, foto, nickname, iscrizione,
-// ultimo accesso, mazzi e carte; sotto, i mazzi. Email, metodo di accesso e password stanno in Settings.
-export default function ProfilePage({ user, photo, notify, onChange }) {
+// Profilo: testata (sfondo personalizzato o l'arte del mazzo modificato per ultimo; foto e sfondo si
+// cambiano cliccandoli), nickname, iscrizione, ultimo accesso, mazzi, followers e following (per ora
+// sempre 0, arriveranno con i profili pubblici); sotto, i mazzi. Email, accesso e password: Settings.
+export default function ProfilePage({ user, profile, notify, onChange }) {
   const [decks, setDecks] = useState(null); // null = caricamento
+  const [dialog, setDialog] = useState(null); // 'photo' | 'banner'
   const { currency } = useSettings();
   useEffect(() => listenDecks(user.uid, setDecks, () => setDecks(null)), [user.uid]);
-  const cards = decks?.reduce((n, d) => n + d.cards.reduce((m, r) => m + r.qty, 0), 0);
-  const banner = decks?.map(deckCover).find(Boolean);
+  const photo = profile?.photo || null;
+  const custom = { photo, banner: profile?.banner || null };
+  const banner = custom.banner || decks?.map(deckCover).find(Boolean);
   const stats = [
     ['Member since', day(user.metadata.creationTime)],
     ['Last sign-in', day(user.metadata.lastSignInTime)],
     ['Decks', decks ? decks.length : '…'],
-    ['Cards', decks ? cards : '…'],
+    ['Followers', profile?.followers ?? 0],
+    ['Following', profile?.following ?? 0],
   ];
+  const save = (kind, data) => {
+    setDialog(null);
+    saveProfile(user.uid, { [kind]: data })
+      .then(() => notify(`${LABEL[kind][0].toUpperCase()}${LABEL[kind].slice(1)} ${data ? 'updated' : 'removed'}`))
+      .catch((e) => notify(`Could not save the ${LABEL[kind]}: ${e.message}`, 'error'));
+  };
 
   return (
     <div className="decks-root profile-page">
       <section className="profile-hero" aria-label="Profile">
-        <div className={`profile-banner${banner ? ' art' : ''}`} style={banner ? { backgroundImage: `url("${banner}")` } : undefined} aria-hidden="true" />
+        <button type="button" className={`profile-banner${banner ? ' art' : ''}`} onClick={() => setDialog('banner')}
+          style={banner ? { backgroundImage: `url("${banner}")` } : undefined} aria-label="Change background">
+          <span className="profile-banner-hint" aria-hidden="true"><IconImage size={14} /> Change background</span>
+        </button>
         <div className="profile-hero-body">
-          <Identity user={user} photo={photo} notify={notify} onChange={onChange} />
+          <button type="button" className="profile-avatar" onClick={() => setDialog('photo')} aria-label="Change photo" title="Change photo">
+            <Avatar user={user} photo={photo} />
+            <span className="profile-avatar-hover" aria-hidden="true"><IconImage size={22} /></span>
+          </button>
+          <Nickname user={user} nick={profile?.nickname || ''} notify={notify} onChange={onChange} />
           <dl className="profile-stats">
             {stats.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
           </dl>
@@ -61,72 +79,65 @@ export default function ProfilePage({ user, photo, notify, onChange }) {
           ))}
         </ul>
       )}
+
+      {dialog && (
+        <PhotoDialog kind={dialog} onClose={() => setDialog(null)} onSave={(data) => save(dialog, data)}
+          onRemove={custom[dialog] ? () => save(dialog, null) : undefined} />
+      )}
     </div>
   );
 }
 
-// Foto (il tasto sul cerchio apre PhotoDialog: nuova o rimuovi) e nickname (matita → campo in linea, Esc annulla).
-function Identity({ user, photo, notify, onChange }) {
-  const current = user.displayName || '';
-  const [name, setName] = useState(current);
+// Nickname unico (claimNickname, poi il displayName di Auth): matita → campo in linea, Esc annulla.
+// Senza nickname si vede il nome Google o l'inizio dell'email.
+function Nickname({ user, nick, notify, onChange }) {
+  const [name, setName] = useState('');
   const [editing, setEditing] = useState(false);
-  const [busy, setBusy] = useState(false); // salvataggio nickname
-  const [photoOpen, setPhotoOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
   const nameId = useId();
-  const savePhoto = (data, done) => saveProfilePhoto(user.uid, data)
-    .then(() => notify(done))
-    .catch((e) => notify(`Could not save the photo: ${e.message}`, 'error'));
-  const cancel = () => { setName(current); setEditing(false); };
+  const hintId = useId();
 
-  const saveName = async (e) => {
+  const save = async (e) => {
     e.preventDefault();
+    const n = name.trim();
     setBusy(true);
     try {
-      await updateNickname(name.trim());
-      setName(name.trim());
+      await claimNickname(user.uid, n, nick);
+      await updateNickname(n);
       setEditing(false);
       onChange();
-      notify('Nickname saved');
+      notify(n ? 'Nickname saved' : 'Nickname removed');
     } catch (err) {
-      notify(authMessage(err), 'error');
+      notify(err.code === 'taken' ? err.message : authMessage(err), 'error');
     } finally {
       setBusy(false);
     }
   };
 
-  return (
-    <>
-      <div className="profile-avatar-wrap">
-        <div className="profile-avatar"><Avatar user={user} photo={photo} /></div>
-        <button type="button" className="profile-avatar-edit" onClick={() => setPhotoOpen(true)} aria-label="Change photo" title="Change photo">
-          <IconImage size={16} />
+  if (!editing) {
+    return (
+      <div className="profile-who profile-name-row">
+        <h2 className="profile-name">{user.displayName || user.email?.split('@')[0]}</h2>
+        <button type="button" className="profile-icon-btn" aria-label="Edit nickname" title="Edit nickname"
+          onClick={() => { setName(nick || user.displayName || ''); setEditing(true); }}>
+          <IconPencil size={15} />
         </button>
       </div>
-      <div className="profile-who">
-        {editing ? (
-          <form className="profile-row profile-name-form" onSubmit={saveName} onKeyDown={(e) => { if (e.key === 'Escape') cancel(); }}>
-            <label className="sr-only" htmlFor={nameId}>Nickname</label>
-            <input id={nameId} className="import-link-input" value={name} onChange={(e) => setName(e.target.value)} autoFocus
-              maxLength={40} placeholder={user.email?.split('@')[0]} autoComplete="nickname" spellCheck={false} disabled={busy} />
-            <button type="submit" className="btn-secondary" disabled={busy || name.trim() === current}>
-              {busy && <span className="import-spinner" />} Save
-            </button>
-            <button type="button" className="btn-secondary" onClick={cancel} disabled={busy}>Cancel</button>
-          </form>
-        ) : (
-          <div className="profile-name-row">
-            <h2 className="profile-name">{current || user.email?.split('@')[0]}</h2>
-            <button type="button" className="profile-icon-btn" onClick={() => setEditing(true)} aria-label="Edit nickname" title="Edit nickname">
-              <IconPencil size={15} />
-            </button>
-          </div>
-        )}
+    );
+  }
+  return (
+    <form className="profile-who profile-name-form" onSubmit={save} onKeyDown={(e) => { if (e.key === 'Escape') setEditing(false); }}>
+      <div className="profile-row">
+        <label className="sr-only" htmlFor={nameId}>Nickname</label>
+        <input id={nameId} className="import-link-input" value={name} onChange={(e) => setName(e.target.value)} autoFocus
+          minLength={3} maxLength={24} pattern="[A-Za-z0-9._\-]{3,24}" title="3 to 24 letters, numbers, dots, dashes or underscores"
+          aria-describedby={hintId} placeholder={user.email?.split('@')[0]} autoComplete="nickname" spellCheck={false} disabled={busy} />
+        <button type="submit" className="btn-secondary" disabled={busy || name.trim() === nick}>
+          {busy && <span className="import-spinner" />} Save
+        </button>
+        <button type="button" className="btn-secondary" onClick={() => setEditing(false)} disabled={busy}>Cancel</button>
       </div>
-      {photoOpen && (
-        <PhotoDialog onClose={() => setPhotoOpen(false)}
-          onSave={(data) => { setPhotoOpen(false); savePhoto(data, 'Photo updated'); }}
-          onRemove={photo ? () => { setPhotoOpen(false); savePhoto(null, 'Photo removed'); } : undefined} />
-      )}
-    </>
+      <p className="field-hint" id={hintId}>3 to 24 letters, numbers, dots, dashes or underscores. Each nickname belongs to one account.</p>
+    </form>
   );
 }

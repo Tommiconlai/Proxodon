@@ -2555,8 +2555,9 @@ body::before {
   border-radius: var(--radius-lg);
 }
 
-/* Profilo: testata con l'arte del mazzo modificato per ultimo (senza mazzi, bagliore magenta / ciano),
-   foto sul bordo, nickname con l'aberrazione cromatica del wordmark, numeri in mono sotto una hairline. */
+/* Profilo: testata con lo sfondo scelto o l'arte del mazzo modificato per ultimo (senza, bagliore
+   magenta / ciano), foto sul bordo; sfondo e foto sono pulsanti che aprono PhotoDialog. Nickname con
+   l'aberrazione cromatica del wordmark, numeri in mono sotto una hairline. */
 .profile-hero {
   position: relative;
   margin-bottom: 32px;
@@ -2565,15 +2566,21 @@ body::before {
   overflow: hidden;
   background: linear-gradient(180deg, var(--bg-elevated), var(--bg-surface));
 }
+/* 5:1 come il ritaglio dello sfondo; sui telefoni almeno 150 px (cover ne mostra il centro). */
 .profile-banner {
   position: relative;
-  height: 220px;
+  display: block;
+  width: 100%; aspect-ratio: 5 / 1; min-height: 150px;
+  padding: 0;
+  border: 0;
   background:
     radial-gradient(90% 120% at 10% 0%, rgba(255, 45, 149, 0.38), transparent 60%),
     radial-gradient(90% 120% at 92% 0%, rgba(0, 229, 255, 0.3), transparent 60%),
     var(--bg-base);
+  cursor: pointer;
 }
-.profile-banner.art { background-size: cover; background-position: center 28%; }
+.profile-banner.art { background-size: cover; background-position: center; }
+.profile-banner:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
 /* Scanline e velo: l'arte sfuma nel fondo della testata, dove stanno foto e nome. */
 .profile-banner::after {
   content: '';
@@ -2582,6 +2589,21 @@ body::before {
     repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px),
     linear-gradient(180deg, rgba(8, 7, 15, 0.05) 30%, rgba(20, 17, 42, 0.75) 78%, var(--bg-elevated));
 }
+.profile-banner-hint {
+  position: absolute; top: 12px; right: 12px; z-index: 1;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px;
+  background: rgba(8, 7, 18, 0.72); backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.16); border-radius: var(--radius-sm);
+  font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: #d6d2ef;
+  opacity: 0;
+  transition: opacity var(--transition), color var(--transition), border-color var(--transition);
+}
+.profile-banner:hover .profile-banner-hint, .profile-banner:focus-visible .profile-banner-hint { opacity: 1; color: var(--cyan); border-color: var(--cyan); }
+/* Touch: niente hover, l'indicazione resta visibile. */
+@media (hover: none) { .profile-banner-hint { opacity: 1; } }
+/* Sopra il fondo dello sfondo: solo foto, nome e numeri prendono i clic, il resto va allo sfondo. */
 .profile-hero-body {
   position: relative;
   display: grid;
@@ -2591,10 +2613,13 @@ body::before {
   gap: 20px 24px;
   margin-top: -64px;
   padding: 0 28px 24px;
+  pointer-events: none;
 }
-.profile-avatar-wrap { grid-area: avatar; position: relative; }
+.profile-hero-body > * { pointer-events: auto; }
 .profile-avatar {
-  width: 128px; height: 128px;
+  grid-area: avatar;
+  position: relative;
+  width: 128px; height: 128px; padding: 0;
   display: grid; place-items: center;
   border-radius: 50%;
   overflow: hidden;
@@ -2603,22 +2628,21 @@ body::before {
   background: var(--bg-elevated);
   color: var(--cyan-soft);
   font-family: var(--font-display); font-size: 2.8rem; font-weight: 600;
+  cursor: pointer;
 }
 .profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.profile-avatar-edit {
-  position: absolute; right: 0; bottom: 4px;
-  width: 34px; height: 34px; padding: 0;
+.profile-avatar:focus-visible { outline: 2px solid var(--cyan); outline-offset: 4px; }
+.profile-avatar-hover {
+  position: absolute; inset: 0;
   display: grid; place-items: center;
-  border-radius: 50%;
-  border: 1px solid rgba(0, 229, 255, 0.55);
-  background: rgba(8, 7, 18, 0.88);
-  color: var(--cyan-soft);
-  cursor: pointer;
-  transition: color var(--transition), border-color var(--transition), box-shadow var(--transition);
+  background: rgba(8, 7, 18, 0.6);
+  color: var(--cyan);
+  opacity: 0;
+  transition: opacity var(--transition);
 }
-.profile-avatar-edit:hover, .profile-avatar-edit:focus-visible { color: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 12px var(--cyan-glow); outline: none; }
+.profile-avatar:hover .profile-avatar-hover, .profile-avatar:focus-visible .profile-avatar-hover { opacity: 1; }
 .profile-who { grid-area: who; min-width: 0; padding-bottom: 14px; }
-.profile-name-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.profile-name-row { display: flex; align-items: center; gap: 8px; }
 .profile-name {
   margin: 0 6px 0 0; min-width: 0;
   font-family: var(--font-display); font-size: clamp(1.4rem, 2.6vw, 2rem); font-weight: 600;
@@ -2638,8 +2662,9 @@ body::before {
   transition: color var(--transition), border-color var(--transition);
 }
 .profile-icon-btn:hover, .profile-icon-btn:focus-visible { color: var(--cyan); border-color: var(--cyan); outline: none; }
-.profile-name-form { max-width: 480px; }
+.profile-name-form { max-width: 520px; display: flex; flex-direction: column; gap: 6px; padding-bottom: 0; }
 .profile-name-form .import-link-input { flex: 1; min-width: 0; }
+.profile-name-form .field-hint { margin: 0; }
 .profile-stats {
   grid-area: stats;
   margin: 0; padding-top: 18px;
@@ -2651,12 +2676,11 @@ body::before {
 .profile-stats dt { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); }
 .profile-stats dd { margin: 6px 0 0; font-family: var(--font-mono); font-size: 1rem; font-weight: 700; color: var(--text-primary); }
 @media (max-width: 640px) {
-  .profile-banner { height: 150px; }
   .profile-hero-body { grid-template-columns: 1fr; grid-template-areas: "avatar" "who" "stats"; justify-items: center; text-align: center; gap: 14px; margin-top: -56px; padding: 0 16px 20px; }
   .profile-avatar { width: 104px; height: 104px; font-size: 2.4rem; }
   .profile-who { padding-bottom: 0; }
   .profile-name-row { justify-content: center; }
-  .profile-stats { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+  .profile-stats { width: 100%; justify-content: center; gap: 14px 26px; }
   .profile-stats div, .profile-stats div:first-child { padding: 0; border: 0; }
 }
 .profile-form { width: 100%; display: flex; flex-direction: column; gap: 10px; }
@@ -2706,6 +2730,7 @@ body::before {
   box-shadow: 0 0 0 999px rgba(5, 4, 12, 0.7), inset 0 0 0 1px rgba(0, 229, 255, 0.85), inset 0 0 14px rgba(0, 229, 255, 0.25);
   pointer-events: none;
 }
+.crop-wide::after { border-radius: 0; }
 .crop-area img, .photo-preview img { position: absolute; top: 0; left: 0; max-width: none; pointer-events: none; }
 .photo-side { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
 .photo-zoom input[type="range"] { margin-top: 8px; }
@@ -2716,6 +2741,12 @@ body::before {
 
 .privacy-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45; }
 .privacy-list b { color: var(--text-primary); }
+.privacy-list a { color: inherit; text-decoration: none; }
+.privacy-list a b { color: var(--cyan-soft); }
+.privacy-list a:hover b, .privacy-list a:focus-visible b { color: var(--cyan); text-decoration: underline; text-underline-offset: 3px; }
+/* Credits: gruppi (Cards, Print, Look, Built with), scorre se lo schermo è basso. */
+.modal-credits { width: 600px; max-width: 94vw; max-height: 86vh; overflow-y: auto; }
+.credits-group { display: flex; flex-direction: column; gap: 8px; }
 
 /* Lista mazzi: riquadri con l'arte del comandante sfumata nel corpo. */
 .deck-new { width: auto; padding: 9px 16px; }

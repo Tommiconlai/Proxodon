@@ -16,7 +16,7 @@ import { deleteUserData } from './deckStore';
 // Radice dell'area mazzi (lazy): attende lo stato di login, poi lista, editor, profilo o impostazioni. Avatar (e
 // il ? nell'editor) vanno nell'header dell'app, in headerSlot.
 export default function DecksView({ route, notify, printQueueCount, onPrintDeck, headerSlot }) {
-  const { user, photo, rerender } = useAccount();
+  const { user, profile, photo, rerender } = useAccount();
   if (user === undefined) return <div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>;
   if (!user) return <SignInPanel />;
   if (needsVerification(user)) return <VerifyEmailPanel email={user.email} onVerified={rerender} />;
@@ -27,7 +27,7 @@ export default function DecksView({ route, notify, printQueueCount, onPrintDeck,
         <>{id && <DeckHelp />}<AccountMenu user={user} photo={photo} notify={notify} onDeleteData={deleteUserData} /></>,
         headerSlot,
       )}
-      {route === '/profile' ? <ProfilePage user={user} photo={photo} notify={notify} onChange={rerender} />
+      {route === '/profile' ? <ProfilePage user={user} profile={profile} notify={notify} onChange={rerender} />
         : route === '/settings' ? <SettingsPage user={user} notify={notify} />
         : id ? <DeckEditor key={id} uid={user.uid} id={id} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} />
           : <DeckList uid={user.uid} notify={notify} />}

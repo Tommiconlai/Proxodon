@@ -1,24 +1,42 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
-    // Solo il proprietario, con email confermata (gli account email + password) o login Google.
-    function owner(uid) {
-      return request.auth != null && request.auth.uid == uid
+    // Account con email confermata (gli account email + password) o login Google.
+    function verified() {
+      return request.auth != null
         && (request.auth.token.email_verified == true
           || request.auth.token.firebase.sign_in_provider == 'google.com');
     }
-    // Profilo: solo la foto (data URL di un JPEG 256 px, ben sotto i 200k caratteri).
-    function validProfile(d) {
-      return d.keys().hasOnly(['photo', 'updatedAt'])
-        && (d.get('photo', null) == null || (d.photo is string && d.photo.size() <= 200000));
+    // Solo il proprietario, verificato.
+    function owner(uid) {
+      return verified() && request.auth.uid == uid;
+    }
+    // Profilo: foto (JPEG 256 px) e sfondo (JPEG fino a 1500 px) come data URL, nickname. Il nickname
+    // deve essere suo in usernames/ a fine scrittura (getAfter: stessa transazione di claimNickname).
+    // followers / following non li scrive il client.
+    function validProfile(uid, d) {
+      return d.keys().hasOnly(['photo', 'banner', 'nickname', 'updatedAt'])
+        && (d.get('photo', null) == null || (d.photo is string && d.photo.size() <= 200000))
+        && (d.get('banner', null) == null || (d.banner is string && d.banner.size() <= 600000))
+        && (d.get('nickname', null) == null || (d.nickname is string
+          && getAfter(/databases/$(db)/documents/usernames/$(d.nickname.lower())).data.uid == uid));
     }
     match /users/{uid} {
       allow read, delete: if owner(uid);
-      allow create, update: if owner(uid) && validProfile(request.resource.data);
+      allow create, update: if owner(uid) && validProfile(uid, request.resource.data);
     }
     match /users/{uid}/decks/{deckId} {
       allow read, delete: if owner(uid);
       allow create, update: if owner(uid) && request.resource.data.cards.size() <= 500;
+    }
+    // Nickname unici: usernames/{nome in minuscolo} = { uid }. Lo legge chi ha un account (per sapere
+    // se è libero, mai l'elenco), lo prende chi lo trova libero, lo libera solo il proprietario.
+    match /usernames/{name} {
+      allow get: if verified();
+      allow create: if owner(request.resource.data.uid)
+        && name.matches('^[a-z0-9._-]{3,24}$')
+        && request.resource.data.keys().hasOnly(['uid']);
+      allow delete: if owner(resource.data.uid);
     }
   }
 }

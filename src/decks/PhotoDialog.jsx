@@ -4,29 +4,35 @@ import { fetchPrints } from '../utils/scryfall';
 import { autocomplete } from './scryfallSearch';
 import { IconX, IconUpload, IconSearch, IconTrash } from '../components/icons';
 
-const OUT = 256; // lato della foto salvata (px)
 const MAX_ZOOM = 4;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
-// Il ritaglio è un quadrato nell'immagine sorgente: lato min(w, h) / zoom attorno al centro
-// (cx, cy), sempre dentro l'immagine. Lo stesso quadrato riempie il cerchio a ogni dimensione.
-const side = (img, z) => Math.min(img.w, img.h) / z;
-const fit = (img, z, cx, cy) => {
-  const zz = clamp(z, 1, MAX_ZOOM);
-  const half = side(img, zz) / 2;
-  return { z: zz, cx: clamp(cx, half, img.w - half), cy: clamp(cy, half, img.h - half) };
+// Foto profilo (cerchio, JPEG 256 px) o sfondo della testata (5:1, fino a 1500 px di larghezza).
+// max = caratteri del data URL ammessi dalle regole Firestore: la qualità scende finché ci sta.
+const KINDS = {
+  photo: { aspect: 1, out: 256, max: 200000, title: 'Change photo', frame: 'Center your photo', save: 'Save photo', remove: 'Remove current photo' },
+  banner: { aspect: 5, out: 1500, max: 600000, title: 'Change background', frame: 'Frame your background', save: 'Save background', remove: 'Remove current background' },
 };
 
-// L'immagine dentro un riquadro di `size` px, posizionata secondo il ritaglio.
-function CropView({ img, crop, size, className, children, ...rest }) {
-  const s = side(img, crop.z);
-  const k = size / s;
+// Il ritaglio è un rettangolo di proporzioni `a` (larghezza / altezza) nell'immagine sorgente: il più
+// grande che ci sta, diviso per lo zoom, attorno al centro (cx, cy), sempre dentro l'immagine.
+const rect = (img, z, a) => { const w = Math.min(img.w, img.h * a) / z; return { w, h: w / a }; };
+const fit = (img, a, z, cx, cy) => {
+  const zz = clamp(z, 1, MAX_ZOOM);
+  const r = rect(img, zz, a);
+  return { z: zz, cx: clamp(cx, r.w / 2, img.w - r.w / 2), cy: clamp(cy, r.h / 2, img.h - r.h / 2) };
+};
+
+// L'immagine dentro un riquadro largo `size` px (alto size / a), posizionata secondo il ritaglio.
+function CropView({ img, crop, a, size, className, children, ...rest }) {
+  const r = rect(img, crop.z, a);
+  const k = size / r.w;
   return (
-    <div className={className} style={{ width: size, height: size }} {...rest}>
+    <div className={className} style={{ width: size, height: size / a }} {...rest}>
       <img src={img.url} alt="" draggable={false} style={{
         width: img.w * k,
         height: img.h * k,
-        transform: `translate(${-(crop.cx - s / 2) * k}px, ${-(crop.cy - s / 2) * k}px)`,
+        transform: `translate(${-(crop.cx - r.w / 2) * k}px, ${-(crop.cy - r.h / 2) * k}px)`,
       }} />
       {children}
     </div>
@@ -34,26 +40,26 @@ function CropView({ img, crop, size, className, children, ...rest }) {
 }
 
 // Area di ritaglio: trascina per spostare, rotella / pizzico / + e - per lo zoom, frecce per spostare.
-function CropArea({ img, crop, setCrop, size }) {
+function CropArea({ img, crop, setCrop, a, size }) {
   const ref = useRef(null);
   const pts = useRef(new Map()); // puntatori attivi (mouse o dita)
   // dx, dy in px dello schermo: l'immagine segue il dito.
   const drag = (dx, dy) => setCrop((c) => {
-    const k = side(img, c.z) / size;
-    return fit(img, c.z, c.cx - dx * k, c.cy - dy * k);
+    const k = rect(img, c.z, a).w / size;
+    return fit(img, a, c.z, c.cx - dx * k, c.cy - dy * k);
   });
-  const zoomBy = (f) => setCrop((c) => fit(img, c.z * f, c.cx, c.cy));
+  const zoomBy = (f) => setCrop((c) => fit(img, a, c.z * f, c.cx, c.cy));
 
   // Rotella: listener nativo non passivo, altrimenti scorre il modale.
   useEffect(() => {
     const el = ref.current;
     const onWheel = (e) => {
       e.preventDefault();
-      setCrop((c) => fit(img, c.z * Math.exp(-e.deltaY * 0.0015), c.cx, c.cy));
+      setCrop((c) => fit(img, a, c.z * Math.exp(-e.deltaY * 0.0015), c.cx, c.cy));
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
-  }, [img, setCrop]);
+  }, [img, a, setCrop]);
 
   const down = (e) => {
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -84,8 +90,8 @@ function CropArea({ img, crop, setCrop, size }) {
   };
 
   return (
-    <CropView img={img} crop={crop} size={size} className="crop-area" ref={ref} tabIndex={0}
-      aria-label="Photo crop. Drag or use the arrow keys to move it, plus and minus to zoom."
+    <CropView img={img} crop={crop} a={a} size={size} className={`crop-area${a === 1 ? '' : ' crop-wide'}`} ref={ref} tabIndex={0}
+      aria-label="Image crop. Drag or use the arrow keys to move it, plus and minus to zoom."
       onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onKeyDown={key} />
   );
 }
@@ -163,15 +169,18 @@ function SourcePicker({ busy, onFile, onArt }) {
   );
 }
 
-// Nuova foto profilo: scegli la sorgente, poi centrala nel cerchio. onSave riceve un JPEG 256 px.
-// onRemove (solo con una foto personalizzata): torna alla foto di Google o all'iniziale.
-export default function PhotoDialog({ onClose, onSave, onRemove }) {
+// Nuova foto profilo o sfondo (kind, vedi KINDS): scegli la sorgente (upload o art di una carta), poi
+// inquadrala. onSave riceve il data URL JPEG. onRemove (solo se ce n'è una personalizzata): torna alla
+// foto di Google / all'iniziale, o allo sfondo dall'arte dell'ultimo mazzo.
+export default function PhotoDialog({ kind = 'photo', onClose, onSave, onRemove }) {
+  const K = KINDS[kind];
+  const a = K.aspect;
   const [img, setImg] = useState(null); // { url, w, h, bmp }
   const [crop, setCrop] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const ref = useOverlayDismiss(() => { if (!busy) onClose(); });
-  const size = Math.min(280, window.innerWidth - 72);
+  const size = Math.min(a === 1 ? 280 : 580, window.innerWidth - 72);
 
   // Libera l'immagine precedente (cambio sorgente o chiusura).
   useEffect(() => () => { if (img) { URL.revokeObjectURL(img.url); img.bmp.close(); } }, [img]);
@@ -184,7 +193,7 @@ export default function PhotoDialog({ onClose, onSave, onRemove }) {
       const bmp = await createImageBitmap(blob).catch(() => { throw new Error('This file is not an image Proxoteca can read.'); });
       const next = { url: URL.createObjectURL(blob), w: bmp.width, h: bmp.height, bmp };
       setImg(next);
-      setCrop(fit(next, 1, next.w / 2, next.h / 2));
+      setCrop(fit(next, a, 1, next.w / 2, next.h / 2));
     } catch (e) {
       setError(e.message || 'Could not load the image.');
     } finally {
@@ -198,23 +207,29 @@ export default function PhotoDialog({ onClose, onSave, onRemove }) {
   });
 
   const save = () => {
-    const s = side(img, crop.z);
+    const r = rect(img, crop.z, a);
+    // Foto sempre 256 px; sfondo largo quanto il ritaglio (niente ingrandimenti inutili), al massimo out.
+    const W = Math.min(K.out, Math.max(256, Math.round(r.w)));
+    const H = Math.round(W / a);
     const c = document.createElement('canvas');
-    c.width = OUT;
-    c.height = OUT;
+    c.width = W;
+    c.height = H;
     const g = c.getContext('2d');
     g.fillStyle = '#0b0a15'; // PNG trasparenti: sfondo scuro invece del nero del JPEG
-    g.fillRect(0, 0, OUT, OUT);
+    g.fillRect(0, 0, W, H);
     g.imageSmoothingQuality = 'high';
-    g.drawImage(img.bmp, crop.cx - s / 2, crop.cy - s / 2, s, s, 0, 0, OUT, OUT);
-    onSave(c.toDataURL('image/jpeg', 0.85));
+    g.drawImage(img.bmp, crop.cx - r.w / 2, crop.cy - r.h / 2, r.w, r.h, 0, 0, W, H);
+    let q = 0.85;
+    let url = c.toDataURL('image/jpeg', q);
+    while (url.length > K.max && q > 0.45) url = c.toDataURL('image/jpeg', (q -= 0.1));
+    onSave(url);
   };
 
   return (
     <div className="modal-overlay" onClick={busy ? undefined : onClose}>
-      <div className="modal modal-photo" ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Change photo" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-photo" ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={K.title} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>{img ? 'Center your photo' : 'Change photo'}</h2>
+          <h2>{img ? K.frame : K.title}</h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close" disabled={busy}><IconX size={18} /></button>
         </div>
         {error && <div className="info-box info-box-error"><span>{error}</span></div>}
@@ -222,30 +237,32 @@ export default function PhotoDialog({ onClose, onSave, onRemove }) {
         {!img && <SourcePicker busy={busy} onFile={(f) => load(async () => f)} onArt={loadArt} />}
         {!img && onRemove && (
           <div className="modal-actions">
-            <button type="button" className="btn-secondary" onClick={onRemove} disabled={busy}><IconTrash size={15} /> Remove current photo</button>
+            <button type="button" className="btn-secondary" onClick={onRemove} disabled={busy}><IconTrash size={15} /> {K.remove}</button>
           </div>
         )}
         {img && (
           <>
             <div className="photo-crop">
-              <CropArea img={img} crop={crop} setCrop={setCrop} size={size} />
+              <CropArea img={img} crop={crop} setCrop={setCrop} a={a} size={size} />
               <div className="photo-side">
                 <label className="field photo-zoom">
                   <span className="profile-h">Zoom</span>
                   <input type="range" min={1} max={MAX_ZOOM} step={0.01} value={crop.z}
                     style={{ '--fill': `${((crop.z - 1) / (MAX_ZOOM - 1)) * 100}%` }}
-                    onChange={(e) => setCrop((c) => fit(img, Number(e.target.value), c.cx, c.cy))} />
+                    onChange={(e) => setCrop((c) => fit(img, a, Number(e.target.value), c.cx, c.cy))} />
                 </label>
                 <p className="field-hint">Drag to move. Scroll, pinch or use the slider to zoom.</p>
-                <div className="photo-previews" aria-hidden="true">
-                  <figure><CropView img={img} crop={crop} size={72} className="photo-preview" /><figcaption>Profile</figcaption></figure>
-                  <figure><CropView img={img} crop={crop} size={34} className="photo-preview" /><figcaption>Menu</figcaption></figure>
-                </div>
+                {a === 1 && (
+                  <div className="photo-previews" aria-hidden="true">
+                    <figure><CropView img={img} crop={crop} a={a} size={72} className="photo-preview" /><figcaption>Profile</figcaption></figure>
+                    <figure><CropView img={img} crop={crop} a={a} size={34} className="photo-preview" /><figcaption>Menu</figcaption></figure>
+                  </div>
+                )}
               </div>
             </div>
             <div className="modal-actions">
               <button type="button" className="btn-secondary" onClick={() => setImg(null)}>Choose another</button>
-              <button type="button" className="btn-generate import-btn" onClick={save}>Save photo</button>
+              <button type="button" className="btn-generate import-btn" onClick={save}>{K.save}</button>
             </div>
           </>
         )}
