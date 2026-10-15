@@ -2859,7 +2859,8 @@ body::before {
 .sample-hand-cards.pick .sample-card:hover, .sample-hand-cards.pick .sample-card:focus-visible { box-shadow: 0 0 0 2px var(--warning), 0 0 16px rgba(245, 158, 11, 0.45); }
 .sample-lands { display: inline-flex; align-items: baseline; gap: 8px; margin-left: 6px; padding: 6px 12px; border: 1px solid rgba(0, 229, 255, 0.35); border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-secondary); }
 .sample-lands b { font-size: 1.05rem; letter-spacing: 0; color: var(--cyan); }
-.sample-hand-note { margin: 0; font-size: 0.85rem; color: var(--text-secondary); }
+.stat-odds-avg { margin: 10px 0 0; font-size: 0.88rem; color: var(--text-secondary); }
+.stat-odds-avg b { font-family: var(--font-mono); font-weight: 600; color: var(--text-primary); }
 /* Fantasma del trascinamento nelle viste a immagini: fuori schermo, solo per setDragImage. */
 .deck-ghost { position: fixed; top: -1000px; left: -1000px; width: 140px; pointer-events: none; }
 .deck-ghost img { display: block; width: 100%; border-radius: 4.75% / 3.4%; }

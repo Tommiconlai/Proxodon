@@ -152,7 +152,7 @@ const num = (v, lo, hi, def) => {
 // le sue copie nel grimorio), almeno quante, fino a che turno (10 di default). Ipergeometrica sul
 // grimorio: per primi 7 + T - 1 carte (niente pescata al primo turno), per secondi 7 + T. Il grafico
 // è largo quanto la sezione (larghezza misurata, testi a dimensione fissa). Crosshair + tooltip per
-// turno, tabella per i lettori di schermo.
+// turno, tabella per i lettori di schermo. Sotto, la media nella mano iniziale di quello che si guarda.
 function DrawOdds({ library, types }) {
   const [what, setWhat] = useState('copies');
   const [copies, setCopies] = useState('4');
@@ -268,6 +268,10 @@ function DrawOdds({ library, types }) {
           <tbody>{pts.map((p) => <tr key={p.t}><td>{p.t}</td><td>{f(p.play)}</td><td>{f(p.draw)}</td></tr>)}</tbody>
         </table>
       </div>
+      {/* Media nelle 7 carte iniziali di quello che si sta guardando: 7 x copie / grimorio. */}
+      <p className="stat-odds-avg">
+        Average {type ? type.label.toLowerCase() : `copies of the card (${K})`} in an opening hand: <b>{((7 * K) / library).toFixed(2)}</b>
+      </p>
     </figure>
   );
 }

@@ -20,7 +20,6 @@ export default function SampleHand({ deck }) {
   const gone = new Set([...h.bottom, ...h.played]);
   const hand = h.order.slice(0, h.drawn).filter((e) => !gone.has(e.key));
   const toBottom = mulliganBottom(deck.format, h.mulls) - h.bottom.length;
-  const landsInDeck = lib.filter((e) => isLand(e.card)).length;
   const play = (e) => setH((s) => ({ ...s, leaving: [...s.leaving, e.key] }));
   // Fine dell'animazione: la carta esce dalla mano, una terra va in campo.
   const played = (e) => setH((s) => (s.played.includes(e.key) ? s : {
@@ -56,7 +55,6 @@ export default function SampleHand({ deck }) {
           );
         })}
       </ul>
-      <p className="sample-hand-note">Average lands in an opening hand: {((HAND * landsInDeck) / lib.length).toFixed(2)}</p>
     </div>
   );
 }
