@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { listenDecks, createDeck, saveDeck, deleteDeck } from './deckStore';
 import {
-  newDeck, duplicateDeck, boardCounts, countTarget, countOk, deckIdentity, deckCover,
-  toBackup, fromBackup, formatLabel,
+  newDeck, duplicateDeck, boardCounts, countTarget, countOk, deckIdentity, deckCover, formatLabel,
 } from './deckModel';
 import { navigate } from '../hooks/useHashRoute';
 import { useLongPress } from '../hooks/useLongPress';
@@ -10,10 +9,9 @@ import CardMenu from '../components/CardMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { ManaPips } from './Mana';
 import { NameFormatDialog, ExportDeckDialog } from './dialogs';
-import { downloadText } from '../utils/download';
 import { timeAgo } from '../utils/timeAgo';
 import ImportDeckDialog from './ImportDeckDialog';
-import { IconPlus, IconList, IconUpload, IconCopy, IconTrash, IconPencil, IconDownload, IconExport } from '../components/icons';
+import { IconPlus, IconCopy, IconTrash, IconPencil, IconDownload, IconExport } from '../components/icons';
 
 // Shift+F10 / tasto menu arrivano con 0,0: ancora il menu all'elemento.
 const menuPoint = (e) => {
@@ -26,7 +24,6 @@ export default function DeckList({ uid, notify }) {
   const [decks, setDecks] = useState(null); // null = caricamento
   const [dialog, setDialog] = useState(null); // 'new' | 'import' | { rename: deck } | { del: deck } | { exp: deck }
   const [menu, setMenu] = useState(null); // { deck, x, y }
-  const fileRef = useRef(null);
   const press = useLongPress();
   const closeMenu = useCallback(() => setMenu(null), []);
 
@@ -37,23 +34,6 @@ export default function DeckList({ uid, notify }) {
     const { id, done } = createDeck(uid, deck);
     done.catch(writeError);
     return id;
-  };
-
-  const exportBackup = () => {
-    downloadText(`proxoteca-decks-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(toBackup(decks), null, 2), 'application/json');
-    notify(`Backup of ${decks.length} deck${decks.length !== 1 ? 's' : ''} downloaded`);
-  };
-  const restore = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    try {
-      const restored = fromBackup(JSON.parse(await file.text()));
-      restored.forEach(create);
-      notify(`Restored ${restored.length} deck${restored.length !== 1 ? 's' : ''}`);
-    } catch (err) {
-      notify(err instanceof SyntaxError ? 'This file is not valid JSON.' : err.message, 'error');
-    }
   };
 
   const menuItems = menu ? [
@@ -68,11 +48,9 @@ export default function DeckList({ uid, notify }) {
       <header className="decks-head">
         <h2 className="decks-title">Your decks</h2>
         <div className="decks-actions">
-          <button type="button" className="btn-secondary" onClick={() => setDialog('import')}><IconDownload size={15} /> Import</button>
-          <button type="button" className="btn-secondary" onClick={exportBackup} disabled={!decks?.length}><IconList size={15} /> Backup</button>
-          <button type="button" className="btn-secondary" onClick={() => fileRef.current.click()}><IconUpload size={15} /> Restore</button>
-          <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={restore} />
-          <button type="button" className="btn-add deck-new" onClick={() => setDialog('new')}><IconPlus size={16} /> New deck</button>
+          {/* Solo icone (nome nel tooltip e per i lettori di schermo); backup e ripristino stanno in Settings. */}
+          <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setDialog('import')} aria-label="Import a deck" title="Import a deck"><IconDownload size={18} /></button>
+          <button type="button" className="btn-add deck-new deck-icon-btn" onClick={() => setDialog('new')} aria-label="New deck" title="New deck"><IconPlus size={18} /></button>
         </div>
       </header>
 

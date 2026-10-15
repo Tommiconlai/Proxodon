@@ -5,7 +5,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { PrivacyPanel } from './dialogs';
 import { signOut, deleteAccount } from './firebase';
 import { navigate } from '../hooks/useHashRoute';
-import { IconInfo, IconLogOut, IconTrash, IconUser } from '../components/icons';
+import { IconInfo, IconLogOut, IconTrash, IconUser, IconSettings } from '../components/icons';
 
 // Foto personalizzata, poi quella di Google, poi l'iniziale (nickname o email).
 export function Avatar({ user, photo }) {
@@ -16,7 +16,7 @@ export function Avatar({ user, photo }) {
     : <span aria-hidden="true">{label[0].toUpperCase()}</span>;
 }
 
-// Avatar → menu: profilo, privacy, esci, elimina account e dati (con conferma). Sta nell'header, il cui
+// Avatar → menu: profilo, impostazioni, privacy, esci, elimina account e dati (con conferma). Sta nell'header, il cui
 // backdrop-filter farebbe da riferimento ai position: fixed: i dialoghi vanno nel body.
 export default function AccountMenu({ user, photo, notify, onDeleteData }) {
   const [menu, setMenu] = useState(null); // { x, y }
@@ -26,6 +26,7 @@ export default function AccountMenu({ user, photo, notify, onDeleteData }) {
   const label = user.displayName || user.email || 'Account';
   const items = [
     { key: 'profile', Icon: IconUser, label: 'Profile', run: () => navigate('/profile') },
+    { key: 'settings', Icon: IconSettings, label: 'Settings', run: () => navigate('/settings') },
     { key: 'privacy', Icon: IconInfo, label: 'Privacy', run: () => setPrivacy(true) },
     { key: 'out', Icon: IconLogOut, label: 'Sign out', run: () => signOut().catch((e) => notify(e.message, 'error')) },
     { key: 'del', Icon: IconTrash, label: 'Delete account and data', danger: true, run: () => setConfirmDel(true) },

@@ -2621,6 +2621,9 @@ body::before {
 
 /* Lista mazzi: riquadri con l'arte del comandante sfumata nel corpo. */
 .deck-new { width: auto; padding: 9px 16px; }
+/* Import e New deck solo icona: quadrati da 40 px. */
+.decks-actions .deck-icon-btn { width: 40px; height: 40px; padding: 0; justify-content: center; }
+.settings-btn { align-self: flex-start; }
 .deck-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
 .deck-tile {
   width: 100%;

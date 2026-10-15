@@ -9,9 +9,10 @@ import DeckList from './DeckList';
 import DeckEditor from './DeckEditor';
 import DeckHelp from './DeckHelp';
 import ProfilePage from './ProfilePage';
+import SettingsPage from './SettingsPage';
 import { deleteUserData, listenProfile } from './deckStore';
 
-// Radice dell'area mazzi (lazy): attende lo stato di login, poi lista, editor o profilo. Avatar (e
+// Radice dell'area mazzi (lazy): attende lo stato di login, poi lista, editor, profilo o impostazioni. Avatar (e
 // il ? nell'editor) vanno nell'header dell'app, in headerSlot.
 export default function DecksView({ route, notify, printQueueCount, onPrintDeck, headerSlot }) {
   const [user, setUser] = useState(undefined); // undefined = in verifica, null = non loggato
@@ -33,6 +34,7 @@ export default function DecksView({ route, notify, printQueueCount, onPrintDeck,
         headerSlot,
       )}
       {route === '/profile' ? <ProfilePage user={user} photo={photo} notify={notify} onChange={rerender} />
+        : route === '/settings' ? <SettingsPage uid={user.uid} notify={notify} />
         : id ? <DeckEditor key={id} uid={user.uid} id={id} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} />
           : <DeckList uid={user.uid} notify={notify} />}
     </>
