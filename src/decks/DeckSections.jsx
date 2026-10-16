@@ -48,7 +48,8 @@ const menuPoint = (e) => {
 // Desktop: le carte si trascinano tra gruppi del main, sezioni, sideboard e maybeboard. Creare una
 // sezione porta il mazzo in raggruppamento custom; da telefono si sposta tutto dal menu.
 // readOnly (Community): niente menu, trascinamento, +/- e sezioni nuove; update cambia solo la vista.
-export default function DeckSections({ deck, update, touch, readOnly }) {
+// tab (schede della testata, DeckTabs): 'deck' = barra e carte, 'stats' = statistiche e mano di prova.
+export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab }) {
   const [sel, setSel] = useState(() => new Set());
   const [anchor, setAnchor] = useState(null);
   const [menu, setMenu] = useState(null); // { ids, x, y }
@@ -86,10 +87,12 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
   const banOf = (r) => (counts(r) ? illegalIn(deck.format, r.card) : null);
   // Controlli del formato (mai bloccanti): chip sopra le carte, il click seleziona le carte coinvolte.
   const issues = useMemo(() => validateDeck(deck), [deck]);
-  // Chip dei controlli e barre dei grafici: seleziona quelle carte e porta in vista la prima.
+  // Chip dei controlli e barre dei grafici: seleziona quelle carte e porta in vista la prima. Dai grafici
+  // (scheda Stats) torna prima a Deck: lo scorrimento aspetta il render delle carte.
   const pick = (ids) => {
     setSel(new Set(ids));
-    document.querySelector(`.deck-row[data-row-id="${ids[0]}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    onTab?.('deck');
+    setTimeout(() => document.querySelector(`.deck-row[data-row-id="${ids[0]}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
   };
 
   // Larghezza utile dell'area del mazzo (senza padding): decide quanto si allargano le pile.
@@ -393,9 +396,10 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
   const stackW = Math.max(STACK_MIN, Math.min(STACK_MAX, Math.floor((areaW - (n0 - 1) * COL_GAP) / n0)));
   const stackCols = pack(stackW);
   return (
-    <div className={`deck-sections view-${layout}${settings.density === 'compact' ? ' density-compact' : ''}`} ref={rootRef} {...marqueeHandlers}
+    <div className={`deck-sections ${tab === 'stats' ? 'tab-stats' : `view-${layout}`}${settings.density === 'compact' ? ' density-compact' : ''}`} ref={rootRef} {...marqueeHandlers}
       onKeyDown={(e) => { if (e.key === 'Escape' && sel.size) { e.stopPropagation(); setSel(new Set()); } }}>
       {marquee && <div className="marquee" style={marquee} aria-hidden="true" />}
+      {tab === 'deck' && <>
       <div className="deck-toolbar">
         <label className="deck-tool">
           <span>Sort by</span>
@@ -444,8 +448,9 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
           <ul className={`deck-rows view-${layout}`}>{cards(blocks.maybe.rows)}</ul>
         </details>
       )}
-      {/* Sotto tutto il mazzo, come Moxfield: statistiche e mano di prova. */}
-      <div className="deck-analysis">
+      </>}
+      {/* Scheda Stats: statistiche e mano di prova. */}
+      {tab === 'stats' && <div className="deck-analysis">
         <section aria-labelledby="deck-stats-head">
           <h3 className="deck-analysis-head" id="deck-stats-head">Stats</h3>
           <DeckStats deck={deck} onSelect={pick} />
@@ -454,7 +459,7 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
           <h3 className="deck-analysis-head" id="deck-hand-head">Sample hand</h3>
           <SampleHand deck={deck} />
         </section>
-      </div>
+      </div>}
       {menu && items.length > 0 && (
         <CardMenu x={menu.x} y={menu.y} title={menuRows.length === 1 ? menuRows[0].card.name : `${menuRows.length} cards selected`} items={items} onClose={closeMenu} />
       )}

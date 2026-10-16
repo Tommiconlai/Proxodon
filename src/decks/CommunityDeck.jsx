@@ -6,15 +6,18 @@ import { useSettings } from '../utils/settings';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { navigate } from '../hooks/useHashRoute';
 import DeckSections from './DeckSections';
+import { DeckTabs, DeckDilemmas } from './DeckTabs';
 import { ExportDeckDialog } from './dialogs';
 import { IconCopy, IconExport, IconHeart } from '../components/icons';
 
 // Mazzo della Community in sola lettura (#/community/:id): testata come l'editor (arte, nome con il cuore
-// dei like, formato, prezzo, autore), Copy to my decks ed Export; sotto le sezioni senza comandi di
-// modifica, poi Dilemmas (vuota per ora). Vista e raggruppamento cambiano solo la copia sullo schermo.
+// dei like, formato, prezzo, autore), Copy to my decks ed Export, in fondo le schede Deck / Stats / Dilemmas
+// (DeckTabs, Dilemmas vuota per ora); sotto le sezioni senza comandi di modifica. Vista e raggruppamento
+// cambiano solo la copia sullo schermo.
 export default function CommunityDeck({ uid, id, notify }) {
   const [deck, setDeck] = useState(undefined); // undefined = caricamento, null = non più pubblico o errore
   const [exportOpen, setExportOpen] = useState(false);
+  const [tab, setTab] = useState('deck');
   const mobile = useIsMobile();
   const { currency } = useSettings();
   // Immagini solo da Scryfall: vale per testata, carte, anteprima e per la copia in Copy to my decks.
@@ -69,7 +72,7 @@ export default function CommunityDeck({ uid, id, notify }) {
   return (
     <div className={`deck-editor${mobile ? ' is-mobile' : ''}`}>
       <div className="deck-scroll">
-        <header className="deck-hero">
+        <header className="deck-hero has-tabs">
           <span className="deck-hero-art" aria-hidden="true">
             {cover?.card.art && (
               <>
@@ -97,13 +100,11 @@ export default function CommunityDeck({ uid, id, notify }) {
             </div>
           </div>
         </header>
+        <DeckTabs tab={tab} onTab={setTab} />
         <div className="deck-body">
           <section className="deck-main">
-            <DeckSections deck={deck} update={update} touch={mobile} readOnly />
-            <section className="deck-dilemmas" aria-labelledby="deck-dilemmas-head">
-              <h3 className="deck-analysis-head" id="deck-dilemmas-head">Dilemmas</h3>
-              <p className="field-hint">Nothing here yet.</p>
-            </section>
+            {tab === 'dilemmas' ? <DeckDilemmas />
+              : <DeckSections deck={deck} update={update} touch={mobile} readOnly tab={tab} onTab={setTab} />}
           </section>
         </div>
       </div>

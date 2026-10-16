@@ -2772,8 +2772,10 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .decks-tab { text-decoration: none; color: var(--text-muted); transition: color var(--transition); }
 .decks-tab::before, .decks-tab::after { opacity: 0; transition: opacity var(--transition); }
 .decks-tab:hover { color: var(--text-secondary); }
-.decks-tab[aria-current='page'] { color: var(--text-primary); }
-.decks-tab[aria-current='page']::before, .decks-tab[aria-current='page']::after { opacity: 1; }
+.decks-tab[aria-current] { color: var(--text-primary); }
+.decks-tab[aria-current]::before, .decks-tab[aria-current]::after { opacity: 1; }
+/* Schede del mazzo come pulsanti (DeckTabs): niente aspetto da pulsante. */
+button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointer; }
 .decks-tab:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 4px; }
 /* Ricerca per nome + Filters (formato, colori) sopra la griglia. */
 .decks-search { display: flex; gap: 8px; margin-bottom: 16px; }
@@ -3007,7 +3009,30 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .deck-like.on { color: var(--accent); border-color: rgba(255, 45, 149, 0.7); box-shadow: 0 0 12px rgba(255, 45, 149, 0.35); }
 .deck-like.on svg { transform: scale(1.12); }
 .deck-like span { color: var(--text-primary); }
-.deck-dilemmas { margin-top: 44px; }
+/* Schede Deck / Stats / Dilemmas: sovrapposte al fondo della testata (che ha 44 px di padding in più),
+   centrate; sticky a `top` (style), col fondo della barra quando sono attaccate. */
+.deck-hero.has-tabs { padding-bottom: 60px; }
+.deck-tabs {
+  /* z 5: sopra la testata (viene dopo), sotto la barra del nome (6), la cui tendina dei suggerimenti deve coprirle. */
+  position: sticky; z-index: 5;
+  height: 44px; margin-top: -44px;
+  display: flex; align-items: center; justify-content: center; gap: 28px;
+  pointer-events: none;
+  transition: background var(--transition), box-shadow var(--transition);
+}
+.deck-tabs > * { pointer-events: auto; }
+.deck-tabs.solid {
+  background: rgba(10, 9, 18, 0.94);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(124, 92, 255, 0.16);
+  box-shadow: var(--shadow-md);
+}
+.deck-sections.tab-stats .deck-analysis { width: auto; min-width: 0; margin-top: 0; }
+/* Telefono: la testata ha il suo padding (va riallungato per le schede), schede più strette. */
+.deck-editor.is-mobile .deck-hero.has-tabs { padding-bottom: 56px; }
+.deck-editor.is-mobile .deck-tabs { gap: 14px; }
+.deck-editor.is-mobile .deck-tabs .decks-tab, .mobile-decks .decks-tabs .decks-tab { font-size: 0.8rem; letter-spacing: 0.14em; }
+.mobile-decks .decks-tabs { gap: 14px; }
 span.deck-hero-art { cursor: default; }
 /* Testata del mazzo: pulsanti solo icona, quadrati da 36 px con il fondo scuro del prezzo (stanno sull'arte). */
 .deck-hero-meta .deck-icon-btn { flex: none; width: 36px; height: 36px; padding: 0; justify-content: center; background: rgba(8, 7, 15, 0.6); }

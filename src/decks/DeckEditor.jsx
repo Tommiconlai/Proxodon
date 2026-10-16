@@ -7,6 +7,7 @@ import { cardsByIds } from './scryfallSearch';
 import { navigate } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
+import { DeckTabs, DeckDilemmas } from './DeckTabs';
 import CardSearch from './CardSearch';
 import AdvancedSearch from './AdvancedSearch';
 import { MobilePage } from '../components/MobileLayout';
@@ -34,11 +35,17 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const [coverOpen, setCoverOpen] = useState(false);
   const [advOpen, setAdvOpen] = useState(false); // pannello della ricerca avanzata (desktop)
   const [stuck, setStuck] = useState(false); // la testata è uscita: la fascia ricerca ha lo sfondo
+  const [tab, setTab] = useState('deck'); // schede della testata: deck | stats | dilemmas
   const heroRef = useRef(null);
+  const barRef = useRef(null);
+  const [barH, setBarH] = useState(64); // altezza della barra .stuck: le schede si attaccano sotto
   const refreshed = useRef(false);
   // Barra quando della testata resta meno della riga nome + ricerca. Soglia fissa: la barra da
   // .stuck è più bassa (niente Advanced search), misurarla farebbe oscillare lo stato.
-  const onScroll = (e) => setStuck(e.currentTarget.scrollTop > (heroRef.current?.offsetHeight || 0) - STUCK_AT);
+  const onScroll = (e) => {
+    setStuck(e.currentTarget.scrollTop > (heroRef.current?.offsetHeight || 0) - STUCK_AT);
+    if (barRef.current?.classList.contains('stuck')) setBarH(barRef.current.offsetHeight);
+  };
 
   // Ridisegno ogni 30 s: il "minutes ago" va avanti da solo.
   const [, tick] = useState(0);
@@ -105,7 +112,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
       <div className="deck-scroll" onScroll={mobile ? undefined : onScroll}>
       {!mobile && (
         <div className="deck-sticky">
-          <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`}>
+          <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`} ref={barRef}>
             {name}
             <div className="deck-hero-search">
               <CardSearch format={deck.format} onAdd={add} notify={notify} advanced={advOpen} onAdvanced={setAdvOpen} />
@@ -113,7 +120,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
           </div>
         </div>
       )}
-      <header className="deck-hero" ref={heroRef}>
+      <header className="deck-hero has-tabs" ref={heroRef}>
         <button type="button" className="deck-hero-art" onClick={() => setCoverOpen(true)} disabled={!cover}
           aria-label={cover ? `Deck cover: ${cover.card.name}. Change it` : 'Deck cover: add cards first'}>
           {cover?.card.art && (
@@ -149,6 +156,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
           </div>
         </div>
       </header>
+      <DeckTabs tab={tab} onTab={setTab} top={mobile ? 0 : barH} />
       <div className="deck-body">
         <section className="deck-main">
           {!mobile && advOpen && (
@@ -160,7 +168,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
               <AdvancedSearch format={deck.format} onAdd={add} notify={notify} />
             </section>
           )}
-          <DeckSections deck={deck} update={update} touch={mobile} />
+          {tab === 'dilemmas' ? <DeckDilemmas /> : <DeckSections deck={deck} update={update} touch={mobile} tab={tab} onTab={setTab} />}
         </section>
       </div>
       </div>
