@@ -1,9 +1,10 @@
 import { useId, useState } from 'react';
 import { advancedQuery, withLegal, searchCards } from './scryfallSearch';
 import { ManaCost } from './Mana';
-import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 import { useAddCard } from './useAddCard';
-import { IconSearch, IconPlus, IconX } from '../components/icons';
+import { snapshotFromCard } from './deckModel';
+import { CardView } from './DeckSections';
+import { IconSearch, IconPlus } from '../components/icons';
 
 const EMPTY = {
   name: '', oracle: '', type: '', manaCost: '', mvOp: '=', mv: '', colors: [], colorless: false, colorMode: '>=',
@@ -165,19 +166,7 @@ export default function AdvancedSearch({ format, onAdd, notify }) {
             </>
           )
       )}
-      {zoom && <CardZoom card={zoom} onClose={() => setZoom(null)} />}
+      {zoom && <CardView card={snapshotFromCard(zoom)} onClose={() => setZoom(null)} />}
     </section>
-  );
-}
-
-function CardZoom({ card, onClose }) {
-  const ref = useOverlayDismiss(onClose);
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="card-zoom-wrap" ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={card.name}>
-        <img className="card-zoom" src={card.image_uris?.large || card.card_faces?.[0]?.image_uris?.large || thumb(card)} alt={card.name} />
-        <button type="button" className="modal-close card-zoom-close" onClick={onClose} aria-label="Close"><IconX size={18} /></button>
-      </div>
-    </div>
   );
 }

@@ -10,7 +10,8 @@ import {
 } from './deckStore';
 import { navigate } from '../hooks/useHashRoute';
 import { useBackClose } from '../hooks/useBackClose';
-import { groupMain, commanderRows, boardRows, scryfallImg } from './deckModel';
+import { useCount } from './useCount';
+import { groupMain, commanderRows, boardRows, scryfallImg, shuffle } from './deckModel';
 import {
   IconPlus, IconArrowLeft, IconArrowRight, IconTrash, IconCheck, IconX, IconLock, IconLockOpen,
 } from '../components/icons';
@@ -86,23 +87,12 @@ function useAnswered(uid) {
   return answered;
 }
 
-// Risposte di un dilemma: conteggio dal server, una lettura; prima della risposta o senza permesso: 0.
-function useVoteCount(deckId, dId) {
-  const [n, setN] = useState(0);
-  useEffect(() => {
-    let alive = true;
-    countVotes(deckId, dId).then((c) => { if (alive) setN(c); }).catch(() => {});
-    return () => { alive = false; };
-  }, [deckId, dId]);
-  return n;
-}
-
 // Riquadro di un dilemma (disegno dell'utente): le arti delle due carte divise in diagonale, in alto a
 // sinistra le risposte, in alto a destra il lucchetto (chiuso = hai risposto, aperto = ancora da
 // risolvere; niente sui propri, a cui non si risponde). Sotto, fuori dal bordo, la domanda e nel feed
 // mazzo e autore (meta). Link (href) nel feed, pulsante (onClick) nella scheda del mazzo.
 function DilemmaTile({ deckId, d, uid, solved, meta, href, onClick }) {
-  const votes = useVoteCount(deckId, d.id);
+  const votes = useCount(countVotes, deckId, d.id);
   const mine = d.uid === uid;
   const Tag = href ? 'a' : 'button';
   const status = mine ? 'your dilemma' : solved ? 'answered' : 'not answered yet';
@@ -190,15 +180,6 @@ export function DilemmaFeed({ uid, notify, open, play, terms = [], format = '' }
     </ul>
   );
 }
-
-const shuffle = (a) => {
-  const b = [...a];
-  for (let i = b.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [b[i], b[j]] = [b[j], b[i]];
-  }
-  return b;
-};
 
 // Play (#/dilemmas/play), un "Tinder" dei dilemmi: quelli altrui a cui non hai ancora risposto, uno alla
 // volta in ordine casuale (fissato all'avvio: il voto appena dato non fa saltare via il risultato). Scegli

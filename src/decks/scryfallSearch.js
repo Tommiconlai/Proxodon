@@ -2,11 +2,10 @@
  * Ricerca carte per l'editor mazzi: autocompletamento, carta per nome esatto, ricerca a pagine,
  * carte per id (riallineamento) e risoluzione delle liste importate in snapshot.
  */
-import { scryfallFetch, lookupCards } from '../utils/scryfall.js';
+import { scryfallFetch, lookupCards, sleep } from '../utils/scryfall.js';
 import { snapshotFromCard } from './deckModel.js';
 
 const API = 'https://api.scryfall.com';
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export const autocompleteUrl = (q) => `${API}/cards/autocomplete?q=${encodeURIComponent(q)}`;
 export const namedUrl = (name) => `${API}/cards/named?exact=${encodeURIComponent(name)}`;

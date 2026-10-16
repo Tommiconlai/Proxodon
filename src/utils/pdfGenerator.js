@@ -265,19 +265,6 @@ export function drawCardWithBleed(ctx, img, x, y, cellW, cellH, bleedPx, mode = 
 }
 
 /**
- * Carica un File come HTMLImageElement.
- */
-function loadImageElement(file) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error(`Impossibile caricare ${file.name}`)); };
-    img.src = url;
-  });
-}
-
-/**
  * Ridimensiona e comprime un'immagine su canvas, restituendo un dataURL JPEG.
  * Ridimensiona alle dimensioni esatte della cella PDF e comprime in JPEG 0.85
  * (riduzione tipica 5–10×). Con `bleedFill` la carta è disegnata a misura di
@@ -352,9 +339,10 @@ export async function generatePDF(items, formatKey, bleedMm, dpi = 600, bleedSty
 
       // Carica, ridimensiona e comprimi prima di passare a jsPDF
       const item = items[imgIndex];
-      const imgEl = await loadImageElement(item.file);
+      const imgEl = await createImageBitmap(item.file).catch(() => { throw new Error(`Cannot load ${item.file.name}`); });
       const mode = resolveBleedMode(item.bleedMode, bleedStyle);
       const jpeg = compressImage(imgEl, cellW, cellH, dpi, bleedMm, mode, quality);
+      imgEl.close();
       doc.addImage(jpeg, 'JPEG', x, y, cellW, cellH);
       if (cropMarks) {
         const limits = {

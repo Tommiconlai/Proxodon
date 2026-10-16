@@ -1,5 +1,13 @@
 import { useRef } from 'react';
 
+// Punto del menu contestuale: dove si è cliccato; Shift+F10 / tasto menu arrivano con 0,0, allora
+// 24 px dentro l'elemento.
+export const menuPoint = (e) => {
+  if (e.clientX || e.clientY) return { x: e.clientX, y: e.clientY };
+  const r = e.currentTarget.getBoundingClientRect();
+  return { x: r.left + 24, y: r.top + 24 };
+};
+
 // Pressione lunga (touch/penna, 500 ms) = menu contestuale, come le carte in stampa. Annullata se
 // il dito si sposta >10 px (scroll) o si alza prima. `consumed()` va chiamato nel click: dice se
 // quel click chiude una pressione lunga (allora non deve anche selezionare/aprire).

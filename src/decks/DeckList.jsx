@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { listenDecks, listenCommunity, createDeck, saveDeck, deleteDeck, setDeckPublic, changedMs } from './deckStore';
+import { listenDecks, listenCommunity, createDeck, saveDeck, deleteDeck, setDeckPublic, changedMs, countLikes } from './deckStore';
 import {
   FORMATS, newDeck, duplicateDeck, deckIdentity, deckCover, scryfallImg, formatLabel, searchTerms, deckMatches,
 } from './deckModel';
 import { useSettings } from '../utils/settings';
 import { navigate } from '../hooks/useHashRoute';
-import { useLongPress } from '../hooks/useLongPress';
+import { useLongPress, menuPoint } from '../hooks/useLongPress';
 import CardMenu from '../components/CardMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { ManaPips } from './Mana';
 import { NameFormatDialog, ExportDeckDialog } from './dialogs';
 import { timeAgo } from '../utils/timeAgo';
 import ImportDeckDialog from './ImportDeckDialog';
-import { useLikeCount } from './useLikes';
+import { useCount } from './useCount';
 import { TabLabel } from './DeckTabs';
 import { DilemmaFeed } from './Dilemmas';
 import { useBracketSlide } from '../hooks/useBracketSlide';
@@ -53,13 +53,6 @@ function useScrollMemory(ref, key) {
 }
 const LIST_TABS = [['community', 'Community'], ['dilemmas', 'Dilemmas'], ['mine', 'My decks']];
 
-// Shift+F10 / tasto menu arrivano con 0,0: ancora il menu all'elemento.
-const menuPoint = (e) => {
-  if (e.clientX || e.clientY) return { x: e.clientX, y: e.clientY };
-  const r = e.currentTarget.getBoundingClientRect();
-  return { x: r.left + 24, y: r.top + 24 };
-};
-
 // Riquadro di un mazzo (lista, Community, profilo): sull'arte, in alto a sinistra sotto una sfumatura
 // nera, nome (accanto il globo se è pubblico, fuori dalla Community), formato e like ricevuti; sotto
 // identità di colore, poi autore (by, nella Community) e ultima modifica; il prezzo sta solo in Stats.
@@ -67,7 +60,7 @@ const menuPoint = (e) => {
 export function DeckTile({ deck: d, by, ...props }) {
   const cover = scryfallImg(deckCover(d));
   const updated = changedMs(d); // ultimo cambio di carte (changedAt), non l'ultima scrittura
-  const likes = useLikeCount(d.id, !!d.public);
+  const likes = useCount(countLikes, d.id, undefined, !!d.public);
   return (
     <button type="button" className="deck-tile" {...props}>
       <span className="deck-tile-art" style={cover ? { backgroundImage: `url("${cover}")` } : undefined}>

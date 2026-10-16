@@ -164,7 +164,6 @@ export const saveProfile = (uid, fields) =>
 // altro errore 'taken', altrimenti lo prende, libera il vecchio e lo scrive nel profilo (le regole
 // controllano che i due documenti corrispondano). name vuoto = nessun nickname.
 export const nicknameKey = (name) => name.toLowerCase();
-export const NICKNAME_RE = /^[a-z0-9._-]{3,24}$/i;
 export async function claimNickname(uid, name, old) {
   const key = name && nicknameKey(name);
   const oldKey = old && nicknameKey(old);

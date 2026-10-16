@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import CardMenu from '../components/CardMenu';
-import { useLongPress } from '../hooks/useLongPress';
+import { useLongPress, menuPoint } from '../hooks/useLongPress';
 import { ManaCost } from './Mana';
 import { NameFormatDialog } from './dialogs';
 import ArtPickerModal from '../components/ArtPickerModal';
@@ -15,7 +15,7 @@ import DeckStats from './DeckStats';
 import SampleHand from './SampleHand';
 import CardImg from './CardImg';
 import { CardFrame, CardFrameDefs } from '../components/CardFrame';
-import { cachedImg } from './cardLang';
+import { cachedImg, useCardImg } from './cardLang';
 import { useSettings, setSetting } from '../utils/settings';
 import {
   IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy, IconFlip, IconPrinter, IconEye, IconX,
@@ -38,11 +38,6 @@ const PILE_HEAD = 34; // intestazione del gruppo con il suo margine
 const TOUCH_STRIP = 36;
 const pileHeight = (n, w, strip = w * (680 / 488 - 1.253)) => PILE_HEAD + (n ? (w * 680) / 488 + (n - 1) * strip : 26); // 0 carte = "No commander yet."
 const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
-const menuPoint = (e) => {
-  if (e.clientX || e.clientY) return { x: e.clientX, y: e.clientY };
-  const r = e.currentTarget.getBoundingClientRect();
-  return { x: r.left + 24, y: r.bottom };
-};
 // Corpo dell'editor: barra (ordina, vista, raggruppa, + nuova sezione), comandante, gruppi, sideboard, maybeboard,
 // poi statistiche e mano di prova sotto tutto.
 // Viste: lista (righe), griglia (immagini), stack (immagini sovrapposte, si vede la riga del nome;
@@ -568,15 +563,16 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   );
 }
 
-// View card: la carta a tutto schermo (lingua di Settings), le due facce si girano con Flip. Chiude con ✕,
-// Esc, il back del sistema o un tocco fuori.
-function CardView({ card, onClose }) {
+// View card (e lo zoom della ricerca avanzata): la carta a tutto schermo, versione large di Scryfall nella
+// lingua di Settings, le due facce si girano con Flip. Chiude con ✕, Esc, il back del sistema o un tocco fuori.
+export function CardView({ card, onClose }) {
   const [side, setSide] = useState(0);
   const ref = useOverlayDismiss(onClose);
+  const src = useCardImg(card, side).replace('/normal/', '/large/');
   return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div className="card-zoom-wrap" ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={card.name} onClick={(e) => e.stopPropagation()}>
-        <CardImg card={card} side={side} className="card-zoom" alt={side ? `${card.name}, back` : card.name} loading="eager" />
+        <img src={src} className="card-zoom" alt={side ? `${card.name}, back` : card.name} />
         <button type="button" className="modal-close card-zoom-close" onClick={onClose} aria-label="Close" title="Close"><IconX size={20} /></button>
         {card.back && (
           <button type="button" className="btn-secondary deck-icon-btn card-zoom-flip" onClick={() => setSide((s) => 1 - s)}

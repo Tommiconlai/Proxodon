@@ -11,7 +11,7 @@ const COLLECTION_URL = 'https://api.scryfall.com/cards/collection';
 const CHUNK = 75;          // max identifiers per richiesta (limite Scryfall)
 const IMG_CONCURRENCY = 8; // fetch immagini in parallelo
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Fetch verso Scryfall con retry su 429/5xx e errori di rete. I 503/Cloudflare
 // tornano senza header CORS → nel browser appaiono come "Failed to fetch" opaco:

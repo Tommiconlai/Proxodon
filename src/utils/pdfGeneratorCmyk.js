@@ -49,17 +49,6 @@ function renderCellRGBA(img, cellWmm, cellHmm, dpi, bleedMm, bleedMode) {
   return { data: ctx.getImageData(0, 0, w, h).data, w, h };
 }
 
-/** Carica un File come HTMLImageElement (object URL revocato a fine load). */
-function loadImageElement(file) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error(`Cannot load ${file.name}`)); };
-    img.src = url;
-  });
-}
-
 /**
  * Disegna i crocini di taglio in CMYK (100% K) su una pagina pdf-lib.
  * Porta drawCropMarks (jsPDF, mm da alto-sx) alle coordinate pdf-lib
@@ -202,8 +191,9 @@ export async function buildCmykPdfBytes(items, formatKey, bleedMm, dpi = 300, bl
         const cell = cmykCellBuffer(dec, cardW, cardH, bleedMm, mode);
         cmykBytes = cell.data; w = cell.w; h = cell.h;
       } else {
-        const imgEl = await loadImageElement(item.file);
+        const imgEl = await createImageBitmap(item.file).catch(() => { throw new Error(`Cannot load ${item.file.name}`); });
         const cell = renderCellRGBA(imgEl, cellW, cellH, dpi, bleedMm, mode);
+        imgEl.close();
         cmykBytes = (await getConv()).convert(cell.data, cell.w * cell.h); // RGBA → CMYK 8-bit
         w = cell.w; h = cell.h;
       }

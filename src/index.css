@@ -108,11 +108,7 @@ h3 {
 
 /* Tabular figures for technical data (dimensions, DPI, counts) */
 .info-box,
-.badge,
-.slider-value,
-.nav-info,
-.preview-format-tag,
-.preview-empty-info {
+.nav-info {
   font-variant-numeric: tabular-nums;
 }
 
@@ -938,18 +934,6 @@ select option {
 /* ============================================================
    SLIDER
    ============================================================ */
-.slider-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.slider-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -975,14 +959,6 @@ input[type="range"]::-webkit-slider-thumb {
 input[type="range"]::-webkit-slider-thumb:hover {
   box-shadow: 0 0 14px var(--accent-glow);
   transform: scale(1.15);
-}
-
-.slider-value {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--accent-light);
-  min-width: 36px;
-  text-align: right;
 }
 
 /* ============================================================
@@ -1011,36 +987,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
    PREVIEW
    ============================================================ */
 
-.preview-format-tag {
-  font-size: 0.68rem;
-  color: var(--text-muted);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 1px 7px;
-}
-
-.preview-top-row {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-}
-
-.preview-pages-block {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.preview-empty-block {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .preview-page-wrap {
   position: relative;
   display: flex;
@@ -1055,34 +1001,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
   box-shadow:
     0 24px 70px rgba(0, 0, 0, 0.6),
     0 4px 18px rgba(0, 0, 0, 0.45);
-}
-
-.page-label {
-  font-size: 0.64rem;
-  color: var(--text-muted);
-  text-align: center;
-}
-
-.preview-empty-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-}
-
-.preview-empty-wrap canvas {
-  border-radius: 3px;
-  box-shadow:
-    0 6px 20px rgba(0, 0, 0, 0.55),
-    0 1px 3px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(255, 255, 255, 0.06);
-}
-
-.preview-empty-info {
-  display: flex;
-  gap: 8px;
-  font-size: 0.68rem;
-  color: var(--text-muted);
 }
 
 /* Nav buttons */
@@ -1967,19 +1885,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 /* ============================================================
-   BADGE
-   ============================================================ */
-.badge {
-  background: var(--accent-dim);
-  color: var(--accent-light);
-  border: 1px solid rgba(212, 146, 63, 0.3);
-  border-radius: 20px;
-  padding: 2px 10px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-/* ============================================================
    GENERATE BUTTON
    ============================================================ */
 /* CTA principale: bordo sfumato animato magenta→viola→ciano (two-layer background,
@@ -2108,30 +2013,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 /* ============================================================
-   EMPTY STATE
-   ============================================================ */
-.empty-state {
-  padding: 60px 24px;
-  text-align: center;
-  color: var(--text-muted);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.empty-state .empty-icon {
-  font-size: 3rem;
-  opacity: 0.4;
-}
-
-.empty-state p {
-  font-size: 0.85rem;
-  max-width: 280px;
-  line-height: 1.6;
-}
-
-/* ============================================================
    SCROLLBAR
    ============================================================ */
 ::-webkit-scrollbar {
@@ -2150,15 +2031,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
-}
-
-/* ============================================================
-   BADGE VARIANTS
-   ============================================================ */
-.badge-warning {
-  background: rgba(239, 68, 68, 0.13);
-  color: #f3998f;
-  border-color: rgba(239, 68, 68, 0.32);
 }
 
 /* ============================================================
@@ -2236,7 +2108,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 /* ============================================================
    FOCUS (keyboard a11y)
    ============================================================ */
-:where(button, a, [tabindex], .drop-zone):focus-visible {
+:where(button, a, [tabindex]):focus-visible {
   outline: 2px solid rgba(0, 229, 255, 0.65);
   outline-offset: 2px;
 }
@@ -2322,7 +2194,6 @@ body::before {
 .mobile-page-header h2 { margin: 0; font-family: var(--font-display); font-size: 1.15rem; color: var(--text-primary); }
 .mobile-page-body { flex: 1; min-height: 0; overflow-y: auto;
   padding: 14px 14px calc(28px + env(safe-area-inset-bottom, 0)); }
-.mobile-settings { padding: 16px; }
 .mobile-export { padding: 20px 16px; display: flex; flex-direction: column; gap: 12px; }
 .export-summary { font-size: 0.95rem; color: var(--text-secondary); }
 .export-summary strong { color: var(--text-primary); font-size: 1.4rem; }
@@ -2983,8 +2854,6 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .cover-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 .cover-grid .art-cell img { aspect-ratio: 626 / 457; object-fit: cover; }
 .cover-grid .art-cell span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.deck-back { display: flex; padding: 6px; border-radius: 6px; color: var(--text-secondary); }
-.deck-back:hover, .deck-back:focus-visible { color: var(--cyan-soft); background: var(--bg-glass-hover); outline: none; }
 .deck-name {
   flex: 1 1 180px; min-width: 0;
   padding: 6px 8px;

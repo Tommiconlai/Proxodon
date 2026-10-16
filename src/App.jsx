@@ -249,7 +249,6 @@ export default function App() {
   ));
 
   // Azioni in blocco sulla selezione (preview desktop). Delete passa dall'undo.
-  const handleRemoveMany = (ids) => removeWithUndo(ids);
   // Bleed in blocco: esito UNIFORME e prevedibile (no cicli per-carta). Se qualche
   // carta selezionata è senza abbondanza → accendile tutte (stretch); altrimenti
   // spegnile tutte. Un solo setImages + feedback toast.
@@ -497,7 +496,7 @@ export default function App() {
     images, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop: cropMarks, cropStyle,
     customSheet, onRemove: handleRemove, onChangeArt: (ids) => setEditingIds([].concat(ids)), onToggleBleed: handleToggleBleed,
     onDuplicate: handleDuplicate, onMove: handleMove, onUpscale: handleUpscale, upscaling, isDragActive, missing,
-    onRemoveMany: handleRemoveMany, onBleedMany: handleBleedMany,
+    onRemoveMany: removeWithUndo, onBleedMany: handleBleedMany,
   };
 
   // Ramo mobile: shell a tab + modali condivise (props reali arrivano in Tasks 2–4).
