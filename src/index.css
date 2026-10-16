@@ -3071,7 +3071,7 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .dilemma-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .dilemma-head .deck-analysis-head { flex: 1; margin: 0; }
 /* Riquadro di un dilemma (disegno dell'utente): le arti delle due carte divise in diagonale da una riga
-   magenta (da 60% in alto a 40% in basso), risposte in alto a sinistra, lucchetto in alto a destra; la
+   nera sfumata, come un'ombra (da 60% in alto a 40% in basso), risposte in alto a sinistra, lucchetto in alto a destra; la
    domanda (max 3 righe) e nel feed mazzo e autore stanno sotto, fuori dal bordo. Hover: la metà sotto il
    puntatore resta accesa, l'altra si scurisce (il clip-path limita anche l'hover alla parte visibile). */
 .dilemma-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 300px)); justify-content: center; gap: 28px 22px; }
@@ -3092,8 +3092,8 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .dilemma-split-ph { display: flex; align-items: center; justify-content: center; padding: 0 18%; font-size: 0.75rem; color: var(--text-muted); text-align: center; }
 .dilemma-tile:hover .dilemma-split .s0, .dilemma-tile:hover .dilemma-split .s1 { filter: brightness(0.55); }
 .dilemma-tile .dilemma-split .s0:hover, .dilemma-tile .dilemma-split .s1:hover { filter: none; }
-.dilemma-split-line { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; filter: drop-shadow(0 0 4px var(--accent)); }
-.dilemma-split-line line { stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.dilemma-split-line { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; filter: drop-shadow(0 0 3px #000) drop-shadow(0 0 8px rgba(0, 0, 0, 0.85)); }
+.dilemma-split-line line { stroke: #000; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .dilemma-votes, .dilemma-lock {
   position: absolute; top: 8px; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px;
   background: rgba(8, 7, 15, 0.85); border: 1px solid rgba(0, 229, 255, 0.45); border-radius: var(--radius-sm);
