@@ -1822,65 +1822,32 @@ input[type="range"]::-webkit-slider-thumb:hover {
   outline-offset: -1px;
 }
 
-/* Cornice HUD (dal Figma): 3px fuori dal taglio, invisibile a riposo.
-   Hover = contorno sfumato magenta → viola → ciano (.hov, sotto); selezionata = segmenti pieni
-   e centrati (Figma 4021:2397). Differenza di forma → il click che deseleziona si vede
-   anche con il mouse ancora sopra la carta. */
+/* Cornice carta (CardFrame): contorno 3px fuori dal taglio col gradiente dei riquadri dei mazzi
+   (#px-frame-grad), invisibile a riposo. Hover = 60%, solo dove l'hover esiste (su touch resterebbe
+   "appiccicato" dopo il tap); selezionata = 100% con alone sfocato dello stesso gradiente (#px-frame-glow).
+   Hover su una selezionata = resta piena: al click che la deseleziona scende al 60% e l'alone sparisce.
+   Carte dei mazzi coperte da altre (stack, griglia sovrapposta): --frame-h = la sola parte scoperta. */
 .card-frame {
   position: absolute;
   inset: -3px;
   width: calc(100% + 6px);
-  height: calc(var(--frame-h, 100%) + 6px); /* --frame-h: parte scoperta delle carte dei mazzi coperte da altre */
+  height: calc(var(--frame-h, 100%) + 6px);
   overflow: visible;
   pointer-events: none;
   fill: none;
+  stroke: url(#px-frame-grad);
   stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
   opacity: 0;
   transition: opacity 0.14s ease;
 }
-
-.card-frame .m { stroke: var(--accent); }
-.card-frame .c { stroke: var(--cyan); }
-
-/* Segmenti accorciati (hover): 121/181 sopra/sotto, 121/241 sui lati, come nel Figma. */
-.card-frame line {
-  transform-box: fill-box;
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.card-frame .t { transform-origin: left center; transform: scaleX(0.67); }
-.card-frame .b { transform-origin: right center; transform: scaleX(0.67); }
-.card-frame .r { transform-origin: center top; transform: scaleY(0.5); }
-.card-frame .l { transform-origin: center bottom; transform: scaleY(0.5); }
-
-/* Hover solo dove esiste davvero: su touch :hover resta "appiccicato" dopo il tap e
-   lascerebbe la cornice corta su una carta appena deselezionata. */
-/* Stessa cornice sulle carte dei mazzi (griglia e stack, .deck-row): nello stack e nella griglia
-   sovrapposta la carta successiva copre il resto, si vedono il segmento in alto e gli angoli. */
+.preview-card-hotspot .card-frame rect { rx: 3px; } /* stampa: carte ad angoli vivi, contorno concentrico a 3px */
 @media (hover: hover) {
-  .preview-card-hotspot:hover .card-frame, .deck-row:hover .card-frame { opacity: 1; }
+  .preview-card-hotspot:hover .card-frame, .deck-row:hover .card-frame, .dilemma-card:hover .card-frame { opacity: 0.6; }
 }
-
-/* Hover = contorno col gradiente dei riquadri dei mazzi (.hov); i segmenti (.sel) solo da selezionata.
-   Su una selezionata il passaggio del mouse non cambia nulla: al click che la deseleziona compare il
-   contorno, la differenza si vede. */
-.card-frame .hov { stroke: url(#px-hover-grad); opacity: 0; transition: opacity 0.14s ease; }
-.preview-card-hotspot .card-frame .hov { rx: 3px; } /* stampa: carte ad angoli vivi, contorno concentrico a 3px */
-.card-frame .sel { transition: opacity 0.14s ease; }
-@media (hover: hover) {
-  .preview-card-hotspot:not(.selected):hover .card-frame .hov, .deck-row:not(.selected):hover .card-frame .hov,
-  .dilemma-card:not(.selected):hover .card-frame .hov { opacity: 1; }
-  .preview-card-hotspot:not(.selected):hover .card-frame .sel, .deck-row:not(.selected):hover .card-frame .sel,
-  .dilemma-card:not(.selected):hover .card-frame .sel { opacity: 0; }
+.preview-card-hotspot.selected .card-frame, .deck-row.selected .card-frame, .dilemma-card.selected .card-frame { opacity: 1; }
+.preview-card-hotspot.selected .card-frame rect, .deck-row.selected .card-frame rect, .dilemma-card.selected .card-frame rect {
+  filter: url(#px-frame-glow);
 }
-
-.preview-card-hotspot.selected .card-frame, .deck-row.selected .card-frame { opacity: 1; }
-
-.preview-card-hotspot.selected .card-frame line, .deck-row.selected .card-frame line { transform: none; }
-
-/* Selezionata: i segmenti si accendono col loro colore (filtro #px-seg-glow, CardFrameDefs). */
-.preview-card-hotspot.selected .card-frame .segs, .deck-row.selected .card-frame .segs { filter: url(#px-seg-glow); }
 
 .svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 
@@ -3147,10 +3114,6 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .dilemma-cards:hover .dilemma-card:not(:hover) { filter: brightness(0.5); }
 .dilemma-card:hover, .dilemma-card:focus-visible { transform: scale(1.1); z-index: 1; outline: none; }
 .dilemma-cards.voted .dilemma-card { cursor: default; }
-.dilemma-card:hover .card-frame { opacity: 1; }
-.dilemma-card.selected .card-frame { opacity: 1; }
-.dilemma-card.selected .card-frame line { transform: none; }
-.dilemma-card.selected .card-frame .segs { filter: url(#px-seg-glow); }
 /* Percentuale in basso a destra della carta (il quadratino "%" del disegno). */
 .dilemma-pct {
   position: absolute; right: 8px; bottom: 8px;

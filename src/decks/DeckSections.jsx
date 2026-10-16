@@ -363,7 +363,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
             </>
           )}
         </button>
-        {/* Cornice della stampa (CardFrame): corta al passaggio, piena e accesa sulla carta selezionata. */}
+        {/* Cornice della stampa (CardFrame): contorno sfumato al 60% al passaggio, pieno e con alone sulla carta selezionata. */}
         {view !== 'list' && <CardFrame />}
         {/* Fuori dalla carta (niente pulsanti annidati), anche in sola lettura. */}
         {view !== 'list' && r.card.back && r.card.img && (
