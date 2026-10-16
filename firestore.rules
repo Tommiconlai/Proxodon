@@ -25,6 +25,14 @@ service cloud.firestore {
       allow read, delete: if owner(uid);
       allow create, update: if owner(uid) && validProfile(uid, request.resource.data);
     }
+    // Dilemmi a cui l'account ha risposto (contatore del profilo): solo suoi.
+    match /users/{uid}/answered/{id} {
+      allow read, delete: if owner(uid);
+      // Solo insieme al voto (stesso batch) e con l'id {deck}_{dilemma}: il contatore non si gonfia.
+      allow create: if owner(uid) && request.resource.data.keys().hasOnly(['deck', 'dilemma', 'at'])
+        && id == request.resource.data.deck + '_' + request.resource.data.dilemma
+        && existsAfter(/databases/$(db)/documents/publicDecks/$(request.resource.data.deck)/dilemmas/$(request.resource.data.dilemma)/votes/$(uid));
+    }
     match /users/{uid}/decks/{deckId} {
       allow read, delete: if owner(uid);
       allow create, update: if owner(uid) && request.resource.data.cards.size() <= 500;
@@ -35,6 +43,18 @@ service cloud.firestore {
       return d.uid == request.auth.uid
         && d.cards.size() <= 500
         && d.words.size() <= 200
+        && (d.get('owner', null) == null || (d.owner is string
+          && get(/databases/$(db)/documents/usernames/$(d.owner.lower())).data.uid == request.auth.uid));
+    }
+    function validDilemma(d) {
+      return d.keys().hasOnly(['uid', 'question', 'cards', 'createdAt'])
+        && d.question is string && d.question.size() > 0 && d.question.size() <= 280
+        && d.cards is list && d.cards.size() == 2;
+    }
+    function validVote(d) {
+      return d.keys().hasOnly(['pick', 'why', 'owner', 'at'])
+        && (d.pick == 0 || d.pick == 1)
+        && d.why is string && d.why.size() <= 500
         && (d.get('owner', null) == null || (d.owner is string
           && get(/databases/$(db)/documents/usernames/$(d.owner.lower())).data.uid == request.auth.uid));
     }
@@ -49,6 +69,27 @@ service cloud.firestore {
         allow create: if owner(uid) && request.resource.data.keys().hasOnly(['at'])
           && get(/databases/$(db)/documents/publicDecks/$(deckId)).data.uid != uid;
         allow delete: if owner(uid);
+      }
+      // Dilemmi: li crea e cancella il proprietario del mazzo pubblico (domanda 1-280 caratteri, due carte),
+      // li legge chi ha un account. Voti: uno per account (id = uid), mai sul proprio dilemma; dopo il voto
+      // cambia solo la spiegazione (why, max 500); la firma (owner) è il nickname di chi vota o nessuna; li
+      // cancella chi ha votato o il proprietario del dilemma (quando lo cancella).
+      match /dilemmas/{dId} {
+        allow read: if verified();
+        allow create: if verified() && request.resource.data.uid == request.auth.uid
+          && get(/databases/$(db)/documents/publicDecks/$(deckId)).data.uid == request.auth.uid
+          && validDilemma(request.resource.data);
+        allow delete: if verified() && resource.data.uid == request.auth.uid;
+        match /votes/{uid} {
+          allow read: if verified();
+          allow create: if owner(uid) && validVote(request.resource.data)
+            && get(/databases/$(db)/documents/publicDecks/$(deckId)/dilemmas/$(dId)).data.uid != uid;
+          // Solo why: la firma salvata non si ricontrolla (chi ha cambiato nickname può ancora spiegare).
+          allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['why'])
+            && request.resource.data.why is string && request.resource.data.why.size() <= 500;
+          allow delete: if owner(uid) || (verified()
+            && get(/databases/$(db)/documents/publicDecks/$(deckId)/dilemmas/$(dId)).data.uid == request.auth.uid);
+        }
       }
     }
     // Nickname unici: usernames/{nome in minuscolo} = { uid }. Lo legge chi ha un account (per sapere

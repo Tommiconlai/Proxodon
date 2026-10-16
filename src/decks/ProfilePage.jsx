@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { listenDecks, saveProfile, claimNickname } from './deckStore';
+import { listenDecks, saveProfile, claimNickname, countAnswered } from './deckStore';
 import { updateNickname, authMessage } from './firebase';
 import { deckCover } from './deckModel';
 import { useSettings } from '../utils/settings';
@@ -24,6 +24,9 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
   const [dialog, setDialog] = useState(null); // 'photo' | 'banner'
   const { currency } = useSettings();
   useEffect(() => listenDecks(user.uid, setDecks, () => setDecks(null)), [user.uid]);
+  // Dilemmi a cui ha risposto (users/{uid}/answered, conteggio sul server); senza permesso o offline: 0.
+  const [answered, setAnswered] = useState(null);
+  useEffect(() => { countAnswered(user.uid).then(setAnswered).catch(() => setAnswered(0)); }, [user.uid]);
   const photo = profile?.photo || null;
   const custom = { photo, banner: profile?.banner || null };
   const banner = custom.banner || decks?.map(deckCover).find(Boolean);
@@ -31,6 +34,7 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
     ['Member since', day(user.metadata.creationTime)],
     ['Last sign-in', day(user.metadata.lastSignInTime)],
     ['Decks', decks ? decks.length : '…'],
+    ['Dilemmas answered', answered ?? '…'],
     ['Followers', profile?.followers ?? 0],
     ['Following', profile?.following ?? 0],
   ];

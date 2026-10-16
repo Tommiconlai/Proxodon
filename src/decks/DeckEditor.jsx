@@ -7,7 +7,8 @@ import { cardsByIds } from './scryfallSearch';
 import { navigate } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
-import { DeckTabs, DeckDilemmas, DeckCount } from './DeckTabs';
+import { DeckTabs, DeckCount } from './DeckTabs';
+import { DeckDilemmas } from './Dilemmas';
 import CardSearch from './CardSearch';
 import AdvancedSearch from './AdvancedSearch';
 import { MobilePage } from '../components/MobileLayout';
@@ -166,7 +167,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
             </section>
           )}
           {/* Print dal menu delle carte: si aggiungono alla coda di stampa (mai la sostituiscono), anche dal maybeboard. */}
-          {tab === 'dilemmas' ? <DeckDilemmas /> : <DeckSections deck={deck} update={update} touch={mobile} tab={tab} onTab={setTab}
+          {tab === 'dilemmas' ? <DeckDilemmas deck={deck} uid={uid} mine notify={notify} /> : <DeckSections deck={deck} update={update} touch={mobile} tab={tab} onTab={setTab}
             onPrint={(rows) => onPrintDeck(toPrintEntries({ cards: rows.map((r) => ({ ...r, board: 'main' })) }), true)} />}
         </section>
       </div>

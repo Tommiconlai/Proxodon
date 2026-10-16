@@ -4,7 +4,7 @@
  * offline restano in coda nella cache locale.
  */
 import {
-  collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, getDoc, getDocs, writeBatch, runTransaction,
+  collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, getDoc, getDocs, writeBatch, runTransaction,
   query, where, orderBy, limit, getCountFromServer,
 } from 'firebase/firestore';
 import { db } from './firebase';
@@ -80,6 +80,7 @@ export const setDeckPublic = (uid, deck, on) => Promise.all([
 
 export const deleteDeck = (uid, deck) => Promise.all([
   deleteDoc(doc(decksCol(uid), deck.id)), deck.public && unpublishDeck(deck.id),
+  deck.public && deleteDilemmasOf(deck.id).catch(() => {}), // pulizia: se fallisce il mazzo resta comunque eliminato
 ]);
 
 // Gli ultimi creati, o quelli con una parola che inizia per word; i più recenti prima.
@@ -99,6 +100,41 @@ const likeDoc = (id, uid) => doc(publicCol, id, 'likes', uid);
 export const countLikes = (id) => getCountFromServer(collection(publicCol, id, 'likes')).then((s) => s.data().count);
 export const hasLiked = (id, uid) => getDoc(likeDoc(id, uid)).then((s) => s.exists());
 export const setLiked = (id, uid, on) => (on ? setDoc(likeDoc(id, uid), { at: serverTimestamp() }) : deleteDoc(likeDoc(id, uid)));
+
+// Dilemmi (solo mazzi pubblici): publicDecks/{deck}/dilemmas/{id} = { uid, question, cards: [2 carte], createdAt };
+// voti in .../votes/{uid} = { pick: 0 | 1, why, owner (nickname di chi vota), at }, uno per account, mai del
+// proprietario. Ogni voto ha anche users/{uid}/answered/{deck}_{id} = { deck, dilemma, at }: il contatore
+// del profilo e la cancellazione dei propri voti con l'account.
+const plainDoc = (s) => ({ id: s.id, ...s.data({ serverTimestamps: 'estimate' }) });
+const dilemmasCol = (deckId) => collection(publicCol, deckId, 'dilemmas');
+const votesCol = (deckId, dId) => collection(dilemmasCol(deckId), dId, 'votes');
+const answeredCol = (uid) => collection(db, 'users', uid, 'answered');
+const dilemmaCard = (c) => ({ name: c.name, img: c.img || '', back: c.back || '', sid: c.sid, oid: c.oid, set: c.set || '', cn: c.cn || '' });
+export const listenDilemmas = (deckId, onChange, onError) =>
+  onSnapshot(query(dilemmasCol(deckId), orderBy('createdAt', 'desc')), (qs) => onChange(qs.docs.map(plainDoc)), onError);
+export const createDilemma = (uid, deckId, question, cards) =>
+  addDoc(dilemmasCol(deckId), { uid, question, cards: cards.map(dilemmaCard), createdAt: serverTimestamp() });
+// Il proprietario cancella prima i voti, poi il dilemma (le regole glielo permettono).
+export async function deleteDilemma(deckId, dId) {
+  const votes = await getDocs(votesCol(deckId, dId));
+  const batch = writeBatch(db);
+  votes.docs.forEach((v) => batch.delete(v.ref));
+  batch.delete(doc(dilemmasCol(deckId), dId));
+  await batch.commit();
+}
+async function deleteDilemmasOf(deckId) {
+  const list = await getDocs(dilemmasCol(deckId));
+  await Promise.all(list.docs.map((d) => deleteDilemma(deckId, d.id)));
+}
+export const listenVotes = (deckId, dId, onChange, onError) => onSnapshot(votesCol(deckId, dId), (qs) => onChange(qs.docs.map(plainDoc)), onError);
+export function voteDilemma(uid, deckId, dId, pick) {
+  const batch = writeBatch(db);
+  batch.set(doc(votesCol(deckId, dId), uid), { pick, why: '', ...(ownerName ? { owner: ownerName } : {}), at: serverTimestamp() });
+  batch.set(doc(answeredCol(uid), `${deckId}_${dId}`), { deck: deckId, dilemma: dId, at: serverTimestamp() });
+  return batch.commit();
+}
+export const explainVote = (uid, deckId, dId, why) => updateDoc(doc(votesCol(deckId, dId), uid), { why });
+export const countAnswered = (uid) => getCountFromServer(answeredCol(uid)).then((s) => s.data().count);
 
 // Profilo in users/{uid}: photo e banner (data URL), nickname (come scritto; il nome mostrato resta il
 // displayName di Firebase Auth). followers / following arriveranno con i profili pubblici.
@@ -138,9 +174,19 @@ export async function claimNickname(uid, name, old) {
     .catch(() => {});
 }
 
-// Elimina account: tutti i mazzi con le copie pubbliche, il nickname, poi il profilo.
+// Elimina account: i propri voti ai dilemmi (e le loro tracce), i dilemmi dei propri mazzi pubblici, tutti i
+// mazzi con le copie pubbliche, il nickname, poi il profilo.
 export async function deleteUserData(uid) {
+  const answered = await getDocs(answeredCol(uid));
+  await Promise.all(answered.docs.map((a) => {
+    const { deck, dilemma } = a.data();
+    const batch = writeBatch(db);
+    batch.delete(doc(votesCol(deck, dilemma), uid));
+    batch.delete(a.ref);
+    return batch.commit();
+  }));
   const snap = await getDocs(decksCol(uid));
+  await Promise.all(snap.docs.filter((d) => d.data().public).map((d) => deleteDilemmasOf(d.id)));
   for (let i = 0; i < snap.docs.length; i += 200) {
     const batch = writeBatch(db);
     snap.docs.slice(i, i + 200).forEach((d) => {

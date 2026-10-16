@@ -6,7 +6,8 @@ import { useSettings } from '../utils/settings';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { navigate } from '../hooks/useHashRoute';
 import DeckSections from './DeckSections';
-import { DeckTabs, DeckDilemmas, DeckCount } from './DeckTabs';
+import { DeckTabs, DeckCount } from './DeckTabs';
+import { DeckDilemmas } from './Dilemmas';
 import { ExportDeckDialog } from './dialogs';
 import { IconCopy, IconExport, IconHeart } from '../components/icons';
 
@@ -116,7 +117,7 @@ export default function CommunityDeck({ uid, id, notify }) {
         {mobile && <DeckTabs tab={tab} onTab={setTab} />}
         <div className="deck-body">
           <section className="deck-main">
-            {tab === 'dilemmas' ? <DeckDilemmas />
+            {tab === 'dilemmas' ? <DeckDilemmas deck={deck} uid={uid} mine={false} notify={notify} />
               : <DeckSections deck={deck} update={update} touch={mobile} readOnly tab={tab} onTab={setTab} />}
           </section>
         </div>

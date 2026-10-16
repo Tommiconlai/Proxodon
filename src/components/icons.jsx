@@ -256,6 +256,14 @@ export function IconArrowLeft(props) {
 }
 
 // Cuore (like): contorno; fill="currentColor" = pieno.
+export function IconCheck(props) {
+  return (
+    <Svg {...props}>
+      <path d="M20 6 9 17l-5-5" />
+    </Svg>
+  );
+}
+
 export function IconHeart(props) {
   return (
     <Svg {...props}>

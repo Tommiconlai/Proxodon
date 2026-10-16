@@ -50,15 +50,3 @@ export function DeckCount({ deck }) {
     </div>
   );
 }
-
-// Scheda Dilemmas: vuota per ora, il contenuto arriverà.
-export function DeckDilemmas() {
-  return (
-    <div className="deck-sections">
-      <section className="deck-dilemmas" aria-labelledby="deck-dilemmas-head">
-        <h3 className="deck-analysis-head" id="deck-dilemmas-head">Dilemmas</h3>
-        <p className="field-hint">Nothing here yet.</p>
-      </section>
-    </div>
-  );
-}
