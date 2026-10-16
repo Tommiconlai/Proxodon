@@ -112,8 +112,8 @@ export const countLikes = (id) => getCountFromServer(collection(publicCol, id, '
 export const hasLiked = (id, uid) => getDoc(likeDoc(id, uid)).then((s) => s.exists());
 export const setLiked = (id, uid, on) => (on ? setDoc(likeDoc(id, uid), { at: serverTimestamp() }) : deleteDoc(likeDoc(id, uid)));
 
-// Dilemmi (solo mazzi pubblici): publicDecks/{deck}/dilemmas/{id} = { uid, question, cards: [2 carte], createdAt };
-// voti in .../votes/{uid} = { pick: 0 | 1, why, owner (nickname di chi vota), at }, uno per account, mai del
+// Dilemmi (solo mazzi pubblici): publicDecks/{deck}/dilemmas/{id} = { uid, question, cards: [2-4 carte], createdAt };
+// voti in .../votes/{uid} = { pick: indice della carta (0-3), why, owner (nickname di chi vota), at }, uno per account, mai del
 // proprietario. Ogni voto ha anche users/{uid}/answered/{deck}_{id} = { deck, dilemma, at }: il contatore
 // del profilo e la cancellazione dei propri voti con l'account.
 const plainDoc = (s) => ({ id: s.id, ...s.data({ serverTimestamps: 'estimate' }) });

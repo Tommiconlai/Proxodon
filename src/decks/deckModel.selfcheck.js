@@ -10,7 +10,7 @@ import {
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
   splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies, packPiles,
   libraryCards, shuffle, mulliganBottom, hyperAtLeast, deckPrice, addEntries, searchTerms, deckMatches, contentSig,
-  scryfallImg, withScryfallImgs, deckTags, MAX_TAGS,
+  scryfallImg, withScryfallImgs, deckTags, MAX_TAGS, splitSlices,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
 
@@ -439,6 +439,17 @@ eq([clean.img, clean.back, clean.art, clean.name, foreign.cards[0].card.back], [
   eq([fromBackup(toBackup([d])).map((x) => x.tags), duplicateDeck(d).tags,
     deckMatches(d, searchTerms('tokens'), { colors: [] }), deckMatches(d, searchTerms('aggro'), { colors: [] })],
   [[['Tokens']], ['Tokens'], true, false], 'tag: backup, duplicato, ricerca');
+}
+
+// riquadro dei dilemmi: con 2 carte le fette di prima (60 / 40), con 4 contigue e dentro il riquadro
+{
+  const two = splitSlices(2);
+  eq([two.slices, two.lines], [[
+    { left: 0, width: 60, clip: 'polygon(0% 0, 100% 0, 66.67% 100%, 0% 100%)' },
+    { left: 40, width: 60, clip: 'polygon(33.33% 0, 100% 0, 100% 100%, 0% 100%)' },
+  ], [[60, 40]]], 'dilemma: 2 fette come prima');
+  const four = splitSlices(4);
+  eq([four.lines, four.slices.map((s) => Math.round((s.left + s.width) * 100) / 100)], [[[30, 20], [55, 45], [80, 70]], [30, 55, 80, 100]], 'dilemma: 4 fette');
 }
 
 console.log('deckModel selfcheck: ok');

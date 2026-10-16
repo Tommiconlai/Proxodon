@@ -11,7 +11,7 @@ import {
 import { navigate } from '../hooks/useHashRoute';
 import { useBackClose } from '../hooks/useBackClose';
 import { useCount } from './useCount';
-import { groupMain, commanderRows, boardRows, scryfallImg, shuffle } from './deckModel';
+import { groupMain, commanderRows, boardRows, scryfallImg, shuffle, splitSlices, MAX_DILEMMA_CARDS } from './deckModel';
 import {
   IconPlus, IconArrowLeft, IconArrowRight, IconTrash, IconCheck, IconX,
 } from '../components/icons';
@@ -92,7 +92,7 @@ function useAnswered(uid) {
   return answered;
 }
 
-// Riquadro di un dilemma (disegno dell'utente): le arti delle due carte divise in diagonale, in alto a
+// Riquadro di un dilemma (disegno dell'utente): le arti delle carte (2-4) divise in diagonale (splitSlices), in alto a
 // sinistra le risposte, in alto a destra New (creato nelle ultime 12 ore) e Voted (hai già risposto; mai sui
 // propri, a cui non si risponde). Sotto, fuori dal bordo, la domanda e nel feed mazzo e autore (meta). Link
 // (href) nel feed, pulsante (onClick) nella scheda del mazzo.
@@ -104,15 +104,22 @@ function DilemmaTile({ deckId, d, uid, solved, meta, href, onClick }) {
   const fresh = now - (d.createdAt?.toMillis?.() ?? 0) < NEW_MS;
   const Tag = href ? 'a' : 'button';
   const status = [fresh && 'new', voted && 'voted'].filter(Boolean).join(', ');
+  const split = splitSlices(d.cards.length); // una fetta per carta, divise in diagonale
   return (
     <li>
       <Tag className="dilemma-tile" {...(href ? { href } : { type: 'button', onClick })}
         aria-label={`${d.question} ${d.cards.map((c) => c.name).join(' or ')}. ${votes} ${votes === 1 ? 'vote' : 'votes'}${status ? `, ${status}` : ''}.`}>
         <span className="dilemma-split" aria-hidden="true">
-          {d.cards.map((c, i) => (art(c)
-            ? <img key={i} className={`s${i}`} src={art(c)} alt="" loading="lazy" title={c.name} />
-            : <span key={i} className={`s${i} dilemma-split-ph`} title={c.name}>{c.name}</span>))}
-          <svg className="dilemma-split-line" viewBox="0 0 100 100" preserveAspectRatio="none"><line x1="60" y1="0" x2="40" y2="100" /></svg>
+          {d.cards.map((c, i) => {
+            const s = split.slices[i];
+            const style = { left: `${s.left}%`, width: `${s.width}%`, clipPath: s.clip };
+            return art(c)
+              ? <img key={i} className="slice" style={style} src={art(c)} alt="" loading="lazy" title={c.name} />
+              : <span key={i} className="slice dilemma-split-ph" style={style} title={c.name}>{c.name}</span>;
+          })}
+          <svg className="dilemma-split-line" viewBox="0 0 100 100" preserveAspectRatio="none">
+            {split.lines.map(([a, b]) => <line key={a} x1={a} y1="0" x2={b} y2="100" />)}
+          </svg>
           <span className="dilemma-votes">{votes} {votes === 1 ? 'vote' : 'votes'}</span>
           {(fresh || voted) && (
             <span className="dilemma-flags">
@@ -247,8 +254,8 @@ function FeedDilemma({ deckId, id, uid, notify }) {
     deckHref={mine ? `#/decks/${deckId}` : `#/community/${deckId}`} />;
 }
 
-// Dilemma aperto (dal disegno dell'utente): le due carte (hover = quella si ingrandisce, l'altra si
-// scurisce), il nome del mazzo, la domanda, la lista del mazzo. Chi non è il proprietario sceglie una
+// Dilemma aperto (dal disegno dell'utente): le carte, da 2 a 4 (hover = quella si ingrandisce, le altre si
+// scuriscono), il nome del mazzo, la domanda, la lista del mazzo. Chi non è il proprietario sceglie una
 // carta: poi vede le percentuali (sulle carte e quanti hanno scelto come lui), può spiegare la scelta e
 // legge le spiegazioni degli altri. Il proprietario vede percentuali e spiegazioni, e può cancellarlo.
 // Nel gioco (onNext, progress): contatore e Next / Skip nella testata, tasti ← → e Enter.
@@ -258,8 +265,9 @@ function DilemmaView({ deck, dilemma, uid, mine, notify, onBack, deckHref, onNex
   const [confirmDel, setConfirmDel] = useState(false);
   useEffect(() => listenVotes(deck.id, dilemma.id, setVotes, () => setVotes([])), [deck.id, dilemma.id]);
   const my = votes?.find((v) => v.id === uid);
-  const counts = [0, 1].map((i) => (votes || []).filter((v) => v.pick === i).length);
-  const total = counts[0] + counts[1];
+  const n = dilemma.cards.length;
+  const counts = dilemma.cards.map((_, i) => (votes || []).filter((v) => v.pick === i).length);
+  const total = counts.reduce((a, b) => a + b, 0);
   const results = mine || !!my;
   const choose = (i) => {
     if (results || !votes || sending) return;
@@ -269,16 +277,17 @@ function DilemmaView({ deck, dilemma, uid, mine, notify, onBack, deckHref, onNex
       notify(`Could not save your choice: ${e.message}`, 'error');
     });
   };
-  // Gioco: ← → scelgono la carta, dopo il voto → o Enter passano al prossimo. Non mentre si scrive; Enter
+  // Gioco: 1-4 (con due carte anche ← →) scelgono la carta, dopo il voto → o Enter passano al prossimo. Non mentre si scrive; Enter
   // su un pulsante o un link resta suo. Senza dipendenze: si riaggancia a ogni render con i valori nuovi.
   useEffect(() => {
     if (!onNext) return undefined;
     const onKey = (e) => {
       if (e.altKey || e.ctrlKey || e.metaKey || e.target.closest?.('input, textarea, select')) return;
       const enter = e.key === 'Enter' && !e.target.closest?.('button, a');
-      if (!results && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      const pick = /^[1-9]$/.test(e.key) && +e.key <= n ? +e.key - 1 : (n === 2 ? ['ArrowLeft', 'ArrowRight'] : []).indexOf(e.key);
+      if (!results && pick >= 0) {
         e.preventDefault();
-        choose(e.key === 'ArrowLeft' ? 0 : 1);
+        choose(pick);
       } else if (results && (e.key === 'ArrowRight' || enter)) {
         e.preventDefault();
         onNext();
@@ -303,9 +312,11 @@ function DilemmaView({ deck, dilemma, uid, mine, notify, onBack, deckHref, onNex
         )}
       </div>
       <CardFrameDefs />
-      <div className={`dilemma-cards${results ? ' voted' : ''}`} role="group" aria-label="Choose a card">
+      <div className={`dilemma-cards n${n}${results ? ' voted' : ''}`} role="group" aria-label="Choose a card">
         {dilemma.cards.map((c, i) => (
-          <button key={i} type="button" className={`dilemma-card c${i}${my?.pick === i ? ' selected' : ''}`} aria-disabled={results}
+          // A ventaglio: da -4° a +4°, la rotazione in --r (l'hover la toglie).
+          <button key={i} type="button" className={`dilemma-card${my?.pick === i ? ' selected' : ''}`} aria-disabled={results}
+            style={{ '--r': `${(i - (n - 1) / 2) * (8 / (n - 1))}deg` }}
             aria-pressed={my ? my.pick === i : undefined} onClick={() => choose(i)}
             aria-label={results ? `${c.name}: ${pct(counts[i], total)}% of ${total} votes` : `Choose ${c.name}`}>
             {img(c) ? <img src={img(c)} alt="" /> : <span className="deck-card-ph">{c.name}</span>}
@@ -316,7 +327,7 @@ function DilemmaView({ deck, dilemma, uid, mine, notify, onBack, deckHref, onNex
       </div>
       <p className="dilemma-deck">{deckHref ? <a href={deckHref}>{deck.name}</a> : deck.name}</p>
       <p className="dilemma-question">{dilemma.question}</p>
-      {!results && <p className="field-hint dilemma-hint">Choose the card you would play{onNext ? ' (← or →)' : ''}.</p>}
+      {!results && <p className="field-hint dilemma-hint">Choose the card you would play{onNext ? (n === 2 ? ' (← or →)' : ` (1 to ${n})`) : ''}.</p>}
       {my && (
         <p className="dilemma-same">
           <b>{pct(counts[my.pick], total)}%</b> chose {dilemma.cards[my.pick].name} like you ({total} {total === 1 ? 'vote' : 'votes'}).
@@ -393,21 +404,25 @@ function DeckListText({ deck }) {
   );
 }
 
-// Nuovo dilemma: due carte (dal mazzo o con la ricerca Scryfall, riempiono la casella scelta) e la domanda.
-// initial = le due caselle all'apertura (dal menu delle carte: piene, il cursore va sulla domanda).
+// Nuovo dilemma: da 2 a MAX_DILEMMA_CARDS carte diverse (dal mazzo o con la ricerca Scryfall, riempiono la
+// casella scelta, poi si passa alla prima vuota) e la domanda. + aggiunge una casella, × la toglie (oltre 2).
+// initial = le caselle all'apertura (dal menu delle carte: piene, il cursore va sulla domanda).
 function NewDilemmaDialog({ deck, notify, initial, onSubmit, onClose }) {
   const [cards, setCards] = useState(initial);
-  const [slot, setSlot] = useState(0);
+  const [slot, setSlot] = useState(() => Math.max(0, initial.indexOf(null)));
   const [question, setQuestion] = useState('');
   const ref = useOverlayDismiss(onClose, true, { focusContainer: false });
   const own = [...new Map(deck.cards.map((r) => [r.card.oid, r.card])).values()].sort((a, b) => a.name.localeCompare(b.name));
   const put = (card) => {
     if (!card) return;
-    setCards((cs) => cs.map((c, i) => (i === slot ? card : c)));
-    setSlot((s) => (s === 0 ? 1 : 0));
+    const next = cards.map((c, i) => (i === slot ? card : c));
+    setCards(next);
+    setSlot(next.includes(null) ? next.indexOf(null) : (slot + 1) % next.length);
   };
-  const same = cards[0] && cards[1] && cards[0].oid === cards[1].oid;
-  const ok = cards[0] && cards[1] && !same && question.trim();
+  const drop = (i) => { setCards((cs) => cs.filter((_, j) => j !== i)); setSlot(0); };
+  const filled = cards.filter(Boolean);
+  const same = new Set(filled.map((c) => c.oid)).size < filled.length;
+  const ok = filled.length === cards.length && !same && question.trim();
   // Successi della ricerca muti: qui la carta non entra nel mazzo, va solo nella casella.
   const quiet = (msg, kind) => { if (kind === 'error') notify(msg, kind); };
   return (
@@ -420,11 +435,20 @@ function NewDilemmaDialog({ deck, notify, initial, onSubmit, onClose }) {
         </div>
         <div className="dilemma-slots" role="group" aria-label="Cards">
           {cards.map((c, i) => (
-            <button key={i} type="button" className={`dilemma-slot${slot === i ? ' active' : ''}`} onClick={() => setSlot(i)}
-              aria-pressed={slot === i} aria-label={`${i ? 'Second' : 'First'} card: ${c ? c.name : 'empty'}. Fill it`}>
-              {c && img(c) ? <img src={img(c)} alt="" /> : <span className="deck-card-ph">{c ? c.name : `Card ${i + 1}`}</span>}
-            </button>
+            <div key={i} className="dilemma-slot-wrap">
+              <button type="button" className={`dilemma-slot${slot === i ? ' active' : ''}`} onClick={() => setSlot(i)}
+                aria-pressed={slot === i} aria-label={`Card ${i + 1}: ${c ? c.name : 'empty'}. Fill it`}>
+                {c && img(c) ? <img src={img(c)} alt="" /> : <span className="deck-card-ph">{c ? c.name : `Card ${i + 1}`}</span>}
+              </button>
+              {cards.length > 2 && (
+                <button type="button" className="dilemma-slot-rm" onClick={() => drop(i)} aria-label={`Remove card ${i + 1}`} title="Remove"><IconX size={14} /></button>
+              )}
+            </div>
           ))}
+          {cards.length < MAX_DILEMMA_CARDS && (
+            <button type="button" className="dilemma-slot-add" onClick={() => { setCards([...cards, null]); setSlot(cards.length); }}
+              aria-label="Add a card" title={`Add a card (up to ${MAX_DILEMMA_CARDS})`}><IconPlus size={24} /></button>
+          )}
         </div>
         <label className="field-label" htmlFor="dilemma-own">From this deck</label>
         <select id="dilemma-own" value="" onChange={(e) => put(own.find((c) => c.oid === e.target.value))}>
@@ -434,9 +458,9 @@ function NewDilemmaDialog({ deck, notify, initial, onSubmit, onClose }) {
         <span className="field-label">Or search Scryfall</span>
         <CardSearch format={deck.format} onAdd={put} notify={quiet} />
         <label className="field-label" htmlFor="dilemma-q">Question</label>
-        <textarea id="dilemma-q" className="import-link-input" value={question} maxLength={280} rows={3} autoFocus={!!initial[1]}
+        <textarea id="dilemma-q" className="import-link-input" value={question} maxLength={280} rows={3} autoFocus={!initial.includes(null)}
           onChange={(e) => setQuestion(e.target.value)} placeholder="Which one fits better in this deck?" />
-        {same && <p className="field-hint">Pick two different cards.</p>}
+        {same && <p className="field-hint">Pick different cards.</p>}
         <div className="modal-actions">
           <button type="submit" className="btn-generate deck-icon-btn" disabled={!ok} aria-label="Create dilemma" title="Create dilemma"><IconCheck size={18} /></button>
         </div>

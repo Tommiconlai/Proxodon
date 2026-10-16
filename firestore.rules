@@ -49,11 +49,11 @@ service cloud.firestore {
     function validDilemma(d) {
       return d.keys().hasOnly(['uid', 'question', 'cards', 'createdAt'])
         && d.question is string && d.question.size() > 0 && d.question.size() <= 280
-        && d.cards is list && d.cards.size() == 2;
+        && d.cards is list && d.cards.size() >= 2 && d.cards.size() <= 4;
     }
     function validVote(d) {
       return d.keys().hasOnly(['pick', 'why', 'owner', 'at'])
-        && (d.pick == 0 || d.pick == 1)
+        && d.pick is int && d.pick >= 0 && d.pick <= 3
         && d.why is string && d.why.size() <= 500
         && (d.get('owner', null) == null || (d.owner is string
           && get(/databases/$(db)/documents/usernames/$(d.owner.lower())).data.uid == request.auth.uid));
@@ -70,7 +70,7 @@ service cloud.firestore {
           && get(/databases/$(db)/documents/publicDecks/$(deckId)).data.uid != uid;
         allow delete: if owner(uid);
       }
-      // Dilemmi: li crea e cancella il proprietario del mazzo pubblico (domanda 1-280 caratteri, due carte),
+      // Dilemmi: li crea e cancella il proprietario del mazzo pubblico (domanda 1-280 caratteri, da 2 a 4 carte),
       // li legge chi ha un account. Voti: uno per account (id = uid), mai sul proprio dilemma; dopo il voto
       // cambia solo la spiegazione (why, max 500); la firma (owner) è il nickname di chi vota o nessuna; li
       // cancella chi ha votato o il proprietario del dilemma (quando lo cancella).
@@ -82,8 +82,10 @@ service cloud.firestore {
         allow delete: if verified() && resource.data.uid == request.auth.uid;
         match /votes/{uid} {
           allow read: if verified();
+          // pick = una delle carte del dilemma (stesso get: Firestore lo legge una volta sola).
           allow create: if owner(uid) && validVote(request.resource.data)
-            && get(/databases/$(db)/documents/publicDecks/$(deckId)/dilemmas/$(dId)).data.uid != uid;
+            && get(/databases/$(db)/documents/publicDecks/$(deckId)/dilemmas/$(dId)).data.uid != uid
+            && request.resource.data.pick < get(/databases/$(db)/documents/publicDecks/$(deckId)/dilemmas/$(dId)).data.cards.size();
           // Solo why: la firma salvata non si ricontrolla (chi ha cambiato nickname può ancora spiegare).
           allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['why'])
             && request.resource.data.why is string && request.resource.data.why.size() <= 500;

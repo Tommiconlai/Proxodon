@@ -40,6 +40,26 @@ export const DECK_TAGS = [
 export const MAX_TAGS = 5;
 export const deckTags = (deck) => (Array.isArray(deck?.tags) ? [...new Set(deck.tags)].filter((t) => DECK_TAGS.includes(t)).slice(0, MAX_TAGS) : []);
 
+// Dilemmi: da 2 a MAX_DILEMMA_CARDS carte. splitSlices(n) = il riquadro del dilemma diviso in n fette da
+// linee oblique (in alto 20/n % a destra del confine diritto, in basso 20/n % a sinistra; con 2 carte 60 / 40).
+// Per fetta: left / width (%) del riquadro dell'immagine e clip-path dentro di lui; lines = [x in alto, x in basso].
+export const MAX_DILEMMA_CARDS = 4;
+export function splitSlices(n) {
+  const r = (v) => Math.round(v * 100) / 100;
+  const edge = (k, s) => (k === 0 || k === n ? (k / n) * 100 : (k / n) * 100 + (s * 20) / n);
+  const top = (k) => edge(k, 1);
+  const bot = (k) => edge(k, -1);
+  return {
+    slices: Array.from({ length: n }, (_, i) => {
+      const left = bot(i);
+      const width = top(i + 1) - left;
+      const x = (v) => `${r(((v - left) / width) * 100)}%`;
+      return { left: r(left), width: r(width), clip: `polygon(${x(top(i))} 0, ${x(top(i + 1))} 0, ${x(bot(i + 1))} 100%, ${x(bot(i))} 100%)` };
+    }),
+    lines: Array.from({ length: n - 1 }, (_, k) => [r(top(k + 1)), r(bot(k + 1))]),
+  };
+}
+
 export const MAX_ROWS = 500;
 export const MAX_QTY = 99;
 

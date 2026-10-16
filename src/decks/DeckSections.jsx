@@ -9,7 +9,7 @@ import { cardsByIds } from './scryfallSearch';
 import {
   GROUP_MODES, SORT_MODES, VIEWS, groupMain, commanderRows, boardRows, bumpQty, removeRows, setCommander, moveToBoard,
   addSection, renameSection, deleteSection, moveToSection, placeRows, overLimit, formatLabel, illegalIn, legalityLabel,
-  splitRow, changeEdition, snapshotFromCard, validateDeck, packPiles, maxCopies,
+  splitRow, changeEdition, snapshotFromCard, validateDeck, packPiles, maxCopies, MAX_DILEMMA_CARDS,
 } from './deckModel';
 import DeckStats from './DeckStats';
 import SampleHand from './SampleHand';
@@ -54,7 +54,7 @@ const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 // onPrint(rows): Print nel menu, porta le righe scelte (anche una sola) nella stampa.
 // notify(msg, kind, action): Remove e − sull'ultima copia tolgono subito, con Undo nel toast.
 // View card (menu, anche in sola lettura): la carta a tutto schermo, per leggerla da telefono.
-// onDilemma(cards): Dilemma nel menu, attivo solo con 2 carte diverse selezionate e il mazzo pubblico.
+// onDilemma(cards): Dilemma nel menu, attivo solo con 2-4 carte diverse selezionate e il mazzo pubblico.
 // Telefono (touch): − / + della carta selezionata (una sola) in una barra sopra quella in basso, a 44 px.
 export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab, onPrint, onDilemma, notify }) {
   const [sel, setSel] = useState(() => new Set());
@@ -201,10 +201,11 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     const ids = menuRows.map((r) => r.id);
     if (onPrint) items.push({ key: 'print', Icon: IconPrinter, label: 'Print', run: () => onPrint(menuRows) });
     if (onDilemma) {
-      const two = menuRows.length === 2 && menuRows[0].card.oid !== menuRows[1].card.oid;
+      const fits = menuRows.length >= 2 && menuRows.length <= MAX_DILEMMA_CARDS;
+      const distinct = new Set(menuRows.map((r) => r.card.oid)).size === menuRows.length;
       items.push({
-        key: 'dilemma', Icon: IconScale, label: 'Dilemma', disabled: !two || !deck.public,
-        note: menuRows.length !== 2 ? 'Select 2 cards' : !two ? 'Pick two different cards' : 'Make the deck public first',
+        key: 'dilemma', Icon: IconScale, label: 'Dilemma', disabled: !fits || !distinct || !deck.public,
+        note: !fits ? `Select 2 to ${MAX_DILEMMA_CARDS} cards` : !distinct ? 'Pick different cards' : 'Make the deck public first',
         run: () => onDilemma(menuRows.map((r) => r.card)),
       });
     }

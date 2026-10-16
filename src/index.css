@@ -2982,12 +2982,11 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 .dilemma-tile:hover .dilemma-split, .dilemma-tile:focus-visible .dilemma-split { border-color: var(--cyan); box-shadow: 0 0 16px rgba(0, 229, 255, 0.25); }
-.dilemma-split .s0, .dilemma-split .s1 { position: absolute; top: 0; width: 60%; height: 100%; object-fit: cover; transition: filter 0.25s ease; }
-.dilemma-split .s0 { left: 0; clip-path: polygon(0 0, 100% 0, 66.67% 100%, 0 100%); }
-.dilemma-split .s1 { right: 0; clip-path: polygon(33.33% 0, 100% 0, 100% 100%, 0 100%); }
+/* Fette (una per carta): left / width / clip-path inline da splitSlices. */
+.dilemma-split .slice { position: absolute; top: 0; height: 100%; object-fit: cover; transition: filter 0.25s ease; }
 .dilemma-split-ph { display: flex; align-items: center; justify-content: center; padding: 0 18%; font-size: 0.75rem; color: var(--text-muted); text-align: center; }
-.dilemma-tile:hover .dilemma-split .s0, .dilemma-tile:hover .dilemma-split .s1 { filter: brightness(0.55); }
-.dilemma-tile .dilemma-split .s0:hover, .dilemma-tile .dilemma-split .s1:hover { filter: none; }
+.dilemma-tile:hover .dilemma-split .slice { filter: brightness(0.55); }
+.dilemma-tile .dilemma-split .slice:hover { filter: none; }
 .dilemma-split-line { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; filter: drop-shadow(0 0 3px #000) drop-shadow(0 0 8px rgba(0, 0, 0, 0.85)); }
 .dilemma-split-line line { stroke: #000; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .dilemma-votes, .dilemma-flag {
@@ -3022,15 +3021,20 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .dilemma-deck a:hover, .dilemma-deck a:focus-visible { color: var(--cyan); }
 .dilemma-view { display: flex; flex-direction: column; align-items: center; text-align: center; }
 .dilemma-view .dilemma-head { align-self: stretch; }
-/* Le due carte come nel disegno: leggermente ruotate verso l'esterno; hover = quella cresce e si raddrizza,
-   l'altra si scurisce. Dopo il voto la scelta ha la cornice della stampa (CardFrame .selected). */
+/* Le carte come nel disegno: a ventaglio verso l'esterno (--r, da -4° a +4°); hover = quella cresce e si
+   raddrizza, le altre si scuriscono. 3 e 4 carte più strette; telefono: due per riga. Dopo il voto la scelta
+   ha la cornice della stampa (CardFrame .selected). */
 .dilemma-cards { display: flex; justify-content: center; gap: 28px; margin: 18px 0 26px; }
 .dilemma-card {
   position: relative; width: min(260px, 38vw); padding: 0; border: 0; background: none; cursor: pointer;
+  transform: rotate(var(--r, 0deg));
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), filter 0.25s ease;
 }
-.dilemma-card.c0 { transform: rotate(-4deg); }
-.dilemma-card.c1 { transform: rotate(4deg); }
+.dilemma-cards.n3 .dilemma-card { width: min(220px, 27vw); }
+.dilemma-cards.n4 { gap: 20px; }
+.dilemma-cards.n4 .dilemma-card { width: min(190px, 20vw); }
+.mobile .dilemma-cards:is(.n3, .n4) { flex-wrap: wrap; gap: 18px; }
+.mobile .dilemma-cards:is(.n3, .n4) .dilemma-card { width: 40vw; }
 .dilemma-card > img, .dilemma-card > .deck-card-ph { display: block; width: 100%; aspect-ratio: 488 / 680; border-radius: 4.75% / 3.4%; box-shadow: var(--shadow-lg); }
 .dilemma-cards:hover .dilemma-card:not(:hover) { filter: brightness(0.5); }
 .dilemma-card:hover, .dilemma-card:focus-visible { transform: scale(1.1); z-index: 1; outline: none; }
@@ -3071,9 +3075,24 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 /* Conferma solo icona, quadrata e a destra (non a tutta larghezza come gli altri btn-generate). */
 .dilemma-new .modal-actions { justify-content: flex-end; }
 .dilemma-new .modal-actions .deck-icon-btn { flex: none; width: 48px; height: 42px; padding: 0; justify-content: center; }
-.dilemma-slots { display: flex; justify-content: center; gap: 16px; margin: 4px 0 8px; }
-.dilemma-slot { width: 140px; padding: 0; border: 2px solid transparent; border-radius: 8px; background: none; cursor: pointer; }
+.dilemma-slots { display: flex; justify-content: center; align-items: flex-start; gap: 12px; margin: 4px 0 8px; }
+.dilemma-slot-wrap { position: relative; flex: 0 1 140px; min-width: 0; }
+.dilemma-slot { width: 100%; padding: 0; border: 2px solid transparent; border-radius: 8px; background: none; cursor: pointer; }
+/* × sulla casella (oltre la seconda) e + per aggiungerne una, grande quanto una carta. */
+.dilemma-slot-rm {
+  position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; padding: 0;
+  background: rgba(8, 7, 15, 0.88); border: 1px solid var(--border); border-radius: 50%; color: var(--text-primary); cursor: pointer;
+}
+.dilemma-slot-rm:hover { border-color: var(--accent); color: var(--accent); }
+.mobile .dilemma-slot-rm::after { content: ''; position: absolute; inset: -8px; }
+.dilemma-slot-add {
+  flex: 0 1 140px; min-width: 0; aspect-ratio: 488 / 680; display: flex; align-items: center; justify-content: center; padding: 0;
+  background: rgba(255, 45, 149, 0.04); border: 2px dashed rgba(255, 45, 149, 0.5); border-radius: 8px; color: var(--accent); cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+.dilemma-slot-add:hover { border-color: var(--accent); background: rgba(255, 45, 149, 0.1); }
 .dilemma-slot > img, .dilemma-slot > .deck-card-ph { display: block; width: 100%; aspect-ratio: 488 / 680; border-radius: 6px; }
+.dilemma-slot > .deck-card-ph { display: grid; }
 .dilemma-slot.active { border-color: var(--cyan); box-shadow: 0 0 14px rgba(0, 229, 255, 0.3); }
 /* Telefono: la testata ha il suo padding (va riallungato per le schede), schede più strette. */
 .deck-editor.is-mobile .deck-hero.has-tabs { padding-bottom: 56px; }
