@@ -416,7 +416,7 @@ const clean = withScryfallImgs(foreign).cards[0].card;
 eq([clean.img, clean.back, clean.art, clean.name, foreign.cards[0].card.back], [sfImg, '', '', 'Lightning Bolt', 'https://evil.test/b.jpg'],
   'mazzo pubblico: immagini estranee tolte, resto e originale invariati');
 
-// "Last update": la firma cambia con carte, quantità, zona, sezione, comandante; non con edizione o righe divise.
+// "Updated": la firma cambia con carte, quantità, zona, sezione, comandante; non con edizione o righe divise.
 {
   const base = addCard(newDeck({ name: 's', format: 'modern' }), bolt, { qty: 4 }).deck;
   const sig0 = contentSig(base.cards);

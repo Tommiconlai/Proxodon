@@ -59,7 +59,7 @@ export function DeckTile({ deck: d, currency, by, ...props }) {
         </span>
         <span className="deck-tile-meta">
           {by && <span className="deck-tile-by">by {by}</span>}
-          {updated && <span>Last update {timeAgo(updated)}</span>}
+          {updated && <span>Updated {timeAgo(updated)}</span>}
         </span>
       </span>
     </button>

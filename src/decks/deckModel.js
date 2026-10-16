@@ -378,7 +378,7 @@ export function deckIdentity(deck) {
   return WUBRG.filter((c) => set.has(c));
 }
 
-// Firma del contenuto del mazzo, per "Last update": carte per oracle id (un cambio di edizione o d'arte
+// Firma del contenuto del mazzo, per "Updated": carte per oracle id (un cambio di edizione o d'arte
 // non conta), quantità sommate per zona, sezione e comandante (dividere o unire righe non conta). Cambia
 // solo se si aggiungono, tolgono o spostano carte. FNV-1a a 32 bit in esadecimale.
 export function contentSig(cards) {

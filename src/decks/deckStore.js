@@ -23,7 +23,7 @@ const payload = (d) => ({
   v: 1, name: d.name, format: d.format, groupBy: d.groupBy, sections: d.sections, cover: d.cover ?? null, cards: d.cards,
   public: !!d.public, updatedAt: serverTimestamp(),
 });
-// "Last update" = changedAt, che si sposta solo quando cambia contentSig (carte aggiunte, tolte, quantità,
+// "Updated" (riquadri dei mazzi) = changedAt, che si sposta solo quando cambia contentSig (carte aggiunte, tolte, quantità,
 // zone, sezioni, comandante). Nome, formato, raggruppamento, copertina, Public, cambi di edizione e
 // riallineamenti da Scryfall toccano solo updatedAt (l'ultima scrittura). Senza cambi la chiave manca e col
 // merge resta quella salvata; un mazzo di prima, senza changedAt, prende il suo updatedAt di allora.
