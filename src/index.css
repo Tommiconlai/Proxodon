@@ -1823,7 +1823,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 /* Cornice HUD (dal Figma): 3px fuori dal taglio, invisibile a riposo.
-   Hover = segmenti corti in rotazione oraria (Figma 4021:2411); selezionata = segmenti pieni
+   Hover = contorno sfumato magenta → viola → ciano (.hov, sotto); selezionata = segmenti pieni
    e centrati (Figma 4021:2397). Differenza di forma → il click che deseleziona si vede
    anche con il mouse ancora sopra la carta. */
 .card-frame {
@@ -1860,6 +1860,19 @@ input[type="range"]::-webkit-slider-thumb:hover {
    sovrapposta la carta successiva copre il resto, si vedono il segmento in alto e gli angoli. */
 @media (hover: hover) {
   .preview-card-hotspot:hover .card-frame, .deck-row:hover .card-frame { opacity: 1; }
+}
+
+/* Hover = contorno col gradiente dei riquadri dei mazzi (.hov); i segmenti (.sel) solo da selezionata.
+   Su una selezionata il passaggio del mouse non cambia nulla: al click che la deseleziona compare il
+   contorno, la differenza si vede. */
+.card-frame .hov { stroke: url(#px-hover-grad); opacity: 0; transition: opacity 0.14s ease; }
+.preview-card-hotspot .card-frame .hov { rx: 3px; } /* stampa: carte ad angoli vivi, contorno concentrico a 3px */
+.card-frame .sel { transition: opacity 0.14s ease; }
+@media (hover: hover) {
+  .preview-card-hotspot:not(.selected):hover .card-frame .hov, .deck-row:not(.selected):hover .card-frame .hov,
+  .dilemma-card:not(.selected):hover .card-frame .hov { opacity: 1; }
+  .preview-card-hotspot:not(.selected):hover .card-frame .sel, .deck-row:not(.selected):hover .card-frame .sel,
+  .dilemma-card:not(.selected):hover .card-frame .sel { opacity: 0; }
 }
 
 .preview-card-hotspot.selected .card-frame, .deck-row.selected .card-frame { opacity: 1; }
