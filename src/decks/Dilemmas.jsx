@@ -23,12 +23,13 @@ const img = (c) => scryfallImg(c.img); // solo immagini Scryfall (i dilemmi li s
 const art = (c) => scryfallImg((c.img || '').replace(/\/(small|normal|large|png|border_crop)\//, '/art_crop/').replace(/\.png(?=\?|$)/, '.jpg'));
 
 // Scheda Dilemmas della vista mazzo (editor e Community). Solo mazzi pubblici. Elenco dei dilemmi del
-// mazzo, il proprietario ne crea di nuovi (+); click = il dilemma aperto (DilemmaView).
-export function DeckDilemmas({ deck, uid, mine, notify }) {
+// mazzo, il proprietario ne crea di nuovi (+); click = il dilemma aperto (DilemmaView). ask = 2 carte (Dilemma
+// nel menu delle carte): all'apertura c'è già il nuovo dilemma con quelle; onAsked quando si chiude.
+export function DeckDilemmas({ deck, uid, mine, notify, ask, onAsked }) {
   const [list, setList] = useState(null); // null = caricamento
   const [error, setError] = useState(null);
   const [openId, setOpenId] = useState(null);
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(ask ?? null); // carte iniziali del nuovo dilemma, null = chiuso
   const answered = useAnswered(uid);
   useBackClose(!!openId, () => setOpenId(null)); // back del sistema = torna all'elenco, non lascia il mazzo
   const live = !!deck.public;
@@ -42,6 +43,7 @@ export function DeckDilemmas({ deck, uid, mine, notify }) {
       </div>
     );
   }
+  const stopCreating = () => { setCreating(null); onAsked?.(); };
   const open = list?.find((d) => d.id === openId);
   if (open) return <DilemmaView deck={deck} dilemma={open} uid={uid} mine={mine} notify={notify} onBack={() => setOpenId(null)} />;
   return (
@@ -49,7 +51,7 @@ export function DeckDilemmas({ deck, uid, mine, notify }) {
       <div className="dilemma-head">
         <h3 className="deck-analysis-head">Dilemmas</h3>
         {mine && (
-          <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setCreating(true)} aria-label="New dilemma" title="New dilemma">
+          <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setCreating([null, null])} aria-label="New dilemma" title="New dilemma">
             <IconPlus size={18} />
           </button>
         )}
@@ -67,9 +69,9 @@ export function DeckDilemmas({ deck, uid, mine, notify }) {
         </ul>
       )}
       {creating && (
-        <NewDilemmaDialog deck={deck} notify={notify} onClose={() => setCreating(false)}
+        <NewDilemmaDialog deck={deck} notify={notify} initial={creating} onClose={stopCreating}
           onSubmit={(question, cards) => {
-            setCreating(false);
+            stopCreating();
             createDilemma(uid, deck.id, question, cards)
               .then(() => notify('Dilemma created'))
               .catch((e) => notify(`Could not create the dilemma: ${e.message}`, 'error'));
@@ -389,8 +391,9 @@ function DeckListText({ deck }) {
 }
 
 // Nuovo dilemma: due carte (dal mazzo o con la ricerca Scryfall, riempiono la casella scelta) e la domanda.
-function NewDilemmaDialog({ deck, notify, onSubmit, onClose }) {
-  const [cards, setCards] = useState([null, null]);
+// initial = le due caselle all'apertura (dal menu delle carte: piene, il cursore va sulla domanda).
+function NewDilemmaDialog({ deck, notify, initial, onSubmit, onClose }) {
+  const [cards, setCards] = useState(initial);
   const [slot, setSlot] = useState(0);
   const [question, setQuestion] = useState('');
   const ref = useOverlayDismiss(onClose, true, { focusContainer: false });
@@ -428,7 +431,7 @@ function NewDilemmaDialog({ deck, notify, onSubmit, onClose }) {
         <span className="field-label">Or search Scryfall</span>
         <CardSearch format={deck.format} onAdd={put} notify={quiet} />
         <label className="field-label" htmlFor="dilemma-q">Question</label>
-        <textarea id="dilemma-q" className="import-link-input" value={question} maxLength={280} rows={3}
+        <textarea id="dilemma-q" className="import-link-input" value={question} maxLength={280} rows={3} autoFocus={!!initial[1]}
           onChange={(e) => setQuestion(e.target.value)} placeholder="Which one fits better in this deck?" />
         {same && <p className="field-hint">Pick two different cards.</p>}
         <div className="modal-actions">

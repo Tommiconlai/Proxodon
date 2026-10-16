@@ -36,6 +36,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const [exportOpen, setExportOpen] = useState(false);
   const [coverOpen, setCoverOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
+  const [ask, setAsk] = useState(null); // Dilemma dal menu delle carte: le 2 carte per il nuovo dilemma
   const [advOpen, setAdvOpen] = useState(false); // pannello della ricerca avanzata (desktop)
   const [stuck, setStuck] = useState(false); // la testata è uscita: la fascia ricerca ha lo sfondo
   const [tab, setTab] = useState('deck'); // schede della testata: deck | stats | dilemmas
@@ -173,7 +174,9 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
             </section>
           )}
           {/* Print dal menu delle carte: si aggiungono alla coda di stampa (mai la sostituiscono), anche dal maybeboard. */}
-          {tab === 'dilemmas' ? <DeckDilemmas deck={deck} uid={uid} mine notify={notify} /> : <DeckSections deck={deck} update={update} touch={mobile} tab={tab} onTab={setTab} notify={notify}
+          {tab === 'dilemmas' ? <DeckDilemmas deck={deck} uid={uid} mine notify={notify} ask={ask} onAsked={() => setAsk(null)} />
+            : <DeckSections deck={deck} update={update} touch={mobile} tab={tab} onTab={setTab} notify={notify}
+            onDilemma={(cards) => { setAsk(cards); setTab('dilemmas'); }}
             onPrint={(rows) => onPrintDeck(toPrintEntries({ cards: rows.map((r) => ({ ...r, board: 'main' })) }), true)} />}
         </section>
       </div>
