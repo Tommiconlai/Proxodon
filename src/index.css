@@ -162,10 +162,10 @@ h3 {
 .wordmark { flex-shrink: 0; overflow: visible; }
 
 /* Hover sul wordmark: il centro della X resta fermo, le V sopra/sotto ruotano di 180° sull'asse
-   verticale passante per il centro della X (56.5, 15.25 nel viewBox) e tornano all'uscita. */
+   verticale passante per il centro della X (57.5, 15.75 nel viewBox) e tornano all'uscita. */
 .wordmark .x-v {
   transform-box: view-box;
-  transform-origin: 56.5px 15.25px;
+  transform-origin: 57.5px 15.75px;
   transition: transform 0.4s cubic-bezier(0.65, 0, 0.35, 1);
 }
 
