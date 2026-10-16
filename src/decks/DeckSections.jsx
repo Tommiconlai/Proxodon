@@ -30,9 +30,9 @@ const STACK_MAX = 400;
 const STACK_GAP = 20; // spazio verticale tra pile nella stessa colonna, = gap di .deck-stack-col
 const COL_GAP = 16; // spazio tra le colonne, = gap orizzontale di .deck-columns.view-stacks
 const PILE_HEAD = 34; // intestazione del gruppo con il suo margine
-// Telefono: la fascia scoperta di ogni carta è fissa a 32 px (CSS .is-mobile, margin-top calc(32px - 139.344%)),
-// così il chip − / numero / + (5 + 22 px) non finisce sulla carta dopo.
-const TOUCH_STRIP = 32;
+// Telefono: la fascia scoperta di ogni carta è fissa a 36 px (CSS .is-mobile, margin-top calc(36px - 139.344%)),
+// così il chip − / numero / + (4 + 28 px, bersagli da dito) non finisce sulla carta dopo.
+const TOUCH_STRIP = 36;
 const pileHeight = (n, w, strip = w * (680 / 488 - 1.253)) => PILE_HEAD + (n ? (w * 680) / 488 + (n - 1) * strip : 26); // 0 carte = "No commander yet."
 const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 const menuPoint = (e) => {

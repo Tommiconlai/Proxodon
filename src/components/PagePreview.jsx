@@ -75,9 +75,23 @@ function drawCropMarksCanvas(ctx, cellX, cellY, bleedPx, cardWpx, cardHpx, scale
     }
 }
 
+// Densità dello schermo (max 2) come stato: cambia con lo zoom del browser o spostando la finestra su un
+// monitor diverso, e il canvas si ridisegna. La media query è quella della densità attuale.
+function usePixelRatio() {
+    const [dpr, setDpr] = useState(() => window.devicePixelRatio || 1);
+    useEffect(() => {
+        const mq = window.matchMedia(`(resolution: ${dpr}dppx)`);
+        const onChange = () => setDpr(window.devicePixelRatio || 1);
+        mq.addEventListener('change', onChange);
+        return () => mq.removeEventListener('change', onChange);
+    }, [dpr]);
+    return Math.min(2, dpr);
+}
+
 // ── Singola pagina canvas ─────────────────────────────────────
 export function PageCanvas({ pageImages, formatKey, bleedMm, bleedStyle, cardW, cardH, showCrop, cropStyle, customSheet, previewW, empty }) {
     const canvasRef = useRef();
+    const dpr = usePixelRatio();
     // Cache src(objectURL) -> HTMLImageElement decodificata: evita di ri-decodificare
     // le immagini a ogni ridisegno (cancellazione carta, resize, cambio pagina/formato).
     const cacheRef = useRef(new Map());
@@ -92,7 +106,6 @@ export function PageCanvas({ pageImages, formatKey, bleedMm, bleedStyle, cardW, 
         let cancelled = false;
         // Pixel del canvas × densità dello schermo (telefoni 2-3×), max 2: carte nitide senza canvas enormi.
         // Si disegna sempre in px CSS (setTransform), il resto del codice non cambia.
-        const dpr = Math.min(2, window.devicePixelRatio || 1);
         canvas.width = Math.round(previewW * dpr);
         canvas.height = Math.round(previewH * dpr);
         const ctx = canvas.getContext('2d');
@@ -173,7 +186,7 @@ export function PageCanvas({ pageImages, formatKey, bleedMm, bleedStyle, cardW, 
 
         draw();
         return () => { cancelled = true; };
-    }, [pageImages, formatKey, bleedMm, bleedStyle, cardW, cardH, showCrop, cropStyle, customSheet, previewW, empty, info, scale, previewH]);
+    }, [pageImages, formatKey, bleedMm, bleedStyle, cardW, cardH, showCrop, cropStyle, customSheet, previewW, empty, info, scale, previewH, dpr]);
 
     return (
         <canvas

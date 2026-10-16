@@ -184,7 +184,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
           onPick={(oid) => { update((d) => ({ ...d, cover: oid })); setCoverOpen(false); }} />
       )}
       {mobile && searchOpen && (
-        <MobilePage title="Add cards" onClose={() => setSearchOpen(false)}>
+        <MobilePage title="Search cards" onClose={() => setSearchOpen(false)}>
           <CardSearch format={deck.format} onAdd={add} notify={notify} autoFocus />
         </MobilePage>
       )}
