@@ -120,43 +120,6 @@ export const listenDilemmaFeed = (onChange, onError) =>
 export const listenDilemma = (deckId, dId, onChange, onError) =>
   onSnapshot(doc(dilemmasCol(deckId), dId), (s) => onChange(s.exists() ? plainDoc(s) : null), onError);
 export const getPublicDeck = (id) => getDoc(doc(publicCol, id)).then((s) => (s.exists() ? fromDoc(s) : null));
-// Mazzo pubblico letto una volta per sessione (nome, autore, formato sui riquadri dei dilemmi; mani di mazzi
-// tornati privati da saltare). ponytail: cache fino alla ricarica. null = non più pubblico; errore = undefined.
-const publicOnce = new Map();
-export const publicDeckOnce = (id) => {
-  if (!publicOnce.has(id)) publicOnce.set(id, getPublicDeck(id).catch(() => undefined));
-  return publicOnce.get(id);
-};
-
-// Keep or mull: mani iniziali dai mazzi pubblici degli altri, votate keep / mulligan. hands/{id} = { deckId,
-// deckUid, deckName, format, commander: [carte], cards: [7 carte], onPlay, createdAt }, senza chi l'ha
-// pescata (non è sua). Voti in hands/{id}/votes/{uid} = { keep, at } e users/{uid}/hands/{id} = { at }: per
-// non riproporla e per cancellare i voti con l'account.
-const handsCol = collection(db, 'hands');
-const handVotesCol = (id) => collection(handsCol, id, 'votes');
-const myHandsCol = (uid) => collection(db, 'users', uid, 'hands');
-const handCard = (c) => ({ name: c.name, img: c.img || '', back: c.back || '', oid: c.oid, sid: c.sid, set: c.set || '', cn: c.cn || '' });
-export const listHands = () => getDocs(query(handsCol, orderBy('createdAt', 'desc'), limit(60))).then((qs) => qs.docs.map(plainDoc));
-export const listPublicDecks = () => getDocs(query(publicCol, orderBy('createdAt', 'desc'), limit(60))).then((qs) => qs.docs.map(fromDoc));
-export async function createHand(deck, cards, onPlay) {
-  const hand = {
-    deckId: deck.id, deckUid: deck.uid, deckName: deck.name, format: deck.format,
-    commander: deck.cards.filter((r) => r.commander).map((r) => handCard(r.card)), cards: cards.map(handCard), onPlay,
-  };
-  const ref = await addDoc(handsCol, { ...hand, createdAt: serverTimestamp() });
-  return { ...hand, id: ref.id };
-}
-export const listenMyHands = (uid, onChange, onError) =>
-  onSnapshot(myHandsCol(uid), (qs) => onChange(new Set(qs.docs.map((d) => d.id))), onError);
-export function voteHand(uid, id, keep) {
-  const batch = writeBatch(db);
-  batch.set(doc(handVotesCol(id), uid), { keep, at: serverTimestamp() });
-  batch.set(doc(myHandsCol(uid), id), { at: serverTimestamp() });
-  return batch.commit();
-}
-export const countHandVotes = (id) => Promise.all([
-  getCountFromServer(handVotesCol(id)), getCountFromServer(query(handVotesCol(id), where('keep', '==', true))),
-]).then(([all, kept]) => ({ total: all.data().count, keep: kept.data().count }));
 // Id {deck}_{dilemma} dei dilemmi a cui l'account ha risposto.
 export const listenAnswered = (uid, onChange, onError) =>
   onSnapshot(answeredCol(uid), (qs) => onChange(new Set(qs.docs.map((d) => d.id))), onError);
@@ -225,13 +188,6 @@ export async function claimNickname(uid, name, old) {
 // Elimina account: i propri voti ai dilemmi (e le loro tracce), i dilemmi dei propri mazzi pubblici, tutti i
 // mazzi con le copie pubbliche, il nickname, poi il profilo.
 export async function deleteUserData(uid) {
-  const hands = await getDocs(myHandsCol(uid));
-  await Promise.all(hands.docs.map((h) => {
-    const batch = writeBatch(db);
-    batch.delete(doc(handVotesCol(h.id), uid));
-    batch.delete(h.ref);
-    return batch.commit();
-  }));
   const answered = await getDocs(answeredCol(uid));
   await Promise.all(answered.docs.map((a) => {
     const { deck, dilemma } = a.data();
