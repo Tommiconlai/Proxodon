@@ -1830,7 +1830,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   position: absolute;
   inset: -3px;
   width: calc(100% + 6px);
-  height: calc(100% + 6px);
+  height: calc(var(--frame-h, 100%) + 6px); /* --frame-h: parte scoperta delle carte dei mazzi coperte da altre */
   overflow: visible;
   pointer-events: none;
   fill: none;
@@ -1856,16 +1856,18 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 /* Hover solo dove esiste davvero: su touch :hover resta "appiccicato" dopo il tap e
    lascerebbe la cornice corta su una carta appena deselezionata. */
+/* Stessa cornice sulle carte dei mazzi (griglia e stack, .deck-row): nello stack e nella griglia
+   sovrapposta la carta successiva copre il resto, si vedono il segmento in alto e gli angoli. */
 @media (hover: hover) {
-  .preview-card-hotspot:hover .card-frame { opacity: 1; }
+  .preview-card-hotspot:hover .card-frame, .deck-row:hover .card-frame { opacity: 1; }
 }
 
-.preview-card-hotspot.selected .card-frame { opacity: 1; }
+.preview-card-hotspot.selected .card-frame, .deck-row.selected .card-frame { opacity: 1; }
 
-.preview-card-hotspot.selected .card-frame line { transform: none; }
+.preview-card-hotspot.selected .card-frame line, .deck-row.selected .card-frame line { transform: none; }
 
-/* Selezionata: i segmenti si accendono col loro colore (filtro #px-seg-glow in PagePreview). */
-.preview-card-hotspot.selected .card-frame .segs { filter: url(#px-seg-glow); }
+/* Selezionata: i segmenti si accendono col loro colore (filtro #px-seg-glow, CardFrameDefs). */
+.preview-card-hotspot.selected .card-frame .segs, .deck-row.selected .card-frame .segs { filter: url(#px-seg-glow); }
 
 .svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 
@@ -3210,15 +3212,7 @@ span.deck-hero-art { cursor: default; }
 }
 .deck-rows .deck-row-main img { display: block; width: 100%; aspect-ratio: 488 / 680; }
 .deck-rows.view-stacks .deck-row:hover .deck-row-main { filter: brightness(1.15); }
-.deck-rows.view-grid .deck-row.selected .deck-row-main { box-shadow: 0 0 0 2px var(--accent), 0 0 14px rgba(255, 45, 149, 0.55); }
-/* Stack: bordo e velatura interni, così le carte sopra li coprono e resta segnata solo la fascia. */
-.deck-rows.view-stacks .deck-row.selected .deck-row-main::after {
-  content: ''; position: absolute; inset: 0;
-  border-radius: inherit;
-  background: rgba(255, 45, 149, 0.18);
-  box-shadow: inset 0 0 0 2px var(--accent);
-  pointer-events: none;
-}
+/* Selezione di griglia e stack: la cornice della stampa (CardFrame, regole .deck-row con .card-frame). */
 .deck-card-ph { display: grid; place-items: center; aspect-ratio: 488 / 680; padding: 8px; background: var(--bg-elevated); font-size: 0.75rem; text-align: center; color: var(--text-secondary); }
 /* Griglia e stack: copie e − / + in fila al centro in alto, stessi chip ciano tondi. Il numero resta
    sempre, − e + compaiono al passaggio (o col focus); copia singola = solo − e +. */

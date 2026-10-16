@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import CardMenu from '../components/CardMenu';
 import { useLongPress } from '../hooks/useLongPress';
@@ -14,6 +14,7 @@ import {
 import DeckStats from './DeckStats';
 import SampleHand from './SampleHand';
 import CardImg from './CardImg';
+import { CardFrame, CardFrameDefs } from '../components/CardFrame';
 import { cachedImg } from './cardLang';
 import { useSettings, setSetting } from '../utils/settings';
 import { IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy, IconFlip, IconPrinter } from '../components/icons';
@@ -106,6 +107,22 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     ro.observe(rootRef.current);
     return () => ro.disconnect();
   }, [hasCards]);
+
+  // Cornice (CardFrame) solo sulla parte scoperta: negli stack e nella griglia sovrapposta la carta dopo,
+  // nella stessa colonna, copre il resto. --frame-h = altezza scoperta, ricalcolata dopo ogni render.
+  // ponytail: confronto a coppie (O(n²), n ≤ 500 righe); una mappa per colonna se mai rallenta.
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root || view === 'list') return;
+    const lis = [...root.querySelectorAll('.deck-rows .deck-row')];
+    const pos = lis.map((li) => [li.offsetLeft, li.offsetTop, li.offsetHeight]);
+    lis.forEach((li, i) => {
+      const [x, y, h] = pos[i];
+      let bottom = y + h;
+      for (const [x2, y2] of pos) if (Math.abs(x2 - x) < 1 && y2 > y + 1 && y2 < bottom) bottom = y2;
+      li.style.setProperty('--frame-h', bottom < y + h ? `${bottom - y}px` : '');
+    });
+  });
 
   // L'anteprima è fissa sullo schermo: sparisce appena qualcosa scorre.
   useEffect(() => {
@@ -346,6 +363,8 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
             </>
           )}
         </button>
+        {/* Cornice della stampa (CardFrame): corta al passaggio, piena e accesa sulla carta selezionata. */}
+        {view !== 'list' && <CardFrame />}
         {/* Fuori dalla carta (niente pulsanti annidati), anche in sola lettura. */}
         {view !== 'list' && r.card.back && r.card.img && (
           <button type="button" className="deck-card-flip" aria-pressed={turns % 2 === 1} title="Flip"
@@ -402,6 +421,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
       onKeyDown={(e) => { if (e.key === 'Escape' && sel.size) { e.stopPropagation(); setSel(new Set()); } }}>
       {marquee && <div className="marquee" style={marquee} aria-hidden="true" />}
       {tab === 'deck' && <>
+      {view !== 'list' && <CardFrameDefs />}
       <div className="deck-toolbar">
         <label className="deck-tool">
           <span>Sort by</span>
