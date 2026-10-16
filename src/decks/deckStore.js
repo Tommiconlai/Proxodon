@@ -38,17 +38,26 @@ export const changedMs = (d) => ms(d.changedAt ?? d.updatedAt);
 // prefissi delle parole del nome e dei tag (max 200, come le regole), fino a 20 lettere, per cercare con un array-contains senza indici.
 const publicCol = collection(db, 'publicDecks');
 // ponytail: nickname del profilo aperto (lo aggiorna listenProfile, attivo finché si è nell'area mazzi).
-// undefined finché il profilo non è arrivato (o dopo una ricarica del modulo): allora la firma non si scrive.
+// undefined finché il profilo non è arrivato (o dopo una ricarica del modulo, in sviluppo).
 let ownerName;
+// Firma della copia: se ownerName non c'è ancora la legge dal profilo (prima la copia nasceva senza firma,
+// "anonymous", per esempio pubblicando dal pannello New deck appena aperta la pagina). Profilo illeggibile
+// (offline senza cache): undefined, e la copia tiene la firma che ha.
+const ownerOf = async (uid) => {
+  if (ownerName === undefined) ownerName = await getDoc(profileDoc(uid)).then((s) => s.data()?.nickname || null, () => undefined);
+  return ownerName;
+};
 const searchWords = (name) => [...new Set(searchTerms(name)
   .flatMap((w) => Array.from({ length: Math.min(w.length, 20) }, (_, i) => w.slice(0, i + 1))))];
-// changedAt sempre scritto (il nuovo o quello del mazzo). Merge solo per la firma: senza profilo ancora
-// caricato (ownerName undefined) la copia tiene la sua invece di diventare anonymous; tutto il resto si
-// riscrive comunque (gli array vengono sostituiti interi).
-const publish = (uid, d, f) => setDoc(doc(publicCol, d.id), {
-  ...payload(d), ...f, changedAt: f.changedAt ?? d.changedAt ?? d.updatedAt ?? serverTimestamp(),
-  uid, ...(ownerName !== undefined && { owner: ownerName }), words: searchWords([d.name, ...deckTags(d)].join(' ')).slice(0, 200), createdAt: d.createdAt ?? serverTimestamp(),
-}, { merge: true });
+// changedAt sempre scritto (il nuovo o quello del mazzo). Merge solo per la firma: senza firma nota la copia
+// tiene la sua; tutto il resto si riscrive comunque (gli array vengono sostituiti interi).
+const publish = async (uid, d, f) => {
+  const owner = await ownerOf(uid);
+  return setDoc(doc(publicCol, d.id), {
+    ...payload(d), ...f, changedAt: f.changedAt ?? d.changedAt ?? d.updatedAt ?? serverTimestamp(),
+    uid, ...(owner !== undefined && { owner }), words: searchWords([d.name, ...deckTags(d)].join(' ')).slice(0, 200), createdAt: d.createdAt ?? serverTimestamp(),
+  }, { merge: true });
+};
 export const unpublishDeck = (id) => deleteDoc(doc(publicCol, id));
 
 // ponytail: ordinamento lato client (niente indice); legge i documenti interi, va bene per
