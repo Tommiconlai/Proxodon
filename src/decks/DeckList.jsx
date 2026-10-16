@@ -17,7 +17,7 @@ import { TabLabel } from './DeckTabs';
 import { DilemmaFeed } from './Dilemmas';
 import { useBracketSlide } from '../hooks/useBracketSlide';
 import {
-  IconPlus, IconCopy, IconTrash, IconPencil, IconDownload, IconExport, IconGlobe, IconSearch, IconFilter, IconHeart,
+  IconPlus, IconCopy, IconTrash, IconPencil, IconDownload, IconExport, IconGlobe, IconSearch, IconFilter, IconHeart, IconPlay,
 } from '../components/icons';
 
 const COLORS = [['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green'], ['C', 'Colorless']];
@@ -109,8 +109,9 @@ function CommunityGrid({ uid, terms, filters, currency }) {
 // Lista mazzi: schede Community, Dilemmas e My decks (rotte #/community, #/dilemmas e #/decks, stesso
 // componente: ricerca e filtri restano passando dall'una all'altra), ricerca per nome e Filters (formato,
 // colori, carta); in Dilemmas la ricerca (domanda, carte, mazzo, autore) e accanto solo il formato.
-// open = il dilemma aperto dal feed (#/dilemmas/:mazzo/:dilemma): niente ricerca.
-export default function DeckList({ uid, notify, tab = 'mine', open }) {
+// open = il dilemma aperto dal feed (#/dilemmas/:mazzo/:dilemma), play = il gioco (#/dilemmas/play, dal
+// Play al posto del +): niente ricerca.
+export default function DeckList({ uid, notify, tab = 'mine', open, play }) {
   const community = tab === 'community';
   const dilemmas = tab === 'dilemmas';
   const searchLabel = dilemmas ? 'Search dilemmas' : 'Search decks by name';
@@ -162,6 +163,11 @@ export default function DeckList({ uid, notify, tab = 'mine', open }) {
             <a key={t} href={t === 'mine' ? '#/decks' : `#/${t}`} className="decks-title decks-tab" aria-current={tab === t ? 'page' : undefined}><TabLabel>{label}</TabLabel></a>
           ))}
         </nav>
+        {dilemmas && !open && !play && (
+          <div className="decks-actions">
+            <button type="button" className="btn-add deck-new deck-icon-btn" onClick={() => navigate('/dilemmas/play')} aria-label="Play dilemmas" title="Play dilemmas"><IconPlay size={18} /></button>
+          </div>
+        )}
         {tab === 'mine' && (
           <div className="decks-actions">
             {/* Solo in My decks. Solo icone (nome nel tooltip e per i lettori di schermo); backup e ripristino stanno in Settings. */}
@@ -171,7 +177,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open }) {
         )}
       </header>
 
-      {!open && <>
+      {!open && !play && <>
       <div className="decks-search" role="search">
         <label className="decks-search-box">
           <IconSearch size={16} />
@@ -222,7 +228,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open }) {
       )}
       </>}
 
-      {dilemmas ? <DilemmaFeed uid={uid} notify={notify} open={open} terms={terms} format={filters.format} />
+      {dilemmas ? <DilemmaFeed uid={uid} notify={notify} open={open} play={play} terms={terms} format={filters.format} />
         : community ? <CommunityGrid uid={uid} terms={terms} filters={filters} currency={settings.currency} /> : <>
         {decks === null && <span className="import-spinner" aria-label="Loading" />}
         {decks?.length === 0 && <Empty title="Start your first deck" hint="Create one from scratch, or import a list." />}

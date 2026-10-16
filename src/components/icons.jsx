@@ -255,6 +255,24 @@ export function IconArrowLeft(props) {
   );
 }
 
+export function IconArrowRight(props) {
+  return (
+    <Svg {...props}>
+      <path d="m12 5 7 7-7 7" />
+      <path d="M5 12h14" />
+    </Svg>
+  );
+}
+
+// Play (triangolo verso destra): avvia i dilemmi a caso.
+export function IconPlay(props) {
+  return (
+    <Svg {...props}>
+      <path d="M6 4.5v15a1 1 0 0 0 1.52.85l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 6 4.5Z" />
+    </Svg>
+  );
+}
+
 export function IconCheck(props) {
   return (
     <Svg {...props}>

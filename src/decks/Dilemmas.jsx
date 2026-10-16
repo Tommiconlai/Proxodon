@@ -10,7 +10,9 @@ import {
 } from './deckStore';
 import { navigate } from '../hooks/useHashRoute';
 import { groupMain, commanderRows, boardRows, scryfallImg } from './deckModel';
-import { IconPlus, IconArrowLeft, IconTrash, IconCheck, IconX, IconLock, IconLockOpen } from '../components/icons';
+import {
+  IconPlus, IconArrowLeft, IconArrowRight, IconTrash, IconCheck, IconX, IconLock, IconLockOpen,
+} from '../components/icons';
 
 const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
@@ -57,7 +59,7 @@ export function DeckDilemmas({ deck, uid, mine, notify }) {
       {list?.length > 0 && (
         <ul className="dilemma-list">
           {list.map((d) => (
-            <DilemmaTile key={d.id} deckId={deck.id} d={d} uid={uid} solved={answered.has(`${deck.id}_${d.id}`)} onClick={() => setOpenId(d.id)} />
+            <DilemmaTile key={d.id} deckId={deck.id} d={d} uid={uid} solved={!!answered?.has(`${deck.id}_${d.id}`)} onClick={() => setOpenId(d.id)} />
           ))}
         </ul>
       )}
@@ -74,10 +76,11 @@ export function DeckDilemmas({ deck, uid, mine, notify }) {
   );
 }
 
-// Id {deck}_{dilemma} dei dilemmi a cui l'account ha risposto (senza permesso o offline: nessuno).
+// Id {deck}_{dilemma} dei dilemmi a cui l'account ha risposto; null finché non arrivano (senza permesso
+// o offline: nessuno).
 function useAnswered(uid) {
-  const [answered, setAnswered] = useState(() => new Set());
-  useEffect(() => listenAnswered(uid, setAnswered, () => {}), [uid]);
+  const [answered, setAnswered] = useState(null);
+  useEffect(() => listenAnswered(uid, setAnswered, () => setAnswered(new Set())), [uid]);
   return answered;
 }
 
@@ -130,8 +133,8 @@ const deckOnce = (id) => {
 
 // Scheda Dilemmas della lista mazzi (#/dilemmas): gli ultimi dilemmi della Community, filtrati dalla
 // ricerca (domanda, carte, mazzo, autore) e dal formato del mazzo (terms e format da DeckList).
-// Click = #/dilemmas/:mazzo/:dilemma, il dilemma aperto (open) qui.
-export function DilemmaFeed({ uid, notify, open, terms = [], format = '' }) {
+// Click = #/dilemmas/:mazzo/:dilemma, il dilemma aperto (open) qui; play = il gioco (DilemmaPlay).
+export function DilemmaFeed({ uid, notify, open, play, terms = [], format = '' }) {
   const [list, setList] = useState(null); // null = caricamento
   const [error, setError] = useState(null);
   const [decks, setDecks] = useState({}); // deckId -> mazzo pubblico | null; manca = in arrivo
@@ -146,7 +149,8 @@ export function DilemmaFeed({ uid, notify, open, terms = [], format = '' }) {
   }, [list]);
   if (open) return <FeedDilemma key={`${open.deckId}/${open.id}`} {...open} uid={uid} notify={notify} />;
   if (error) return <p className="field-hint">Dilemmas are not available: {error.message}</p>;
-  if (!list) return <span className="import-spinner" aria-label="Loading" />;
+  if (!list || (play && !answered)) return <span className="import-spinner" aria-label="Loading" />;
+  if (play) return <DilemmaPlay list={list} decks={decks} answered={answered} uid={uid} notify={notify} />;
   if (!list.length) {
     return (
       <div className="decks-empty">
@@ -175,11 +179,52 @@ export function DilemmaFeed({ uid, notify, open, terms = [], format = '' }) {
       {shown.map((d) => {
         const deck = decks[d.deckId];
         return (
-          <DilemmaTile key={`${d.deckId}/${d.id}`} deckId={d.deckId} d={d} uid={uid} solved={answered.has(`${d.deckId}_${d.id}`)}
+          <DilemmaTile key={`${d.deckId}/${d.id}`} deckId={d.deckId} d={d} uid={uid} solved={!!answered?.has(`${d.deckId}_${d.id}`)}
             href={`#/dilemmas/${d.deckId}/${d.id}`} meta={deck ? <><b>{deck.name}</b> by {deck.owner || 'anonymous'}</> : '…'} />
         );
       })}
     </ul>
+  );
+}
+
+const shuffle = (a) => {
+  const b = [...a];
+  for (let i = b.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [b[i], b[j]] = [b[j], b[i]];
+  }
+  return b;
+};
+
+// Play (#/dilemmas/play), un "Tinder" dei dilemmi: quelli altrui a cui non hai ancora risposto, uno alla
+// volta in ordine casuale (fissato all'avvio: il voto appena dato non fa saltare via il risultato). Scegli
+// una carta (o ← →), vedi come hanno scelto gli altri, spieghi se vuoi, poi Next (→ o Enter); prima del voto
+// lo stesso pulsante salta. ponytail: pesca tra gli ultimi 40 del feed; con più dilemmi, una query a caso.
+function DilemmaPlay({ list, decks, answered, uid, notify }) {
+  const [queue] = useState(() => shuffle(list.filter((d) => d.uid !== uid && !answered.has(`${d.deckId}_${d.id}`))));
+  const [pos, setPos] = useState(0);
+  const exit = () => navigate('/dilemmas');
+  const at = queue.findIndex((d, i) => i >= pos && decks[d.deckId] !== null); // salta i mazzi tornati privati
+  const d = queue[at];
+  if (!d) {
+    return (
+      <div className="decks-empty">
+        <p className="decks-empty-title">{queue.length ? 'That was the last one' : 'All caught up'}</p>
+        <p className="field-hint">
+          {queue.length ? 'No more dilemmas in this round. The ones you skipped come back the next time you press Play.'
+            : 'Nothing left to answer: you voted on every dilemma from other players. New ones show up as the community asks them.'}
+        </p>
+        <button type="button" className="btn-secondary deck-icon-btn" onClick={exit} aria-label="All dilemmas" title="All dilemmas"><IconArrowLeft size={18} /></button>
+      </div>
+    );
+  }
+  const deck = decks[d.deckId];
+  if (!deck) return <span className="import-spinner" aria-label="Loading" />;
+  return (
+    <div className="dilemma-play" key={`${d.deckId}/${d.id}`}>
+      <DilemmaView deck={deck} dilemma={d} uid={uid} mine={false} notify={notify} onBack={exit} deckHref={`#/community/${d.deckId}`}
+        onNext={() => setPos(at + 1)} progress={`${at + 1} / ${queue.length}`} />
+    </div>
   );
 }
 
@@ -208,8 +253,10 @@ function FeedDilemma({ deckId, id, uid, notify }) {
 // scurisce), il nome del mazzo, la domanda, la lista del mazzo. Chi non è il proprietario sceglie una
 // carta: poi vede le percentuali (sulle carte e quanti hanno scelto come lui), può spiegare la scelta e
 // legge le spiegazioni degli altri. Il proprietario vede percentuali e spiegazioni, e può cancellarlo.
-function DilemmaView({ deck, dilemma, uid, mine, notify, onBack, deckHref }) {
+// Nel gioco (onNext, progress): contatore e Next / Skip nella testata, tasti ← → e Enter.
+function DilemmaView({ deck, dilemma, uid, mine, notify, onBack, deckHref, onNext, progress }) {
   const [votes, setVotes] = useState(null);
+  const [sending, setSending] = useState(false); // un voto alla volta (doppio click, tasti ripetuti)
   const [confirmDel, setConfirmDel] = useState(false);
   useEffect(() => listenVotes(deck.id, dilemma.id, setVotes, () => setVotes([])), [deck.id, dilemma.id]);
   const my = votes?.find((v) => v.id === uid);
@@ -217,15 +264,42 @@ function DilemmaView({ deck, dilemma, uid, mine, notify, onBack, deckHref }) {
   const total = counts[0] + counts[1];
   const results = mine || !!my;
   const choose = (i) => {
-    if (results || !votes) return;
-    voteDilemma(uid, deck.id, dilemma.id, i).catch((e) => notify(`Could not save your choice: ${e.message}`, 'error'));
+    if (results || !votes || sending) return;
+    setSending(true);
+    voteDilemma(uid, deck.id, dilemma.id, i).catch((e) => {
+      setSending(false);
+      notify(`Could not save your choice: ${e.message}`, 'error');
+    });
   };
+  // Gioco: ← → scelgono la carta, dopo il voto → o Enter passano al prossimo. Non mentre si scrive; Enter
+  // su un pulsante o un link resta suo. Senza dipendenze: si riaggancia a ogni render con i valori nuovi.
+  useEffect(() => {
+    if (!onNext) return undefined;
+    const onKey = (e) => {
+      if (e.altKey || e.ctrlKey || e.metaKey || e.target.closest?.('input, textarea, select')) return;
+      const enter = e.key === 'Enter' && !e.target.closest?.('button, a');
+      if (!results && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        e.preventDefault();
+        choose(e.key === 'ArrowLeft' ? 0 : 1);
+      } else if (results && (e.key === 'ArrowRight' || enter)) {
+        e.preventDefault();
+        onNext();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
   const reasons = (votes || []).filter((v) => v.why);
   return (
     <div className="deck-sections dilemma-view">
       <div className="dilemma-head">
         <button type="button" className="btn-secondary deck-icon-btn" onClick={onBack} aria-label="All dilemmas" title="All dilemmas"><IconArrowLeft size={18} /></button>
         <h3 className="deck-analysis-head">Dilemma</h3>
+        {progress && <span className="dilemma-progress">{progress}</span>}
+        {onNext && (
+          <button type="button" className={`${results ? 'btn-add' : 'btn-secondary'} deck-icon-btn`} onClick={onNext}
+            aria-label={results ? 'Next dilemma' : 'Skip this dilemma'} title={results ? 'Next dilemma (→)' : 'Skip'}><IconArrowRight size={18} /></button>
+        )}
         {mine && (
           <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setConfirmDel(true)} aria-label="Delete dilemma" title="Delete dilemma"><IconTrash size={18} /></button>
         )}
@@ -244,7 +318,7 @@ function DilemmaView({ deck, dilemma, uid, mine, notify, onBack, deckHref }) {
       </div>
       <p className="dilemma-deck">{deckHref ? <a href={deckHref}>{deck.name}</a> : deck.name}</p>
       <p className="dilemma-question">{dilemma.question}</p>
-      {!results && <p className="field-hint dilemma-hint">Choose the card you would play.</p>}
+      {!results && <p className="field-hint dilemma-hint">Choose the card you would play{onNext ? ' (← or →)' : ''}.</p>}
       {my && (
         <p className="dilemma-same">
           <b>{pct(counts[my.pick], total)}%</b> chose {dilemma.cards[my.pick].name} like you ({total} {total === 1 ? 'vote' : 'votes'}).
