@@ -5,7 +5,7 @@
  */
 import {
   collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, getDoc, getDocs, writeBatch, runTransaction,
-  query, where, orderBy, limit, getCountFromServer,
+  query, where, orderBy, limit, getCountFromServer, collectionGroup,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { searchTerms, contentSig } from './deckModel';
@@ -112,6 +112,17 @@ const answeredCol = (uid) => collection(db, 'users', uid, 'answered');
 const dilemmaCard = (c) => ({ name: c.name, img: c.img || '', back: c.back || '', sid: c.sid, oid: c.oid, set: c.set || '', cn: c.cn || '' });
 export const listenDilemmas = (deckId, onChange, onError) =>
   onSnapshot(query(dilemmasCol(deckId), orderBy('createdAt', 'desc')), (qs) => onChange(qs.docs.map(plainDoc)), onError);
+// Feed della scheda Dilemmas: gli ultimi 40 di tutti i mazzi pubblici (collection group, serve l'indice
+// collection group su createdAt). deckId = il mazzo pubblico genitore.
+export const listenDilemmaFeed = (onChange, onError) =>
+  onSnapshot(query(collectionGroup(db, 'dilemmas'), orderBy('createdAt', 'desc'), limit(40)),
+    (qs) => onChange(qs.docs.map((s) => ({ ...plainDoc(s), deckId: s.ref.parent.parent.id }))), onError);
+export const listenDilemma = (deckId, dId, onChange, onError) =>
+  onSnapshot(doc(dilemmasCol(deckId), dId), (s) => onChange(s.exists() ? plainDoc(s) : null), onError);
+export const getPublicDeck = (id) => getDoc(doc(publicCol, id)).then((s) => (s.exists() ? fromDoc(s) : null));
+// Id {deck}_{dilemma} dei dilemmi a cui l'account ha risposto.
+export const listenAnswered = (uid, onChange, onError) =>
+  onSnapshot(answeredCol(uid), (qs) => onChange(new Set(qs.docs.map((d) => d.id))), onError);
 export const createDilemma = (uid, deckId, question, cards) =>
   addDoc(dilemmasCol(deckId), { uid, question, cards: cards.map(dilemmaCard), createdAt: serverTimestamp() });
 // Il proprietario cancella prima i voti, poi il dilemma (le regole glielo permettono).

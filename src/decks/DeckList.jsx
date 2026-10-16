@@ -14,6 +14,7 @@ import { timeAgo } from '../utils/timeAgo';
 import ImportDeckDialog from './ImportDeckDialog';
 import { useLikeCount } from './useLikes';
 import { TabLabel } from './DeckTabs';
+import { DilemmaFeed } from './Dilemmas';
 import { useBracketSlide } from '../hooks/useBracketSlide';
 import {
   IconPlus, IconCopy, IconTrash, IconPencil, IconDownload, IconExport, IconGlobe, IconSearch, IconFilter, IconHeart,
@@ -105,10 +106,10 @@ function CommunityGrid({ uid, terms, filters, currency }) {
   );
 }
 
-// Lista mazzi: schede Community, Dilemmas (vuota per ora) e My decks (rotte #/community, #/dilemmas e
-// #/decks, stesso componente: ricerca e filtri restano passando dall'una all'altra), ricerca per nome e
-// Filters (formato, colori, carta), non in Dilemmas.
-export default function DeckList({ uid, notify, tab = 'mine' }) {
+// Lista mazzi: schede Community, Dilemmas e My decks (rotte #/community, #/dilemmas e #/decks, stesso
+// componente: ricerca e filtri restano passando dall'una all'altra), ricerca per nome e Filters (formato,
+// colori, carta), non in Dilemmas. open = il dilemma aperto dal feed (#/dilemmas/:mazzo/:dilemma).
+export default function DeckList({ uid, notify, tab = 'mine', open }) {
   const community = tab === 'community';
   const tabsRef = useRef(null);
   useBracketSlide(tabsRef, LIST_TABS.findIndex(([t]) => t === tab));
@@ -158,11 +159,13 @@ export default function DeckList({ uid, notify, tab = 'mine' }) {
             <a key={t} href={t === 'mine' ? '#/decks' : `#/${t}`} className="decks-title decks-tab" aria-current={tab === t ? 'page' : undefined}><TabLabel>{label}</TabLabel></a>
           ))}
         </nav>
-        <div className="decks-actions">
-          {/* Solo icone (nome nel tooltip e per i lettori di schermo); backup e ripristino stanno in Settings. */}
-          <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setDialog('import')} aria-label="Import a deck" title="Import a deck"><IconDownload size={18} /></button>
-          <button type="button" className="btn-add deck-new deck-icon-btn" onClick={() => setDialog('new')} aria-label="New deck" title="New deck"><IconPlus size={18} /></button>
-        </div>
+        {tab === 'mine' && (
+          <div className="decks-actions">
+            {/* Solo in My decks. Solo icone (nome nel tooltip e per i lettori di schermo); backup e ripristino stanno in Settings. */}
+            <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setDialog('import')} aria-label="Import a deck" title="Import a deck"><IconDownload size={18} /></button>
+            <button type="button" className="btn-add deck-new deck-icon-btn" onClick={() => setDialog('new')} aria-label="New deck" title="New deck"><IconPlus size={18} /></button>
+          </div>
+        )}
       </header>
 
       {tab !== 'dilemmas' && <>
@@ -207,7 +210,7 @@ export default function DeckList({ uid, notify, tab = 'mine' }) {
       )}
       </>}
 
-      {tab === 'dilemmas' ? <p className="field-hint">Nothing here yet.</p>
+      {tab === 'dilemmas' ? <DilemmaFeed uid={uid} notify={notify} open={open} />
         : community ? <CommunityGrid uid={uid} terms={terms} filters={filters} currency={settings.currency} /> : <>
         {decks === null && <span className="import-spinner" aria-label="Loading" />}
         {decks?.length === 0 && <Empty title="Start your first deck" hint="Create one from scratch, or import a list." />}

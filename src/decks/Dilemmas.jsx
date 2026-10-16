@@ -6,7 +6,9 @@ import CardSearch from './CardSearch';
 import { ManaCost } from './Mana';
 import {
   listenDilemmas, createDilemma, deleteDilemma, listenVotes, voteDilemma, explainVote,
+  listenDilemmaFeed, listenDilemma, getPublicDeck, listenPublicDeck, listenAnswered,
 } from './deckStore';
+import { navigate } from '../hooks/useHashRoute';
 import { groupMain, commanderRows, boardRows, scryfallImg } from './deckModel';
 import { IconPlus, IconArrowLeft, IconTrash, IconCheck, IconX } from '../components/icons';
 
@@ -77,11 +79,92 @@ export function DeckDilemmas({ deck, uid, mine, notify }) {
   );
 }
 
+// Scheda Dilemmas della lista mazzi (#/dilemmas): gli ultimi dilemmi della Community, con mazzo, autore e
+// se hai già risposto. Click = #/dilemmas/:mazzo/:dilemma, il dilemma aperto (open) qui.
+export function DilemmaFeed({ uid, notify, open }) {
+  const [list, setList] = useState(null); // null = caricamento
+  const [error, setError] = useState(null);
+  const [answered, setAnswered] = useState(() => new Set());
+  useEffect(() => listenDilemmaFeed((l) => { setList(l); setError(null); }, setError), []);
+  useEffect(() => listenAnswered(uid, setAnswered, () => {}), [uid]);
+  if (open) return <FeedDilemma key={`${open.deckId}/${open.id}`} {...open} uid={uid} notify={notify} />;
+  if (error) return <p className="field-hint">Dilemmas are not available: {error.message}</p>;
+  if (!list) return <span className="import-spinner" aria-label="Loading" />;
+  if (!list.length) {
+    return (
+      <div className="decks-empty">
+        <p className="decks-empty-title">No dilemmas yet</p>
+        <p className="field-hint">Ask the community from the Dilemmas tab of one of your public decks.</p>
+      </div>
+    );
+  }
+  return (
+    <ul className="dilemma-list">
+      {list.map((d) => <FeedItem key={`${d.deckId}/${d.id}`} d={d} uid={uid} done={answered.has(`${d.deckId}_${d.id}`)} />)}
+    </ul>
+  );
+}
+
+// Nome e autore dal mazzo pubblico, letto una volta per mazzo. ponytail: cache per la sessione, un nome
+// cambiato si vede ricaricando. null = mazzo non più pubblico; errore = undefined, resta "…".
+const publicDecks = new Map();
+const deckOnce = (id) => {
+  if (!publicDecks.has(id)) publicDecks.set(id, getPublicDeck(id).catch(() => undefined));
+  return publicDecks.get(id);
+};
+function FeedItem({ d, uid, done }) {
+  const [deck, setDeck] = useState(undefined);
+  useEffect(() => {
+    let on = true;
+    deckOnce(d.deckId).then((x) => { if (on) setDeck(x); });
+    return () => { on = false; };
+  }, [d.deckId]);
+  if (deck === null) return null; // mazzo tornato privato: i suoi dilemmi restano, nascosti
+  return (
+    <li>
+      <a className="dilemma-item" href={`#/dilemmas/${d.deckId}/${d.id}`}>
+        <span className="dilemma-thumbs" aria-hidden="true">
+          {d.cards.map((c, i) => <img key={i} src={img(c)} alt="" loading="lazy" />)}
+        </span>
+        <span className="dilemma-item-q">{d.question}</span>
+        <span className="dilemma-item-cards">{d.cards.map((c) => c.name).join(' or ')}</span>
+        <span className="dilemma-item-meta">
+          <span className="dilemma-item-deck">{deck ? deck.name : '…'}</span>
+          {deck && <span>by {deck.owner || 'anonymous'}</span>}
+          {d.uid === uid ? <span className="dilemma-badge">Yours</span>
+            : done && <span className="dilemma-badge"><IconCheck size={12} /> Answered</span>}
+        </span>
+      </a>
+    </li>
+  );
+}
+
+// Dilemma aperto dal feed: dilemma e mazzo pubblico in ascolto; il nome del mazzo porta al mazzo.
+function FeedDilemma({ deckId, id, uid, notify }) {
+  const [deck, setDeck] = useState(undefined); // undefined = caricamento, null = non c'è più
+  const [dilemma, setDilemma] = useState(undefined);
+  useEffect(() => listenPublicDeck(deckId, setDeck, () => setDeck(null)), [deckId]);
+  useEffect(() => listenDilemma(deckId, id, setDilemma, () => setDilemma(null)), [deckId, id]);
+  const back = () => navigate('/dilemmas');
+  if (deck === undefined || dilemma === undefined) return <span className="import-spinner" aria-label="Loading" />;
+  if (!deck || !dilemma) {
+    return (
+      <div className="dilemma-head">
+        <button type="button" className="btn-secondary deck-icon-btn" onClick={back} aria-label="All dilemmas" title="All dilemmas"><IconArrowLeft size={18} /></button>
+        <p className="field-hint">This dilemma is no longer available.</p>
+      </div>
+    );
+  }
+  const mine = dilemma.uid === uid;
+  return <DilemmaView deck={deck} dilemma={dilemma} uid={uid} mine={mine} notify={notify} onBack={back}
+    deckHref={mine ? `#/decks/${deckId}` : `#/community/${deckId}`} />;
+}
+
 // Dilemma aperto (dal disegno dell'utente): le due carte (hover = quella si ingrandisce, l'altra si
 // scurisce), il nome del mazzo, la domanda, la lista del mazzo. Chi non è il proprietario sceglie una
 // carta: poi vede le percentuali (sulle carte e quanti hanno scelto come lui), può spiegare la scelta e
 // legge le spiegazioni degli altri. Il proprietario vede percentuali e spiegazioni, e può cancellarlo.
-function DilemmaView({ deck, dilemma, uid, mine, notify, onBack }) {
+function DilemmaView({ deck, dilemma, uid, mine, notify, onBack, deckHref }) {
   const [votes, setVotes] = useState(null);
   const [confirmDel, setConfirmDel] = useState(false);
   useEffect(() => listenVotes(deck.id, dilemma.id, setVotes, () => setVotes([])), [deck.id, dilemma.id]);
@@ -115,7 +198,7 @@ function DilemmaView({ deck, dilemma, uid, mine, notify, onBack }) {
           </button>
         ))}
       </div>
-      <p className="dilemma-deck">{deck.name}</p>
+      <p className="dilemma-deck">{deckHref ? <a href={deckHref}>{deck.name}</a> : deck.name}</p>
       <p className="dilemma-question">{dilemma.question}</p>
       {!results && <p className="field-hint dilemma-hint">Choose the card you would play.</p>}
       {my && (

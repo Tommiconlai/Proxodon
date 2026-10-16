@@ -92,6 +92,11 @@ service cloud.firestore {
         }
       }
     }
+    // Feed della scheda Dilemmas: query collection group sui dilemmi di tutti i mazzi, solo lettura
+    // (le scritture restano quelle di publicDecks/{deckId}/dilemmas sopra).
+    match /{path=**}/dilemmas/{dId} {
+      allow read: if verified();
+    }
     // Nickname unici: usernames/{nome in minuscolo} = { uid }. Lo legge chi ha un account (per sapere
     // se è libero, mai l'elenco), lo prende chi lo trova libero, lo libera solo il proprietario.
     match /usernames/{name} {
