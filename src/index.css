@@ -2913,7 +2913,23 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .import-meta-row { display: grid; grid-template-columns: 1fr 160px; gap: 8px; }
 
 /* Editor mazzo: barra + corpo (ricerca a sinistra su desktop, dal task 10). */
-.deck-editor { height: 100%; min-height: 0; }
+.deck-editor { position: relative; height: 100%; min-height: 0; }
+/* Totale carte (DeckCount): fuori da .deck-scroll, quindi resta fermo in basso a sinistra mentre il mazzo scorre. */
+.deck-count {
+  position: absolute; left: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 7;
+  display: flex; align-items: baseline; gap: 6px;
+  padding: 7px 12px;
+  background: rgba(8, 7, 15, 0.88);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  border: 1px solid rgba(0, 229, 255, 0.45); border-radius: var(--radius-sm);
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.18);
+  font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+.deck-count .n { font-size: 1.1rem; font-weight: 600; letter-spacing: 0; color: var(--cyan); }
+.deck-count .split { margin-left: 4px; color: var(--text-muted); }
+.deck-count.warn { border-color: rgba(245, 158, 11, 0.55); box-shadow: 0 0 14px rgba(245, 158, 11, 0.18); }
+.deck-count.warn .n { color: var(--warning); }
 /* Scorre tutto l'editor (testata compresa); restano fermi l'header dell'app e la fascia ricerca. */
 /* Spazio della barra di scorrimento sempre riservato: con Dilemmas (corta) la barra in alto non si sposta. */
 .deck-scroll { height: 100%; overflow-y: auto; scrollbar-gutter: stable; display: flex; flex-direction: column; }

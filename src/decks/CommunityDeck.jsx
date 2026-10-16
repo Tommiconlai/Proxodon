@@ -6,7 +6,7 @@ import { useSettings } from '../utils/settings';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { navigate } from '../hooks/useHashRoute';
 import DeckSections from './DeckSections';
-import { DeckTabs, DeckDilemmas } from './DeckTabs';
+import { DeckTabs, DeckDilemmas, DeckCount } from './DeckTabs';
 import { ExportDeckDialog } from './dialogs';
 import { IconCopy, IconExport, IconHeart } from '../components/icons';
 
@@ -121,6 +121,7 @@ export default function CommunityDeck({ uid, id, notify }) {
           </section>
         </div>
       </div>
+      {tab === 'deck' && <DeckCount deck={deck} />}
       {exportOpen && <ExportDeckDialog deck={deck} onClose={() => setExportOpen(false)} />}
     </div>
   );

@@ -7,7 +7,7 @@ import { cardsByIds } from './scryfallSearch';
 import { navigate } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
-import { DeckTabs, DeckDilemmas } from './DeckTabs';
+import { DeckTabs, DeckDilemmas, DeckCount } from './DeckTabs';
 import CardSearch from './CardSearch';
 import AdvancedSearch from './AdvancedSearch';
 import { MobilePage } from '../components/MobileLayout';
@@ -171,6 +171,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
         </section>
       </div>
       </div>
+      {tab === 'deck' && <DeckCount deck={deck} />}
       {exportOpen && <ExportDeckDialog deck={deck} onClose={() => setExportOpen(false)} />}
       {coverOpen && (
         <CoverDialog deck={deck} onClose={() => setCoverOpen(false)}

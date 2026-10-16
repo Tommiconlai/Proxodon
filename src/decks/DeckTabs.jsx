@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useBracketSlide } from '../hooks/useBracketSlide';
+import { boardCounts, countTarget, countOk } from './deckModel';
 
 const TABS = [['deck', 'Deck'], ['stats', 'Stats'], ['dilemmas', 'Dilemmas']];
 
@@ -30,6 +31,22 @@ export function DeckTabs({ tab, onTab, bar }) {
         <button key={t} type="button" aria-current={tab === t ? 'true' : undefined} className="decks-title decks-tab" onClick={() => onTab(t)}><TabLabel>{label}</TabLabel></button>
       ))}
     </nav>
+  );
+}
+
+// Totale carte, fisso in basso a sinistra della vista mazzo (scheda Deck, editor e Community): main
+// (comandanti compresi) più la sideboard nei formati che la usano (tutti tranne Commander); il numero è
+// ciano se il main va bene per il formato (Commander esattamente 100, gli altri almeno 60), ambra se no.
+export function DeckCount({ deck }) {
+  const c = boardCounts(deck);
+  const side = deck.format === 'commander' ? 0 : c.side;
+  const target = countTarget(deck.format);
+  const detail = `Main deck ${c.main}${target ? (deck.format === 'commander' ? ` of ${target}` : ` (at least ${target})`) : ''}${side ? `, sideboard ${side}` : ''}`;
+  return (
+    <div className={`deck-count${countOk(deck.format, c.main) ? '' : ' warn'}`} role="status" title={detail} aria-label={`${c.main + side} cards. ${detail}`}>
+      <span className="n">{c.main + side}</span> cards
+      {side > 0 && <span className="split">{c.main} + {side}</span>}
+    </div>
   );
 }
 
