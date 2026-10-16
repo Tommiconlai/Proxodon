@@ -37,6 +37,32 @@ service cloud.firestore {
       allow read, delete: if owner(uid);
       allow create, update: if owner(uid) && request.resource.data.cards.size() <= 500;
     }
+    // Mani di Keep or mull votate dall'account: solo sue, create solo insieme al voto (stesso batch).
+    match /users/{uid}/hands/{hId} {
+      allow read, delete: if owner(uid);
+      allow create: if owner(uid) && request.resource.data.keys().hasOnly(['at'])
+        && existsAfter(/databases/$(db)/documents/hands/$(hId)/votes/$(uid));
+    }
+    // Keep or mull: mani iniziali (7 carte) da un mazzo pubblico di un altro account, senza chi le ha pescate;
+    // le legge e le crea chi ha un account, nessuno le modifica. Voti: uno per account (id = uid), keep sì o
+    // no, mai sulle mani dei propri mazzi; li cancella chi ha votato (con l'account).
+    function validHand(d) {
+      return d.keys().hasOnly(['deckId', 'deckUid', 'deckName', 'format', 'commander', 'cards', 'onPlay', 'createdAt'])
+        && d.cards is list && d.cards.size() == 7 && d.commander is list && d.commander.size() <= 2
+        && d.onPlay is bool && d.deckName is string && d.deckName.size() <= 80 && d.format is string && d.createdAt == request.time
+        && d.deckUid != request.auth.uid
+        && get(/databases/$(db)/documents/publicDecks/$(d.deckId)).data.uid == d.deckUid;
+    }
+    match /hands/{hId} {
+      allow read: if verified();
+      allow create: if verified() && validHand(request.resource.data);
+      match /votes/{uid} {
+        allow read: if verified();
+        allow create: if owner(uid) && request.resource.data.keys().hasOnly(['keep', 'at']) && request.resource.data.keep is bool
+          && get(/databases/$(db)/documents/hands/$(hId)).data.deckUid != uid;
+        allow delete: if owner(uid);
+      }
+    }
     // Community: copia pubblica di un mazzo (stesso id), la legge chi ha un account. La firma (owner) è
     // il nickname dell'autore in usernames/, o nessuna. Si può cancellare una copia che non c'è.
     function validPublic(d) {

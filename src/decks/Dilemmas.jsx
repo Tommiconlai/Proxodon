@@ -6,7 +6,7 @@ import CardSearch from './CardSearch';
 import { ManaCost } from './Mana';
 import {
   listenDilemmas, createDilemma, deleteDilemma, listenVotes, voteDilemma, explainVote,
-  listenDilemmaFeed, listenDilemma, getPublicDeck, listenPublicDeck, listenAnswered, countVotes,
+  listenDilemmaFeed, listenDilemma, publicDeckOnce, listenPublicDeck, listenAnswered, countVotes,
 } from './deckStore';
 import { navigate } from '../hooks/useHashRoute';
 import { useBackClose } from '../hooks/useBackClose';
@@ -115,13 +115,6 @@ function DilemmaTile({ deckId, d, uid, solved, meta, href, onClick }) {
   );
 }
 
-// Nome, formato e autore dal mazzo pubblico, letto una volta per mazzo. ponytail: cache per la sessione,
-// un nome cambiato si vede ricaricando. null = mazzo non più pubblico; errore = undefined, resta "…".
-const publicDecks = new Map();
-const deckOnce = (id) => {
-  if (!publicDecks.has(id)) publicDecks.set(id, getPublicDeck(id).catch(() => undefined));
-  return publicDecks.get(id);
-};
 
 // Scheda Dilemmas della lista mazzi (#/dilemmas): gli ultimi dilemmi degli altri giocatori, filtrati dalla
 // ricerca (domanda, carte, mazzo, autore) e dal formato del mazzo (terms e format da DeckList).
@@ -134,7 +127,7 @@ export function DilemmaFeed({ uid, notify, open, play, terms = [], format = '' }
   useEffect(() => listenDilemmaFeed((l) => { setList(l); setError(null); }, setError), []);
   useEffect(() => {
     let on = true;
-    new Set((list || []).map((d) => d.deckId)).forEach((id) => deckOnce(id).then((x) => {
+    new Set((list || []).map((d) => d.deckId)).forEach((id) => publicDeckOnce(id).then((x) => {
       if (on && x !== undefined) setDecks((m) => (m[id] === x ? m : { ...m, [id]: x }));
     }));
     return () => { on = false; };

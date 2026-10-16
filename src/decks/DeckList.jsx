@@ -15,6 +15,7 @@ import ImportDeckDialog from './ImportDeckDialog';
 import { useCount } from './useCount';
 import { TabLabel } from './DeckTabs';
 import { DilemmaFeed } from './Dilemmas';
+import { HandsIntro, HandsPlay } from './KeepOrMull';
 import { useBracketSlide } from '../hooks/useBracketSlide';
 import {
   IconPlus, IconCopy, IconTrash, IconPencil, IconDownload, IconExport, IconGlobe, IconSearch, IconFilter, IconHeart, IconPlay,
@@ -52,6 +53,7 @@ function useScrollMemory(ref, key) {
   }, [ref, key]);
 }
 const LIST_TABS = [['community', 'Community'], ['dilemmas', 'Dilemmas'], ['mine', 'My decks']];
+const DILEMMA_SECTIONS = [['help', 'Help requests', '#/dilemmas'], ['hands', 'Keep or mull', '#/dilemmas/hands']];
 
 // Riquadro di un mazzo (lista, Community, profilo): sull'arte, in alto a sinistra sotto una sfumatura
 // nera, nome (accanto il globo se è pubblico, fuori dalla Community), formato e like ricevuti; sotto
@@ -129,14 +131,18 @@ function CommunityGrid({ uid, terms, filters }) {
 // Lista mazzi: schede Community, Dilemmas e My decks (rotte #/community, #/dilemmas e #/decks, stesso
 // componente: ricerca e filtri restano passando dall'una all'altra), ricerca per nome e Filters (formato,
 // colori, carta); in Dilemmas la ricerca (domanda, carte, mazzo, autore) e accanto solo il formato.
-// open = il dilemma aperto dal feed (#/dilemmas/:mazzo/:dilemma), play = il gioco (#/dilemmas/play, dal
-// Play al posto del +): niente ricerca.
-export default function DeckList({ uid, notify, tab = 'mine', open, play }) {
+// Dilemmas ha due sezioni (section): Help requests (i dilemmi, 'help') e Keep or mull (mani iniziali,
+// 'hands'), ognuna col suo Play nella barra delle sezioni. open = il dilemma aperto dal feed
+// (#/dilemmas/:mazzo/:dilemma), play = il gioco della sezione: niente ricerca né barra.
+export default function DeckList({ uid, notify, tab = 'mine', open, play, section = 'help' }) {
   const community = tab === 'community';
   const dilemmas = tab === 'dilemmas';
+  const hands = dilemmas && section === 'hands';
   const searchLabel = dilemmas ? 'Search dilemmas' : 'Search decks by name';
   const tabsRef = useRef(null);
   useBracketSlide(tabsRef, LIST_TABS.findIndex(([t]) => t === tab));
+  const sectionsRef = useRef(null);
+  useBracketSlide(sectionsRef, hands ? 1 : 0);
   const [decks, setDecks] = useState(null); // null = caricamento
   const [dialog, setDialog] = useState(null); // 'new' | 'import' | { rename: deck } | { del: deck } | { exp: deck }
   const [menu, setMenu] = useState(null); // { deck, x, y }
@@ -144,7 +150,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play }) {
   const [filters, setFilters] = useState(memory.filters);
   useEffect(() => { memory.q = q; memory.filters = filters; }, [q, filters]);
   const rootRef = useRef(null);
-  useScrollMemory(rootRef, open || play ? null : tab);
+  useScrollMemory(rootRef, open || play ? null : dilemmas ? `dilemmas:${section}` : tab);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const press = useLongPress();
   const closeMenu = useCallback(() => setMenu(null), []);
@@ -186,11 +192,6 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play }) {
             <a key={t} href={t === 'mine' ? '#/decks' : `#/${t}`} className="decks-title decks-tab" aria-current={tab === t ? 'page' : undefined}><TabLabel>{label}</TabLabel></a>
           ))}
         </nav>
-        {dilemmas && !open && !play && (
-          <div className="decks-actions">
-            <button type="button" className="btn-add deck-new deck-icon-btn" onClick={() => navigate('/dilemmas/play')} aria-label="Play dilemmas" title="Play dilemmas"><IconPlay size={18} /></button>
-          </div>
-        )}
         {tab === 'mine' && (
           <div className="decks-actions">
             {/* Solo in My decks. Solo icone (nome nel tooltip e per i lettori di schermo); backup e ripristino stanno in Settings. */}
@@ -200,7 +201,20 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play }) {
         )}
       </header>
 
-      {!open && !play && <>
+      {/* Sezioni di Dilemmas, con il Play della sezione aperta a destra. */}
+      {dilemmas && !open && !play && (
+        <div className="dilemma-sections-bar">
+          <nav className="decks-tabs dilemma-sections" aria-label="Dilemmas sections" ref={sectionsRef}>
+            {DILEMMA_SECTIONS.map(([s, label, href]) => (
+              <a key={s} href={href} className="decks-title decks-tab" aria-current={section === s ? 'page' : undefined}><TabLabel>{label}</TabLabel></a>
+            ))}
+          </nav>
+          <button type="button" className="btn-add deck-new deck-icon-btn" onClick={() => navigate(hands ? '/dilemmas/hands/play' : '/dilemmas/play')}
+            aria-label={hands ? 'Play Keep or mull' : 'Play help requests'} title={hands ? 'Play Keep or mull' : 'Play help requests'}><IconPlay size={18} /></button>
+        </div>
+      )}
+
+      {!open && !play && !hands && <>
       <div className="decks-search" role="search">
         <label className="decks-search-box">
           <IconSearch size={16} />
@@ -251,7 +265,8 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play }) {
       )}
       </>}
 
-      {dilemmas ? <DilemmaFeed uid={uid} notify={notify} open={open} play={play} terms={terms} format={filters.format} />
+      {hands ? (play ? <HandsPlay uid={uid} notify={notify} /> : <HandsIntro uid={uid} />)
+        : dilemmas ? <DilemmaFeed uid={uid} notify={notify} open={open} play={play} terms={terms} format={filters.format} />
         : community ? <CommunityGrid uid={uid} terms={terms} filters={filters} /> : <>
         {decks === null && <span className="import-spinner" aria-label="Loading" />}
         {decks?.length === 0 && <Empty title="Start your first deck" hint="Create one from scratch, or import a list." />}

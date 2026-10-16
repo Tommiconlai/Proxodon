@@ -698,6 +698,13 @@ export function libraryCards(deck) {
     .flatMap((r) => Array.from({ length: r.qty }, (_, i) => ({ key: `${r.id}:${i}`, card: r.card })));
 }
 
+// Keep or mull: mano iniziale di 7 carte dal grimorio mescolato (i comandanti restano fuori, partono dalla
+// zona di comando). null se il grimorio ne ha meno di 7.
+export function openingHand(deck, rng = Math.random) {
+  const lib = libraryCards(deck);
+  return lib.length < 7 ? null : shuffle(lib, rng).slice(0, 7).map((x) => x.card);
+}
+
 // Fisher-Yates su una copia; rng iniettabile per il self-check.
 export function shuffle(list, rng = Math.random) {
   const a = [...list];

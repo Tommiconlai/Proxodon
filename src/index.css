@@ -3606,3 +3606,40 @@ span.deck-hero-art { cursor: default; }
 .deck-adv-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .deck-adv-panel .adv-form { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
 .deck-adv-panel .search-results { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); max-height: 60vh; overflow-y: auto; }
+
+/* Sezioni di Dilemmas (DeckList): Help requests e Keep or mull, schede un gradino sotto quelle della
+   lista, il Play della sezione aperta a destra. */
+.dilemma-sections-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -4px 0 16px; }
+.dilemma-sections { gap: 18px; }
+.dilemma-sections .decks-tab { font-size: 0.82rem; letter-spacing: 0.16em; }
+.dilemma-sections-bar > .deck-icon-btn { flex: none; width: 40px; height: 40px; padding: 0; justify-content: center; }
+.mobile-decks .dilemma-sections { flex: 1; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.mobile .dilemma-sections-bar > .deck-icon-btn { width: 44px; height: 44px; }
+.hands-intro { max-width: 520px; margin: 24px auto 0; }
+/* Keep or mull (KeepOrMull.jsx): chi inizia, il mazzo, le 7 carte, Mulligan / Keep, poi come hanno votato. */
+.hand-play { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.hand-play .dilemma-head { align-self: stretch; }
+.hand-turn {
+  margin: 4px 0 8px; padding: 5px 16px; border: 1px solid; border-radius: 999px;
+  font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+}
+.hand-turn.play { color: var(--cyan); border-color: rgba(0, 229, 255, 0.5); box-shadow: 0 0 12px rgba(0, 229, 255, 0.2); }
+.hand-turn.draw { color: var(--accent); border-color: rgba(255, 45, 149, 0.55); box-shadow: 0 0 12px rgba(255, 45, 149, 0.2); }
+.hand-deck { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 6px 10px; margin: 0 0 18px; font-size: 0.9rem; color: var(--text-secondary); }
+.hand-deck a { font-family: var(--font-display); font-size: 1.15rem; color: var(--text-primary); text-decoration: none; }
+.hand-deck a:hover, .hand-deck a:focus-visible { color: var(--cyan); outline: none; }
+.hand-cmdr { padding: 2px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; color: var(--cyan-soft); font: inherit; font-size: 0.82rem; cursor: zoom-in; }
+.hand-cards { list-style: none; width: 100%; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 150px)); justify-content: center; gap: 10px; }
+.hand-card { display: block; width: 100%; padding: 0; border: 0; border-radius: 4.75% / 3.4%; overflow: hidden; background: none; cursor: zoom-in; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.hand-card:hover, .hand-card:focus-visible { transform: translateY(-6px); box-shadow: 0 0 0 2px var(--cyan), 0 0 16px rgba(0, 229, 255, 0.3); outline: none; }
+.hand-card img, .hand-card .deck-card-ph { display: block; width: 100%; aspect-ratio: 488 / 680; }
+.hand-vote { display: flex; justify-content: center; gap: 28px; margin-top: 26px; }
+.hand-vote .deck-icon-btn { width: 64px; height: 64px; padding: 0; justify-content: center; border-radius: 50%; }
+.hand-hint { margin-top: 10px; }
+.hand-result { width: min(420px, 100%); margin-top: 26px; }
+.hand-result p { margin: 0 0 10px; color: var(--text-secondary); }
+.hand-result b { font-family: var(--font-mono); font-size: 1.2rem; color: var(--cyan); }
+.hand-bar { height: 8px; border-radius: 99px; overflow: hidden; background: rgba(255, 45, 149, 0.6); }
+.hand-bar span { display: block; height: 100%; background: var(--cyan); }
+.hand-result .hand-bar-legend { display: flex; justify-content: space-between; margin: 6px 0 0; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted); }
+.mobile .hand-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }

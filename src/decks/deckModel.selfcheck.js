@@ -9,7 +9,7 @@ import {
   parseDeckText, toBackup, fromBackup, duplicateDeck, refreshSnapshots, primaryType,
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
   splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies, packPiles,
-  libraryCards, shuffle, mulliganBottom, hyperAtLeast, deckPrice, addEntries, searchTerms, deckMatches, contentSig,
+  libraryCards, shuffle, openingHand, mulliganBottom, hyperAtLeast, deckPrice, addEntries, searchTerms, deckMatches, contentSig,
   scryfallImg, withScryfallImgs,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
@@ -429,6 +429,17 @@ eq([clean.img, clean.back, clean.art, clean.name, foreign.cards[0].card.back], [
     contentSig(bumpQty(base, base.cards[0].id, 1).cards) === sig0,
     contentSig(moveToBoard(base, [base.cards[0].id], 'side').cards) === sig0,
   ], [true, true, true, false, false], 'firma: edizione, righe divise e campi del mazzo no; quantità e zona sì');
+}
+
+// Keep or mull: 7 carte dal grimorio, mai il comandante; null sotto le 7.
+{
+  let d = addCard(newDeck({ name: 'h', format: 'modern' }), bolt, { qty: 4 }).deck;
+  d = addCard(d, { ...bolt, oid: 'shock', sid: 'shock', name: 'Shock' }, { qty: 4 }).deck;
+  d = addCard(d, { ...bolt, oid: 'cmd', sid: 'cmd', name: 'Commander' }).deck;
+  d = setCommander(d, [d.cards.find((r) => r.card.oid === 'cmd').id], true);
+  const hand = openingHand(d, () => 0.3);
+  eq([hand.length, hand.every((c) => c.oid !== 'cmd'), openingHand(addCard(newDeck({ name: 's' }), bolt, { qty: 6 }).deck)], [7, true, null],
+    'mano iniziale: 7 carte senza comandante, null con meno di 7');
 }
 
 console.log('deckModel selfcheck: ok');
