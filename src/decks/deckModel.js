@@ -378,6 +378,21 @@ export function deckIdentity(deck) {
   return WUBRG.filter((c) => set.has(c));
 }
 
+// Firma del contenuto del mazzo, per "Last update": carte per oracle id (un cambio di edizione o d'arte
+// non conta), quantità sommate per zona, sezione e comandante (dividere o unire righe non conta). Cambia
+// solo se si aggiungono, tolgono o spostano carte. FNV-1a a 32 bit in esadecimale.
+export function contentSig(cards) {
+  const qty = new Map();
+  for (const r of cards) {
+    const k = `${r.card.oid}|${r.board}|${r.section ?? ''}|${r.commander ? 1 : 0}`;
+    qty.set(k, (qty.get(k) || 0) + r.qty);
+  }
+  const s = [...qty].map(([k, q]) => `${k}|${q}`).sort().join('\n');
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 0x01000193);
+  return (h >>> 0).toString(16);
+}
+
 // Ricerca e filtri della lista mazzi: parole del testo (lettere e cifre), poi un mazzo passa se il nome
 // le contiene tutte, ha il formato scelto, ogni colore scelto è nella sua identità (C = incolore) e una
 // carta fuori dal maybeboard ha nel nome il testo di card.

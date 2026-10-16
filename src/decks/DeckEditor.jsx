@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDeck } from './useDeck';
-import { unpublishDeck } from './deckStore';
+import { unpublishDeck, changedMs } from './deckStore';
 import { FORMATS, boardCounts, refreshSnapshots, addCard, toPrintEntries, coverRow, priceLabel } from './deckModel';
 import { useSettings } from '../utils/settings';
 import { cardsByIds } from './scryfallSearch';
@@ -94,9 +94,9 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
     else setPrintOpen(true);
   };
   const cover = coverRow(deck);
-  const savedAt = deck.updatedAt?.toMillis?.();
+  const savedAt = changedMs(deck); // ultimo cambio di carte (changedAt): Public, edizioni, prezzi non contano
   const price = priceLabel(deck, settings.currency);
-  const sync = !online ? (saving ? 'Offline, saved on this device' : 'Offline') : saving ? 'Saving…' : savedAt ? `Saved ${timeAgo(savedAt)}` : 'Saved'; // tempo dall'ultima scrittura (updatedAt)
+  const sync = !online ? (saving ? 'Offline, saved on this device' : 'Offline') : saving ? 'Saving…' : savedAt ? `Saved ${timeAgo(savedAt)}` : 'Saved';
   const name = (
     <input className="deck-name" value={deck.name} maxLength={80} aria-label="Deck name" spellCheck={false}
       onChange={(e) => update((d) => ({ ...d, name: e.target.value }))}

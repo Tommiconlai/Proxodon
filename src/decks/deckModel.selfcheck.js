@@ -9,7 +9,7 @@ import {
   parseDeckText, toBackup, fromBackup, duplicateDeck, refreshSnapshots, primaryType,
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
   splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies, packPiles,
-  libraryCards, shuffle, mulliganBottom, hyperAtLeast, deckPrice, addEntries, searchTerms, deckMatches,
+  libraryCards, shuffle, mulliganBottom, hyperAtLeast, deckPrice, addEntries, searchTerms, deckMatches, contentSig,
   scryfallImg, withScryfallImgs,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
@@ -415,5 +415,20 @@ const foreign = { ...sd, cards: [{ ...sd.cards[0], card: { ...sd.cards[0].card, 
 const clean = withScryfallImgs(foreign).cards[0].card;
 eq([clean.img, clean.back, clean.art, clean.name, foreign.cards[0].card.back], [sfImg, '', '', 'Lightning Bolt', 'https://evil.test/b.jpg'],
   'mazzo pubblico: immagini estranee tolte, resto e originale invariati');
+
+// "Last update": la firma cambia con carte, quantità, zona, sezione, comandante; non con edizione o righe divise.
+{
+  const base = addCard(newDeck({ name: 's', format: 'modern' }), bolt, { qty: 4 }).deck;
+  const sig0 = contentSig(base.cards);
+  const reprint = { ...bolt, sid: 'bolt-2', set: 'm10', img: 'other' };
+  const split = splitRow(base, base.cards[0].id);
+  eq([
+    contentSig(changeEdition(base, [base.cards[0].id], reprint).cards) === sig0,
+    contentSig(split.cards) === sig0,
+    contentSig({ ...base, groupBy: 'mv', name: 'x', public: true }.cards) === sig0,
+    contentSig(bumpQty(base, base.cards[0].id, 1).cards) === sig0,
+    contentSig(moveToBoard(base, [base.cards[0].id], 'side').cards) === sig0,
+  ], [true, true, true, false, false], 'firma: edizione, righe divise e campi del mazzo no; quantità e zona sì');
+}
 
 console.log('deckModel selfcheck: ok');

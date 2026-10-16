@@ -8,33 +8,53 @@ import {
   query, where, orderBy, limit, getCountFromServer,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { searchTerms } from './deckModel';
+import { searchTerms, contentSig } from './deckModel';
 
 const decksCol = (uid) => collection(db, 'users', uid, 'decks');
 // serverTimestamps 'estimate': un mazzo appena scritto ha già una data (stimata) per l'ordinamento.
-const fromDoc = (s) => ({ id: s.id, ...s.data({ serverTimestamps: 'estimate' }) });
+// sig mancante (mazzi di prima di changedAt): la firma delle carte appena lette fa da base, così il primo
+// cambio vero si riconosce.
+const fromDoc = (s) => {
+  const d = { id: s.id, ...s.data({ serverTimestamps: 'estimate' }) };
+  return d.sig || !Array.isArray(d.cards) ? d : { ...d, sig: contentSig(d.cards) };
+};
 const ms = (t) => t?.toMillis?.() ?? 0;
 const payload = (d) => ({
   v: 1, name: d.name, format: d.format, groupBy: d.groupBy, sections: d.sections, cover: d.cover ?? null, cards: d.cards,
   public: !!d.public, updatedAt: serverTimestamp(),
 });
+// "Last update" = changedAt, che si sposta solo quando cambia contentSig (carte aggiunte, tolte, quantità,
+// zone, sezioni, comandante). Nome, formato, raggruppamento, copertina, Public, cambi di edizione e
+// riallineamenti da Scryfall toccano solo updatedAt (l'ultima scrittura). Senza cambi la chiave manca e col
+// merge resta quella salvata; un mazzo di prima, senza changedAt, prende il suo updatedAt di allora.
+const changes = (d) => {
+  const sig = contentSig(d.cards);
+  if (sig !== d.sig) return { sig, changedAt: serverTimestamp() };
+  return d.changedAt || !d.updatedAt ? { sig } : { sig, changedAt: d.updatedAt };
+};
+export const changedMs = (d) => ms(d.changedAt ?? d.updatedAt);
 
 // Community. La copia pubblica porta uid, la firma (owner: nickname del profilo, o null) e words: i
 // prefissi delle parole del nome, fino a 20 lettere, per cercare con un array-contains senza indici.
 const publicCol = collection(db, 'publicDecks');
 // ponytail: nickname del profilo aperto (lo aggiorna listenProfile, attivo finché si è nell'area mazzi).
-let ownerName = null;
+// undefined finché il profilo non è arrivato (o dopo una ricarica del modulo): allora la firma non si scrive.
+let ownerName;
 const searchWords = (name) => [...new Set(searchTerms(name)
   .flatMap((w) => Array.from({ length: Math.min(w.length, 20) }, (_, i) => w.slice(0, i + 1))))];
-const publish = (uid, d) => setDoc(doc(publicCol, d.id), {
-  ...payload(d), uid, owner: ownerName, words: searchWords(d.name), createdAt: d.createdAt ?? serverTimestamp(),
-});
+// changedAt sempre scritto (il nuovo o quello del mazzo). Merge solo per la firma: senza profilo ancora
+// caricato (ownerName undefined) la copia tiene la sua invece di diventare anonymous; tutto il resto si
+// riscrive comunque (gli array vengono sostituiti interi).
+const publish = (uid, d, f) => setDoc(doc(publicCol, d.id), {
+  ...payload(d), ...f, changedAt: f.changedAt ?? d.changedAt ?? d.updatedAt ?? serverTimestamp(),
+  uid, ...(ownerName !== undefined && { owner: ownerName }), words: searchWords(d.name), createdAt: d.createdAt ?? serverTimestamp(),
+}, { merge: true });
 export const unpublishDeck = (id) => deleteDoc(doc(publicCol, id));
 
 // ponytail: ordinamento lato client (niente indice); legge i documenti interi, va bene per
 // decine di mazzi. Se la lista rallenta: una collezione di riepiloghi.
 export function listenDecks(uid, onChange, onError) {
-  return onSnapshot(decksCol(uid), (qs) => onChange(qs.docs.map(fromDoc).sort((a, b) => ms(b.updatedAt) - ms(a.updatedAt))), onError);
+  return onSnapshot(decksCol(uid), (qs) => onChange(qs.docs.map(fromDoc).sort((a, b) => changedMs(b) - changedMs(a))), onError);
 }
 
 export function listenDeck(uid, id, onChange, onError) {
@@ -44,14 +64,15 @@ export function listenDeck(uid, id, onChange, onError) {
 
 export function createDeck(uid, deck) {
   const ref = doc(decksCol(uid));
-  return { id: ref.id, done: setDoc(ref, { ...payload(deck), createdAt: serverTimestamp() }) };
+  return { id: ref.id, done: setDoc(ref, { ...payload(deck), ...changes(deck), createdAt: serverTimestamp() }) };
 }
 
 // merge: createdAt resta; gli array (cards, sections) vengono sostituiti interi. Pubblico: riscrive anche
 // la copia, con una scrittura a parte (se le regole la rifiutano il mazzo resta salvato).
 export const saveDeck = (uid, deck) => {
-  const done = setDoc(doc(decksCol(uid), deck.id), payload(deck), { merge: true });
-  return deck.public ? Promise.all([done, publish(uid, deck)]) : done;
+  const f = changes(deck);
+  const done = setDoc(doc(decksCol(uid), deck.id), { ...payload(deck), ...f }, { merge: true });
+  return deck.public ? Promise.all([done, publish(uid, deck, f)]) : done;
 };
 export const setDeckPublic = (uid, deck, on) => Promise.all([
   saveDeck(uid, { ...deck, public: on }), !on && unpublishDeck(deck.id),

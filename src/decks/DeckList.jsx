@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { listenDecks, listenCommunity, createDeck, saveDeck, deleteDeck, setDeckPublic } from './deckStore';
+import { listenDecks, listenCommunity, createDeck, saveDeck, deleteDeck, setDeckPublic, changedMs } from './deckStore';
 import {
   FORMATS, newDeck, duplicateDeck, deckIdentity, deckCover, scryfallImg, formatLabel, priceLabel, searchTerms, deckMatches,
 } from './deckModel';
@@ -36,7 +36,7 @@ const menuPoint = (e) => {
 // riquadro è largo una percentuale della griglia e tutto scala con lui. props vanno sul pulsante.
 export function DeckTile({ deck: d, currency, by, ...props }) {
   const cover = scryfallImg(deckCover(d));
-  const updated = d.updatedAt?.toMillis?.();
+  const updated = changedMs(d); // ultimo cambio di carte (changedAt), non l'ultima scrittura
   const price = priceLabel(d, currency);
   const likes = useLikeCount(d.id, !!d.public);
   return (
