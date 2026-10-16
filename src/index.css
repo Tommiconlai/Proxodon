@@ -2920,7 +2920,7 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .dilemma-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .dilemma-head .deck-analysis-head { flex: 1; margin: 0; }
 /* Riquadro di un dilemma (disegno dell'utente): le arti delle due carte divise in diagonale da una riga
-   nera sfumata, come un'ombra (da 60% in alto a 40% in basso), risposte in alto a sinistra, lucchetto in alto a destra; la
+   nera sfumata, come un'ombra (da 60% in alto a 40% in basso), risposte in alto a sinistra, New / Voted in alto a destra; la
    domanda (max 3 righe) e nel feed mazzo e autore stanno sotto, fuori dal bordo. Hover: la metà sotto il
    puntatore resta accesa, l'altra si scurisce (il clip-path limita anche l'hover alla parte visibile). */
 .dilemma-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 300px)); justify-content: center; gap: 28px 22px; }
@@ -2943,14 +2943,16 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .dilemma-tile .dilemma-split .s0:hover, .dilemma-tile .dilemma-split .s1:hover { filter: none; }
 .dilemma-split-line { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; filter: drop-shadow(0 0 3px #000) drop-shadow(0 0 8px rgba(0, 0, 0, 0.85)); }
 .dilemma-split-line line { stroke: #000; stroke-width: 2; vector-effect: non-scaling-stroke; }
-.dilemma-votes, .dilemma-lock {
-  position: absolute; top: 8px; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px;
+.dilemma-votes, .dilemma-flag {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px;
   background: rgba(8, 7, 15, 0.85); border: 1px solid rgba(0, 229, 255, 0.45); border-radius: var(--radius-sm);
   font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; color: var(--cyan);
 }
-.dilemma-votes { left: 8px; }
-.dilemma-lock { right: 8px; padding: 4px; }
-.dilemma-lock.solved { border-color: var(--accent); color: var(--accent); }
+.dilemma-votes { position: absolute; top: 8px; left: 8px; }
+/* In alto a destra: New (ultime 12 ore, ciano) e Voted (hai risposto, magenta). */
+.dilemma-flags { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; }
+.dilemma-flag { letter-spacing: 0.06em; text-transform: uppercase; }
+.dilemma-flag.voted { border-color: var(--accent); color: var(--accent); }
 .dilemma-tile-q {
   padding: 0 2px; font-family: var(--font-display); font-size: 1rem; line-height: 1.35; overflow-wrap: anywhere;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;

@@ -13,7 +13,7 @@ import { useBackClose } from '../hooks/useBackClose';
 import { useCount } from './useCount';
 import { groupMain, commanderRows, boardRows, scryfallImg, shuffle } from './deckModel';
 import {
-  IconPlus, IconArrowLeft, IconArrowRight, IconTrash, IconCheck, IconX, IconLock, IconLockOpen,
+  IconPlus, IconArrowLeft, IconArrowRight, IconTrash, IconCheck, IconX,
 } from '../components/icons';
 
 const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
@@ -88,25 +88,33 @@ function useAnswered(uid) {
 }
 
 // Riquadro di un dilemma (disegno dell'utente): le arti delle due carte divise in diagonale, in alto a
-// sinistra le risposte, in alto a destra il lucchetto (chiuso = hai risposto, aperto = ancora da
-// risolvere; niente sui propri, a cui non si risponde). Sotto, fuori dal bordo, la domanda e nel feed
-// mazzo e autore (meta). Link (href) nel feed, pulsante (onClick) nella scheda del mazzo.
+// sinistra le risposte, in alto a destra New (creato nelle ultime 12 ore) e Voted (hai già risposto; mai sui
+// propri, a cui non si risponde). Sotto, fuori dal bordo, la domanda e nel feed mazzo e autore (meta). Link
+// (href) nel feed, pulsante (onClick) nella scheda del mazzo.
+const NEW_MS = 12 * 3600 * 1000;
 function DilemmaTile({ deckId, d, uid, solved, meta, href, onClick }) {
   const votes = useCount(countVotes, deckId, d.id);
-  const mine = d.uid === uid;
+  const voted = solved && d.uid !== uid;
+  const [now] = useState(() => Date.now()); // all'apertura della lista: basta per una soglia di 12 ore
+  const fresh = now - (d.createdAt?.toMillis?.() ?? 0) < NEW_MS;
   const Tag = href ? 'a' : 'button';
-  const status = mine ? 'your dilemma' : solved ? 'answered' : 'not answered yet';
+  const status = [fresh && 'new', voted && 'voted'].filter(Boolean).join(', ');
   return (
     <li>
       <Tag className="dilemma-tile" {...(href ? { href } : { type: 'button', onClick })}
-        aria-label={`${d.question} ${d.cards.map((c) => c.name).join(' or ')}. ${votes} ${votes === 1 ? 'vote' : 'votes'}, ${status}.`}>
+        aria-label={`${d.question} ${d.cards.map((c) => c.name).join(' or ')}. ${votes} ${votes === 1 ? 'vote' : 'votes'}${status ? `, ${status}` : ''}.`}>
         <span className="dilemma-split" aria-hidden="true">
           {d.cards.map((c, i) => (art(c)
             ? <img key={i} className={`s${i}`} src={art(c)} alt="" loading="lazy" title={c.name} />
             : <span key={i} className={`s${i} dilemma-split-ph`} title={c.name}>{c.name}</span>))}
           <svg className="dilemma-split-line" viewBox="0 0 100 100" preserveAspectRatio="none"><line x1="60" y1="0" x2="40" y2="100" /></svg>
           <span className="dilemma-votes">{votes} {votes === 1 ? 'vote' : 'votes'}</span>
-          {!mine && <span className={`dilemma-lock${solved ? ' solved' : ''}`}>{solved ? <IconLock size={14} /> : <IconLockOpen size={14} />}</span>}
+          {(fresh || voted) && (
+            <span className="dilemma-flags">
+              {fresh && <span className="dilemma-flag">New</span>}
+              {voted && <span className="dilemma-flag voted">Voted</span>}
+            </span>
+          )}
         </span>
         <span className="dilemma-tile-q">{d.question}</span>
         {meta && <span className="dilemma-tile-meta">{meta}</span>}
