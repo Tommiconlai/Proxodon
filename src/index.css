@@ -3009,7 +3009,10 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .deck-like span { color: var(--text-primary); }
 .deck-dilemmas { margin-top: 44px; }
 span.deck-hero-art { cursor: default; }
-.deck-print.is-public { border-color: var(--cyan); color: var(--cyan-soft); box-shadow: 0 0 10px rgba(0, 229, 255, 0.25); }
+/* Testata del mazzo: pulsanti solo icona, quadrati da 36 px con il fondo scuro del prezzo (stanno sull'arte). */
+.deck-hero-meta .deck-icon-btn { flex: none; width: 36px; height: 36px; padding: 0; justify-content: center; background: rgba(8, 7, 15, 0.6); }
+/* Pubblico: non solo il colore (la scritta Public / Private non c'è più), il fondo si riempie. */
+.deck-hero-meta .deck-icon-btn.is-public { background: rgba(0, 229, 255, 0.22); border-color: var(--cyan); color: #fff; box-shadow: 0 0 10px rgba(0, 229, 255, 0.35); }
 .deck-sync { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); }
 .deck-sync.offline { color: var(--warning); }
 .deck-body { flex: 1 0 auto; display: grid; grid-template-columns: 1fr; }

@@ -129,17 +129,21 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
             <select className="deck-format" value={deck.format} aria-label="Format" onChange={(e) => update((d) => ({ ...d, format: e.target.value }))}>
               {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
             </select>
-            <button type="button" className="btn-secondary deck-print" onClick={startPrint} disabled={!c.main}><IconPrinter size={15} /> Print deck</button>
-            <button type="button" className="btn-secondary deck-print" onClick={() => setExportOpen(true)} disabled={!deck.cards.length}><IconExport size={15} /> Export</button>
-            {/* Pubblico = copia in Community, riscritta a ogni salvataggio (deckStore). */}
-            <button type="button" className={`btn-secondary deck-print${deck.public ? ' is-public' : ''}`} aria-pressed={!!deck.public}
-              title={deck.public ? 'In Community. Click to make it private' : 'Only you can see it. Click to share it in Community'}
+            {/* Pulsanti solo icona: il nome sta in aria-label e nel tooltip. */}
+            <button type="button" className="btn-secondary deck-icon-btn" onClick={startPrint} disabled={!c.main}
+              aria-label="Print deck" title="Print deck"><IconPrinter size={17} /></button>
+            <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setExportOpen(true)} disabled={!deck.cards.length}
+              aria-label="Export" title="Export"><IconExport size={17} /></button>
+            {/* Pubblico = copia in Community, riscritta a ogni salvataggio (deckStore); acceso = ciano. */}
+            <button type="button" className={`btn-secondary deck-icon-btn${deck.public ? ' is-public' : ''}`} aria-pressed={!!deck.public}
+              aria-label="Share in Community"
+              title={deck.public ? 'Public, in Community. Click to make it private' : 'Private. Click to share it in Community'}
               onClick={() => {
                 const on = !deck.public;
                 update((d) => ({ ...d, public: on }));
                 if (!on) unpublishDeck(id).catch((e) => notify(`Sync error: ${e.message}`, 'error'));
                 notify(on ? 'Shared in Community' : 'Removed from Community');
-              }}><IconGlobe size={15} /> {deck.public ? 'Public' : 'Private'}</button>
+              }}><IconGlobe size={17} /></button>
             {price && <span className="deck-price" title={`${settings.currency === 'eur' ? 'Cardmarket' : 'TCGplayer'} price on Scryfall, main deck and sideboard`}>{price}</span>}
             <span className={`deck-sync${online ? '' : ' offline'}`} role="status">{sync}</span>
           </div>

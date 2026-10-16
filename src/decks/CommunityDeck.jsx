@@ -87,8 +87,10 @@ export default function CommunityDeck({ uid, id, notify }) {
             </div>
             <div className="deck-hero-meta">
               <span className="deck-price">{formatLabel(deck.format)}</span>
-              <button type="button" className="btn-secondary deck-print" onClick={copy}><IconCopy size={15} /> Copy to my decks</button>
-              <button type="button" className="btn-secondary deck-print" onClick={() => setExportOpen(true)} disabled={!deck.cards.length}><IconExport size={15} /> Export</button>
+              <button type="button" className="btn-secondary deck-icon-btn" onClick={copy}
+                aria-label="Copy to my decks" title="Copy to my decks"><IconCopy size={17} /></button>
+              <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setExportOpen(true)} disabled={!deck.cards.length}
+                aria-label="Export" title="Export"><IconExport size={17} /></button>
               {price && <span className="deck-price">{price}</span>}
               <span className="deck-sync">by {deck.owner || 'anonymous'}</span>
             </div>
