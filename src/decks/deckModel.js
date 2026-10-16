@@ -397,6 +397,26 @@ export const coverRow = (deck) => (deck.cover && deck.cards.find((r) => r.card.o
   || commanderRows(deck)[0] || deck.cards.find((x) => x.board === 'main');
 export const deckCover = (deck) => coverRow(deck)?.card.art || '';
 
+// Immagini dei mazzi solo da Scryfall (https, cards/svgs.scryfall.io), sennò '' (= segnaposto): i mazzi
+// pubblici li scrive il proprietario e li legge chiunque, un altro host farebbe caricare a chi guarda
+// immagini da un server qualsiasi (IP, tracciamento). href codifica le virgolette: sicuro dentro url("...").
+const IMG_HOSTS = ['cards.scryfall.io', 'svgs.scryfall.io'];
+export function scryfallImg(url) {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'https:' && IMG_HOSTS.includes(u.hostname) ? u.href : '';
+  } catch {
+    return '';
+  }
+}
+// Mazzo di un altro account (Community): snapshot con le sole immagini ammesse.
+export const withScryfallImgs = (deck) => ({
+  ...deck,
+  cards: deck.cards.map((r) => ({
+    ...r, card: { ...r.card, img: scryfallImg(r.card.img), back: scryfallImg(r.card.back), art: scryfallImg(r.card.art) },
+  })),
+});
+
 // ── Verso la stampa ──────────────────────────────────────────
 
 const frontName = (name) => name.split(' // ')[0];

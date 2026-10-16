@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { listenDecks, listenCommunity, createDeck, saveDeck, deleteDeck, setDeckPublic } from './deckStore';
 import {
-  FORMATS, newDeck, duplicateDeck, deckIdentity, deckCover, formatLabel, priceLabel, searchTerms, deckMatches,
+  FORMATS, newDeck, duplicateDeck, deckIdentity, deckCover, scryfallImg, formatLabel, priceLabel, searchTerms, deckMatches,
 } from './deckModel';
 import { useSettings } from '../utils/settings';
 import { navigate } from '../hooks/useHashRoute';
@@ -32,7 +32,7 @@ const menuPoint = (e) => {
 // identità di colore e prezzo, poi autore (by, nella Community) e ultima modifica. Testi in cqi: il
 // riquadro è largo una percentuale della griglia e tutto scala con lui. props vanno sul pulsante.
 export function DeckTile({ deck: d, currency, by, ...props }) {
-  const cover = deckCover(d);
+  const cover = scryfallImg(deckCover(d));
   const updated = d.updatedAt?.toMillis?.();
   const price = priceLabel(d, currency);
   const likes = useLikeCount(d.id, !!d.public);

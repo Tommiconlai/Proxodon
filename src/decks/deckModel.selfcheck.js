@@ -10,6 +10,7 @@ import {
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
   splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies, packPiles,
   libraryCards, shuffle, mulliganBottom, hyperAtLeast, deckPrice, addEntries, searchTerms, deckMatches,
+  scryfallImg, withScryfallImgs,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
 
@@ -400,5 +401,19 @@ eq([deckMatches(sd, [], { format: 'modern', colors: ['R'] }), deckMatches(sd, []
 const maybeOnly = addCard(newDeck({ name: 'm' }), bolt, { board: 'maybe' }).deck;
 eq([deckMatches(sd, [], { ...none, card: ' lightning ' }), deckMatches(sd, [], { ...none, card: 'counterspell' }),
   deckMatches(maybeOnly, [], { ...none, card: 'bolt' })], [true, false, false], 'filtri: contiene carta, maybeboard esclusa');
+
+// Immagini dei mazzi pubblici: solo https da Scryfall, il resto diventa '' (segnaposto).
+const sfImg = 'https://cards.scryfall.io/normal/front/6/9/x.jpg?1783908173';
+eq([scryfallImg(sfImg), scryfallImg('https://svgs.scryfall.io/card-symbols/W.svg')],
+  [sfImg, 'https://svgs.scryfall.io/card-symbols/W.svg'], 'immagini Scryfall invariate');
+eq(['http://cards.scryfall.io/a.jpg', 'https://evil.test/a.jpg', 'https://cards.scryfall.io.evil.test/a.jpg',
+  'https://cards.scryfall.io@evil.test/a.jpg', 'data:image/png;base64,AAAA', '//evil.test/a.jpg', '', undefined].map(scryfallImg),
+['', '', '', '', '', '', '', ''], 'immagini: altri host, http, data e vuote rifiutate');
+eq(scryfallImg('https://cards.scryfall.io/a.jpg"),url("https://evil.test/t.png').includes('"'), false,
+  'immagini: niente virgolette, non si esce da url("...")');
+const foreign = { ...sd, cards: [{ ...sd.cards[0], card: { ...sd.cards[0].card, img: sfImg, back: 'https://evil.test/b.jpg', art: 'x' } }] };
+const clean = withScryfallImgs(foreign).cards[0].card;
+eq([clean.img, clean.back, clean.art, clean.name, foreign.cards[0].card.back], [sfImg, '', '', 'Lightning Bolt', 'https://evil.test/b.jpg'],
+  'mazzo pubblico: immagini estranee tolte, resto e originale invariati');
 
 console.log('deckModel selfcheck: ok');
