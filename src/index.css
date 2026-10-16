@@ -3022,7 +3022,7 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .dilemma-view { display: flex; flex-direction: column; align-items: center; text-align: center; }
 .dilemma-view .dilemma-head { align-self: stretch; }
 /* Le carte come nel disegno: a ventaglio verso l'esterno (--r, da -4° a +4°); hover = quella cresce e si
-   raddrizza, le altre si scuriscono. 3 e 4 carte più strette; telefono: due per riga. Dopo il voto la scelta
+   raddrizza, le altre si scuriscono. 3 e 4 carte più strette; telefono: griglia 2x2. Dopo il voto la scelta
    ha la cornice della stampa (CardFrame .selected). */
 .dilemma-cards { display: flex; justify-content: center; gap: 28px; margin: 18px 0 26px; }
 .dilemma-card {
@@ -3033,8 +3033,10 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .dilemma-cards.n3 .dilemma-card { width: min(220px, 27vw); }
 .dilemma-cards.n4 { gap: 20px; }
 .dilemma-cards.n4 .dilemma-card { width: min(190px, 20vw); }
-.mobile .dilemma-cards:is(.n3, .n4) { flex-wrap: wrap; gap: 18px; }
-.mobile .dilemma-cards:is(.n3, .n4) .dilemma-card { width: 40vw; }
+/* Telefono, 3 e 4 carte: griglia 2x2 dritta (niente ventaglio né ingrandimento al tocco); con 3 la terza al centro. */
+.mobile .dilemma-cards:is(.n3, .n4) { display: grid; grid-template-columns: repeat(2, minmax(0, 150px)); justify-content: center; gap: 14px; }
+.mobile .dilemma-cards:is(.n3, .n4) .dilemma-card { width: 100%; transform: none; }
+.mobile .dilemma-cards.n3 .dilemma-card:last-child { grid-column: 1 / -1; justify-self: center; width: calc((100% - 14px) / 2); }
 .dilemma-card > img, .dilemma-card > .deck-card-ph { display: block; width: 100%; aspect-ratio: 488 / 680; border-radius: 4.75% / 3.4%; box-shadow: var(--shadow-lg); }
 .dilemma-cards:hover .dilemma-card:not(:hover) { filter: brightness(0.5); }
 .dilemma-card:hover, .dilemma-card:focus-visible { transform: scale(1.1); z-index: 1; outline: none; }
