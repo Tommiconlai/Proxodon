@@ -1,5 +1,5 @@
 /**
- * CMYK raster utils, Proxoteca (Fase 2: file CMYK nativi)
+ * CMYK raster utils, Proxodon (Fase 2: file CMYK nativi)
  *
  * Rilevamento JPEG CMYK + generazione abbondanza sui canali grezzi C/M/Y/K
  * SENZA canvas (il canvas è solo-RGB e distruggerebbe il CMYK). L'abbondanza

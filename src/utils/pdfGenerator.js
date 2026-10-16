@@ -1,5 +1,5 @@
 /**
- * PDF Generator Utility, Proxoteca
+ * PDF Generator Utility, Proxodon
  *
  * Costanti: tutte le misure in mm, jsPDF usa 'mm' come unità.
  * Orientamento: auto-calcolato per massimizzare il numero di immagini.

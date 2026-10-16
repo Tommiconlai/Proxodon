@@ -1,5 +1,5 @@
 /**
- * Self-check del decoder CMYK JPEG, Proxoteca (no framework, stile scryfall.selfcheck).
+ * Self-check del decoder CMYK JPEG, Proxodon (no framework, stile scryfall.selfcheck).
  * Esegui:  node src/utils/vendor/jpegCmykDecoder.selfcheck.js
  *
  * Verifica che `decodeCMYK` produca DeviceCMYK NON invertito (0 = niente inchiostro)

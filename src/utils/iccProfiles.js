@@ -1,5 +1,5 @@
 /**
- * Profili ICC inclusi (ECI), Proxoteca
+ * Profili ICC inclusi (ECI), Proxodon
  *
  * Profili di destinazione/output liberamente ridistribuibili (eci.org), così
  * l'export CMYK ha un default pronto all'uso senza upload. Importati come asset

@@ -366,7 +366,7 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
     const startDrag = (e, id) => {
         const dt = e.dataTransfer;
         dt.effectAllowed = 'move';
-        dt.setData('application/x-proxoteca-card', id);
+        dt.setData('application/x-proxodon-card', id);
         // Ghost = ritaglio della carta dal canvas pagina: l'hotspot è trasparente, quello nativo sarebbe vuoto.
         const hs = e.currentTarget;
         const sheet = wrapRef.current?.querySelector('canvas');

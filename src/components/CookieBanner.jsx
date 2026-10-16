@@ -14,7 +14,7 @@ export default function CookieBanner() {
     return (
         <div className="cookie-banner" role="dialog" aria-label="Cookie consent" aria-live="polite">
             <p className="cookie-text">
-                Proxoteca keeps your settings in your browser's local storage. Signing in to Decks also
+                Proxodon keeps your settings in your browser's local storage. Signing in to Decks also
                 keeps a session there. With your consent we may also use cookies for anonymous usage analytics.
             </p>
             <div className="cookie-actions">

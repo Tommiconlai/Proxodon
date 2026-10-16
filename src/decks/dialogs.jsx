@@ -96,9 +96,9 @@ export function PrivacyPanel({ onClose }) {
           <h2>Privacy</h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close"><IconX size={18} /></button>
         </div>
-        <p className="modal-hint">Signing in (with Google, or with email and password) lets Proxoteca keep your decks on Firebase (Google Cloud), so they sync between your devices.</p>
+        <p className="modal-hint">Signing in (with Google, or with email and password) lets Proxodon keep your decks on Firebase (Google Cloud), so they sync between your devices.</p>
         <ul className="privacy-list">
-          <li><b>Stored:</b> your account id and email, plus name and photo with Google, and the nickname, profile photo and profile background if you set them (kept by Firebase Authentication; passwords are stored hashed by Firebase, never by Proxoteca) and your decks.</li>
+          <li><b>Stored:</b> your account id and email, plus name and photo with Google, and the nickname, profile photo and profile background if you set them (kept by Firebase Authentication; passwords are stored hashed by Firebase, never by Proxodon) and your decks.</li>
           <li><b>Where:</b> Firebase, with the deck database in the EU.</li>
           <li><b>Who can read it:</b> only you. Access rules block every other account. Two exceptions: your nickname is reserved in a list that other signed-in accounts can check to see whether a name is free (only the name and your account id), and the decks you share in Community can be read by every signed-in account, with your nickname and account id. Decks are private until you share them.</li>
           <li><b>How to delete it:</b> account menu, Delete account and data. It removes your decks, their Community copies and your account. Make private removes a deck from Community.</li>
@@ -113,7 +113,7 @@ export function PrivacyPanel({ onClose }) {
 const CREDITS = [
   ['Cards', [
     ['Scryfall', 'https://scryfall.com', 'card search, data, images, art crops, mana symbols and prices (Cardmarket, TCGplayer). Artists are named in the art pickers.'],
-    ['Wizards of the Coast', 'https://company.wizards.com/en/legal/fancontentpolicy', 'Magic: The Gathering, card names, art and symbols. Proxoteca is unofficial Fan Content permitted under the Fan Content Policy. Not approved or endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.'],
+    ['Wizards of the Coast', 'https://company.wizards.com/en/legal/fancontentpolicy', 'Magic: The Gathering, card names, art and symbols. Proxodon is unofficial Fan Content permitted under the Fan Content Policy. Not approved or endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.'],
     ['MPC Autofill', 'https://github.com/chilli-axe/mpc-autofill', 'the XML orders you import; their images are loaded from Google Drive and belong to their creators.'],
   ]],
   ['Print', [
@@ -142,7 +142,7 @@ export function CreditsPanel({ onClose }) {
           <h2>Credits</h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close"><IconX size={18} /></button>
         </div>
-        <p className="modal-hint">Proxoteca builds on the work of these people and projects.</p>
+        <p className="modal-hint">Proxodon builds on the work of these people and projects.</p>
         {CREDITS.map(([group, items]) => (
           <section key={group} className="credits-group" aria-label={group}>
             <h3 className="profile-h">{group}</h3>

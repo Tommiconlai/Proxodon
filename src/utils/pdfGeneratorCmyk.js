@@ -1,5 +1,5 @@
 /**
- * PDF Generator CMYK / PDF-X-1a, Proxoteca
+ * PDF Generator CMYK / PDF-X-1a, Proxodon
  *
  * Esportatore di stampa CMYK, additivo e separato dal path jsPDF (RGB/schermo),
  * che resta intatto. Produce un PDF/X-1a:2003: ogni carta è un'immagine
@@ -140,9 +140,9 @@ export async function buildCmykPdfBytes(items, formatKey, bleedMm, dpi = 300, bl
 
   // Info dict (PDF/X-1a). Date passate dal chiamante o ora.
   const now = new Date();
-  doc.setTitle('Proxoteca');
-  doc.setCreator('Proxoteca');
-  doc.setProducer('Proxoteca');
+  doc.setTitle('Proxodon');
+  doc.setCreator('Proxodon');
+  doc.setProducer('Proxodon');
   doc.setCreationDate(now);
   doc.setModificationDate(now);
   const info = doc.getInfoDict();

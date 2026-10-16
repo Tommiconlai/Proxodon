@@ -456,7 +456,7 @@ const iso = (t) => {
 
 export function toBackup(decks, now = new Date()) {
   return {
-    app: 'proxoteca', kind: 'decks', v: 1, exportedAt: now.toISOString(),
+    app: 'proxodon', kind: 'decks', v: 1, exportedAt: now.toISOString(),
     decks: decks.map((d) => ({
       v: 1, name: d.name, format: d.format, groupBy: d.groupBy, sections: d.sections, cover: d.cover ?? null, cards: d.cards,
       createdAt: iso(d.createdAt), updatedAt: iso(d.updatedAt),
@@ -468,10 +468,12 @@ const BOARDS = ['main', 'side', 'maybe'];
 const validRow = (r) => r && BOARDS.includes(r.board) && Number.isInteger(r.qty) && r.qty > 0
   && r.card && typeof r.card.sid === 'string' && typeof r.card.name === 'string';
 
-// Backup → mazzi nuovi (id riga nuovi). Righe rotte scartate, formato ignoto = Casual.
+// Backup → mazzi nuovi (id riga nuovi). Righe rotte scartate, formato ignoto = Casual. 'proxoteca' = backup
+// fatti prima del cambio di nome.
+const BACKUP_APPS = ['proxodon', 'proxoteca'];
 export function fromBackup(json) {
-  if (!json || json.app !== 'proxoteca' || json.kind !== 'decks' || !Array.isArray(json.decks)) {
-    throw new Error('This file is not a Proxoteca deck backup.');
+  if (!json || !BACKUP_APPS.includes(json.app) || json.kind !== 'decks' || !Array.isArray(json.decks)) {
+    throw new Error('This file is not a Proxodon deck backup.');
   }
   if (json.v !== 1) throw new Error(`Unsupported backup version (${json.v}).`);
   return json.decks.map((d) => ({

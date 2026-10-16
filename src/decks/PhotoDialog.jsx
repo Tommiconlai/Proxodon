@@ -190,7 +190,7 @@ export default function PhotoDialog({ kind = 'photo', onClose, onSave, onRemove 
     setError(null);
     try {
       const blob = await getBlob();
-      const bmp = await createImageBitmap(blob).catch(() => { throw new Error('This file is not an image Proxoteca can read.'); });
+      const bmp = await createImageBitmap(blob).catch(() => { throw new Error('This file is not an image Proxodon can read.'); });
       const next = { url: URL.createObjectURL(blob), w: bmp.width, h: bmp.height, bmp };
       setImg(next);
       setCrop(fit(next, a, 1, next.w / 2, next.h / 2));

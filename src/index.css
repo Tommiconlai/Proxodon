@@ -1,7 +1,7 @@
 /* ============================================================
-   DESIGN SYSTEM, Proxoteca
+   DESIGN SYSTEM, Proxodon
    ============================================================ */
-/* Identità "Proxoteca Cyberpunk" (design claude.ai/design, lug 2026): magenta+ciano
+/* Identità "Proxodon Cyberpunk" (design claude.ai/design, lug 2026): magenta+ciano
    su nero-violaceo, Chakra Petch / Space Grotesk / JetBrains Mono. Il foglio di
    stampa resta BIANCO PURO (accuratezza stampa), mai tinto. */
 :root {
@@ -151,7 +151,7 @@ h3 {
   pointer-events: none;
 }
 
-/* Wordmark "PROXOTECA" (header desktop + mobile): h1 contenitore neutro, il testo è nell'SVG
+/* Wordmark "PROXODON" (header desktop + mobile): h1 contenitore neutro, il testo è nell'SVG
    (role=img, aria-label). */
 .brand {
   display: flex;

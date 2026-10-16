@@ -351,12 +351,12 @@ export default function App() {
     const blob = new Blob([text + '\n'], { type: 'text/plain' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'proxoteca.txt';
+    a.download = 'proxodon.txt';
     a.click();
     URL.revokeObjectURL(a.href);
     setToast({ kind: 'success', msg: custom
       ? `Saved ${cards} Scryfall card${cards > 1 ? 's' : ''}. ${custom} custom image${custom > 1 ? 's' : ''} not included.`
-      : `Saved ${cards} Scryfall card${cards > 1 ? 's' : ''} to proxoteca.txt.` });
+      : `Saved ${cards} Scryfall card${cards > 1 ? 's' : ''} to proxodon.txt.` });
   };
 
   // Carica + valida un profilo ICC CMYK personalizzato (.icc). Non persistito (binario).

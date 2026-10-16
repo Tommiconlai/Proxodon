@@ -1089,7 +1089,7 @@ var JpegImage = (function jpegImage() {
   return constructor;
 })();
 
-// --- Proxoteca: raw CMYK channel access (jpeg-js only exposes decode()->RGB) ---
+// --- Proxodon: raw CMYK channel access (jpeg-js only exposes decode()->RGB) ---
 // Vendored from jpeg-js (Apache-2.0, (c) 2011 notmasteryet); added decodeCMYK.
 export function decodeCMYK(jpegData, userOpts = {}) {
   const opts = { tolerantDecoding: true, maxResolutionInMP: 100, maxMemoryUsageInMB: 1024, colorTransform: undefined, ...userOpts };

@@ -168,12 +168,12 @@ g = addCard(g, bolt, { board: 'maybe' }).deck;
 eq(toPrintEntries(g, { includeSide: true }).length, 7, 'maybeboard mai in stampa');
 const bk = toBackup([{ ...g, id: 'x1', createdAt: new Date('2026-01-01T00:00:00Z'), updatedAt: null }], new Date('2026-10-13T00:00:00Z'));
 eq([bk.app, bk.kind, bk.v, bk.exportedAt, bk.decks[0].createdAt, bk.decks[0].updatedAt, 'id' in bk.decks[0]],
-  ['proxoteca', 'decks', 1, '2026-10-13T00:00:00.000Z', '2026-01-01T00:00:00.000Z', null, false], 'backup');
+  ['proxodon', 'decks', 1, '2026-10-13T00:00:00.000Z', '2026-01-01T00:00:00.000Z', null, false], 'backup');
 const restored = fromBackup(JSON.parse(JSON.stringify(bk)));
 eq([restored[0].name, restored[0].cards.length, restored[0].cards[0].id === g.cards[0].id], [g.name, g.cards.length, false], 'ripristino con id riga nuovi');
 let threw = '';
 try { fromBackup({ app: 'other' }); } catch (e) { threw = e.message; }
-eq(threw, 'This file is not a Proxoteca deck backup.', 'file estraneo');
+eq(threw, 'This file is not a Proxodon deck backup.', 'file estraneo');
 eq(fromBackup({ app: 'proxoteca', kind: 'decks', v: 1, decks: [{ name: 'R', format: 'nope', cards: [
   { board: 'main', qty: 2, card: { sid: 's', name: 'N' } }, { board: 'oops', qty: 1, card: { sid: 's', name: 'N' } }, { qty: -1 }] }] })
   .map((x) => [x.format, x.cards.length]), [['casual', 1]], 'righe non valide scartate, formato ignoto = casual');
