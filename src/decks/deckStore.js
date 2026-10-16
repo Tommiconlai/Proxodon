@@ -5,7 +5,7 @@
  */
 import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, getDoc, getDocs, writeBatch, runTransaction,
-  query, where, orderBy, limit,
+  query, where, orderBy, limit, getCountFromServer,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { searchTerms } from './deckModel';
@@ -71,6 +71,13 @@ export function listenCommunity(word, onChange, onError) {
 }
 export const listenPublicDeck = (id, onChange, onError) =>
   onSnapshot(doc(publicCol, id), (s) => onChange(s.exists() ? fromDoc(s) : null), onError);
+
+// Like: publicDecks/{id}/likes/{uid} = { at }. Niente contatore nel mazzo (lo riscriverebbe ogni
+// salvataggio dell'autore): il numero è un conteggio sul server, una lettura per mazzo.
+const likeDoc = (id, uid) => doc(publicCol, id, 'likes', uid);
+export const countLikes = (id) => getCountFromServer(collection(publicCol, id, 'likes')).then((s) => s.data().count);
+export const hasLiked = (id, uid) => getDoc(likeDoc(id, uid)).then((s) => s.exists());
+export const setLiked = (id, uid, on) => (on ? setDoc(likeDoc(id, uid), { at: serverTimestamp() }) : deleteDoc(likeDoc(id, uid)));
 
 // Profilo in users/{uid}: photo e banner (data URL), nickname (come scritto; il nome mostrato resta il
 // displayName di Firebase Auth). followers / following arriveranno con i profili pubblici.

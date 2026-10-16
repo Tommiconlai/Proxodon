@@ -14,7 +14,7 @@ import ProfilePage from './ProfilePage';
 import SettingsPage from './SettingsPage';
 import { deleteUserData } from './deckStore';
 
-// Radice dell'area mazzi (lazy): attende lo stato di login, poi lista (#/decks, #/community), editor
+// Radice dell'area mazzi (lazy): attende lo stato di login, poi lista (#/decks, #/community, #/dilemmas), editor
 // (#/decks/:id), mazzo della Community (#/community/:id), profilo o impostazioni. Avatar (e il ?
 // nell'editor) vanno nell'header dell'app, in headerSlot.
 export default function DecksView({ route, notify, printQueueCount, onPrintDeck, headerSlot }) {
@@ -34,7 +34,7 @@ export default function DecksView({ route, notify, printQueueCount, onPrintDeck,
         : route === '/settings' ? <SettingsPage user={user} notify={notify} />
         : community && id ? <CommunityDeck key={id} uid={user.uid} id={id} notify={notify} />
         : id ? <DeckEditor key={id} uid={user.uid} id={id} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} />
-          : <DeckList uid={user.uid} notify={notify} community={community} />}
+          : <DeckList uid={user.uid} notify={notify} tab={community || area === 'dilemmas' ? area : 'mine'} />}
     </>
   );
 }

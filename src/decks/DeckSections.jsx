@@ -53,10 +53,10 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
   const [anchor, setAnchor] = useState(null);
   const [menu, setMenu] = useState(null); // { ids, x, y }
   const [hover, setHover] = useState(null); // anteprima accanto alla riga: { img, back, w, x, y }
-  // Carte a due facce girate: id riga → faccia mostrata (1 = retro); presente = girata almeno una volta,
-  // così l'immagine entra ruotando in entrambi i versi. Solo su questo schermo, non si salva.
+  // Carte a due facce: id riga → mezzi giri fatti. Ogni click aggiunge 180° (rotateY), così la carta gira
+  // sempre nello stesso verso; dispari = retro. Solo su questo schermo, non si salva.
   const [flipped, setFlipped] = useState(() => new Map());
-  const flip = (id) => setFlipped((prev) => new Map(prev).set(id, prev.get(id) ? 0 : 1));
+  const flip = (id) => setFlipped((prev) => new Map(prev).set(id, (prev.get(id) || 0) + 1));
   // Vista, ordine, anteprima e densità dalle impostazioni del dispositivo (Settings); i menu View by e
   // Sort by le cambiano per tutti i mazzi. Default: stack ordinati per nome.
   const settings = useSettings();
@@ -297,7 +297,7 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
     const warnText = warn && `${warn.count} copies, max ${warn.max} in ${formatLabel(deck.format)}`;
     const ban = banOf(r);
     const banText = ban && legalityLabel(ban, deck.format);
-    const side = (r.card.back && flipped.get(r.id)) || 0;
+    const turns = (r.card.back && flipped.get(r.id)) || 0;
     return (
       <li key={copy ? `${r.id}:${copy}` : r.id} data-row-id={r.id} className={`deck-row${sel.has(r.id) ? ' selected' : ''}${warn ? ' over' : ''}`} {...dragProps(r)}
         onMouseEnter={touch ? undefined : (e) => showPreview(e, r)} onMouseLeave={touch ? undefined : () => setHover(null)}>
@@ -324,9 +324,13 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
             </>
           ) : (
             <>
-              {/* key: cambiare faccia rimonta l'immagine, che entra con la rotazione di .deck-card-turned. */}
-              {r.card.img ? <CardImg key={side} card={r.card} side={side} className={flipped.has(r.id) ? 'deck-card-turned' : undefined} />
-                : <span className="deck-card-ph">{r.card.name}</span>}
+              {/* Due facce: fronte e retro dorso a dorso in .deck-card-flipper, che ruota di turns × 180°. */}
+              {r.card.img && r.card.back ? (
+                <span className="deck-card-flipper" style={{ transform: `perspective(1000px) rotateY(${turns * 180}deg)` }}>
+                  <CardImg card={r.card} />
+                  <CardImg card={r.card} side={1} className="deck-card-backface" />
+                </span>
+              ) : r.card.img ? <CardImg card={r.card} /> : <span className="deck-card-ph">{r.card.name}</span>}
               {r.qty > 1 && !split && <span className="deck-card-qty">{r.qty}</span>}
               {(ban || warn) && (
               <span className="deck-card-flags">
@@ -339,7 +343,7 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
         </button>
         {/* Fuori dalla carta (niente pulsanti annidati), anche in sola lettura. */}
         {view !== 'list' && r.card.back && r.card.img && (
-          <button type="button" className="deck-card-flip" aria-pressed={side === 1} title="Flip"
+          <button type="button" className="deck-card-flip" aria-pressed={turns % 2 === 1} title="Flip"
             aria-label={`Flip ${r.card.name}`} onClick={() => flip(r.id)}><IconFlip size={13} /></button>
         )}
         {!readOnly && (

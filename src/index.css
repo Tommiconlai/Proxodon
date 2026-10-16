@@ -2856,12 +2856,19 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 }
 /* Spazio per Export, sull'angolo in alto a destra (solo nei miei mazzi). */
 .deck-tile-wrap:has(.deck-tile-export) .deck-tile-head { padding-right: 46px; }
+.deck-tile-title { display: flex; align-items: flex-start; gap: 6px; min-width: 0; }
 .deck-tile-name {
+  min-width: 0;
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
   font-size: clamp(13px, 6.4cqi, 20px); overflow-wrap: anywhere;
 }
 .deck-tile-format { display: flex; align-items: center; gap: 6px; font-size: clamp(10px, 4.6cqi, 14px); opacity: 0.75; }
-.deck-tile-public { display: inline-flex; color: var(--cyan); }
+.deck-tile-public { flex: none; display: inline-flex; margin-top: 0.15em; color: var(--cyan); }
+.deck-tile-public svg { width: 0.85em; height: 0.85em; }
+.deck-tile-title .deck-tile-public { font-size: clamp(13px, 6.4cqi, 20px); }
+/* Like ricevuti, sotto il formato: cuore magenta e numero. */
+.deck-tile-likes { display: flex; align-items: center; gap: 5px; font-size: clamp(10px, 4.6cqi, 14px); opacity: 0.85; }
+.deck-tile-likes svg { width: 1em; height: 1em; color: var(--accent); }
 .deck-tile-body {
   display: flex; flex-direction: column; gap: 3cqi;
   padding: 1cqi 6cqi 6cqi;
@@ -2984,6 +2991,23 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 /* Mazzo della Community: nome non modificabile, arte non cliccabile; Public acceso nell'editor. */
 .deck-name-static { margin: 0; }
 .deck-name-static:hover { border-color: transparent; }
+/* Cuore del mazzo pubblico, accanto al nome: contorno, pieno e magenta dopo il like. */
+.deck-like {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px;
+  background: rgba(8, 7, 15, 0.6);
+  border: 1px solid var(--border); border-radius: 999px;
+  font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition), box-shadow var(--transition);
+}
+.deck-like svg { transition: transform 0.2s ease; }
+.deck-like:hover, .deck-like:focus-visible { border-color: var(--accent); outline: none; }
+.deck-like.on { color: var(--accent); border-color: rgba(255, 45, 149, 0.7); box-shadow: 0 0 12px rgba(255, 45, 149, 0.35); }
+.deck-like.on svg { transform: scale(1.12); }
+.deck-like span { color: var(--text-primary); }
+.deck-dilemmas { margin-top: 44px; }
 span.deck-hero-art { cursor: default; }
 .deck-print.is-public { border-color: var(--cyan); color: var(--cyan-soft); box-shadow: 0 0 10px rgba(0, 229, 255, 0.25); }
 .deck-sync { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); }
@@ -3162,10 +3186,11 @@ span.deck-hero-art { cursor: default; }
 .deck-rows.view-grid .deck-row-qty { bottom: 6px; left: 50%; transform: translateX(-50%); }
 .deck-rows.view-stacks .deck-row-qty { top: 5px; right: 5px; }
 .deck-rows.view-stacks .deck-row:hover .deck-card-qty { opacity: 0; }
-/* Carte a due facce: pulsante per girarle in alto a destra (copie e +/- si spostano a sinistra); la
-   faccia nuova entra ruotando. Anteprima al passaggio: fronte a sinistra, retro a destra. */
+/* Carte a due facce: pulsante per girarle in alto a sinistra (i chip di divieto e copie oltre il limite
+   si spostano a destra); fronte e retro dorso a dorso, la coppia ruota di 180° a ogni click, sempre
+   nello stesso verso. Anteprima al passaggio: fronte a sinistra, retro a destra. */
 .deck-card-flip {
-  position: absolute; z-index: 2; top: 5px; right: 5px;
+  position: absolute; z-index: 2; top: 5px; left: 5px;
   display: grid; place-items: center;
   width: 22px; height: 22px; padding: 0;
   border: 1px solid rgba(0, 229, 255, 0.6); border-radius: 50%;
@@ -3173,13 +3198,14 @@ span.deck-hero-art { cursor: default; }
   color: var(--cyan);
   box-shadow: 0 0 10px rgba(0, 229, 255, 0.35);
   cursor: pointer;
-  transition: transform var(--transition), color var(--transition), border-color var(--transition), box-shadow var(--transition);
+  transition: transform 0.4s ease, color var(--transition), border-color var(--transition), box-shadow var(--transition);
 }
 .deck-card-flip:hover, .deck-card-flip:focus-visible { color: #fff; border-color: var(--cyan); outline: none; transform: rotate(180deg); }
 .deck-card-flip[aria-pressed='true'] { color: var(--accent); border-color: rgba(255, 45, 149, 0.7); box-shadow: 0 0 10px rgba(255, 45, 149, 0.4); }
-.deck-row:has(.deck-card-flip) .deck-card-qty, .deck-rows.view-stacks .deck-row:has(.deck-card-flip) .deck-row-qty { right: 31px; }
-.deck-card-turned { animation: card-turn 0.32s ease-out; }
-@keyframes card-turn { from { transform: perspective(800px) rotateY(-90deg); } to { transform: none; } }
+.deck-row:has(.deck-card-flip) .deck-card-flags { left: 31px; }
+.deck-card-flipper { position: relative; display: block; transform-style: preserve-3d; transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1); }
+.deck-card-flipper img { backface-visibility: hidden; }
+.deck-rows .deck-row-main .deck-card-backface { position: absolute; inset: 0; transform: rotateY(180deg); }
 .deck-hover-pair { display: flex; gap: 8px; border-radius: 0; box-shadow: none; }
 .deck-hover-pair img { display: block; border-radius: 12px; box-shadow: var(--shadow-lg), 0 0 24px rgba(0, 229, 255, 0.18); }
 /* Controlli del formato: chip sopra le carte (giallo = avviso, rosso = legalità), click = seleziona

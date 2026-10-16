@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { listenPublicDeck, createDeck } from './deckStore';
+import { listenPublicDeck, createDeck, countLikes, hasLiked, setLiked } from './deckStore';
 import { duplicateDeck, coverRow, formatLabel, priceLabel, refreshSnapshots } from './deckModel';
 import { cardsByIds } from './scryfallSearch';
 import { useSettings } from '../utils/settings';
@@ -7,11 +7,11 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import { navigate } from '../hooks/useHashRoute';
 import DeckSections from './DeckSections';
 import { ExportDeckDialog } from './dialogs';
-import { IconCopy, IconExport } from '../components/icons';
+import { IconCopy, IconExport, IconHeart } from '../components/icons';
 
-// Mazzo della Community in sola lettura (#/community/:id): testata come l'editor (arte, nome, formato,
-// prezzo, autore), Copy to my decks ed Export; sotto le sezioni senza comandi di modifica. Vista e
-// raggruppamento cambiano solo la copia sullo schermo, non si salva niente.
+// Mazzo della Community in sola lettura (#/community/:id): testata come l'editor (arte, nome con il cuore
+// dei like, formato, prezzo, autore), Copy to my decks ed Export; sotto le sezioni senza comandi di
+// modifica, poi Dilemmas (vuota per ora). Vista e raggruppamento cambiano solo la copia sullo schermo.
 export default function CommunityDeck({ uid, id, notify }) {
   const [deck, setDeck] = useState(undefined); // undefined = caricamento, null = non più pubblico o errore
   const [exportOpen, setExportOpen] = useState(false);
@@ -19,6 +19,23 @@ export default function CommunityDeck({ uid, id, notify }) {
   const { currency } = useSettings();
   useEffect(() => listenPublicDeck(id, setDeck, (e) => { setDeck(null); notify(`Could not load this deck: ${e.message}`, 'error'); }), [id, notify]);
   const update = useCallback((fn) => setDeck((d) => d && fn(d)), []);
+  // Like: il mio (cuore pieno) e il totale; il click li aggiorna subito, li riporta indietro se fallisce.
+  const [liked, setLikedNow] = useState(false);
+  const [likes, setLikes] = useState(0);
+  useEffect(() => {
+    hasLiked(id, uid).then(setLikedNow).catch(() => {});
+    countLikes(id).then(setLikes).catch(() => {});
+  }, [id, uid]);
+  const toggleLike = () => {
+    const on = !liked;
+    setLikedNow(on);
+    setLikes((n) => n + (on ? 1 : -1));
+    setLiked(id, uid, on).catch((e) => {
+      setLikedNow(!on);
+      setLikes((n) => n - (on ? 1 : -1));
+      notify(`Could not save the like: ${e.message}`, 'error');
+    });
+  };
   // Snapshot aggiornati da Scryfall solo sullo schermo (es. il retro delle carte a due facce nelle copie
   // pubblicate prima che esistesse), come fa l'editor all'apertura.
   const refreshed = useRef(false);
@@ -61,7 +78,13 @@ export default function CommunityDeck({ uid, id, notify }) {
             )}
           </span>
           <div className="deck-hero-content">
-            <div className="deck-hero-title"><h2 className="deck-name deck-name-static">{deck.name}</h2></div>
+            <div className="deck-hero-title">
+              <h2 className="deck-name deck-name-static">{deck.name}</h2>
+              <button type="button" className={`deck-like${liked ? ' on' : ''}`} aria-pressed={liked} onClick={toggleLike}
+                aria-label={`Like, ${likes} ${likes === 1 ? 'like' : 'likes'}`} title={liked ? 'Unlike' : 'Like'}>
+                <IconHeart size={20} fill={liked ? 'currentColor' : 'none'} /> <span>{likes}</span>
+              </button>
+            </div>
             <div className="deck-hero-meta">
               <span className="deck-price">{formatLabel(deck.format)}</span>
               <button type="button" className="btn-secondary deck-print" onClick={copy}><IconCopy size={15} /> Copy to my decks</button>
@@ -74,6 +97,10 @@ export default function CommunityDeck({ uid, id, notify }) {
         <div className="deck-body">
           <section className="deck-main">
             <DeckSections deck={deck} update={update} touch={mobile} readOnly />
+            <section className="deck-dilemmas" aria-labelledby="deck-dilemmas-head">
+              <h3 className="deck-analysis-head" id="deck-dilemmas-head">Dilemmas</h3>
+              <p className="field-hint">Nothing here yet.</p>
+            </section>
           </section>
         </div>
       </div>

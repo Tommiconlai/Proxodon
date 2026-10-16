@@ -12,8 +12,9 @@ import { ManaPips } from './Mana';
 import { NameFormatDialog, ExportDeckDialog } from './dialogs';
 import { timeAgo } from '../utils/timeAgo';
 import ImportDeckDialog from './ImportDeckDialog';
+import { useLikeCount } from './useLikes';
 import {
-  IconPlus, IconCopy, IconTrash, IconPencil, IconDownload, IconExport, IconGlobe, IconSearch, IconFilter,
+  IconPlus, IconCopy, IconTrash, IconPencil, IconDownload, IconExport, IconGlobe, IconSearch, IconFilter, IconHeart,
 } from '../components/icons';
 
 const COLORS = [['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green'], ['C', 'Colorless']];
@@ -27,22 +28,24 @@ const menuPoint = (e) => {
 };
 
 // Riquadro di un mazzo (lista, Community, profilo): sull'arte, in alto a sinistra sotto una sfumatura
-// nera, nome e formato (globo = pubblico); sotto identità di colore e prezzo, poi autore (by, nella
-// Community) e ultima modifica. Testi in cqi: il riquadro è largo una percentuale della griglia e
-// tutto scala con lui. props vanno sul pulsante.
+// nera, nome (accanto il globo se è pubblico, fuori dalla Community), formato e like ricevuti; sotto
+// identità di colore e prezzo, poi autore (by, nella Community) e ultima modifica. Testi in cqi: il
+// riquadro è largo una percentuale della griglia e tutto scala con lui. props vanno sul pulsante.
 export function DeckTile({ deck: d, currency, by, ...props }) {
   const cover = deckCover(d);
   const updated = d.updatedAt?.toMillis?.();
   const price = priceLabel(d, currency);
+  const likes = useLikeCount(d.id, !!d.public);
   return (
     <button type="button" className="deck-tile" {...props}>
       <span className="deck-tile-art" style={cover ? { backgroundImage: `url("${cover}")` } : undefined}>
         <span className="deck-tile-head">
-          <span className="deck-tile-name">{d.name}</span>
-          <span className="deck-tile-format">
-            {formatLabel(d.format)}
+          <span className="deck-tile-title">
+            <span className="deck-tile-name">{d.name}</span>
             {d.public && !by && <span className="deck-tile-public" title="Public, in Community"><IconGlobe size={12} /><span className="sr-only">, public</span></span>}
           </span>
+          <span className="deck-tile-format">{formatLabel(d.format)}</span>
+          <span className="deck-tile-likes"><IconHeart size={12} /> {likes}<span className="sr-only"> likes</span></span>
         </span>
       </span>
       <span className="deck-tile-body">
@@ -99,9 +102,11 @@ function CommunityGrid({ uid, terms, filters, currency }) {
   );
 }
 
-// Lista mazzi: schede Community e My decks (rotte #/community e #/decks, stesso componente: ricerca e
-// filtri restano passando dall'una all'altra), ricerca per nome e Filters (formato, colori, carta).
-export default function DeckList({ uid, notify, community }) {
+// Lista mazzi: schede Community, Dilemmas (vuota per ora) e My decks (rotte #/community, #/dilemmas e
+// #/decks, stesso componente: ricerca e filtri restano passando dall'una all'altra), ricerca per nome e
+// Filters (formato, colori, carta), non in Dilemmas.
+export default function DeckList({ uid, notify, tab = 'mine' }) {
+  const community = tab === 'community';
   const [decks, setDecks] = useState(null); // null = caricamento
   const [dialog, setDialog] = useState(null); // 'new' | 'import' | { rename: deck } | { del: deck } | { exp: deck }
   const [menu, setMenu] = useState(null); // { deck, x, y }
@@ -144,8 +149,9 @@ export default function DeckList({ uid, notify, community }) {
     <div className="decks-root decks-page">
       <header className="decks-head">
         <nav className="decks-tabs" aria-label="Decks">
-          <a href="#/community" className="decks-title decks-tab" aria-current={community ? 'page' : undefined}>Community</a>
-          <a href="#/decks" className="decks-title decks-tab" aria-current={community ? undefined : 'page'}>My decks</a>
+          {[['community', 'Community'], ['dilemmas', 'Dilemmas'], ['mine', 'My decks']].map(([t, label]) => (
+            <a key={t} href={t === 'mine' ? '#/decks' : `#/${t}`} className="decks-title decks-tab" aria-current={tab === t ? 'page' : undefined}>{label}</a>
+          ))}
         </nav>
         <div className="decks-actions">
           {/* Solo icone (nome nel tooltip e per i lettori di schermo); backup e ripristino stanno in Settings. */}
@@ -154,6 +160,7 @@ export default function DeckList({ uid, notify, community }) {
         </div>
       </header>
 
+      {tab !== 'dilemmas' && <>
       <div className="decks-search" role="search">
         <label className="decks-search-box">
           <IconSearch size={16} />
@@ -193,8 +200,10 @@ export default function DeckList({ uid, notify, community }) {
           {nFilters > 0 && <button type="button" className="signin-link" onClick={() => setFilters(NO_FILTERS)}>Clear filters</button>}
         </div>
       )}
+      </>}
 
-      {community ? <CommunityGrid uid={uid} terms={terms} filters={filters} currency={settings.currency} /> : <>
+      {tab === 'dilemmas' ? <p className="field-hint">Nothing here yet.</p>
+        : community ? <CommunityGrid uid={uid} terms={terms} filters={filters} currency={settings.currency} /> : <>
         {decks === null && <span className="import-spinner" aria-label="Loading" />}
         {decks?.length === 0 && <Empty title="Start your first deck" hint="Create one from scratch, or import a list." />}
         {decks?.length > 0 && !shown.length && <Empty title="No decks match" hint="Try another name or clear the filters." />}

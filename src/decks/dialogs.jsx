@@ -100,8 +100,8 @@ export function PrivacyPanel({ onClose }) {
         <ul className="privacy-list">
           <li><b>Stored:</b> your account id and email, plus name and photo with Google, and the nickname, profile photo and profile background if you set them (kept by Firebase Authentication; passwords are stored hashed by Firebase, never by Proxodon) and your decks.</li>
           <li><b>Where:</b> Firebase, with the deck database in the EU.</li>
-          <li><b>Who can read it:</b> only you. Access rules block every other account. Two exceptions: your nickname is reserved in a list that other signed-in accounts can check to see whether a name is free (only the name and your account id), and the decks you share in Community can be read by every signed-in account, with your nickname and account id. Decks are private until you share them.</li>
-          <li><b>How to delete it:</b> account menu, Delete account and data. It removes your decks, their Community copies and your account. Make private removes a deck from Community.</li>
+          <li><b>Who can read it:</b> only you. Access rules block every other account. Two exceptions: your nickname is reserved in a list that other signed-in accounts can check to see whether a name is free (only the name and your account id), and the decks you share in Community can be read by every signed-in account, with your nickname and account id. Decks are private until you share them. A like you give is stored on that deck with your account id; others only see the count.</li>
+          <li><b>How to delete it:</b> account menu, Delete account and data. It removes your decks, their Community copies and your account; likes you gave stay in the counts, tied only to the deleted account's id. Make private removes a deck from Community.</li>
         </ul>
         <p className="modal-hint">The print area works without an account and keeps nothing on a server.</p>
       </div>

@@ -43,6 +43,13 @@ service cloud.firestore {
       allow create: if verified() && validPublic(request.resource.data);
       allow update: if verified() && resource.data.uid == request.auth.uid && validPublic(request.resource.data);
       allow delete: if verified() && (resource == null || resource.data.uid == request.auth.uid);
+      // Like: uno per account (id = uid), non al proprio mazzo; il conteggio è una query (list).
+      match /likes/{uid} {
+        allow read: if verified();
+        allow create: if owner(uid) && request.resource.data.keys().hasOnly(['at'])
+          && get(/databases/$(db)/documents/publicDecks/$(deckId)).data.uid != uid;
+        allow delete: if owner(uid);
+      }
     }
     // Nickname unici: usernames/{nome in minuscolo} = { uid }. Lo legge chi ha un account (per sapere
     // se è libero, mai l'elenco), lo prende chi lo trova libero, lo libera solo il proprietario.
