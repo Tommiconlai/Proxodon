@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
-import { FORMATS, coverRow, exportText } from './deckModel';
+import { FORMATS, DECK_TAGS, MAX_TAGS, coverRow, exportText } from './deckModel';
 import { IconX, IconCopy, IconDownload } from '../components/icons';
 import { downloadText } from '../utils/download';
 
@@ -45,6 +45,40 @@ export function CoverDialog({ deck, onPick, onClose }) {
               <span>{c.name}</span>
             </button>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Tag del mazzo dalla lista fissa, al massimo MAX_TAGS: click = metti o togli (onChange(tags)).
+// I già scelti in testa, ordine fissato all'apertura così le voci non saltano mentre si clicca.
+export function TagsDialog({ tags, onChange, onClose }) {
+  const ref = useOverlayDismiss(onClose);
+  const [q, setQ] = useState('');
+  const [order] = useState(() => [...tags, ...DECK_TAGS.filter((t) => !tags.includes(t))]);
+  const shown = order.filter((t) => t.toLowerCase().includes(q.trim().toLowerCase()));
+  const full = tags.length >= MAX_TAGS;
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal modal-art" ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Deck tags" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>Deck tags</h2>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close" title="Close"><IconX size={18} /></button>
+        </div>
+        <div className="art-search-row">
+          <input type="search" className="import-link-input" value={q} onChange={(e) => setQ(e.target.value)}
+            placeholder="Filter tags" aria-label="Filter tags" spellCheck={false} />
+          <span className="art-search-count" aria-live="polite">{tags.length} of {MAX_TAGS}</span>
+        </div>
+        <div className="tag-grid">
+          {shown.map((t) => {
+            const on = tags.includes(t);
+            return (
+              <button key={t} type="button" className={`deck-tag${on ? ' on' : ''}`} aria-pressed={on} disabled={full && !on}
+                onClick={() => onChange(on ? tags.filter((x) => x !== t) : [...tags, t])}>{t}</button>
+            );
+          })}
         </div>
       </div>
     </div>

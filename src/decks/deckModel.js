@@ -20,6 +20,26 @@ export const FORMATS = [
 const LEGAL_FORMATS = FORMATS.filter((f) => f.id !== 'casual').map((f) => f.id);
 export const formatLabel = (id) => FORMATS.find((f) => f.id === id)?.label || id;
 
+// Tag dei mazzi: solo da questa lista, al massimo MAX_TAGS. deckTags scarta quelli ignoti (backup, copie vecchie).
+export const DECK_TAGS = [
+  '+1/+1 Counters', '-1/-1 Counters', 'Abzan (WBG)', 'Affinity', 'Aggression (WBRG)', 'Aggro', 'Aikido', 'Altruism (WURG)',
+  'Aristocrats', 'Artifacts', 'Artifice (WUBR)', 'Attractions', 'Auras', 'Azorius (WU)', 'Bant (GWU)', 'Battlecruiser',
+  'Birthing Pod / Pod', 'Blink / Flicker', 'Blue Moon', 'Boros (RW)', 'Budget', 'Burn', 'Cascade', 'Casual', 'cEDH', 'Chaos',
+  'Chaos (UBRG)', 'Clones', 'Coin Flips', 'Colorless', 'Combo', 'Competitive', 'Control', 'Cycling', 'Death & Taxes',
+  'Defender', 'Delver', 'Devotion', 'Dimir (UB)', 'Discard', 'Discover', 'Donation', 'Dredge', 'Dungeons', 'Eggs',
+  'Enchantments', 'Energy', 'Equipment', 'Esper (WUB)', 'Extra Combats', 'Extra Turns', 'Farm', 'Five Color (WUBRG)',
+  'Flying', 'Formula X-1', 'Goad', 'Golgari (BG)', 'Goodstuff', 'Grixis (UBR)', 'Group Hug', 'Group Slug', 'Growth (WUBG)',
+  'Gruul (RG)', 'Hatebears', 'Help Wanted', 'Historic', 'Infect', 'Izzet (UR)', 'Jank', 'Jeskai (URW)', 'Jund (BRG)',
+  'Kindred', 'Land Destruction', 'Lands Matter', 'Legends Matter', 'Life Bargain', 'Life Gain', 'Mardu (RWB)', 'Maverick',
+  'Midrange', 'Mill', 'Miracles', 'Modified', 'Modular', 'Monarch', 'Mono Black', 'Mono Blue', 'Mono Green', 'Mono Red',
+  'Mono White', 'Morph', 'Mutate', 'Naya (RGW)', 'Orzhov (WB)', 'Pillowfort', 'Poison', 'Primer', 'Prison', 'Rakdos (BR)',
+  'Ramp', 'Reanimator', 'Rock', 'Rule Zero', 'Selesnya (GW)', 'Simic (GU)', 'Snow', 'Spellslinger', 'Stax', 'Stoneblade',
+  'Storm', 'Sultai (BGU)', 'Super Friends', 'Tempo', 'Temur (GUR)', 'Thieves', 'Tokens', 'Toolbox', 'Tron', 'Turbo',
+  'Unmaintained', 'Vehicles', 'Voltron', 'Vorthos', 'Webcam Friendly', 'Wheels', 'X Spells', 'Zoo',
+];
+export const MAX_TAGS = 5;
+export const deckTags = (deck) => (Array.isArray(deck?.tags) ? [...new Set(deck.tags)].filter((t) => DECK_TAGS.includes(t)).slice(0, MAX_TAGS) : []);
+
 export const MAX_ROWS = 500;
 export const MAX_QTY = 99;
 
@@ -76,7 +96,7 @@ export const isLand = (s) => /\bLand\b/.test(s.type);
 export const isBasicLand = (s) => /\bBasic\b/.test(s.type) && isLand(s);
 
 export function newDeck({ name, format = 'commander', groupBy = 'type' }) {
-  return { v: 1, name: String(name || '').trim() || 'Untitled deck', format, groupBy, sections: [], cover: null, cards: [] };
+  return { v: 1, name: String(name || '').trim() || 'Untitled deck', format, groupBy, sections: [], cover: null, cards: [], tags: [] };
 }
 
 // Prezzo formattato ("€312.40") o null: valuta 'off' o nessuna carta con prezzo (mazzo non ancora
@@ -398,7 +418,7 @@ export function contentSig(cards) {
 // carta fuori dal maybeboard ha nel nome il testo di card.
 export const searchTerms = (q) => q.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
 export function deckMatches(deck, terms, { format, colors, card = '' }) {
-  const name = deck.name.toLowerCase();
+  const name = [deck.name, ...deckTags(deck)].join(' ').toLowerCase(); // ricerca su nome e tag
   if (!terms.every((w) => name.includes(w)) || (format && deck.format !== format)) return false;
   const c = card.trim().toLowerCase();
   if (c && !deck.cards.some((r) => r.board !== 'maybe' && r.card.name.toLowerCase().includes(c))) return false;
@@ -493,7 +513,7 @@ export function toBackup(decks, now = new Date()) {
   return {
     app: 'proxodon', kind: 'decks', v: 1, exportedAt: now.toISOString(),
     decks: decks.map((d) => ({
-      v: 1, name: d.name, format: d.format, groupBy: d.groupBy, sections: d.sections, cover: d.cover ?? null, cards: d.cards,
+      v: 1, name: d.name, format: d.format, groupBy: d.groupBy, sections: d.sections, cover: d.cover ?? null, cards: d.cards, tags: deckTags(d),
       createdAt: iso(d.createdAt), updatedAt: iso(d.updatedAt),
     })),
   };
@@ -515,6 +535,7 @@ export function fromBackup(json) {
     ...newDeck({ name: d?.name, format: FORMATS.some((f) => f.id === d?.format) ? d.format : 'casual' }),
     groupBy: GROUP_MODES.some((m) => m.id === d?.groupBy) ? d.groupBy : 'type',
     cover: typeof d?.cover === 'string' ? d.cover : null,
+    tags: deckTags(d),
     sections: Array.isArray(d?.sections) ? d.sections.filter((s) => s && s.id && s.name) : [],
     cards: (Array.isArray(d?.cards) ? d.cards : []).filter(validRow).slice(0, MAX_ROWS)
       .map((r) => ({ id: rid(), qty: clampQty(r.qty), board: r.board, commander: r.board === 'main' && !!r.commander, section: r.section ?? null, card: r.card })),
@@ -526,6 +547,7 @@ export function duplicateDeck(deck) {
     ...newDeck({ name: `${deck.name} (copy)`, format: deck.format }),
     groupBy: deck.groupBy,
     cover: deck.cover ?? null,
+    tags: deckTags(deck),
     sections: deck.sections.map((s) => ({ ...s })),
     cards: deck.cards.map((r) => ({ ...r, id: rid() })),
   };

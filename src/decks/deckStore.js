@@ -8,7 +8,7 @@ import {
   query, where, orderBy, limit, getCountFromServer, collectionGroup,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { searchTerms, contentSig } from './deckModel';
+import { searchTerms, contentSig, deckTags } from './deckModel';
 
 const decksCol = (uid) => collection(db, 'users', uid, 'decks');
 // serverTimestamps 'estimate': un mazzo appena scritto ha già una data (stimata) per l'ordinamento.
@@ -21,7 +21,7 @@ const fromDoc = (s) => {
 const ms = (t) => t?.toMillis?.() ?? 0;
 const payload = (d) => ({
   v: 1, name: d.name, format: d.format, groupBy: d.groupBy, sections: d.sections, cover: d.cover ?? null, cards: d.cards,
-  public: !!d.public, updatedAt: serverTimestamp(),
+  tags: deckTags(d), public: !!d.public, updatedAt: serverTimestamp(),
 });
 // "Updated" (riquadri dei mazzi) = changedAt, che si sposta solo quando cambia contentSig (carte aggiunte, tolte, quantità,
 // zone, sezioni, comandante). Nome, formato, raggruppamento, copertina, Public, cambi di edizione e
@@ -35,7 +35,7 @@ const changes = (d) => {
 export const changedMs = (d) => ms(d.changedAt ?? d.updatedAt);
 
 // Community. La copia pubblica porta uid, la firma (owner: nickname del profilo, o null) e words: i
-// prefissi delle parole del nome, fino a 20 lettere, per cercare con un array-contains senza indici.
+// prefissi delle parole del nome e dei tag (max 200, come le regole), fino a 20 lettere, per cercare con un array-contains senza indici.
 const publicCol = collection(db, 'publicDecks');
 // ponytail: nickname del profilo aperto (lo aggiorna listenProfile, attivo finché si è nell'area mazzi).
 // undefined finché il profilo non è arrivato (o dopo una ricarica del modulo): allora la firma non si scrive.
@@ -47,7 +47,7 @@ const searchWords = (name) => [...new Set(searchTerms(name)
 // riscrive comunque (gli array vengono sostituiti interi).
 const publish = (uid, d, f) => setDoc(doc(publicCol, d.id), {
   ...payload(d), ...f, changedAt: f.changedAt ?? d.changedAt ?? d.updatedAt ?? serverTimestamp(),
-  uid, ...(ownerName !== undefined && { owner: ownerName }), words: searchWords(d.name), createdAt: d.createdAt ?? serverTimestamp(),
+  uid, ...(ownerName !== undefined && { owner: ownerName }), words: searchWords([d.name, ...deckTags(d)].join(' ')).slice(0, 200), createdAt: d.createdAt ?? serverTimestamp(),
 }, { merge: true });
 export const unpublishDeck = (id) => deleteDoc(doc(publicCol, id));
 

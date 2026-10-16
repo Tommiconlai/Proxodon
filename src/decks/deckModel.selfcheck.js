@@ -10,7 +10,7 @@ import {
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
   splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies, packPiles,
   libraryCards, shuffle, mulliganBottom, hyperAtLeast, deckPrice, addEntries, searchTerms, deckMatches, contentSig,
-  scryfallImg, withScryfallImgs,
+  scryfallImg, withScryfallImgs, deckTags, MAX_TAGS,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
 
@@ -429,6 +429,16 @@ eq([clean.img, clean.back, clean.art, clean.name, foreign.cards[0].card.back], [
     contentSig(bumpQty(base, base.cards[0].id, 1).cards) === sig0,
     contentSig(moveToBoard(base, [base.cards[0].id], 'side').cards) === sig0,
   ], [true, true, true, false, false], 'firma: edizione, righe divise e campi del mazzo no; quantità e zona sì');
+}
+
+// tag: solo dalla lista, senza doppioni, al massimo MAX_TAGS; passano da backup e duplicato; la ricerca li trova
+{
+  const t = deckTags({ tags: ['Tokens', 'Tokens', 'Nope', 'Aggro', 'Burn', 'Combo', 'Control', 'Ramp'] });
+  eq([t, deckTags({}), deckTags({ tags: 'Tokens' })], [['Tokens', 'Aggro', 'Burn', 'Combo', 'Control'].slice(0, MAX_TAGS), [], []], 'tag: filtro, doppioni, limite');
+  const d = { ...newDeck({ name: 'Elves' }), tags: ['Tokens'] };
+  eq([fromBackup(toBackup([d])).map((x) => x.tags), duplicateDeck(d).tags,
+    deckMatches(d, searchTerms('tokens'), { colors: [] }), deckMatches(d, searchTerms('aggro'), { colors: [] })],
+  [[['Tokens']], ['Tokens'], true, false], 'tag: backup, duplicato, ricerca');
 }
 
 console.log('deckModel selfcheck: ok');

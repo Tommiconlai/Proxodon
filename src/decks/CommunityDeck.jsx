@@ -5,7 +5,7 @@ import { cardsByIds } from './scryfallSearch';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { navigate } from '../hooks/useHashRoute';
 import DeckSections from './DeckSections';
-import { DeckTabs, DeckCount, DeckBottomBar } from './DeckTabs';
+import { DeckTabs, DeckCount, DeckBottomBar, DeckTagList } from './DeckTabs';
 import { DeckDilemmas } from './Dilemmas';
 import { ExportDeckDialog } from './dialogs';
 import { IconCopy, IconExport, IconHeart } from '../components/icons';
@@ -101,6 +101,7 @@ export default function CommunityDeck({ uid, id, notify }) {
                 <IconHeart size={20} fill={liked ? 'currentColor' : 'none'} /> <span>{likes}</span>
               </button>
             </div>
+            <DeckTagList deck={deck} />
             <div className="deck-hero-meta">
               <span className="deck-price">{formatLabel(deck.format)}</span>
               <span className="deck-hero-actions">

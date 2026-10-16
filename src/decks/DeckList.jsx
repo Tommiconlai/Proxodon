@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { listenDecks, listenCommunity, createDeck, saveDeck, deleteDeck, setDeckPublic, changedMs, countLikes } from './deckStore';
 import {
-  FORMATS, newDeck, duplicateDeck, deckIdentity, deckCover, scryfallImg, formatLabel, searchTerms, deckMatches,
+  FORMATS, newDeck, duplicateDeck, deckIdentity, deckCover, deckTags, scryfallImg, formatLabel, searchTerms, deckMatches,
 } from './deckModel';
 import { useSettings } from '../utils/settings';
 import { navigate } from '../hooks/useHashRoute';
@@ -61,6 +61,7 @@ export function DeckTile({ deck: d, by, ...props }) {
   const cover = scryfallImg(deckCover(d));
   const updated = changedMs(d); // ultimo cambio di carte (changedAt), non l'ultima scrittura
   const likes = useCount(countLikes, d.id, undefined, !!d.public);
+  const tags = deckTags(d).join(' · ');
   return (
     <button type="button" className="deck-tile" {...props}>
       <span className="deck-tile-art" style={cover ? { backgroundImage: `url("${cover}")` } : undefined}>
@@ -76,6 +77,7 @@ export function DeckTile({ deck: d, by, ...props }) {
       <span className="deck-tile-body">
         <span className="deck-tile-foot">
           <ManaPips colors={deckIdentity(d)} />
+          {tags && <span className="deck-tile-tags" title={tags}>{tags}</span>}
         </span>
         <span className="deck-tile-meta">
           {by && <span className="deck-tile-by">by {by}</span>}
@@ -134,7 +136,7 @@ function CommunityGrid({ uid, terms, filters }) {
 export default function DeckList({ uid, notify, tab = 'mine', open, play }) {
   const community = tab === 'community';
   const dilemmas = tab === 'dilemmas';
-  const searchLabel = dilemmas ? 'Search dilemmas' : 'Search decks by name';
+  const searchLabel = dilemmas ? 'Search dilemmas' : 'Search decks by name or tag';
   const tabsRef = useRef(null);
   useBracketSlide(tabsRef, LIST_TABS.findIndex(([t]) => t === tab));
   const [decks, setDecks] = useState(null); // null = caricamento

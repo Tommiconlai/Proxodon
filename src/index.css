@@ -2742,6 +2742,7 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .deck-tile-foot .mana img { width: clamp(14px, 7cqi, 20px); height: clamp(14px, 7cqi, 20px); }
 .deck-tile-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; font-size: clamp(12px, 4.6cqi, 13px); color: rgba(255, 255, 255, 0.5); }
 .deck-tile-by { color: var(--cyan-soft); }
+.deck-tile-tags { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; font-size: clamp(12px, 4.6cqi, 13px); color: var(--accent-light); }
 /* Export sull'angolo dell'arte: fratello del riquadro (niente pulsanti annidati), sempre visibile. */
 .deck-tile-wrap { position: relative; }
 .deck-tile-export {
@@ -2850,6 +2851,16 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 @supports (field-sizing: content) { :is(.deck-hero, .deck-sticky-bar) .deck-name { width: auto; field-sizing: content; min-width: 6ch; max-width: min(620px, 100%); } }
 .deck-hero-meta { margin-top: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .deck-hero .deck-sync { color: var(--text-secondary); }
+/* Tag: chip mono sopra la riga del formato (testata) e nel dialogo, dove sono pulsanti on / off. */
+.deck-tags { margin: auto 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.deck-tags + .deck-hero-meta { margin-top: 0; }
+.deck-tag { padding: 3px 9px; border: 1px solid rgba(255, 45, 149, 0.45); border-radius: 999px; background: rgba(8, 7, 15, 0.6); font-family: var(--font-mono); font-size: 0.75rem; color: #fff; }
+.tag-grid { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 8px; max-height: 64vh; overflow-y: auto; margin-top: 4px; }
+.tag-grid .deck-tag { min-height: 36px; padding: 6px 12px; border-color: var(--border); color: var(--text-secondary); cursor: pointer; transition: color var(--transition), border-color var(--transition), background var(--transition); }
+.tag-grid .deck-tag:hover:not(:disabled) { border-color: rgba(255, 45, 149, 0.6); color: var(--text-primary); }
+.tag-grid .deck-tag.on { border-color: var(--accent); background: rgba(255, 45, 149, 0.2); color: #fff; box-shadow: 0 0 10px rgba(255, 45, 149, 0.3); }
+.tag-grid .deck-tag:disabled { opacity: 0.4; cursor: not-allowed; }
+.mobile .tag-grid .deck-tag { min-height: 44px; }
 /* Copertine nel dialogo: arte orizzontale, più colonne. */
 .cover-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 .cover-grid .art-cell img { aspect-ratio: 626 / 457; object-fit: cover; }
@@ -3392,11 +3403,13 @@ span.deck-hero-art { cursor: default; }
 .deck-editor.is-mobile .deck-hero-meta { gap: 8px; }
 .deck-editor.is-mobile .deck-sections { padding: 14px 14px 110px; }
 .deck-editor.is-mobile .deck-columns { columns: auto; }
-/* Print / Export / Public (Community: Copy / Export) in alto a destra della testata; il nome lascia lo
+/* Tags / Print / Export / Public (Community: Copy / Export) in alto a destra della testata; il nome lascia lo
    spazio. Desktop: il gruppo non c'è (display: contents), i pulsanti restano nella riga in basso. */
 .deck-hero-actions { display: contents; }
 .deck-editor.is-mobile .deck-hero-actions { position: absolute; top: 0; right: 0; display: flex; gap: 8px; }
 .deck-editor.is-mobile .deck-hero-title { padding-right: 156px; }
+/* Editor: quattro pulsanti (Tags in più), 4 x 44 + 3 x 8. */
+.deck-editor.is-mobile .deck-hero-content:has(.deck-hero-actions > :nth-child(4)) .deck-hero-title { padding-right: 208px; }
 /* Ordina / Vista / Raggruppa (+ nuova sezione) in una riga: etichetta piccola sopra, menu stretti. */
 .deck-editor.is-mobile .deck-toolbar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; align-items: end; gap: 8px; }
 .deck-editor.is-mobile .deck-tool { flex-direction: column; align-items: stretch; gap: 4px; min-width: 0; font-size: 0.75rem; letter-spacing: 0.06em; }
@@ -3434,7 +3447,7 @@ span.deck-hero-art { cursor: default; }
 .deck-bottom-actions { display: flex; gap: 8px; }
 .deck-bottom-bar .deck-icon-btn { flex: none; width: 44px; height: 44px; padding: 0; justify-content: center; background: rgba(8, 7, 15, 0.92); box-shadow: var(--shadow-md); }
 .deck-count.plain { position: static; flex-direction: row; align-items: baseline; gap: 16px; text-shadow: 0 1px 3px #000, 0 0 10px rgba(0, 0, 0, 0.9); }
-.deck-count.plain .deck-count-chip { padding: 0; background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.deck-count.plain .deck-count-chip { padding: 0; background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; color: #fff; }
 /* Lista mazzi da telefono: Import / New deck / Play in basso a destra, tondi, sopra il contenuto. */
 .mobile-decks .decks-actions { position: fixed; right: 16px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 50; margin: 0; gap: 10px; }
 .mobile-decks .decks-actions .deck-icon-btn { width: 52px; height: 52px; border-radius: 50%; box-shadow: var(--shadow-lg); }

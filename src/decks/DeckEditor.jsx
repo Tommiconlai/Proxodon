@@ -1,19 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDeck } from './useDeck';
 import { unpublishDeck, changedMs } from './deckStore';
-import { FORMATS, boardCounts, refreshSnapshots, addCard, toPrintEntries, coverRow } from './deckModel';
+import { FORMATS, boardCounts, refreshSnapshots, addCard, toPrintEntries, coverRow, deckTags } from './deckModel';
 import { useSettings } from '../utils/settings';
 import { cardsByIds } from './scryfallSearch';
 import { navigate } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
-import { DeckTabs, DeckCount, DeckBottomBar } from './DeckTabs';
+import { DeckTabs, DeckCount, DeckBottomBar, DeckTagList } from './DeckTabs';
 import { DeckDilemmas } from './Dilemmas';
 import CardSearch from './CardSearch';
 import AdvancedSearch from './AdvancedSearch';
 import { MobilePage } from '../components/MobileLayout';
-import { PrintDeckDialog, CoverDialog, ExportDeckDialog } from './dialogs';
-import { IconPrinter, IconX, IconExport, IconGlobe } from '../components/icons';
+import { PrintDeckDialog, CoverDialog, ExportDeckDialog, TagsDialog } from './dialogs';
+import { IconPrinter, IconX, IconExport, IconGlobe, IconTag } from '../components/icons';
 import { timeAgo } from '../utils/timeAgo';
 
 const STUCK_AT = 72; // px: padding della barra + casella di ricerca, circa
@@ -35,6 +35,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const [printOpen, setPrintOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [coverOpen, setCoverOpen] = useState(false);
+  const [tagsOpen, setTagsOpen] = useState(false);
   const [advOpen, setAdvOpen] = useState(false); // pannello della ricerca avanzata (desktop)
   const [stuck, setStuck] = useState(false); // la testata è uscita: la fascia ricerca ha lo sfondo
   const [tab, setTab] = useState('deck'); // schede della testata: deck | stats | dilemmas
@@ -131,12 +132,15 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
         </button>
         <div className="deck-hero-content">
           {mobile && <div className="deck-hero-title">{name}</div>}
+          <DeckTagList deck={deck} />
           <div className="deck-hero-meta">
             <select className="deck-format" value={deck.format} aria-label="Format" onChange={(e) => update((d) => ({ ...d, format: e.target.value }))}>
               {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
             </select>
             {/* Pulsanti solo icona: il nome sta in aria-label e nel tooltip. Telefono: in alto a destra della testata. */}
             <span className="deck-hero-actions">
+            <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setTagsOpen(true)}
+              aria-label="Tags" title="Tags"><IconTag size={17} /></button>
             <button type="button" className="btn-secondary deck-icon-btn" onClick={startPrint} disabled={!c.main}
               aria-label="Print deck" title="Print deck"><IconPrinter size={17} /></button>
             <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setExportOpen(true)} disabled={!deck.cards.length}
@@ -186,6 +190,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
           <CardSearch format={deck.format} onAdd={add} notify={notify} autoFocus />
         </MobilePage>
       )}
+      {tagsOpen && <TagsDialog tags={deckTags(deck)} onChange={(tags) => update((d) => ({ ...d, tags }))} onClose={() => setTagsOpen(false)} />}
       {printOpen && (
         <PrintDeckDialog queueCount={printQueueCount} sideCount={c.side} add={settings.printAdd} defaultSide={settings.printSide}
           onClose={() => setPrintOpen(false)}

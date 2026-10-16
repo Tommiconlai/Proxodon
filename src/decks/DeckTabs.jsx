@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useBracketSlide } from '../hooks/useBracketSlide';
-import { boardCounts, countTarget, countOk } from './deckModel';
+import { boardCounts, countTarget, countOk, deckTags } from './deckModel';
 import { IconArrowUp, IconSearch } from '../components/icons';
 
 const TABS = [['deck', 'Deck'], ['stats', 'Stats'], ['dilemmas', 'Dilemmas']];
@@ -32,6 +32,14 @@ export function DeckTabs({ tab, onTab, bar }) {
         <button key={t} type="button" aria-current={tab === t ? 'true' : undefined} className="decks-title decks-tab" onClick={() => onTab(t)}><TabLabel>{label}</TabLabel></button>
       ))}
     </nav>
+  );
+}
+
+// Tag del mazzo nella testata (editor e Community), niente se non ce ne sono.
+export function DeckTagList({ deck }) {
+  const tags = deckTags(deck);
+  return tags.length > 0 && (
+    <ul className="deck-tags" aria-label="Tags">{tags.map((t) => <li key={t} className="deck-tag">{t}</li>)}</ul>
   );
 }
 
