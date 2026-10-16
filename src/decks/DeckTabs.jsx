@@ -34,18 +34,19 @@ export function DeckTabs({ tab, onTab, bar }) {
   );
 }
 
-// Totale carte, fisso in basso a sinistra della vista mazzo (scheda Deck, editor e Community): main
-// (comandanti compresi) più la sideboard nei formati che la usano (tutti tranne Commander); il numero è
-// ciano se il main va bene per il formato (Commander esattamente 100, gli altri almeno 60), ambra se no.
+// Conteggio carte, fisso in basso a sinistra della vista mazzo (scheda Deck, editor e Community): un chip
+// "N main" (comandanti compresi) e sotto "N side" nei formati che usano la sideboard (tutti tranne
+// Commander); il numero del main è ciano se va bene per il formato (Commander esattamente 100, gli altri
+// almeno 60), ambra se no.
 export function DeckCount({ deck }) {
   const c = boardCounts(deck);
   const side = deck.format === 'commander' ? 0 : c.side;
   const target = countTarget(deck.format);
   const detail = `Main deck ${c.main}${target ? (deck.format === 'commander' ? ` of ${target}` : ` (at least ${target})`) : ''}${side ? `, sideboard ${side}` : ''}`;
   return (
-    <div className={`deck-count${countOk(deck.format, c.main) ? '' : ' warn'}`} role="status" title={detail} aria-label={`${c.main + side} cards. ${detail}`}>
-      <span className="n">{c.main + side}</span> cards
-      {side > 0 && <span className="split">{c.main} + {side}</span>}
+    <div className="deck-count" role="status" title={detail} aria-label={detail}>
+      <span className={`deck-count-chip${countOk(deck.format, c.main) ? '' : ' warn'}`}><span className="n">{c.main}</span> main</span>
+      {deck.format !== 'commander' && <span className="deck-count-chip"><span className="n">{side}</span> side</span>}
     </div>
   );
 }

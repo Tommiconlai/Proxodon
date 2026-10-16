@@ -2,12 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { deckStats, hyperAtLeast, priceLabel } from './deckModel';
 import { useSettings } from '../utils/settings';
 import { ManaCost } from './Mana';
-import { IconInfo } from '../components/icons';
 
 // Statistiche sotto il mazzo (main board), sul modello di Moxfield ma con lo stile del sito:
 // 1. curva di mana a colonne impilate (permanenti / magie); la barra scelta (all'inizio la più alta)
 //    mostra a fianco le sue carte divise per tipo;
-// 2. una frase con conteggi, media e mediana del costo con e senza terre, costo totale;
+// 2. riquadri come quelli dei colori, per primi: carte, terre, non terre, media e mediana del costo
+//    (senza terre, con terre sotto), costo totale, prezzo;
 // 3. una scheda per colore: quota dei simboli nei costi, simboli per costo, fonti di mana
 //    (sbiadita se nessun costo usa quel colore);
 // 4. probabilità di pescata per turno (DrawOdds).
@@ -304,23 +304,32 @@ export default function DeckStats({ deck, onSelect }) {
   if (!s.cards) return <p className="deck-empty deck-empty-big">Add cards to the main deck to see its stats.</p>;
   const sel = pick ?? s.curve.reduce((best, b, i) => (b.count > s.curve[best].count ? i : best), 0);
   const v = (x) => (x == null ? '-' : x);
+  // [etichetta, valore, riga sotto, classe del valore]
+  const tiles = [
+    ['Cards', s.cards, 'main deck'],
+    ['Lands', s.lands, `${pct(s.lands, s.cards)}% of the deck`],
+    ['Nonlands', s.cards - s.lands, `${pct(s.cards - s.lands, s.cards)}% of the deck`],
+    ['Average mana value', v(s.avgMv), `${v(s.avgAll)} with lands`],
+    ['Median mana value', v(s.medianMv), `${v(s.medianAll)} with lands`],
+    ['Total mana value', s.totalMv, 'main deck'],
+    ...(price ? [['Price', price, `with sideboard, ${currency === 'eur' ? 'Cardmarket' : 'TCGplayer'}`, 'small']] : []),
+  ];
   return (
     <div className="deck-stats">
+      <div className="stat-colors stat-tiles" role="list" aria-label="Deck summary">
+        {tiles.map(([label, value, sub, cls]) => (
+          <div key={label} className="stat-color" role="listitem">
+            <span className="stat-tile-label">{label}</span>
+            <span className={`stat-color-pct${cls ? ` ${cls}` : ''}`}>{value}</span>
+            <span className="stat-color-sub">{sub}</span>
+          </div>
+        ))}
+      </div>
       <div className="stat-curve-row">
         <CurveChart curve={s.curve} pick={sel} onPick={setPick} />
         <CurveCards bin={s.curve[sel]} onSelect={onSelect} />
       </div>
-      <p className="stat-summary">
-        <IconInfo size={16} />
-        <span>
-          The main deck has <b>{s.cards}</b> cards: <b>{s.lands}</b> lands and <b>{s.cards - s.lands}</b> nonlands.
-          Its average mana value is <b>{v(s.avgAll)}</b> with lands and <b>{v(s.avgMv)}</b> without, the median <b>{v(s.medianAll)}</b> with
-          lands and <b>{v(s.medianMv)}</b> without. Total mana value: <b>{s.totalMv}</b>.
-          {price && <> Price with the sideboard: <b>{price}</b> ({currency === 'eur' ? 'Cardmarket' : 'TCGplayer'}).</>}
-        </span>
-      </p>
       <div className="stat-colors">{s.colors.map((c) => <ColorCard key={c.c} c={c} s={s} />)}</div>
-      <p className="stat-foot">A card that makes more than one color counts as a source of each, so sources can add up to more than 100%.</p>
       {s.library > 0 && <DrawOdds library={s.library} types={s.drawTypes} />}
     </div>
   );
