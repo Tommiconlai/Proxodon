@@ -52,7 +52,7 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
   return (
     <div className="mobile">
       <header className="mobile-header">
-        <h1 className="brand"><Wordmark height={26} className="wordmark" /></h1>
+        <h1 className="brand"><Wordmark height={32} mark className="wordmark" /></h1>
         {tabs}
         {altBody ? <div className="header-slot" ref={headerSlot} /> : (
           <>

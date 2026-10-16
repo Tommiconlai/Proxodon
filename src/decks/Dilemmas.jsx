@@ -50,19 +50,22 @@ export function DeckDilemmas({ deck, uid, mine, notify, ask, onAsked }) {
     <div className="deck-sections">
       <div className="dilemma-head">
         <h3 className="deck-analysis-head">Dilemmas</h3>
-        {mine && (
-          <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setCreating([null, null])} aria-label="New dilemma" title="New dilemma">
-            <IconPlus size={18} />
-          </button>
-        )}
       </div>
       {error && <p className="field-hint">Dilemmas are not available: {error.message}</p>}
       {!error && !list && <span className="import-spinner" aria-label="Loading" />}
       {list?.length === 0 && (
         <p className="field-hint">{mine ? 'No dilemmas yet. Ask the community which of two cards fits this deck better.' : 'No dilemmas for this deck yet.'}</p>
       )}
-      {list?.length > 0 && (
+      {list && (mine || list.length > 0) && (
         <ul className="dilemma-list">
+          {/* Nuovo dilemma: primo riquadro della griglia, grande quanto l'arte di un dilemma. */}
+          {mine && (
+            <li>
+              <button type="button" className="dilemma-tile dilemma-add" onClick={() => setCreating([null, null])} aria-label="New dilemma" title="New dilemma">
+                <span className="dilemma-split"><IconPlus size={44} /></span>
+              </button>
+            </li>
+          )}
           {list.map((d) => (
             <DilemmaTile key={d.id} deckId={deck.id} d={d} uid={uid} solved={!!answered?.has(`${deck.id}_${d.id}`)} onClick={() => setOpenId(d.id)} />
           ))}

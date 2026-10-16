@@ -2970,6 +2970,9 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
   transition: color var(--transition);
 }
 .dilemma-tile:hover .dilemma-tile-q, .dilemma-tile:focus-visible .dilemma-tile-q { color: var(--cyan-soft); }
+/* + della scheda Dilemmas del mazzo: riquadro tratteggiato al posto dell'arte, magenta all'hover. */
+.dilemma-add .dilemma-split { display: flex; align-items: center; justify-content: center; border: 1px dashed rgba(255, 45, 149, 0.5); background: rgba(255, 45, 149, 0.04); box-shadow: none; color: var(--accent); }
+.dilemma-add:hover .dilemma-split, .dilemma-add:focus-visible .dilemma-split { border-color: var(--accent); background: rgba(255, 45, 149, 0.1); box-shadow: 0 0 16px rgba(255, 45, 149, 0.3); }
 .dilemma-tile-meta { margin-top: -6px; padding: 0 2px; font-size: 0.78rem; color: var(--text-muted); }
 .dilemma-tile-meta b { font-family: var(--font-display); font-weight: 500; letter-spacing: 0.02em; color: var(--cyan-soft); }
 /* Gioco (#/dilemmas/play): ogni dilemma entra da destra, come la carta successiva di un mazzo. */

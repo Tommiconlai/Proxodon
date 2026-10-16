@@ -41,12 +41,13 @@ const WORDMARK_X_V = [
   'M48.9998 29.5L56.2258 21.996C57.0125 21.1791 58.3204 21.1791 59.1071 21.996L61.9998 25',
 ];
 
-export function Wordmark({ height = 30, ...props }) {
+// mark = solo la X (telefono): viewBox quadrato 31x31 attorno al suo centro.
+export function Wordmark({ height = 30, mark, ...props }) {
   return (
-    <svg height={height} width={(height * 132) / 31} viewBox="0 0 132 31" role="img" aria-label="Proxodon" {...props}>
+    <svg height={height} width={mark ? height : (height * 132) / 31} viewBox={mark ? '42 0 31 31' : '0 0 132 31'} role="img" aria-label="Proxodon" {...props}>
       {/* .x-v = V sopra/sotto: all'hover ruotano di 180° sull'asse verticale del centro della X (CSS .wordmark). */}
       <g fill="#00e5ff">
-        {WORDMARK_LETTERS.map((d) => <path key={d} d={d} />)}
+        {!mark && WORDMARK_LETTERS.map((d) => <path key={d} d={d} />)}
         <path d={WORDMARK_X_CORE} />
       </g>
       <g fill="none" stroke="#ff2d95" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
