@@ -3039,6 +3039,9 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .dilemma-cards:hover .dilemma-card:not(:hover) { filter: brightness(0.5); }
 .dilemma-card:hover, .dilemma-card:focus-visible { transform: scale(1.1); z-index: 1; outline: none; }
 .dilemma-cards.voted .dilemma-card { cursor: default; }
+/* Scelta non ancora confermata: le altre carte un po' scure (la scelta ha già la cornice). */
+.dilemma-cards.picked .dilemma-card:not(.selected):not(:hover) { filter: brightness(0.6); }
+.dilemma-why textarea { width: 100%; resize: vertical; }
 /* Percentuale in basso a destra della carta (il quadratino "%" del disegno). */
 .dilemma-pct {
   position: absolute; right: 8px; bottom: 8px;

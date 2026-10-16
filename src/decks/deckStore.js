@@ -159,9 +159,9 @@ async function deleteDilemmasOf(deckId) {
 }
 export const listenVotes = (deckId, dId, onChange, onError) => onSnapshot(votesCol(deckId, dId), (qs) => onChange(qs.docs.map(plainDoc)), onError);
 export const countVotes = (deckId, dId) => getCountFromServer(votesCol(deckId, dId)).then((s) => s.data().count);
-export function voteDilemma(uid, deckId, dId, pick) {
+export function voteDilemma(uid, deckId, dId, pick, why = '') {
   const batch = writeBatch(db);
-  batch.set(doc(votesCol(deckId, dId), uid), { pick, why: '', ...(ownerName ? { owner: ownerName } : {}), at: serverTimestamp() });
+  batch.set(doc(votesCol(deckId, dId), uid), { pick, why, ...(ownerName ? { owner: ownerName } : {}), at: serverTimestamp() });
   batch.set(doc(answeredCol(uid), `${deckId}_${dId}`), { deck: deckId, dilemma: dId, at: serverTimestamp() });
   return batch.commit();
 }

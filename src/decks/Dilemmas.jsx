@@ -256,9 +256,12 @@ function FeedDilemma({ deckId, id, uid, notify }) {
 
 // Dilemma aperto (dal disegno dell'utente): le carte, da 2 a 4 (hover = quella si ingrandisce, le altre si
 // scuriscono), il nome del mazzo, la domanda, la lista del mazzo. Chi non è il proprietario sceglie una
-// carta: poi vede le percentuali (sulle carte e quanti hanno scelto come lui), può spiegare la scelta e
-// legge le spiegazioni degli altri. Il proprietario vede percentuali e spiegazioni, e può cancellarlo.
-// Nel gioco (onNext, progress): contatore e Next / Skip nella testata, tasti ← → e Enter.
+// carta (click = scelta, si cambia o si toglie; il voto si salva solo confermando, così un click partito per
+// sbaglio non conta), insieme al perché facoltativo: poi vede le percentuali (sulle carte e quanti hanno
+// scelto come lui), può cambiare la spiegazione e legge quelle degli altri. Conferma: nel gioco (onNext,
+// progress) Next o Enter salvano e passano al prossimo (un toast dice la percentuale), senza scelta saltano;
+// fuori dal gioco il pulsante di conferma nella testata. Il proprietario vede percentuali e spiegazioni, e
+// può cancellarlo.
 function DilemmaView({ deck, dilemma, uid, mine, notify, onBack, deckHref, onNext, progress }) {
   const [votes, setVotes] = useState(null);
   const [sending, setSending] = useState(false); // un voto alla volta (doppio click, tasti ripetuti)
@@ -269,34 +272,46 @@ function DilemmaView({ deck, dilemma, uid, mine, notify, onBack, deckHref, onNex
   const counts = dilemma.cards.map((_, i) => (votes || []).filter((v) => v.pick === i).length);
   const total = counts.reduce((a, b) => a + b, 0);
   const results = mine || !!my;
-  const choose = (i) => {
-    if (results || !votes || sending) return;
+  const [pick, setPick] = useState(null); // carta scelta, non ancora confermata
+  const [why, setWhy] = useState('');
+  // Click = scegli o togli; tastiera (only) = scegli soltanto.
+  const choose = (i, only) => { if (!results && !sending) setPick((p) => (p === i && !only ? null : i)); };
+  // Salva il voto senza aspettarlo (offline resta in coda); il listener dei voti porta subito ai risultati. Nel
+  // gioco ci sono solo dilemmi senza il tuo voto, quindi non serve aspettare i voti; fuori il pulsante sì.
+  const confirm = () => {
+    if (pick === null || results || sending) return false;
     setSending(true);
-    voteDilemma(uid, deck.id, dilemma.id, i).catch((e) => {
+    voteDilemma(uid, deck.id, dilemma.id, pick, why.trim()).catch((e) => {
       setSending(false);
       notify(`Could not save your choice: ${e.message}`, 'error');
     });
+    return true;
   };
-  // Gioco: 1-4 (con due carte anche ← →) scelgono la carta, dopo il voto → o Enter passano al prossimo. Non mentre si scrive; Enter
-  // su un pulsante o un link resta suo. Senza dipendenze: si riaggancia a ogni render con i valori nuovi.
+  const next = () => {
+    if (pick !== null && confirm()) notify(`${pct(counts[pick] + 1, total + 1)}% chose ${dilemma.cards[pick].name} like you`);
+    onNext();
+  };
+  // Gioco: 1-4 (con due carte anche ← →) scelgono la carta, Enter (o →, quando non sceglie) conferma e passa al
+  // prossimo. Non mentre si scrive; Enter su un pulsante o un link resta suo. Senza dipendenze: si riaggancia a ogni render.
   useEffect(() => {
     if (!onNext) return undefined;
     const onKey = (e) => {
       if (e.altKey || e.ctrlKey || e.metaKey || e.target.closest?.('input, textarea, select')) return;
       const enter = e.key === 'Enter' && !e.target.closest?.('button, a');
-      const pick = /^[1-9]$/.test(e.key) && +e.key <= n ? +e.key - 1 : (n === 2 ? ['ArrowLeft', 'ArrowRight'] : []).indexOf(e.key);
-      if (!results && pick >= 0) {
+      const k = /^[1-9]$/.test(e.key) && +e.key <= n ? +e.key - 1 : (n === 2 ? ['ArrowLeft', 'ArrowRight'] : []).indexOf(e.key);
+      if (!results && k >= 0) {
         e.preventDefault();
-        choose(pick);
-      } else if (results && (e.key === 'ArrowRight' || enter)) {
+        choose(k, true);
+      } else if (enter || e.key === 'ArrowRight') {
         e.preventDefault();
-        onNext();
+        next();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   });
   const reasons = (votes || []).filter((v) => v.why);
+  const nextLabel = results ? 'Next dilemma' : pick !== null ? 'Confirm and next' : 'Skip this dilemma';
   return (
     <div className="deck-sections dilemma-view">
       <div className="dilemma-head">
@@ -304,20 +319,24 @@ function DilemmaView({ deck, dilemma, uid, mine, notify, onBack, deckHref, onNex
         <h3 className="deck-analysis-head">Dilemma</h3>
         {progress && <span className="dilemma-progress">{progress}</span>}
         {onNext && (
-          <button type="button" className={`${results ? 'btn-add' : 'btn-secondary'} deck-icon-btn`} onClick={onNext}
-            aria-label={results ? 'Next dilemma' : 'Skip this dilemma'} title={results ? 'Next dilemma (→)' : 'Skip'}><IconArrowRight size={18} /></button>
+          <button type="button" className={`${results || pick !== null ? 'btn-add' : 'btn-secondary'} deck-icon-btn`} onClick={next}
+            aria-label={nextLabel} title={`${nextLabel} (Enter)`}><IconArrowRight size={18} /></button>
+        )}
+        {!onNext && !results && (
+          <button type="button" className="btn-add deck-icon-btn" onClick={confirm} disabled={pick === null || sending || !votes}
+            aria-label="Confirm vote" title={pick === null ? 'Choose a card first' : 'Confirm vote'}><IconCheck size={18} /></button>
         )}
         {mine && (
           <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setConfirmDel(true)} aria-label="Delete dilemma" title="Delete dilemma"><IconTrash size={18} /></button>
         )}
       </div>
       <CardFrameDefs />
-      <div className={`dilemma-cards n${n}${results ? ' voted' : ''}`} role="group" aria-label="Choose a card">
+      <div className={`dilemma-cards n${n}${results ? ' voted' : pick !== null ? ' picked' : ''}`} role="group" aria-label="Choose a card">
         {dilemma.cards.map((c, i) => (
           // A ventaglio: da -4° a +4°, la rotazione in --r (l'hover la toglie).
-          <button key={i} type="button" className={`dilemma-card${my?.pick === i ? ' selected' : ''}`} aria-disabled={results}
+          <button key={i} type="button" className={`dilemma-card${(my ? my.pick : pick) === i ? ' selected' : ''}`} aria-disabled={results}
             style={{ '--r': `${(i - (n - 1) / 2) * (8 / (n - 1))}deg` }}
-            aria-pressed={my ? my.pick === i : undefined} onClick={() => choose(i)}
+            aria-pressed={mine ? undefined : (my ? my.pick : pick) === i} onClick={() => choose(i)}
             aria-label={results ? `${c.name}: ${pct(counts[i], total)}% of ${total} votes` : `Choose ${c.name}`}>
             {img(c) ? <img src={img(c)} alt="" /> : <span className="deck-card-ph">{c.name}</span>}
             <CardFrame />
@@ -327,7 +346,19 @@ function DilemmaView({ deck, dilemma, uid, mine, notify, onBack, deckHref, onNex
       </div>
       <p className="dilemma-deck">{deckHref ? <a href={deckHref}>{deck.name}</a> : deck.name}</p>
       <p className="dilemma-question">{dilemma.question}</p>
-      {!results && <p className="field-hint dilemma-hint">Choose the card you would play{onNext ? (n === 2 ? ' (← or →)' : ` (1 to ${n})`) : ''}.</p>}
+      {!results && (
+        <p className="field-hint dilemma-hint">
+          {pick === null ? `Choose the card you would play${onNext ? (n === 2 ? ' (← or →)' : ` (1 to ${n})`) : ''}.`
+            : `${dilemma.cards[pick].name}: change it if you like, then ${onNext ? 'Next (Enter) saves your vote' : 'confirm your vote'}.`}
+        </p>
+      )}
+      {!results && pick !== null && (
+        <div className="dilemma-why">
+          <label htmlFor="dilemma-why">Why? <span className="field-hint">Optional, saved with your vote</span></label>
+          <textarea id="dilemma-why" className="import-link-input" value={why} maxLength={500} rows={3}
+            onChange={(e) => setWhy(e.target.value)} placeholder="What makes it the better card for this deck?" />
+        </div>
+      )}
       {my && (
         <p className="dilemma-same">
           <b>{pct(counts[my.pick], total)}%</b> chose {dilemma.cards[my.pick].name} like you ({total} {total === 1 ? 'vote' : 'votes'}).
