@@ -264,6 +264,15 @@ export function IconArrowRight(props) {
   );
 }
 
+export function IconArrowUp(props) {
+  return (
+    <Svg {...props}>
+      <path d="m5 12 7-7 7 7" />
+      <path d="M12 19V5" />
+    </Svg>
+  );
+}
+
 // Play (triangolo verso destra): avvia i dilemmi a caso.
 export function IconPlay(props) {
   return (

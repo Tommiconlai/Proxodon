@@ -413,9 +413,19 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   const pileN = piles.map(([g]) => (split ? sum(g.rows) : g.rows.length));
   const pack = (w) => packPiles(pileN.map((n) => pileHeight(n, w)), STACK_GAP);
   // Colonne contate a 200 px, poi pile allargate fino a riempire l'area (impacchettate di nuovo).
+  // Telefono (touch): sempre due colonne larghe metà area, pile in ordine, la prima fino a metà altezza.
   const n0 = pack(STACK_MIN).length || 1;
-  const stackW = Math.max(STACK_MIN, Math.min(STACK_MAX, Math.floor((areaW - (n0 - 1) * COL_GAP) / n0)));
-  const stackCols = pack(stackW);
+  const stackW = touch ? Math.max(100, Math.floor((areaW - COL_GAP) / 2))
+    : Math.max(STACK_MIN, Math.min(STACK_MAX, Math.floor((areaW - (n0 - 1) * COL_GAP) / n0)));
+  const halves = () => {
+    const hs = pileN.map((n) => pileHeight(n, stackW) + STACK_GAP);
+    const total = hs.reduce((a, h) => a + h, 0);
+    let acc = 0;
+    const cols = [[], []];
+    hs.forEach((h, i) => { cols[acc < total / 2 ? 0 : 1].push(i); acc += h; });
+    return cols.filter((c) => c.length);
+  };
+  const stackCols = touch ? halves() : pack(stackW);
   return (
     <div className={`deck-sections ${tab === 'stats' ? 'tab-stats' : `view-${layout}`}${settings.density === 'compact' ? ' density-compact' : ''}`} ref={rootRef} {...marqueeHandlers}
       onKeyDown={(e) => { if (e.key === 'Escape' && sel.size) { e.stopPropagation(); setSel(new Set()); } }}>

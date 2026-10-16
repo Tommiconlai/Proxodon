@@ -6,7 +6,7 @@ import { useSettings } from '../utils/settings';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { navigate } from '../hooks/useHashRoute';
 import DeckSections from './DeckSections';
-import { DeckTabs, DeckCount } from './DeckTabs';
+import { DeckTabs, DeckCount, DeckBottomBar } from './DeckTabs';
 import { DeckDilemmas } from './Dilemmas';
 import { ExportDeckDialog } from './dialogs';
 import { IconCopy, IconExport, IconHeart } from '../components/icons';
@@ -22,6 +22,7 @@ export default function CommunityDeck({ uid, id, notify }) {
   const [exportOpen, setExportOpen] = useState(false);
   const [tab, setTab] = useState('deck');
   const heroRef = useRef(null);
+  const scrollRef = useRef(null); // .deck-scroll: Back to top della barra in basso (telefono)
   const [stuck, setStuck] = useState(false); // la testata è uscita: la barra delle schede ha lo sfondo
   const mobile = useIsMobile();
   const { currency } = useSettings();
@@ -76,7 +77,7 @@ export default function CommunityDeck({ uid, id, notify }) {
   };
   return (
     <div className={`deck-editor${mobile ? ' is-mobile' : ''}`}>
-      <div className="deck-scroll" onScroll={mobile ? undefined : (e) => setStuck(e.currentTarget.scrollTop > (heroRef.current?.offsetHeight || 0) - STUCK_AT)}>
+      <div className="deck-scroll" ref={scrollRef} onScroll={mobile ? undefined : (e) => setStuck(e.currentTarget.scrollTop > (heroRef.current?.offsetHeight || 0) - STUCK_AT)}>
         {!mobile && (
           <div className="deck-sticky">
             <div className={`deck-sticky-bar has-tabs${stuck ? ' stuck' : ''}`}>
@@ -105,10 +106,12 @@ export default function CommunityDeck({ uid, id, notify }) {
             </div>
             <div className="deck-hero-meta">
               <span className="deck-price">{formatLabel(deck.format)}</span>
-              <button type="button" className="btn-secondary deck-icon-btn" onClick={copy}
-                aria-label="Copy to my decks" title="Copy to my decks"><IconCopy size={17} /></button>
-              <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setExportOpen(true)} disabled={!deck.cards.length}
-                aria-label="Export" title="Export"><IconExport size={17} /></button>
+              <span className="deck-hero-actions">
+                <button type="button" className="btn-secondary deck-icon-btn" onClick={copy}
+                  aria-label="Copy to my decks" title="Copy to my decks"><IconCopy size={17} /></button>
+                <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setExportOpen(true)} disabled={!deck.cards.length}
+                  aria-label="Export" title="Export"><IconExport size={17} /></button>
+              </span>
               {price && <span className="deck-price">{price}</span>}
               <span className="deck-sync">by {deck.owner || 'anonymous'}</span>
             </div>
@@ -122,7 +125,7 @@ export default function CommunityDeck({ uid, id, notify }) {
           </section>
         </div>
       </div>
-      {tab === 'deck' && <DeckCount deck={deck} />}
+      {mobile ? <DeckBottomBar deck={deck} showCount={tab === 'deck'} scrollRef={scrollRef} /> : tab === 'deck' && <DeckCount deck={deck} />}
       {exportOpen && <ExportDeckDialog deck={deck} onClose={() => setExportOpen(false)} />}
     </div>
   );

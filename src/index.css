@@ -3025,7 +3025,8 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .deck-tabs {
   /* z 5: sopra la testata (viene dopo), sotto la barra del nome (6), la cui tendina dei suggerimenti deve coprirle. */
   position: sticky; top: 0; z-index: 5;
-  height: 44px; margin-top: -44px;
+  /* flex: none: in .deck-scroll (colonna flex) si restringeva a 24 px e il corpo saliva di 20 px sotto la testata. */
+  flex: none; height: 44px; margin-top: -44px;
   display: flex; align-items: center; justify-content: center; gap: 18px;
   pointer-events: none;
   transition: background var(--transition), box-shadow var(--transition);
@@ -3156,9 +3157,13 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .dilemma-slot.active { border-color: var(--cyan); box-shadow: 0 0 14px rgba(0, 229, 255, 0.3); }
 /* Telefono: la testata ha il suo padding (va riallungato per le schede), schede più strette. */
 .deck-editor.is-mobile .deck-hero.has-tabs { padding-bottom: 56px; }
-.deck-editor.is-mobile .deck-tabs { gap: 14px; }
-.deck-editor.is-mobile .deck-tabs .decks-tab, .mobile-decks .decks-tabs .decks-tab { font-size: 0.8rem; letter-spacing: 0.14em; }
-.mobile-decks .decks-tabs { gap: 14px; }
+/* Schede su tre colonne uguali, ognuna centrata nella sua: le parentesi (invisibili sulle altre) sono
+   simmetriche, quindi il testo resta al centro. Lista mazzi: una riga sola, a tutta larghezza. */
+.deck-editor.is-mobile .deck-tabs, .mobile-decks .decks-tabs {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); justify-items: center; align-items: center; gap: 0; padding: 0 6px;
+}
+.mobile-decks .decks-tabs { flex: 1 1 100%; }
+.deck-editor.is-mobile .deck-tabs .decks-tab, .mobile-decks .decks-tabs .decks-tab { font-size: 0.74rem; letter-spacing: 0.1em; white-space: nowrap; }
 span.deck-hero-art { cursor: default; }
 /* Testata del mazzo: pulsanti solo icona, quadrati da 36 px con il fondo scuro del prezzo (stanno sull'arte). */
 .deck-hero-meta .deck-icon-btn { flex: none; width: 36px; height: 36px; padding: 0; justify-content: center; background: rgba(8, 7, 15, 0.6); }
@@ -3517,6 +3522,41 @@ span.deck-hero-art { cursor: default; }
 .deck-editor.is-mobile .deck-hero-meta { gap: 8px; }
 .deck-editor.is-mobile .deck-sections { padding: 14px 14px 110px; }
 .deck-editor.is-mobile .deck-columns { columns: auto; }
+/* Print / Export / Public (Community: Copy / Export) in alto a destra della testata; il nome lascia lo
+   spazio. Desktop: il gruppo non c'è (display: contents), i pulsanti restano nella riga in basso. */
+.deck-hero-actions { display: contents; }
+.deck-editor.is-mobile .deck-hero-actions { position: absolute; top: 0; right: 0; display: flex; gap: 8px; }
+.deck-editor.is-mobile .deck-hero-title { padding-right: 132px; }
+/* Ordina / Vista / Raggruppa (+ nuova sezione) in una riga: etichetta piccola sopra, menu stretti. */
+.deck-editor.is-mobile .deck-toolbar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; align-items: end; gap: 8px; }
+.deck-editor.is-mobile .deck-tool { flex-direction: column; align-items: stretch; gap: 4px; min-width: 0; font-size: 0.6rem; letter-spacing: 0.12em; }
+.deck-editor.is-mobile .deck-tool select { width: 100%; height: 34px; padding: 0 8px; font-size: 0.74rem; }
+.deck-editor.is-mobile .deck-new-section { width: 34px; height: 34px; padding: 0; justify-content: center; }
+/* Griglia a due colonne (gli stack li fa a due DeckSections, touch). */
+.deck-editor.is-mobile .deck-rows.view-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 10px; }
+/* Pressione lunga = il nostro menu, non quello del sistema (Salva immagine): l'immagine non riceve il
+   tocco (lo prende il pulsante della carta) e niente callout iOS né trascinamento. */
+@media (hover: none) {
+  .deck-rows .deck-row-main img { pointer-events: none; -webkit-touch-callout: none; -webkit-user-drag: none; user-select: none; }
+}
+/* Barra in basso (DeckBottomBar): scura all'80%, conteggio senza chip a sinistra, Back to top e lente a destra. */
+.deck-bottom-bar {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 7;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 56px; padding: 8px 14px calc(8px + env(safe-area-inset-bottom, 0px));
+  background: rgba(8, 7, 15, 0.8);
+  border-top: 1px solid rgba(124, 92, 255, 0.18);
+}
+.deck-bottom-actions { display: flex; gap: 8px; }
+.deck-bottom-bar .deck-icon-btn { flex: none; width: 40px; height: 40px; padding: 0; justify-content: center; }
+.deck-count.plain { position: static; flex-direction: row; align-items: baseline; gap: 16px; }
+.deck-count.plain .deck-count-chip { padding: 0; background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+/* Lista mazzi da telefono: Import / New deck / Play in basso a destra, tondi, sopra il contenuto. */
+.mobile-decks .decks-actions { position: fixed; right: 16px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 50; margin: 0; gap: 10px; }
+.mobile-decks .decks-actions .deck-icon-btn { width: 52px; height: 52px; border-radius: 50%; box-shadow: var(--shadow-lg); }
+.mobile-decks .decks-actions .btn-secondary { background: rgba(8, 7, 15, 0.92); }
+/* Settings della stampa da telefono: stesso spazio tra i gruppi della sidebar desktop (gap 24 px). */
+.mobile-page-body > .sidebar-section + .sidebar-section { margin-top: 24px; }
 
 .search-wrap { position: relative; }
 .search-box { display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-muted); }
@@ -3609,7 +3649,6 @@ span.deck-hero-art { cursor: default; }
 .card-zoom-wrap { position: relative; outline: none; }
 .card-zoom { display: block; max-width: 92vw; max-height: 86vh; border-radius: 18px; box-shadow: var(--shadow-lg); }
 .card-zoom-close { position: absolute; top: -12px; right: -12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 50%; }
-.deck-fab { position: fixed; right: 18px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 50; }
 
 /* Ricerca nella testata (desktop, a destra) e pannello della ricerca avanzata sopra il mazzo. */
 /* Fascia della ricerca: sticky con altezza 0, quindi non sposta la testata; sopra la testata è

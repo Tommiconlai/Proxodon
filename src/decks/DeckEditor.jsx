@@ -7,13 +7,13 @@ import { cardsByIds } from './scryfallSearch';
 import { navigate } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
-import { DeckTabs, DeckCount } from './DeckTabs';
+import { DeckTabs, DeckCount, DeckBottomBar } from './DeckTabs';
 import { DeckDilemmas } from './Dilemmas';
 import CardSearch from './CardSearch';
 import AdvancedSearch from './AdvancedSearch';
 import { MobilePage } from '../components/MobileLayout';
 import { PrintDeckDialog, CoverDialog, ExportDeckDialog } from './dialogs';
-import { IconPlus, IconPrinter, IconX, IconExport, IconGlobe } from '../components/icons';
+import { IconPrinter, IconX, IconExport, IconGlobe } from '../components/icons';
 import { timeAgo } from '../utils/timeAgo';
 
 const STUCK_AT = 72; // px: padding della barra + casella di ricerca, circa
@@ -23,8 +23,9 @@ const STUCK_AT = 72; // px: padding della barra + casella di ricerca, circa
 // a sinistra, in basso formato, stato sync, conteggio, Print deck ed Export (si torna alla lista con la tab
 // Decks). Sotto il corpo con le sezioni (o Stats / Dilemmas). Tutto scorre insieme (deck-scroll) tranne la fascia
 // con il nome del mazzo, le schede Deck / Stats / Dilemmas al centro e la ricerca (desktop), che resta in alto: sopra la testata è trasparente, quando
-// la testata è uscita prende lo sfondo. Telefono: il nome sta nella testata e scorre con lei, + apre
-// la ricerca a tutto schermo.
+// la testata è uscita prende lo sfondo. Telefono: il nome sta nella testata e scorre con lei, Print /
+// Export / Public in alto a destra; in basso la barra (DeckBottomBar) con il conteggio, Back to top e la
+// lente che apre la ricerca a tutto schermo.
 export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDeck }) {
   const { deck, update, saving, error } = useDeck(uid, id);
   const mobile = useIsMobile();
@@ -38,6 +39,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const [stuck, setStuck] = useState(false); // la testata è uscita: la fascia ricerca ha lo sfondo
   const [tab, setTab] = useState('deck'); // schede della testata: deck | stats | dilemmas
   const heroRef = useRef(null);
+  const scrollRef = useRef(null); // .deck-scroll: Back to top della barra in basso (telefono)
   const refreshed = useRef(false);
   // Barra quando della testata resta meno della riga nome + ricerca. Soglia fissa: la barra da
   // .stuck è più bassa (niente Advanced search), misurarla farebbe oscillare lo stato.
@@ -105,7 +107,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   );
   return (
     <div className={`deck-editor${mobile ? ' is-mobile' : ''}`}>
-      <div className="deck-scroll" onScroll={mobile ? undefined : onScroll}>
+      <div className="deck-scroll" ref={scrollRef} onScroll={mobile ? undefined : onScroll}>
       {!mobile && (
         <div className="deck-sticky">
           {/* Nome a sinistra, schede al centro, ricerca a destra. */}
@@ -134,7 +136,8 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
             <select className="deck-format" value={deck.format} aria-label="Format" onChange={(e) => update((d) => ({ ...d, format: e.target.value }))}>
               {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
             </select>
-            {/* Pulsanti solo icona: il nome sta in aria-label e nel tooltip. */}
+            {/* Pulsanti solo icona: il nome sta in aria-label e nel tooltip. Telefono: in alto a destra della testata. */}
+            <span className="deck-hero-actions">
             <button type="button" className="btn-secondary deck-icon-btn" onClick={startPrint} disabled={!c.main}
               aria-label="Print deck" title="Print deck"><IconPrinter size={17} /></button>
             <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setExportOpen(true)} disabled={!deck.cards.length}
@@ -149,6 +152,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
                 if (!on) unpublishDeck(id).catch((e) => notify(`Sync error: ${e.message}`, 'error'));
                 notify(on ? 'Shared in Community' : 'Removed from Community');
               }}><IconGlobe size={17} /></button>
+            </span>
             {price && <span className="deck-price" title={`${settings.currency === 'eur' ? 'Cardmarket' : 'TCGplayer'} price on Scryfall, main deck and sideboard`}>{price}</span>}
             <span className={`deck-sync${online ? '' : ' offline'}`} role="status">{sync}</span>
           </div>
@@ -172,13 +176,13 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
         </section>
       </div>
       </div>
-      {tab === 'deck' && <DeckCount deck={deck} />}
+      {mobile ? <DeckBottomBar deck={deck} showCount={tab === 'deck'} scrollRef={scrollRef} onSearch={() => setSearchOpen(true)} />
+        : tab === 'deck' && <DeckCount deck={deck} />}
       {exportOpen && <ExportDeckDialog deck={deck} onClose={() => setExportOpen(false)} />}
       {coverOpen && (
         <CoverDialog deck={deck} onClose={() => setCoverOpen(false)}
           onPick={(oid) => { update((d) => ({ ...d, cover: oid })); setCoverOpen(false); }} />
       )}
-      {mobile && <button type="button" className="fab deck-fab" onClick={() => setSearchOpen(true)} aria-label="Add cards"><IconPlus size={26} /></button>}
       {mobile && searchOpen && (
         <MobilePage title="Add cards" onClose={() => setSearchOpen(false)}>
           <CardSearch format={deck.format} onAdd={add} notify={notify} autoFocus />

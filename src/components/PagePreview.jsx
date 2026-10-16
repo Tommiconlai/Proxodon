@@ -90,9 +90,14 @@ export function PageCanvas({ pageImages, formatKey, bleedMm, bleedStyle, cardW, 
         const canvas = canvasRef.current;
         if (!canvas) return;
         let cancelled = false;
-        canvas.width = previewW;
-        canvas.height = previewH;
+        // Pixel del canvas × densità dello schermo (telefoni 2-3×), max 2: carte nitide senza canvas enormi.
+        // Si disegna sempre in px CSS (setTransform), il resto del codice non cambia.
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        canvas.width = Math.round(previewW * dpr);
+        canvas.height = Math.round(previewH * dpr);
         const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.imageSmoothingQuality = 'high';
 
         const cache = cacheRef.current;
         const load = (item) => {
