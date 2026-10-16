@@ -133,7 +133,7 @@ const deckOnce = (id) => {
   return publicDecks.get(id);
 };
 
-// Scheda Dilemmas della lista mazzi (#/dilemmas): gli ultimi dilemmi della Community, filtrati dalla
+// Scheda Dilemmas della lista mazzi (#/dilemmas): gli ultimi dilemmi degli altri giocatori, filtrati dalla
 // ricerca (domanda, carte, mazzo, autore) e dal formato del mazzo (terms e format da DeckList).
 // Click = #/dilemmas/:mazzo/:dilemma, il dilemma aperto (open) qui; play = il gioco (DilemmaPlay).
 export function DilemmaFeed({ uid, notify, open, play, terms = [], format = '' }) {
@@ -153,16 +153,18 @@ export function DilemmaFeed({ uid, notify, open, play, terms = [], format = '' }
   if (error) return <p className="field-hint">Dilemmas are not available: {error.message}</p>;
   if (!list || (play && !answered)) return <span className="import-spinner" aria-label="Loading" />;
   if (play) return <DilemmaPlay list={list} decks={decks} answered={answered} uid={uid} notify={notify} />;
-  if (!list.length) {
+  // Solo quelli degli altri: i propri stanno nella scheda Dilemmas dei loro mazzi.
+  const others = list.filter((d) => d.uid !== uid);
+  if (!others.length) {
     return (
       <div className="decks-empty">
-        <p className="decks-empty-title">No dilemmas yet</p>
-        <p className="field-hint">Ask the community from the Dilemmas tab of one of your public decks.</p>
+        <p className="decks-empty-title">No dilemmas from other players yet</p>
+        <p className="field-hint">Yours are in the Dilemmas tab of your public decks.</p>
       </div>
     );
   }
   // Mazzo tornato privato (null): i suoi dilemmi restano su Firestore ma qui non si vedono.
-  const shown = list.filter((d) => {
+  const shown = others.filter((d) => {
     const deck = decks[d.deckId];
     if (deck === null || (format && deck?.format !== format)) return false;
     const text = [d.question, ...d.cards.map((c) => c.name), deck?.name, deck?.owner].join(' ').toLowerCase();

@@ -102,8 +102,8 @@ const Empty = ({ title, hint }) => (
   </div>
 );
 
-// Community: gli ultimi 20 mazzi pubblici che passano ricerca e filtri. La query cerca la prima parola
-// (300 ms dopo l'ultimo tasto), il resto lo filtra deckMatches. I propri aprono l'editor.
+// Community: gli ultimi 20 mazzi pubblici degli altri (i propri stanno in My decks) che passano ricerca e
+// filtri. La query cerca la prima parola (300 ms dopo l'ultimo tasto), il resto lo filtra deckMatches.
 function CommunityGrid({ uid, terms, filters, currency }) {
   const [decks, setDecks] = useState(null);
   const [error, setError] = useState(null);
@@ -117,18 +117,18 @@ function CommunityGrid({ uid, terms, filters, currency }) {
 
   if (error) return <Empty title="Community is not available" hint={error.message} />;
   if (!decks) return <span className="import-spinner" aria-label="Loading" />;
-  const shown = decks.filter((d) => deckMatches(d, terms, filters)).slice(0, 20);
+  const others = decks.filter((d) => d.uid !== uid);
+  const shown = others.filter((d) => deckMatches(d, terms, filters)).slice(0, 20);
   if (!shown.length) {
-    return decks.length || terms.length
+    return others.length || terms.length
       ? <Empty title="No decks match" hint="Try another name or clear the filters." />
-      : <Empty title="No public decks yet" hint="Share one of yours: Share in Community from its menu, or Public in the deck page." />;
+      : <Empty title="No public decks from other players yet" hint="Yours are in My decks. Share one with Share in Community from its menu, or Public in the deck page." />;
   }
   return (
     <ul className="deck-grid">
       {shown.map((d) => (
         <li key={d.id} className="deck-tile-wrap">
-          <DeckTile deck={d} currency={currency} by={d.owner || 'anonymous'}
-            onClick={() => navigate(d.uid === uid ? `/decks/${d.id}` : `/community/${d.id}`)} />
+          <DeckTile deck={d} currency={currency} by={d.owner || 'anonymous'} onClick={() => navigate(`/community/${d.id}`)} />
         </li>
       ))}
     </ul>
