@@ -10,14 +10,18 @@ import { DeckTabs, DeckDilemmas } from './DeckTabs';
 import { ExportDeckDialog } from './dialogs';
 import { IconCopy, IconExport, IconHeart } from '../components/icons';
 
+const STUCK_AT = 64; // px: la barra delle schede (padding + 40 px), come STUCK_AT nell'editor
+
 // Mazzo della Community in sola lettura (#/community/:id): testata come l'editor (arte, nome con il cuore
-// dei like, formato, prezzo, autore), Copy to my decks ed Export, in fondo le schede Deck / Stats / Dilemmas
-// (DeckTabs, Dilemmas vuota per ora); sotto le sezioni senza comandi di modifica. Vista e raggruppamento
-// cambiano solo la copia sullo schermo.
+// dei like, formato, prezzo, autore), Copy to my decks ed Export; schede Deck / Stats / Dilemmas (DeckTabs,
+// Dilemmas vuota per ora) in alto al centro come nell'editor (telefono: sotto la testata); sotto le sezioni
+// senza comandi di modifica. Vista e raggruppamento cambiano solo la copia sullo schermo.
 export default function CommunityDeck({ uid, id, notify }) {
   const [deck, setDeck] = useState(undefined); // undefined = caricamento, null = non più pubblico o errore
   const [exportOpen, setExportOpen] = useState(false);
   const [tab, setTab] = useState('deck');
+  const heroRef = useRef(null);
+  const [stuck, setStuck] = useState(false); // la testata è uscita: la barra delle schede ha lo sfondo
   const mobile = useIsMobile();
   const { currency } = useSettings();
   // Immagini solo da Scryfall: vale per testata, carte, anteprima e per la copia in Copy to my decks.
@@ -71,8 +75,17 @@ export default function CommunityDeck({ uid, id, notify }) {
   };
   return (
     <div className={`deck-editor${mobile ? ' is-mobile' : ''}`}>
-      <div className="deck-scroll">
-        <header className="deck-hero has-tabs">
+      <div className="deck-scroll" onScroll={mobile ? undefined : (e) => setStuck(e.currentTarget.scrollTop > (heroRef.current?.offsetHeight || 0) - STUCK_AT)}>
+        {!mobile && (
+          <div className="deck-sticky">
+            <div className={`deck-sticky-bar has-tabs${stuck ? ' stuck' : ''}`}>
+              <span />
+              <DeckTabs tab={tab} onTab={setTab} bar />
+              <span />
+            </div>
+          </div>
+        )}
+        <header className={`deck-hero${mobile ? ' has-tabs' : ''}`} ref={heroRef}>
           <span className="deck-hero-art" aria-hidden="true">
             {cover?.card.art && (
               <>
@@ -100,7 +113,7 @@ export default function CommunityDeck({ uid, id, notify }) {
             </div>
           </div>
         </header>
-        <DeckTabs tab={tab} onTab={setTab} />
+        {mobile && <DeckTabs tab={tab} onTab={setTab} />}
         <div className="deck-body">
           <section className="deck-main">
             {tab === 'dilemmas' ? <DeckDilemmas />

@@ -20,8 +20,8 @@ const STUCK_AT = 72; // px: padding della barra + casella di ricerca, circa
 // Editor del mazzo: testata con la copertina (arte della carta scelta, a sinistra, che verso destra
 // si sfoca e svanisce; click = scegli un'altra carta del mazzo, lo dice il cursore a mano) e sopra,
 // a sinistra, in basso formato, stato sync, conteggio, Print deck ed Export (si torna alla lista con la tab
-// Decks). Sotto il corpo con le sezioni. Tutto scorre insieme (deck-scroll) tranne la fascia con il
-// nome del mazzo e la ricerca (desktop), che resta in alto: sopra la testata è trasparente, quando
+// Decks). Sotto il corpo con le sezioni (o Stats / Dilemmas). Tutto scorre insieme (deck-scroll) tranne la fascia
+// con il nome del mazzo, le schede Deck / Stats / Dilemmas al centro e la ricerca (desktop), che resta in alto: sopra la testata è trasparente, quando
 // la testata è uscita prende lo sfondo. Telefono: il nome sta nella testata e scorre con lei, + apre
 // la ricerca a tutto schermo.
 export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDeck }) {
@@ -37,15 +37,10 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const [stuck, setStuck] = useState(false); // la testata è uscita: la fascia ricerca ha lo sfondo
   const [tab, setTab] = useState('deck'); // schede della testata: deck | stats | dilemmas
   const heroRef = useRef(null);
-  const barRef = useRef(null);
-  const [barH, setBarH] = useState(64); // altezza della barra .stuck: le schede si attaccano sotto
   const refreshed = useRef(false);
   // Barra quando della testata resta meno della riga nome + ricerca. Soglia fissa: la barra da
   // .stuck è più bassa (niente Advanced search), misurarla farebbe oscillare lo stato.
-  const onScroll = (e) => {
-    setStuck(e.currentTarget.scrollTop > (heroRef.current?.offsetHeight || 0) - STUCK_AT);
-    if (barRef.current?.classList.contains('stuck')) setBarH(barRef.current.offsetHeight);
-  };
+  const onScroll = (e) => setStuck(e.currentTarget.scrollTop > (heroRef.current?.offsetHeight || 0) - STUCK_AT);
 
   // Ridisegno ogni 30 s: il "minutes ago" va avanti da solo.
   const [, tick] = useState(0);
@@ -112,15 +107,17 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
       <div className="deck-scroll" onScroll={mobile ? undefined : onScroll}>
       {!mobile && (
         <div className="deck-sticky">
-          <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`} ref={barRef}>
+          {/* Nome a sinistra, schede al centro, ricerca a destra. */}
+          <div className={`deck-sticky-bar has-tabs${stuck ? ' stuck' : ''}`}>
             {name}
+            <DeckTabs tab={tab} onTab={setTab} bar />
             <div className="deck-hero-search">
               <CardSearch format={deck.format} onAdd={add} notify={notify} advanced={advOpen} onAdvanced={setAdvOpen} />
             </div>
           </div>
         </div>
       )}
-      <header className="deck-hero has-tabs" ref={heroRef}>
+      <header className={`deck-hero${mobile ? ' has-tabs' : ''}`} ref={heroRef}>
         <button type="button" className="deck-hero-art" onClick={() => setCoverOpen(true)} disabled={!cover}
           aria-label={cover ? `Deck cover: ${cover.card.name}. Change it` : 'Deck cover: add cards first'}>
           {cover?.card.art && (
@@ -156,7 +153,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
           </div>
         </div>
       </header>
-      <DeckTabs tab={tab} onTab={setTab} top={mobile ? 0 : barH} />
+      {mobile && <DeckTabs tab={tab} onTab={setTab} />}
       <div className="deck-body">
         <section className="deck-main">
           {!mobile && advOpen && (

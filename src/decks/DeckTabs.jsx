@@ -2,23 +2,23 @@ import { useEffect, useRef, useState } from 'react';
 
 const TABS = [['deck', 'Deck'], ['stats', 'Stats'], ['dilemmas', 'Dilemmas']];
 
-// Schede del mazzo (Deck, Stats, Dilemmas), centrate in fondo alla testata e [ ] su quella aperta,
-// come nella lista mazzi. Sticky a `top` (sotto la barra del nome nell'editor da desktop, 0 altrove):
-// restano sempre a portata; quando sono attaccate prendono il fondo della barra (.solid).
-export function DeckTabs({ tab, onTab, top = 0 }) {
+// Schede del mazzo (Deck, Stats, Dilemmas), [ ] su quella aperta come nella lista mazzi. Desktop (bar): al
+// centro della barra in alto, tra nome e ricerca, già sticky. Telefono: sotto la testata, sticky in cima,
+// col fondo della barra quando sono attaccate (.solid).
+export function DeckTabs({ tab, onTab, bar }) {
   const ref = useRef(null);
   const [solid, setSolid] = useState(false);
   useEffect(() => {
     const el = ref.current;
-    const box = el?.closest('.deck-scroll');
+    const box = !bar && el?.closest('.deck-scroll');
     if (!box) return undefined;
-    const check = () => setSolid(el.getBoundingClientRect().top - box.getBoundingClientRect().top <= top + 0.5);
+    const check = () => setSolid(el.getBoundingClientRect().top - box.getBoundingClientRect().top <= 0.5);
     box.addEventListener('scroll', check, { passive: true });
     return () => box.removeEventListener('scroll', check);
-  }, [top]);
+  }, [bar]);
   return (
     // Pulsanti con aria-current (come le schede della lista), non il pattern tablist: niente frecce da gestire.
-    <nav ref={ref} className={`deck-tabs${solid ? ' solid' : ''}`} style={{ top }} aria-label="Deck view">
+    <nav ref={ref} className={`deck-tabs${bar ? ' in-bar' : ''}${solid ? ' solid' : ''}`} aria-label="Deck view">
       {TABS.map(([t, label]) => (
         <button key={t} type="button" aria-current={tab === t ? 'true' : undefined} className="decks-title decks-tab" onClick={() => onTab(t)}>{label}</button>
       ))}
