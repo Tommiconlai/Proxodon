@@ -9,7 +9,7 @@ import { cardsByIds } from './scryfallSearch';
 import {
   GROUP_MODES, SORT_MODES, VIEWS, groupMain, commanderRows, boardRows, bumpQty, removeRows, setCommander, moveToBoard,
   addSection, renameSection, deleteSection, moveToSection, placeRows, overLimit, formatLabel, illegalIn, legalityLabel,
-  splitRow, changeEdition, snapshotFromCard, validateDeck, packPiles,
+  splitRow, changeEdition, snapshotFromCard, validateDeck, packPiles, maxCopies,
 } from './deckModel';
 import DeckStats from './DeckStats';
 import SampleHand from './SampleHand';
@@ -190,11 +190,10 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
     });
   }
 
-  // Anteprima (desktop): accanto alla riga, a destra se c'è spazio, sennò a sinistra. Lista e stack
-  // sempre; griglia solo per le carte a due facce, che mostrano fronte a sinistra e retro a destra
-  // (strette se non stanno nella finestra).
+  // Anteprima (desktop, ogni vista): accanto alla riga, a destra se c'è spazio, sennò a sinistra. Le
+  // carte a due facce mostrano fronte a sinistra e retro a destra (strette se non stanno nella finestra).
   const showPreview = (e, r) => {
-    if (touch || !previewW || (view === 'grid' && !r.card.back) || !r.card.img || dragIds.current) return;
+    if (touch || !previewW || !r.card.img || dragIds.current) return;
     const back = r.card.back && cachedImg(r.card, 1);
     const w = back ? Math.min(previewW, Math.floor((window.innerWidth - 40) / 2)) : previewW;
     const total = back ? w * 2 + 8 : w;
@@ -207,7 +206,8 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
 
   // Spazio vuoto (non carte, barra, menu o dialoghi): il click deseleziona, il trascinamento col mouse
   // disegna un'area e aggiunge le carte che tocca (come nella stampa, non toglie le altre).
-  // Nello stack di una carta conta solo la fascia visibile, fino all'inizio della successiva.
+  // Conta solo la parte visibile di una carta: negli stack e nella griglia (righe sovrapposte) la carta
+  // successiva nella stessa colonna copre il resto.
   const onEmpty = (e) => e.currentTarget.contains(e.target)
     && !e.target.closest('.deck-row, .deck-toolbar, .deck-group-actions, .deck-issues, .deck-analysis, .modal-overlay, button, select, input, summary, a');
   const marqueeHandlers = {
@@ -228,10 +228,9 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
       const [x1, x2] = m.x0 < cx ? [m.x0, cx] : [cx, m.x0];
       const [y1, y2] = m.y0 < cy ? [m.y0, cy] : [cy, m.y0];
       const n = new Set(m.base);
-      e.currentTarget.querySelectorAll('.deck-row').forEach((li) => {
-        const r = li.getBoundingClientRect();
-        const next = layout === 'stacks' && li.nextElementSibling;
-        const bottom = next ? Math.min(r.bottom, next.getBoundingClientRect().top) : r.bottom;
+      const rows = [...e.currentTarget.querySelectorAll('.deck-row')].map((li) => [li, li.getBoundingClientRect()]);
+      rows.forEach(([li, r]) => {
+        const bottom = rows.reduce((b, [, o]) => (Math.abs(o.left - r.left) < 1 && o.top > r.top + 1 ? Math.min(b, o.top) : b), r.bottom);
         if (r.left < x2 && r.right > x1 && r.top < y2 && bottom > y1) n.add(li.dataset.rowId);
       });
       setSel(n);
@@ -298,6 +297,8 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
     const ban = banOf(r);
     const banText = ban && legalityLabel(ban, deck.format);
     const turns = (r.card.back && flipped.get(r.id)) || 0;
+    // Commander è singleton: niente + tranne dove il limite lo consente (terre base, "any number").
+    const canAdd = deck.format !== 'commander' || maxCopies('commander', r.card) > 1;
     return (
       <li key={copy ? `${r.id}:${copy}` : r.id} data-row-id={r.id} className={`deck-row${sel.has(r.id) ? ' selected' : ''}${warn ? ' over' : ''}`} {...dragProps(r)}
         onMouseEnter={touch ? undefined : (e) => showPreview(e, r)} onMouseLeave={touch ? undefined : () => setHover(null)}>
@@ -351,7 +352,7 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
           <span className="deck-row-qty">
             {!readOnly && <button type="button" aria-label={`One less ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, -1))}><IconMinus size={13} /></button>}
             {view !== 'list' && r.qty > 1 && !split && <span className="deck-card-qty" aria-hidden="true">{r.qty}</span>}
-            {!readOnly && <button type="button" aria-label={`One more ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, 1))}><IconPlus size={13} /></button>}
+            {!readOnly && canAdd && <button type="button" aria-label={`One more ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, 1))}><IconPlus size={13} /></button>}
           </span>
         )}
       </li>

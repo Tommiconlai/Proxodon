@@ -3149,7 +3149,12 @@ span.deck-hero-art { cursor: default; }
 .deck-columns.view-stacks .deck-group { width: var(--stack-w, 200px); margin: 0; }
 /* Colonna di pile (packPiles): gap = STACK_GAP in DeckSections. */
 .deck-stack-col { display: flex; flex-direction: column; gap: 20px; }
-.deck-rows.view-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 12px; }
+/* Griglia: ogni riga copre metà della carta sopra. Il margine negativo (in % della larghezza della
+   cella, quindi metà altezza: 680 / 488 / 2) accorcia la riga; ::after in colonna 1 apre una riga
+   alta metà carta sotto l'ultima, così la sua metà bassa non finisce sul blocco successivo. */
+.deck-rows.view-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 0 12px; }
+.deck-rows.view-grid > .deck-row { margin-bottom: -69.67%; }
+.deck-rows.view-grid::after { content: ''; grid-column: 1; padding-top: 69.67%; }
 .deck-rows.view-stacks { width: var(--stack-w, 200px); display: flex; flex-direction: column; }
 .deck-rows.view-stacks .deck-row + .deck-row { margin-top: -125.3%; }
 .deck-rows.view-grid .deck-row, .deck-rows.view-stacks .deck-row { position: relative; display: block; border: 0; }
