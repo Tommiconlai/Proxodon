@@ -3532,6 +3532,9 @@ span.deck-hero-art { cursor: default; }
 .deck-editor.is-mobile .deck-tool { flex-direction: column; align-items: stretch; gap: 4px; min-width: 0; font-size: 0.6rem; letter-spacing: 0.12em; }
 .deck-editor.is-mobile .deck-tool select { width: 100%; height: 34px; padding: 0 8px; font-size: 0.74rem; }
 .deck-editor.is-mobile .deck-new-section { width: 34px; height: 34px; padding: 0; justify-content: center; }
+/* Stack: fascia scoperta fissa a 32 px (TOUCH_STRIP in DeckSections) invece del 14% della larghezza (23 px a
+   165 px): il chip − / numero / + in alto (5 + 22 px) resta sulla sua carta. 139.344% = altezza della carta. */
+.deck-editor.is-mobile .deck-rows.view-stacks .deck-row + .deck-row { margin-top: calc(32px - 139.344%); }
 /* Griglia a due colonne (gli stack li fa a due DeckSections, touch). */
 .deck-editor.is-mobile .deck-rows.view-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 10px; }
 /* Pressione lunga = il nostro menu, non quello del sistema (Salva immagine): l'immagine non riceve il

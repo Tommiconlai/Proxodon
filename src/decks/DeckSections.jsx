@@ -30,7 +30,10 @@ const STACK_MAX = 400;
 const STACK_GAP = 20; // spazio verticale tra pile nella stessa colonna, = gap di .deck-stack-col
 const COL_GAP = 16; // spazio tra le colonne, = gap orizzontale di .deck-columns.view-stacks
 const PILE_HEAD = 34; // intestazione del gruppo con il suo margine
-const pileHeight = (n, w) => PILE_HEAD + (n ? (w * 680) / 488 + (n - 1) * w * (680 / 488 - 1.253) : 26); // 0 carte = "No commander yet."
+// Telefono: la fascia scoperta di ogni carta è fissa a 32 px (CSS .is-mobile, margin-top calc(32px - 139.344%)),
+// così il chip − / numero / + (5 + 22 px) non finisce sulla carta dopo.
+const TOUCH_STRIP = 32;
+const pileHeight = (n, w, strip = w * (680 / 488 - 1.253)) => PILE_HEAD + (n ? (w * 680) / 488 + (n - 1) * strip : 26); // 0 carte = "No commander yet."
 const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 const menuPoint = (e) => {
   if (e.clientX || e.clientY) return { x: e.clientX, y: e.clientY };
@@ -413,17 +416,22 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   const pileN = piles.map(([g]) => (split ? sum(g.rows) : g.rows.length));
   const pack = (w) => packPiles(pileN.map((n) => pileHeight(n, w)), STACK_GAP);
   // Colonne contate a 200 px, poi pile allargate fino a riempire l'area (impacchettate di nuovo).
-  // Telefono (touch): sempre due colonne larghe metà area, pile in ordine, la prima fino a metà altezza.
+  // Telefono (touch): sempre due colonne larghe metà area, pile in ordine, tagliate dove la colonna più
+  // alta è la più bassa possibile.
   const n0 = pack(STACK_MIN).length || 1;
   const stackW = touch ? Math.max(100, Math.floor((areaW - COL_GAP) / 2))
     : Math.max(STACK_MIN, Math.min(STACK_MAX, Math.floor((areaW - (n0 - 1) * COL_GAP) / n0)));
   const halves = () => {
-    const hs = pileN.map((n) => pileHeight(n, stackW) + STACK_GAP);
+    const hs = pileN.map((n) => pileHeight(n, stackW, TOUCH_STRIP) + STACK_GAP);
+    const ids = hs.map((_, i) => i);
+    if (hs.length < 2) return [ids];
     const total = hs.reduce((a, h) => a + h, 0);
-    let acc = 0;
-    const cols = [[], []];
-    hs.forEach((h, i) => { cols[acc < total / 2 ? 0 : 1].push(i); acc += h; });
-    return cols.filter((c) => c.length);
+    let cut = 1, best = Infinity, acc = 0;
+    for (let k = 1; k < hs.length; k++) {
+      acc += hs[k - 1];
+      if (Math.max(acc, total - acc) < best) { best = Math.max(acc, total - acc); cut = k; }
+    }
+    return [ids.slice(0, cut), ids.slice(cut)];
   };
   const stackCols = touch ? halves() : pack(stackW);
   return (
