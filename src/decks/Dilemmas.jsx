@@ -6,15 +6,17 @@ import CardSearch from './CardSearch';
 import { ManaCost } from './Mana';
 import {
   listenDilemmas, createDilemma, deleteDilemma, listenVotes, voteDilemma, explainVote,
-  listenDilemmaFeed, listenDilemma, getPublicDeck, listenPublicDeck, listenAnswered,
+  listenDilemmaFeed, listenDilemma, getPublicDeck, listenPublicDeck, listenAnswered, countVotes,
 } from './deckStore';
 import { navigate } from '../hooks/useHashRoute';
 import { groupMain, commanderRows, boardRows, scryfallImg } from './deckModel';
-import { IconPlus, IconArrowLeft, IconTrash, IconCheck, IconX } from '../components/icons';
+import { IconPlus, IconArrowLeft, IconTrash, IconCheck, IconX, IconLock, IconLockOpen } from '../components/icons';
 
 const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 const img = (c) => scryfallImg(c.img); // solo immagini Scryfall (i dilemmi li scrive chi possiede il mazzo)
+// Arte della carta (art_crop): stessa immagine Scryfall, altra versione nel percorso.
+const art = (c) => scryfallImg((c.img || '').replace(/\/(small|normal|large|png|border_crop)\//, '/art_crop/').replace(/\.png(?=\?|$)/, '.jpg'));
 
 // Scheda Dilemmas della vista mazzo (editor e Community). Solo mazzi pubblici. Elenco dei dilemmi del
 // mazzo, il proprietario ne crea di nuovi (+); click = il dilemma aperto (DilemmaView).
@@ -23,6 +25,7 @@ export function DeckDilemmas({ deck, uid, mine, notify }) {
   const [error, setError] = useState(null);
   const [openId, setOpenId] = useState(null);
   const [creating, setCreating] = useState(false);
+  const answered = useAnswered(uid);
   const live = !!deck.public;
   useEffect(() => (live ? listenDilemmas(deck.id, (l) => { setList(l); setError(null); }, setError) : undefined), [deck.id, live]);
 
@@ -54,15 +57,7 @@ export function DeckDilemmas({ deck, uid, mine, notify }) {
       {list?.length > 0 && (
         <ul className="dilemma-list">
           {list.map((d) => (
-            <li key={d.id}>
-              <button type="button" className="dilemma-item" onClick={() => setOpenId(d.id)}>
-                <span className="dilemma-thumbs" aria-hidden="true">
-                  {d.cards.map((c, i) => <img key={i} src={img(c)} alt="" loading="lazy" />)}
-                </span>
-                <span className="dilemma-item-q">{d.question}</span>
-                <span className="dilemma-item-cards">{d.cards.map((c) => c.name).join(' or ')}</span>
-              </button>
-            </li>
+            <DilemmaTile key={d.id} deckId={deck.id} d={d} uid={uid} solved={answered.has(`${deck.id}_${d.id}`)} onClick={() => setOpenId(d.id)} />
           ))}
         </ul>
       )}
@@ -79,14 +74,76 @@ export function DeckDilemmas({ deck, uid, mine, notify }) {
   );
 }
 
-// Scheda Dilemmas della lista mazzi (#/dilemmas): gli ultimi dilemmi della Community, con mazzo, autore e
-// se hai già risposto. Click = #/dilemmas/:mazzo/:dilemma, il dilemma aperto (open) qui.
-export function DilemmaFeed({ uid, notify, open }) {
+// Id {deck}_{dilemma} dei dilemmi a cui l'account ha risposto (senza permesso o offline: nessuno).
+function useAnswered(uid) {
+  const [answered, setAnswered] = useState(() => new Set());
+  useEffect(() => listenAnswered(uid, setAnswered, () => {}), [uid]);
+  return answered;
+}
+
+// Risposte di un dilemma: conteggio dal server, una lettura; prima della risposta o senza permesso: 0.
+function useVoteCount(deckId, dId) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    countVotes(deckId, dId).then((c) => { if (alive) setN(c); }).catch(() => {});
+    return () => { alive = false; };
+  }, [deckId, dId]);
+  return n;
+}
+
+// Riquadro di un dilemma (disegno dell'utente): le arti delle due carte divise in diagonale, in alto a
+// sinistra le risposte, in alto a destra il lucchetto (chiuso = hai risposto, aperto = ancora da
+// risolvere; niente sui propri, a cui non si risponde). Sotto, fuori dal bordo, la domanda e nel feed
+// mazzo e autore (meta). Link (href) nel feed, pulsante (onClick) nella scheda del mazzo.
+function DilemmaTile({ deckId, d, uid, solved, meta, href, onClick }) {
+  const votes = useVoteCount(deckId, d.id);
+  const mine = d.uid === uid;
+  const Tag = href ? 'a' : 'button';
+  const status = mine ? 'your dilemma' : solved ? 'answered' : 'not answered yet';
+  return (
+    <li>
+      <Tag className="dilemma-tile" {...(href ? { href } : { type: 'button', onClick })}
+        aria-label={`${d.question} ${d.cards.map((c) => c.name).join(' or ')}. ${votes} ${votes === 1 ? 'vote' : 'votes'}, ${status}.`}>
+        <span className="dilemma-split" aria-hidden="true">
+          {d.cards.map((c, i) => (art(c)
+            ? <img key={i} className={`s${i}`} src={art(c)} alt="" loading="lazy" title={c.name} />
+            : <span key={i} className={`s${i} dilemma-split-ph`} title={c.name}>{c.name}</span>))}
+          <svg className="dilemma-split-line" viewBox="0 0 100 100" preserveAspectRatio="none"><line x1="60" y1="0" x2="40" y2="100" /></svg>
+          <span className="dilemma-votes">{votes} {votes === 1 ? 'vote' : 'votes'}</span>
+          {!mine && <span className={`dilemma-lock${solved ? ' solved' : ''}`}>{solved ? <IconLock size={14} /> : <IconLockOpen size={14} />}</span>}
+        </span>
+        <span className="dilemma-tile-q">{d.question}</span>
+        {meta && <span className="dilemma-tile-meta">{meta}</span>}
+      </Tag>
+    </li>
+  );
+}
+
+// Nome, formato e autore dal mazzo pubblico, letto una volta per mazzo. ponytail: cache per la sessione,
+// un nome cambiato si vede ricaricando. null = mazzo non più pubblico; errore = undefined, resta "…".
+const publicDecks = new Map();
+const deckOnce = (id) => {
+  if (!publicDecks.has(id)) publicDecks.set(id, getPublicDeck(id).catch(() => undefined));
+  return publicDecks.get(id);
+};
+
+// Scheda Dilemmas della lista mazzi (#/dilemmas): gli ultimi dilemmi della Community, filtrati dalla
+// ricerca (domanda, carte, mazzo, autore) e dal formato del mazzo (terms e format da DeckList).
+// Click = #/dilemmas/:mazzo/:dilemma, il dilemma aperto (open) qui.
+export function DilemmaFeed({ uid, notify, open, terms = [], format = '' }) {
   const [list, setList] = useState(null); // null = caricamento
   const [error, setError] = useState(null);
-  const [answered, setAnswered] = useState(() => new Set());
+  const [decks, setDecks] = useState({}); // deckId -> mazzo pubblico | null; manca = in arrivo
+  const answered = useAnswered(uid);
   useEffect(() => listenDilemmaFeed((l) => { setList(l); setError(null); }, setError), []);
-  useEffect(() => listenAnswered(uid, setAnswered, () => {}), [uid]);
+  useEffect(() => {
+    let on = true;
+    new Set((list || []).map((d) => d.deckId)).forEach((id) => deckOnce(id).then((x) => {
+      if (on && x !== undefined) setDecks((m) => (m[id] === x ? m : { ...m, [id]: x }));
+    }));
+    return () => { on = false; };
+  }, [list]);
   if (open) return <FeedDilemma key={`${open.deckId}/${open.id}`} {...open} uid={uid} notify={notify} />;
   if (error) return <p className="field-hint">Dilemmas are not available: {error.message}</p>;
   if (!list) return <span className="import-spinner" aria-label="Loading" />;
@@ -98,44 +155,31 @@ export function DilemmaFeed({ uid, notify, open }) {
       </div>
     );
   }
+  // Mazzo tornato privato (null): i suoi dilemmi restano su Firestore ma qui non si vedono.
+  const shown = list.filter((d) => {
+    const deck = decks[d.deckId];
+    if (deck === null || (format && deck?.format !== format)) return false;
+    const text = [d.question, ...d.cards.map((c) => c.name), deck?.name, deck?.owner].join(' ').toLowerCase();
+    return terms.every((w) => text.includes(w));
+  });
+  if (!shown.length) {
+    return (
+      <div className="decks-empty">
+        <p className="decks-empty-title">No dilemmas match</p>
+        <p className="field-hint">Try another search or format.</p>
+      </div>
+    );
+  }
   return (
     <ul className="dilemma-list">
-      {list.map((d) => <FeedItem key={`${d.deckId}/${d.id}`} d={d} uid={uid} done={answered.has(`${d.deckId}_${d.id}`)} />)}
+      {shown.map((d) => {
+        const deck = decks[d.deckId];
+        return (
+          <DilemmaTile key={`${d.deckId}/${d.id}`} deckId={d.deckId} d={d} uid={uid} solved={answered.has(`${d.deckId}_${d.id}`)}
+            href={`#/dilemmas/${d.deckId}/${d.id}`} meta={deck ? <><b>{deck.name}</b> by {deck.owner || 'anonymous'}</> : '…'} />
+        );
+      })}
     </ul>
-  );
-}
-
-// Nome e autore dal mazzo pubblico, letto una volta per mazzo. ponytail: cache per la sessione, un nome
-// cambiato si vede ricaricando. null = mazzo non più pubblico; errore = undefined, resta "…".
-const publicDecks = new Map();
-const deckOnce = (id) => {
-  if (!publicDecks.has(id)) publicDecks.set(id, getPublicDeck(id).catch(() => undefined));
-  return publicDecks.get(id);
-};
-function FeedItem({ d, uid, done }) {
-  const [deck, setDeck] = useState(undefined);
-  useEffect(() => {
-    let on = true;
-    deckOnce(d.deckId).then((x) => { if (on) setDeck(x); });
-    return () => { on = false; };
-  }, [d.deckId]);
-  if (deck === null) return null; // mazzo tornato privato: i suoi dilemmi restano, nascosti
-  return (
-    <li>
-      <a className="dilemma-item" href={`#/dilemmas/${d.deckId}/${d.id}`}>
-        <span className="dilemma-thumbs" aria-hidden="true">
-          {d.cards.map((c, i) => <img key={i} src={img(c)} alt="" loading="lazy" />)}
-        </span>
-        <span className="dilemma-item-q">{d.question}</span>
-        <span className="dilemma-item-cards">{d.cards.map((c) => c.name).join(' or ')}</span>
-        <span className="dilemma-item-meta">
-          <span className="dilemma-item-deck">{deck ? deck.name : '…'}</span>
-          {deck && <span>by {deck.owner || 'anonymous'}</span>}
-          {d.uid === uid ? <span className="dilemma-badge">Yours</span>
-            : done && <span className="dilemma-badge"><IconCheck size={12} /> Answered</span>}
-        </span>
-      </a>
-    </li>
   );
 }
 

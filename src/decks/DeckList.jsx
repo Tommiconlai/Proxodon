@@ -108,9 +108,12 @@ function CommunityGrid({ uid, terms, filters, currency }) {
 
 // Lista mazzi: schede Community, Dilemmas e My decks (rotte #/community, #/dilemmas e #/decks, stesso
 // componente: ricerca e filtri restano passando dall'una all'altra), ricerca per nome e Filters (formato,
-// colori, carta), non in Dilemmas. open = il dilemma aperto dal feed (#/dilemmas/:mazzo/:dilemma).
+// colori, carta); in Dilemmas la ricerca (domanda, carte, mazzo, autore) e accanto solo il formato.
+// open = il dilemma aperto dal feed (#/dilemmas/:mazzo/:dilemma): niente ricerca.
 export default function DeckList({ uid, notify, tab = 'mine', open }) {
   const community = tab === 'community';
+  const dilemmas = tab === 'dilemmas';
+  const searchLabel = dilemmas ? 'Search dilemmas' : 'Search decks by name';
   const tabsRef = useRef(null);
   useBracketSlide(tabsRef, LIST_TABS.findIndex(([t]) => t === tab));
   const [decks, setDecks] = useState(null); // null = caricamento
@@ -168,19 +171,28 @@ export default function DeckList({ uid, notify, tab = 'mine', open }) {
         )}
       </header>
 
-      {tab !== 'dilemmas' && <>
+      {!open && <>
       <div className="decks-search" role="search">
         <label className="decks-search-box">
           <IconSearch size={16} />
           <input type="search" className="import-link-input" value={q} onChange={(e) => setQ(e.target.value)}
-            placeholder="Search decks by name" aria-label="Search decks by name" spellCheck={false} />
+            placeholder={searchLabel} aria-label={searchLabel} spellCheck={false} />
         </label>
-        <button type="button" className={`btn-secondary decks-filter-btn${nFilters ? ' on' : ''}`} aria-expanded={filtersOpen}
-          aria-controls="deck-filters" onClick={() => setFiltersOpen((v) => !v)}>
-          <IconFilter size={16} /> Filters{nFilters > 0 && <span className="decks-filter-n">{nFilters}</span>}
-        </button>
+        {/* Dilemmas: solo il formato, accanto alla ricerca (lo stesso filtro formato delle altre schede). */}
+        {dilemmas ? (
+          <select className={`decks-format${filters.format ? ' on' : ''}`} value={filters.format} aria-label="Format" title="Format"
+            onChange={(e) => setFilters((f) => ({ ...f, format: e.target.value }))}>
+            <option value="">Any format</option>
+            {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+          </select>
+        ) : (
+          <button type="button" className={`btn-secondary decks-filter-btn${nFilters ? ' on' : ''}`} aria-expanded={filtersOpen}
+            aria-controls="deck-filters" onClick={() => setFiltersOpen((v) => !v)}>
+            <IconFilter size={16} /> Filters{nFilters > 0 && <span className="decks-filter-n">{nFilters}</span>}
+          </button>
+        )}
       </div>
-      {filtersOpen && (
+      {filtersOpen && !dilemmas && (
         <div id="deck-filters" className="decks-filters">
           <label className="decks-filter">
             <span>Format</span>
@@ -210,7 +222,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open }) {
       )}
       </>}
 
-      {tab === 'dilemmas' ? <DilemmaFeed uid={uid} notify={notify} open={open} />
+      {dilemmas ? <DilemmaFeed uid={uid} notify={notify} open={open} terms={terms} format={filters.format} />
         : community ? <CommunityGrid uid={uid} terms={terms} filters={filters} currency={settings.currency} /> : <>
         {decks === null && <span className="import-spinner" aria-label="Loading" />}
         {decks?.length === 0 && <Empty title="Start your first deck" hint="Create one from scratch, or import a list." />}
