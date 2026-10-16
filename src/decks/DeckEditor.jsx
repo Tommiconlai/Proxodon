@@ -165,7 +165,9 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
               <AdvancedSearch format={deck.format} onAdd={add} notify={notify} />
             </section>
           )}
-          {tab === 'dilemmas' ? <DeckDilemmas /> : <DeckSections deck={deck} update={update} touch={mobile} tab={tab} onTab={setTab} />}
+          {/* Print dal menu delle carte: si aggiungono alla coda di stampa (mai la sostituiscono), anche dal maybeboard. */}
+          {tab === 'dilemmas' ? <DeckDilemmas /> : <DeckSections deck={deck} update={update} touch={mobile} tab={tab} onTab={setTab}
+            onPrint={(rows) => onPrintDeck(toPrintEntries({ cards: rows.map((r) => ({ ...r, board: 'main' })) }), true)} />}
         </section>
       </div>
       </div>

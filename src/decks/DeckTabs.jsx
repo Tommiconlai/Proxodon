@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import { useBracketSlide } from '../hooks/useBracketSlide';
 
 const TABS = [['deck', 'Deck'], ['stats', 'Stats'], ['dilemmas', 'Dilemmas']];
+
+// Testo di una scheda tra le sue parentesi (visibili solo su quella aperta, scivolano con useBracketSlide).
+export function TabLabel({ children }) {
+  return <><span className="br l" aria-hidden="true">[</span>{children}<span className="br r" aria-hidden="true">]</span></>;
+}
 
 // Schede del mazzo (Deck, Stats, Dilemmas), [ ] su quella aperta come nella lista mazzi. Desktop (bar): al
 // centro della barra in alto, tra nome e ricerca, già sticky. Telefono: sotto la testata, sticky in cima,
@@ -8,6 +14,7 @@ const TABS = [['deck', 'Deck'], ['stats', 'Stats'], ['dilemmas', 'Dilemmas']];
 export function DeckTabs({ tab, onTab, bar }) {
   const ref = useRef(null);
   const [solid, setSolid] = useState(false);
+  useBracketSlide(ref, TABS.findIndex(([t]) => t === tab));
   useEffect(() => {
     const el = ref.current;
     const box = !bar && el?.closest('.deck-scroll');
@@ -20,7 +27,7 @@ export function DeckTabs({ tab, onTab, bar }) {
     // Pulsanti con aria-current (come le schede della lista), non il pattern tablist: niente frecce da gestire.
     <nav ref={ref} className={`deck-tabs${bar ? ' in-bar' : ''}${solid ? ' solid' : ''}`} aria-label="Deck view">
       {TABS.map(([t, label]) => (
-        <button key={t} type="button" aria-current={tab === t ? 'true' : undefined} className="decks-title decks-tab" onClick={() => onTab(t)}>{label}</button>
+        <button key={t} type="button" aria-current={tab === t ? 'true' : undefined} className="decks-title decks-tab" onClick={() => onTab(t)}><TabLabel>{label}</TabLabel></button>
       ))}
     </nav>
   );

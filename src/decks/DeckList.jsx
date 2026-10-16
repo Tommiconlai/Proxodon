@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { listenDecks, listenCommunity, createDeck, saveDeck, deleteDeck, setDeckPublic } from './deckStore';
 import {
   FORMATS, newDeck, duplicateDeck, deckIdentity, deckCover, scryfallImg, formatLabel, priceLabel, searchTerms, deckMatches,
@@ -13,12 +13,15 @@ import { NameFormatDialog, ExportDeckDialog } from './dialogs';
 import { timeAgo } from '../utils/timeAgo';
 import ImportDeckDialog from './ImportDeckDialog';
 import { useLikeCount } from './useLikes';
+import { TabLabel } from './DeckTabs';
+import { useBracketSlide } from '../hooks/useBracketSlide';
 import {
   IconPlus, IconCopy, IconTrash, IconPencil, IconDownload, IconExport, IconGlobe, IconSearch, IconFilter, IconHeart,
 } from '../components/icons';
 
 const COLORS = [['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green'], ['C', 'Colorless']];
 const NO_FILTERS = { format: '', colors: [], card: '' };
+const LIST_TABS = [['community', 'Community'], ['dilemmas', 'Dilemmas'], ['mine', 'My decks']];
 
 // Shift+F10 / tasto menu arrivano con 0,0: ancora il menu all'elemento.
 const menuPoint = (e) => {
@@ -107,6 +110,8 @@ function CommunityGrid({ uid, terms, filters, currency }) {
 // Filters (formato, colori, carta), non in Dilemmas.
 export default function DeckList({ uid, notify, tab = 'mine' }) {
   const community = tab === 'community';
+  const tabsRef = useRef(null);
+  useBracketSlide(tabsRef, LIST_TABS.findIndex(([t]) => t === tab));
   const [decks, setDecks] = useState(null); // null = caricamento
   const [dialog, setDialog] = useState(null); // 'new' | 'import' | { rename: deck } | { del: deck } | { exp: deck }
   const [menu, setMenu] = useState(null); // { deck, x, y }
@@ -148,9 +153,9 @@ export default function DeckList({ uid, notify, tab = 'mine' }) {
   return (
     <div className="decks-root decks-page">
       <header className="decks-head">
-        <nav className="decks-tabs" aria-label="Decks">
-          {[['community', 'Community'], ['dilemmas', 'Dilemmas'], ['mine', 'My decks']].map(([t, label]) => (
-            <a key={t} href={t === 'mine' ? '#/decks' : `#/${t}`} className="decks-title decks-tab" aria-current={tab === t ? 'page' : undefined}>{label}</a>
+        <nav className="decks-tabs" aria-label="Decks" ref={tabsRef}>
+          {LIST_TABS.map(([t, label]) => (
+            <a key={t} href={t === 'mine' ? '#/decks' : `#/${t}`} className="decks-title decks-tab" aria-current={tab === t ? 'page' : undefined}><TabLabel>{label}</TabLabel></a>
           ))}
         </nav>
         <div className="decks-actions">

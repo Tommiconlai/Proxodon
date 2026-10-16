@@ -16,7 +16,7 @@ import SampleHand from './SampleHand';
 import CardImg from './CardImg';
 import { cachedImg } from './cardLang';
 import { useSettings, setSetting } from '../utils/settings';
-import { IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy, IconFlip } from '../components/icons';
+import { IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy, IconFlip, IconPrinter } from '../components/icons';
 
 const BOARD_LABEL = { main: 'main deck', side: 'sideboard', maybe: 'maybeboard' };
 // Larghezza dell'anteprima al passaggio (Settings → Card preview), 0 = spenta.
@@ -49,7 +49,8 @@ const menuPoint = (e) => {
 // sezione porta il mazzo in raggruppamento custom; da telefono si sposta tutto dal menu.
 // readOnly (Community): niente menu, trascinamento, +/- e sezioni nuove; update cambia solo la vista.
 // tab (schede della testata, DeckTabs): 'deck' = barra e carte, 'stats' = statistiche e mano di prova.
-export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab }) {
+// onPrint(rows): Print nel menu, porta le righe scelte (anche una sola) nella stampa.
+export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab, onPrint }) {
   const [sel, setSel] = useState(() => new Set());
   const [anchor, setAnchor] = useState(null);
   const [menu, setMenu] = useState(null); // { ids, x, y }
@@ -160,6 +161,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   const items = [];
   if (menuRows.length && !readOnly) {
     const ids = menuRows.map((r) => r.id);
+    if (onPrint) items.push({ key: 'print', Icon: IconPrinter, label: 'Print', run: () => onPrint(menuRows) });
     const allMain = menuRows.every((r) => r.board === 'main');
     const allCmd = menuRows.every((r) => r.commander);
     // Change edition su righe della stessa carta; Split row su una riga con più copie.
