@@ -3173,19 +3173,26 @@ span.deck-hero-art { cursor: default; }
   pointer-events: none;
 }
 .deck-card-ph { display: grid; place-items: center; aspect-ratio: 488 / 680; padding: 8px; background: var(--bg-elevated); font-size: 0.75rem; text-align: center; color: var(--text-secondary); }
-.deck-card-qty {
-  position: absolute; top: 5px; right: 5px;
-  min-width: 22px; padding: 2px 6px;
+/* Griglia e stack: copie e − / + in fila al centro in alto, stessi chip ciano tondi. Il numero resta
+   sempre, − e + compaiono al passaggio (o col focus); copia singola = solo − e +. */
+.deck-rows:is(.view-grid, .view-stacks) .deck-row-qty {
+  position: absolute; z-index: 1; top: 5px; left: 50%; transform: translateX(-50%);
+  align-items: center; gap: 4px;
+  opacity: 1;
+}
+.deck-card-qty, .deck-rows:is(.view-grid, .view-stacks) .deck-row-qty button {
+  display: grid; place-items: center;
+  min-width: 22px; height: 22px; padding: 0 6px;
   border: 1px solid rgba(0, 229, 255, 0.6); border-radius: 999px;
   background: rgba(8, 7, 18, 0.88);
-  font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600; text-align: center;
+  font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600;
   color: var(--cyan);
   box-shadow: 0 0 10px rgba(0, 229, 255, 0.35);
 }
-.deck-rows.view-grid .deck-row-qty, .deck-rows.view-stacks .deck-row-qty { position: absolute; z-index: 1; }
-.deck-rows.view-grid .deck-row-qty { bottom: 6px; left: 50%; transform: translateX(-50%); }
-.deck-rows.view-stacks .deck-row-qty { top: 5px; right: 5px; }
-.deck-rows.view-stacks .deck-row:hover .deck-card-qty { opacity: 0; }
+.deck-rows:is(.view-grid, .view-stacks) .deck-row-qty button { width: 22px; padding: 0; opacity: 0; transition: opacity var(--transition), color var(--transition), border-color var(--transition); }
+.deck-rows:is(.view-grid, .view-stacks) .deck-row:hover .deck-row-qty button,
+.deck-rows:is(.view-grid, .view-stacks) .deck-row-qty:has(:focus-visible) button { opacity: 1; }
+.deck-rows:is(.view-grid, .view-stacks) .deck-row-qty button:is(:hover, :focus-visible) { color: #fff; border-color: var(--cyan); outline: none; }
 /* Carte a due facce: pulsante per girarle in alto a sinistra (i chip di divieto e copie oltre il limite
    si spostano a destra); fronte e retro dorso a dorso, la coppia ruota di 180° a ogni click, sempre
    nello stesso verso. Anteprima al passaggio: fronte a sinistra, retro a destra. */
@@ -3348,11 +3355,10 @@ span.deck-hero-art { cursor: default; }
   color: var(--warning);
   box-shadow: 0 0 10px rgba(245, 158, 11, 0.45);
 }
-/* Touch: +/- solo sulla carta selezionata (tocco = seleziona), sennò coprono griglia e fasce. */
+/* Touch: − e + solo sulla carta selezionata (tocco = seleziona), sennò coprono griglia e fasce; il numero resta. */
 @media (hover: none) {
-  .deck-rows.view-grid .deck-row:not(.selected) .deck-row-qty,
-  .deck-rows.view-stacks .deck-row:not(.selected) .deck-row-qty { display: none; }
-  .deck-rows.view-stacks .deck-row.selected .deck-card-qty { opacity: 0; }
+  .deck-rows:is(.view-grid, .view-stacks) .deck-row:not(.selected) .deck-row-qty button { display: none; }
+  .deck-rows:is(.view-grid, .view-stacks) .deck-row.selected .deck-row-qty button { opacity: 1; }
 }
 .deck-editor.is-mobile .deck-hero { min-height: 73vw; padding: 14px 12px 12px; }
 .deck-editor.is-mobile .deck-hero-art { width: 100%; }

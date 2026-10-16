@@ -331,7 +331,6 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
                   <CardImg card={r.card} side={1} className="deck-card-backface" />
                 </span>
               ) : r.card.img ? <CardImg card={r.card} /> : <span className="deck-card-ph">{r.card.name}</span>}
-              {r.qty > 1 && !split && <span className="deck-card-qty">{r.qty}</span>}
               {(ban || warn) && (
               <span className="deck-card-flags">
                 {ban && <span className="deck-card-ban" title={banText}><IconBan size={13} /></span>}
@@ -346,10 +345,13 @@ export default function DeckSections({ deck, update, touch, readOnly }) {
           <button type="button" className="deck-card-flip" aria-pressed={turns % 2 === 1} title="Flip"
             aria-label={`Flip ${r.card.name}`} onClick={() => flip(r.id)}><IconFlip size={13} /></button>
         )}
-        {!readOnly && (
+        {/* Immagini: copie al centro in alto, − e + ai lati al passaggio, nello stesso stile (copia
+            singola: solo − e +, centrati). Lista: +/- in fondo alla riga, il numero è nella colonna. */}
+        {(!readOnly || (view !== 'list' && r.qty > 1 && !split)) && (
           <span className="deck-row-qty">
-            <button type="button" aria-label={`One less ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, -1))}><IconMinus size={13} /></button>
-            <button type="button" aria-label={`One more ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, 1))}><IconPlus size={13} /></button>
+            {!readOnly && <button type="button" aria-label={`One less ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, -1))}><IconMinus size={13} /></button>}
+            {view !== 'list' && r.qty > 1 && !split && <span className="deck-card-qty" aria-hidden="true">{r.qty}</span>}
+            {!readOnly && <button type="button" aria-label={`One more ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, 1))}><IconPlus size={13} /></button>}
           </span>
         )}
       </li>
