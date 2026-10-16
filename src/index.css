@@ -2869,7 +2869,6 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .deck-tile-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .deck-tile-foot .mana { gap: 4px; }
 .deck-tile-foot .mana img { width: clamp(14px, 7cqi, 20px); height: clamp(14px, 7cqi, 20px); }
-.deck-tile-price { font-size: clamp(12px, 6cqi, 18px); opacity: 0.85; }
 .deck-tile-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; font-size: clamp(12px, 4.6cqi, 13px); color: rgba(255, 255, 255, 0.5); }
 .deck-tile-by { color: var(--cyan-soft); }
 /* Export sull'angolo dell'arte: fratello del riquadro (niente pulsanti annidati), sempre visibile. */

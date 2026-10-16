@@ -2,7 +2,6 @@ import { useEffect, useId, useState } from 'react';
 import { listenDecks, saveProfile, claimNickname, countAnswered } from './deckStore';
 import { updateNickname, authMessage } from './firebase';
 import { deckCover } from './deckModel';
-import { useSettings } from '../utils/settings';
 import { navigate } from '../hooks/useHashRoute';
 import { Avatar } from './AccountMenu';
 import { DeckTile } from './DeckList';
@@ -22,7 +21,6 @@ const LABEL = { photo: 'photo', banner: 'background' };
 export default function ProfilePage({ user, profile, notify, onChange }) {
   const [decks, setDecks] = useState(null); // null = caricamento
   const [dialog, setDialog] = useState(null); // 'photo' | 'banner'
-  const { currency } = useSettings();
   useEffect(() => listenDecks(user.uid, setDecks, () => setDecks(null)), [user.uid]);
   // Dilemmi a cui ha risposto (users/{uid}/answered, conteggio sul server); senza permesso o offline: 0.
   const [answered, setAnswered] = useState(null);
@@ -78,7 +76,7 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
         <ul className="deck-grid">
           {decks.map((d) => (
             <li key={d.id} className="deck-tile-wrap">
-              <DeckTile deck={d} currency={currency} onClick={() => navigate(`/decks/${d.id}`)} />
+              <DeckTile deck={d} onClick={() => navigate(`/decks/${d.id}`)} />
             </li>
           ))}
         </ul>

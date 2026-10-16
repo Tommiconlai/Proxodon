@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { listenPublicDeck, createDeck, countLikes, hasLiked, setLiked } from './deckStore';
-import { duplicateDeck, coverRow, formatLabel, priceLabel, refreshSnapshots, withScryfallImgs } from './deckModel';
+import { duplicateDeck, coverRow, formatLabel, refreshSnapshots, withScryfallImgs } from './deckModel';
 import { cardsByIds } from './scryfallSearch';
-import { useSettings } from '../utils/settings';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { navigate } from '../hooks/useHashRoute';
 import DeckSections from './DeckSections';
@@ -25,7 +24,6 @@ export default function CommunityDeck({ uid, id, notify }) {
   const scrollRef = useRef(null); // .deck-scroll: Back to top della barra in basso (telefono)
   const [stuck, setStuck] = useState(false); // la testata è uscita: la barra delle schede ha lo sfondo
   const mobile = useIsMobile();
-  const { currency } = useSettings();
   // Immagini solo da Scryfall: vale per testata, carte, anteprima e per la copia in Copy to my decks.
   useEffect(() => listenPublicDeck(id, (d) => setDeck(d && withScryfallImgs(d)), (e) => { setDeck(null); notify(`Could not load this deck: ${e.message}`, 'error'); }), [id, notify]);
   const update = useCallback((fn) => setDeck((d) => d && fn(d)), []);
@@ -68,7 +66,6 @@ export default function CommunityDeck({ uid, id, notify }) {
     );
   }
   const cover = coverRow(deck);
-  const price = priceLabel(deck, currency);
   const copy = () => {
     const { id: nid, done } = createDeck(uid, { ...duplicateDeck(deck), name: deck.name });
     done.catch((e) => notify(`Sync error: ${e.message}`, 'error'));
@@ -112,7 +109,6 @@ export default function CommunityDeck({ uid, id, notify }) {
                 <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setExportOpen(true)} disabled={!deck.cards.length}
                   aria-label="Export" title="Export"><IconExport size={17} /></button>
               </span>
-              {price && <span className="deck-price">{price}</span>}
               <span className="deck-sync">by {deck.owner || 'anonymous'}</span>
             </div>
           </div>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDeck } from './useDeck';
 import { unpublishDeck, changedMs } from './deckStore';
-import { FORMATS, boardCounts, refreshSnapshots, addCard, toPrintEntries, coverRow, priceLabel } from './deckModel';
+import { FORMATS, boardCounts, refreshSnapshots, addCard, toPrintEntries, coverRow } from './deckModel';
 import { useSettings } from '../utils/settings';
 import { cardsByIds } from './scryfallSearch';
 import { navigate } from '../hooks/useHashRoute';
@@ -98,7 +98,6 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   };
   const cover = coverRow(deck);
   const savedAt = changedMs(deck); // ultimo cambio di carte (changedAt): Public, edizioni, prezzi non contano
-  const price = priceLabel(deck, settings.currency);
   const sync = !online ? (saving ? 'Offline, saved on this device' : 'Offline') : saving ? 'Saving…' : savedAt ? `Saved ${timeAgo(savedAt)}` : 'Saved';
   const name = (
     <input className="deck-name" value={deck.name} maxLength={80} aria-label="Deck name" spellCheck={false}
@@ -153,7 +152,6 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
                 notify(on ? 'Shared in Community' : 'Removed from Community');
               }}><IconGlobe size={17} /></button>
             </span>
-            {price && <span className="deck-price" title={`${settings.currency === 'eur' ? 'Cardmarket' : 'TCGplayer'} price on Scryfall, main deck and sideboard`}>{price}</span>}
             <span className={`deck-sync${online ? '' : ' offline'}`} role="status">{sync}</span>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { listenDecks, listenCommunity, createDeck, saveDeck, deleteDeck, setDeckPublic, changedMs } from './deckStore';
 import {
-  FORMATS, newDeck, duplicateDeck, deckIdentity, deckCover, scryfallImg, formatLabel, priceLabel, searchTerms, deckMatches,
+  FORMATS, newDeck, duplicateDeck, deckIdentity, deckCover, scryfallImg, formatLabel, searchTerms, deckMatches,
 } from './deckModel';
 import { useSettings } from '../utils/settings';
 import { navigate } from '../hooks/useHashRoute';
@@ -62,12 +62,11 @@ const menuPoint = (e) => {
 
 // Riquadro di un mazzo (lista, Community, profilo): sull'arte, in alto a sinistra sotto una sfumatura
 // nera, nome (accanto il globo se è pubblico, fuori dalla Community), formato e like ricevuti; sotto
-// identità di colore e prezzo, poi autore (by, nella Community) e ultima modifica. Testi in cqi: il
-// riquadro è largo una percentuale della griglia e tutto scala con lui. props vanno sul pulsante.
-export function DeckTile({ deck: d, currency, by, ...props }) {
+// identità di colore, poi autore (by, nella Community) e ultima modifica; il prezzo sta solo in Stats.
+// Testi in cqi: il riquadro è largo una percentuale della griglia e tutto scala con lui. props vanno sul pulsante.
+export function DeckTile({ deck: d, by, ...props }) {
   const cover = scryfallImg(deckCover(d));
   const updated = changedMs(d); // ultimo cambio di carte (changedAt), non l'ultima scrittura
-  const price = priceLabel(d, currency);
   const likes = useLikeCount(d.id, !!d.public);
   return (
     <button type="button" className="deck-tile" {...props}>
@@ -84,7 +83,6 @@ export function DeckTile({ deck: d, currency, by, ...props }) {
       <span className="deck-tile-body">
         <span className="deck-tile-foot">
           <ManaPips colors={deckIdentity(d)} />
-          {price && <span className="deck-tile-price">{price}</span>}
         </span>
         <span className="deck-tile-meta">
           {by && <span className="deck-tile-by">by {by}</span>}
@@ -104,7 +102,7 @@ const Empty = ({ title, hint }) => (
 
 // Community: gli ultimi 20 mazzi pubblici degli altri (i propri stanno in My decks) che passano ricerca e
 // filtri. La query cerca la prima parola (300 ms dopo l'ultimo tasto), il resto lo filtra deckMatches.
-function CommunityGrid({ uid, terms, filters, currency }) {
+function CommunityGrid({ uid, terms, filters }) {
   const [decks, setDecks] = useState(null);
   const [error, setError] = useState(null);
   const word = terms[0] || '';
@@ -128,7 +126,7 @@ function CommunityGrid({ uid, terms, filters, currency }) {
     <ul className="deck-grid">
       {shown.map((d) => (
         <li key={d.id} className="deck-tile-wrap">
-          <DeckTile deck={d} currency={currency} by={d.owner || 'anonymous'} onClick={() => navigate(`/community/${d.id}`)} />
+          <DeckTile deck={d} by={d.owner || 'anonymous'} onClick={() => navigate(`/community/${d.id}`)} />
         </li>
       ))}
     </ul>
@@ -261,7 +259,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play }) {
       </>}
 
       {dilemmas ? <DilemmaFeed uid={uid} notify={notify} open={open} play={play} terms={terms} format={filters.format} />
-        : community ? <CommunityGrid uid={uid} terms={terms} filters={filters} currency={settings.currency} /> : <>
+        : community ? <CommunityGrid uid={uid} terms={terms} filters={filters} /> : <>
         {decks === null && <span className="import-spinner" aria-label="Loading" />}
         {decks?.length === 0 && <Empty title="Start your first deck" hint="Create one from scratch, or import a list." />}
         {decks?.length > 0 && !shown.length && <Empty title="No decks match" hint="Try another name or clear the filters." />}
@@ -269,7 +267,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play }) {
           <ul className="deck-grid">
             {shown.map((d) => (
               <li key={d.id} className="deck-tile-wrap">
-                <DeckTile deck={d} currency={settings.currency}
+                <DeckTile deck={d}
                   onClick={() => { if (!press.consumed()) navigate(`/decks/${d.id}`); }}
                   onContextMenu={(e) => { e.preventDefault(); setMenu({ deck: d, ...menuPoint(e) }); }}
                   {...press.bind((x, y) => setMenu({ deck: d, x, y }))} />

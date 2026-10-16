@@ -131,7 +131,7 @@ export default function SettingsPage({ user, notify }) {
         </Card>
         <Card id="settings-prices" title="Prices">
           <Choice k="currency" label="Deck price" options={[{ id: 'eur', label: 'EUR, Cardmarket' }, { id: 'usd', label: 'USD, TCGplayer' }, { id: 'off', label: 'Off' }]}
-            hint="Prices from Scryfall, main deck and sideboard. A deck gets them the next time you open it." />
+            hint="Prices from Scryfall, main deck and sideboard, shown only in the deck's Stats. A deck gets them the next time you open it." />
         </Card>
         <Card id="settings-backup" title="Backup">
           <p className="profile-note">
