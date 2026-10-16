@@ -3422,17 +3422,18 @@ span.deck-hero-art { cursor: default; }
 @media (hover: none) {
   .deck-rows .deck-row-main img { pointer-events: none; -webkit-touch-callout: none; -webkit-user-drag: none; user-select: none; }
 }
-/* Barra in basso (DeckBottomBar): scura all'80%, conteggio senza chip a sinistra, Back to top e lente a destra. */
+/* In basso (DeckBottomBar), senza barra: conteggio senza chip a sinistra (ombra scura per leggerlo sulle
+   carte), Back to top e lente a destra su fondo scuro pieno. La fascia vuota lascia passare i tocchi. */
 .deck-bottom-bar {
   position: absolute; left: 0; right: 0; bottom: 0; z-index: 7;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   min-height: 60px; padding: 8px 14px calc(8px + env(safe-area-inset-bottom, 0px));
-  background: rgba(8, 7, 15, 0.8);
-  border-top: 1px solid rgba(124, 92, 255, 0.18);
+  pointer-events: none;
 }
+.deck-bottom-bar > * { pointer-events: auto; }
 .deck-bottom-actions { display: flex; gap: 8px; }
-.deck-bottom-bar .deck-icon-btn { flex: none; width: 44px; height: 44px; padding: 0; justify-content: center; }
-.deck-count.plain { position: static; flex-direction: row; align-items: baseline; gap: 16px; }
+.deck-bottom-bar .deck-icon-btn { flex: none; width: 44px; height: 44px; padding: 0; justify-content: center; background: rgba(8, 7, 15, 0.92); box-shadow: var(--shadow-md); }
+.deck-count.plain { position: static; flex-direction: row; align-items: baseline; gap: 16px; text-shadow: 0 1px 3px #000, 0 0 10px rgba(0, 0, 0, 0.9); }
 .deck-count.plain .deck-count-chip { padding: 0; background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 /* Lista mazzi da telefono: Import / New deck / Play in basso a destra, tondi, sopra il contenuto. */
 .mobile-decks .decks-actions { position: fixed; right: 16px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 50; margin: 0; gap: 10px; }
