@@ -1,23 +1,23 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { listenDecks, listenCommunity, createDeck, saveDeck, deleteDeck, setDeckPublic, changedMs, countLikes } from './deckStore';
+import { listenDecks, listenCommunity, createDeck, saveDeck, deleteDeck, setDeckPublic, setDeckFolder, changedMs, countLikes } from './deckStore';
 import {
-  FORMATS, newDeck, duplicateDeck, deckIdentity, deckCover, deckTags, scryfallImg, formatLabel, searchTerms, deckMatches,
+  FORMATS, duplicateDeck, deckIdentity, deckCover, deckTags, scryfallImg, formatLabel, searchTerms, deckMatches, rid,
 } from './deckModel';
-import { useSettings } from '../utils/settings';
 import { navigate } from '../hooks/useHashRoute';
 import { useLongPress, menuPoint } from '../hooks/useLongPress';
+import { useIsMobile } from '../hooks/useIsMobile';
 import CardMenu from '../components/CardMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { ManaPips } from './Mana';
 import { NameFormatDialog, ExportDeckDialog } from './dialogs';
 import { timeAgo } from '../utils/timeAgo';
-import ImportDeckDialog from './ImportDeckDialog';
+import NewDeckDialog from './NewDeckDialog';
 import { useCount } from './useCount';
 import { TabLabel } from './DeckTabs';
 import { DilemmaFeed } from './Dilemmas';
 import { useBracketSlide } from '../hooks/useBracketSlide';
 import {
-  IconPlus, IconCopy, IconTrash, IconPencil, IconDownload, IconExport, IconGlobe, IconSearch, IconFilter, IconHeart, IconPlay,
+  IconPlus, IconCopy, IconTrash, IconPencil, IconExport, IconGlobe, IconSearch, IconFilter, IconHeart, IconPlay, IconFolder, IconArrowLeft,
 } from '../components/icons';
 
 const COLORS = [['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green'], ['C', 'Colorless']];
@@ -88,6 +88,66 @@ export function DeckTile({ deck: d, by, ...props }) {
   );
 }
 
+// + in fondo a My decks: grande quanto un riquadro (stessa arte e stesso corpo, invisibili), + ciano al centro.
+function AddTile({ onClick }) {
+  return (
+    <li className="deck-tile-wrap">
+      <button type="button" className="deck-tile deck-add" onClick={onClick} aria-label="New deck" title="New deck">
+        <span className="deck-tile-art" />
+        <span className="deck-tile-body" aria-hidden="true">
+          <span className="deck-tile-foot"><ManaPips colors={[]} /></span>
+          <span className="deck-tile-meta"><span>&nbsp;</span></span>
+        </span>
+        <IconPlus size={44} />
+      </button>
+    </li>
+  );
+}
+
+// Nome della cartella: click = si rinomina sul posto (Enter o uscita salvano, Esc annulla, vuoto = resta).
+function FolderName({ name, onRename, className = '' }) {
+  const [editing, setEditing] = useState(false);
+  const open = useRef(false); // una sola chiusura: Enter / Esc smontano l'input e il blur non deve ripetere
+  if (editing) {
+    const finish = (v) => {
+      if (!open.current) return;
+      open.current = false;
+      setEditing(false);
+      if (v && v !== name) onRename(v);
+    };
+    return (
+      <input className={`folder-name-input ${className}`} defaultValue={name} maxLength={40} autoFocus aria-label="Folder name"
+        spellCheck={false} onBlur={(e) => finish(e.target.value.trim())} onFocus={(e) => e.target.select()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') finish(e.currentTarget.value.trim());
+          if (e.key === 'Escape') { e.stopPropagation(); finish(name); }
+        }} />
+    );
+  }
+  return <button type="button" className={`folder-name ${className}`} onClick={() => { open.current = true; setEditing(true); }} title="Rename folder">{name}</button>;
+}
+
+// Cartella in My decks: le copertine dei primi 4 mazzi a mosaico, il nome (rinominabile) sopra, sotto quanti
+// mazzi. Click sul riquadro = la apre. drop = props del trascinamento (un mazzo lasciato qui ci entra).
+function FolderTile({ folder, onOpen, onRename, drop, active }) {
+  const covers = folder.decks.map((d) => scryfallImg(deckCover(d))).filter(Boolean).slice(0, 4);
+  const n = folder.decks.length;
+  return (
+    <li className={`deck-tile-wrap folder-wrap${active ? ' drop' : ''}`} {...drop}>
+      <button type="button" className="deck-tile folder-tile" onClick={onOpen} aria-label={`Open folder ${folder.name}, ${n} ${n === 1 ? 'deck' : 'decks'}`}>
+        <span className="deck-tile-art folder-art" data-n={covers.length}>
+          {covers.map((c, i) => <span key={i} style={{ backgroundImage: `url("${c}")` }} />)}
+        </span>
+        <span className="deck-tile-body">
+          <span className="deck-tile-foot"><span className="folder-count"><IconFolder size={14} /> {n} {n === 1 ? 'deck' : 'decks'}</span></span>
+          <span className="deck-tile-meta"><span>Folder</span></span>
+        </span>
+      </button>
+      <FolderName name={folder.name} onRename={onRename} className="on-tile" />
+    </li>
+  );
+}
+
 const Empty = ({ title, hint }) => (
   <div className="decks-empty">
     <p className="decks-empty-title">{title}</p>
@@ -132,8 +192,8 @@ function CommunityGrid({ uid, terms, filters }) {
 // componente: ricerca e filtri restano passando dall'una all'altra), ricerca per nome e Filters (formato,
 // colori, carta); in Dilemmas la ricerca (domanda, carte, mazzo, autore) e accanto solo il formato.
 // open = il dilemma aperto dal feed (#/dilemmas/:mazzo/:dilemma), play = il gioco (#/dilemmas/play, dal
-// Play al posto del +): niente ricerca.
-export default function DeckList({ uid, notify, tab = 'mine', open, play }) {
+// Play al posto del +): niente ricerca. folder = la cartella aperta in My decks (#/decks/folder/:id).
+export default function DeckList({ uid, notify, tab = 'mine', open, play, folder: folderId }) {
   const community = tab === 'community';
   const dilemmas = tab === 'dilemmas';
   const searchLabel = dilemmas ? 'Search dilemmas' : 'Search decks by name or tag';
@@ -146,11 +206,13 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play }) {
   const [filters, setFilters] = useState(memory.filters);
   useEffect(() => { memory.q = q; memory.filters = filters; }, [q, filters]);
   const rootRef = useRef(null);
-  useScrollMemory(rootRef, open || play ? null : tab);
+  useScrollMemory(rootRef, open || play ? null : folderId ? `folder:${folderId}` : tab);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const press = useLongPress();
   const closeMenu = useCallback(() => setMenu(null), []);
-  const settings = useSettings(); // formato e raggruppamento dei nuovi mazzi, valuta dei prezzi
+  const mobile = useIsMobile();
+  const dragId = useRef(null); // mazzo trascinato (desktop)
+  const [dropOn, setDropOn] = useState(null); // id del mazzo / cartella (o 'out') sotto il trascinamento
 
   useEffect(() => listenDecks(uid, setDecks, (e) => notify(`Could not load your decks: ${e.message}`, 'error')), [uid, notify]);
 
@@ -165,6 +227,41 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play }) {
   const nFilters = (filters.format ? 1 : 0) + filters.colors.length + (filters.card.trim() ? 1 : 0);
   const toggleColor = (c) => setFilters((f) => ({ ...f, colors: f.colors.includes(c) ? f.colors.filter((x) => x !== c) : [...f.colors, c] }));
   const shown = decks?.filter((d) => deckMatches(d, terms, filters));
+  // Cartelle (folder sul mazzo), nell'ordine del mazzo cambiato più di recente. Con ricerca o filtri la
+  // lista è piatta, cartelle comprese; altrimenti cartelle, poi i mazzi fuori, o quelli della cartella aperta.
+  const searching = terms.length > 0 || nFilters > 0;
+  const folders = [];
+  for (const d of decks || []) {
+    if (!d.folder?.id) continue;
+    let f = folders.find((x) => x.id === d.folder.id);
+    if (!f) folders.push(f = { id: d.folder.id, name: d.folder.name || 'New folder', decks: [] });
+    f.decks.push(d);
+  }
+  const openFolder = !searching && folders.find((f) => f.id === folderId);
+  const gridDecks = searching ? shown : openFolder ? openFolder.decks : decks?.filter((d) => !d.folder?.id);
+  const moveTo = (ids, folder) => setDeckFolder(uid, ids, folder).catch(writeError);
+  const renameFolder = (f, name) => moveTo(f.decks.map((d) => d.id), { id: f.id, name });
+  // Trascinamento (desktop): un mazzo su un altro = nuova cartella "New folder" con i due (o entra nella
+  // cartella dell'altro), su una cartella = ci entra, sul pulsante indietro della cartella aperta = esce.
+  const dropProps = (key, onDrop) => (mobile ? {} : {
+    onDragOver: (e) => { if (dragId.current && dragId.current !== key) { e.preventDefault(); setDropOn(key); } },
+    onDragLeave: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropOn((k) => (k === key ? null : k)); },
+    onDrop: (e) => {
+      e.preventDefault();
+      const id = dragId.current;
+      dragId.current = null;
+      setDropOn(null);
+      if (id && id !== key) onDrop(id);
+    },
+  });
+  const dropOnDeck = (target) => (id) => {
+    if (target.folder?.id) {
+      if (decks.find((d) => d.id === id)?.folder?.id !== target.folder.id) moveTo([id], target.folder);
+    } else {
+      moveTo([target.id, id], { id: rid(), name: 'New folder' });
+      notify('Folder created');
+    }
+  };
 
   const menuItems = menu ? [
     { key: 'rename', Icon: IconPencil, label: 'Rename', run: () => setDialog({ rename: menu.deck }) },
@@ -175,7 +272,13 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play }) {
         notify(menu.deck.public ? 'Removed from Community' : 'Shared in Community');
       },
     },
-    { key: 'dup', Icon: IconCopy, label: 'Duplicate', run: () => { create(duplicateDeck(menu.deck)); notify('Deck duplicated'); } },
+    { key: 'dup', Icon: IconCopy, label: 'Duplicate', run: () => { create({ ...duplicateDeck(menu.deck), folder: menu.deck.folder ?? null }); notify('Deck duplicated'); } },
+    // Cartelle anche senza trascinare (telefono): nelle altre, in una nuova, fuori.
+    ...folders.filter((f) => f.id !== menu.deck.folder?.id).map((f) => ({
+      key: `f-${f.id}`, Icon: IconFolder, label: `Move to “${f.name}”`, run: () => moveTo([menu.deck.id], { id: f.id, name: f.name }),
+    })),
+    { key: 'f-new', Icon: IconFolder, label: 'Move to a new folder', run: () => moveTo([menu.deck.id], { id: rid(), name: 'New folder' }) },
+    ...(menu.deck.folder?.id ? [{ key: 'f-out', Icon: IconFolder, label: 'Remove from folder', run: () => moveTo([menu.deck.id], null) }] : []),
     { key: 'txt', Icon: IconExport, label: 'Export…', run: () => setDialog({ exp: menu.deck }) },
     { key: 'del', Icon: IconTrash, label: 'Delete', danger: true, run: () => setDialog({ del: menu.deck }) },
   ] : [];
@@ -191,13 +294,6 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play }) {
         {dilemmas && !open && !play && (
           <div className="decks-actions">
             <button type="button" className="btn-add deck-new deck-icon-btn" onClick={() => navigate('/dilemmas/play')} aria-label="Play dilemmas" title="Play dilemmas"><IconPlay size={18} /></button>
-          </div>
-        )}
-        {tab === 'mine' && (
-          <div className="decks-actions">
-            {/* Solo in My decks. Solo icone (nome nel tooltip e per i lettori di schermo); backup e ripristino stanno in Settings. */}
-            <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setDialog('import')} aria-label="Import a deck" title="Import a deck"><IconDownload size={18} /></button>
-            <button type="button" className="btn-add deck-new deck-icon-btn" onClick={() => setDialog('new')} aria-label="New deck" title="New deck"><IconPlus size={18} /></button>
           </div>
         )}
       </header>
@@ -256,12 +352,28 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play }) {
       {dilemmas ? <DilemmaFeed uid={uid} notify={notify} open={open} play={play} terms={terms} format={filters.format} />
         : community ? <CommunityGrid uid={uid} terms={terms} filters={filters} /> : <>
         {decks === null && <span className="import-spinner" aria-label="Loading" />}
-        {decks?.length === 0 && <Empty title="Start your first deck" hint="Create one from scratch, or import a list." />}
-        {decks?.length > 0 && !shown.length && <Empty title="No decks match" hint="Try another name or clear the filters." />}
-        {shown?.length > 0 && (
+        {decks?.length === 0 && <Empty title="Start your first deck" hint="Create one with the + below, from scratch or from a list." />}
+        {decks?.length > 0 && searching && !shown.length && <Empty title="No decks match" hint="Try another name or clear the filters." />}
+        {openFolder && (
+          <div className="folder-head">
+            <button type="button" className={`btn-secondary deck-icon-btn${dropOn === 'out' ? ' drop' : ''}`} onClick={() => navigate('/decks')}
+              aria-label="All decks" title={mobile ? 'All decks' : 'All decks (drop a deck here to take it out of the folder)'}
+              {...dropProps('out', (id) => moveTo([id], null))}><IconArrowLeft size={18} /></button>
+            <IconFolder size={20} />
+            <FolderName name={openFolder.name} onRename={(name) => renameFolder(openFolder, name)} className="in-head" />
+          </div>
+        )}
+        {decks && (!searching || shown.length > 0) && (
           <ul className="deck-grid">
-            {shown.map((d) => (
-              <li key={d.id} className="deck-tile-wrap">
+            {!searching && !openFolder && folders.map((f) => (
+              <FolderTile key={f.id} folder={f} onOpen={() => navigate(`/decks/folder/${f.id}`)} onRename={(name) => renameFolder(f, name)}
+                active={dropOn === f.id} drop={dropProps(f.id, (id) => moveTo([id], { id: f.id, name: f.name }))} />
+            ))}
+            {gridDecks.map((d) => (
+              <li key={d.id} className={`deck-tile-wrap${dropOn === d.id ? ' drop' : ''}`} draggable={!mobile}
+                onDragStart={(e) => { dragId.current = d.id; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', d.name); }}
+                onDragEnd={() => { dragId.current = null; setDropOn(null); }}
+                {...dropProps(d.id, dropOnDeck(d))}>
                 <DeckTile deck={d}
                   onClick={() => { if (!press.consumed()) navigate(`/decks/${d.id}`); }}
                   onContextMenu={(e) => { e.preventDefault(); setMenu({ deck: d, ...menuPoint(e) }); }}
@@ -271,25 +383,25 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play }) {
                   onClick={() => setDialog({ exp: d })}><IconExport size={16} /></button>
               </li>
             ))}
+            {!searching && <AddTile onClick={() => setDialog('new')} />}
           </ul>
         )}
       </>}
 
       {menu && <CardMenu x={menu.x} y={menu.y} title={menu.deck.name} items={menuItems} onClose={closeMenu} />}
-      {dialog === 'import' && (
-        <ImportDeckDialog onClose={() => setDialog(null)}
-          onImported={(deck, notFound) => {
+      {/* Nuovo mazzo, vuoto o da una lista; nasce nella cartella aperta. */}
+      {dialog === 'new' && (
+        <NewDeckDialog onClose={() => setDialog(null)}
+          onCreate={(deck, notFound) => {
             setDialog(null);
-            const id = create(deck);
-            notify(notFound.length
-              ? `Imported. Not found: ${notFound.slice(0, 5).join(', ')}${notFound.length > 5 ? ` and ${notFound.length - 5} more` : ''}`
-              : 'Deck imported', notFound.length ? 'error' : 'success');
+            const id = create({ ...deck, folder: openFolder ? { id: openFolder.id, name: openFolder.name } : null });
+            if (deck.cards.length) {
+              notify(notFound.length
+                ? `Imported. Not found: ${notFound.slice(0, 5).join(', ')}${notFound.length > 5 ? ` and ${notFound.length - 5} more` : ''}`
+                : 'Deck imported', notFound.length ? 'error' : 'success');
+            }
             navigate(`/decks/${id}`);
           }} />
-      )}
-      {dialog === 'new' && (
-        <NameFormatDialog title="New deck" confirmLabel="Create" initialFormat={settings.deckFormat} onClose={() => setDialog(null)}
-          onSubmit={(v) => { setDialog(null); navigate(`/decks/${create(newDeck({ ...v, groupBy: settings.deckGroupBy }))}`); }} />
       )}
       {dialog?.exp && <ExportDeckDialog deck={dialog.exp} onClose={() => setDialog(null)} />}
       {dialog?.rename && (

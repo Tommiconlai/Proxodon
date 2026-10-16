@@ -62,9 +62,20 @@ export function listenDeck(uid, id, onChange, onError) {
     (s) => onChange(s.exists() ? fromDoc(s) : null, s.metadata.hasPendingWrites), onError);
 }
 
+// Nuovo mazzo; public (dal pannello New deck) scrive subito anche la copia in Community. folder = la
+// cartella in cui nasce (aperta in My decks), fuori dal payload perché la copia pubblica non la porta.
 export function createDeck(uid, deck) {
   const ref = doc(decksCol(uid));
-  return { id: ref.id, done: setDoc(ref, { ...payload(deck), ...changes(deck), createdAt: serverTimestamp() }) };
+  const f = changes(deck);
+  const done = setDoc(ref, { ...payload(deck), ...f, folder: deck.folder ?? null, createdAt: serverTimestamp() });
+  return { id: ref.id, done: deck.public ? Promise.all([done, publish(uid, { ...deck, id: ref.id }, f)]) : done };
+}
+// Cartelle di My decks: folder = { id, name } sul mazzo (solo quello privato), null = fuori. Una cartella
+// esiste finché ha un mazzo; spostare o rinominare = riscrivere folder su quei mazzi, in un solo batch.
+export function setDeckFolder(uid, ids, folder) {
+  const batch = writeBatch(db);
+  ids.forEach((id) => batch.update(doc(decksCol(uid), id), { folder }));
+  return batch.commit();
 }
 
 // merge: createdAt resta; gli array (cards, sections) vengono sostituiti interi. Pubblico: riscrive anche

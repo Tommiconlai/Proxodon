@@ -2758,12 +2758,48 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .deck-tile-export:hover, .deck-tile-export:focus-visible { color: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 12px rgba(0, 229, 255, 0.3); outline: none; }
 /* In hover (sul riquadro o sull'export) si alzano insieme. */
 .deck-tile-wrap:hover .deck-tile-export { transform: translateY(-2px); }
+/* + in fondo a My decks: stessa sagoma di un riquadro (arte e corpo nascosti), tratteggio e + ciano del logo. */
+.deck-tile.deck-add { position: relative; background: rgba(0, 229, 255, 0.04); border: 1px dashed rgba(0, 229, 255, 0.5); color: var(--cyan); }
+.deck-add .deck-tile-art, .deck-add .deck-tile-body { visibility: hidden; }
+.deck-add > svg { position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
+.deck-tile-wrap:hover .deck-tile.deck-add, .deck-tile.deck-add:focus-visible { border-color: var(--cyan); background: rgba(0, 229, 255, 0.1); box-shadow: 0 0 18px rgba(0, 229, 255, 0.3); }
+/* Cartelle: le copertine dei primi 4 mazzi a mosaico (1 = intera, 2 = due metà, 3 = la prima alta), il
+   nome sopra (pulsante: click = rinomina sul posto), sotto quanti mazzi. */
+.folder-art { display: grid; grid-template: 1fr 1fr / 1fr 1fr; gap: 2px; }
+.folder-art > span { background: var(--bg-elevated) center 22% / cover no-repeat; }
+.folder-art[data-n='1'] > span { grid-area: 1 / 1 / 3 / 3; }
+.folder-art[data-n='2'] > span { grid-row: span 2; }
+.folder-art[data-n='3'] > span:first-child { grid-row: span 2; }
+.folder-count { display: inline-flex; align-items: center; gap: 6px; min-height: clamp(14px, 7cqi, 20px); font-size: clamp(12px, 4.6cqi, 14px); line-height: 1; color: var(--cyan); }
+.folder-name, .folder-name-input { padding: 2px 4px; background: none; border: 1px solid transparent; border-radius: 6px; font: inherit; color: var(--text-primary); text-align: left; }
+.folder-name { cursor: text; }
+.folder-name:hover, .folder-name:focus-visible { border-color: rgba(0, 229, 255, 0.45); outline: none; }
+.folder-name-input { border-color: var(--cyan); background: rgba(8, 7, 15, 0.9); outline: none; }
+.folder-name.on-tile, .folder-name-input.on-tile {
+  position: absolute; z-index: 2; top: 8px; left: 10px; max-width: calc(100% - 20px);
+  font-family: var(--font-mono); font-weight: 700; font-size: clamp(13px, 1.1vw, 18px); line-height: 1.2;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+}
+.folder-head { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; color: var(--cyan); }
+.folder-head .deck-icon-btn { flex: none; width: 40px; height: 40px; padding: 0; justify-content: center; }
+.folder-name.in-head, .folder-name-input.in-head { min-width: 0; font-family: var(--font-display); font-size: 1.3rem; letter-spacing: 0.03em; }
+.mobile .folder-head .deck-icon-btn, .mobile .folder-name.in-head, .mobile .folder-name-input.in-head { min-height: 44px; }
+.mobile .folder-head .deck-icon-btn { width: 44px; }
+/* Trascinamento: il riquadro (mazzo o cartella) o il pulsante su cui si lascia si accende di ciano. */
+.deck-tile-wrap.drop .deck-tile { box-shadow: 0 0 0 2px var(--cyan), 0 0 22px rgba(0, 229, 255, 0.45); transform: scale(1.03); }
+.deck-icon-btn.drop { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 14px rgba(0, 229, 255, 0.4); }
+.deck-tile-wrap[draggable='true'] { cursor: grab; }
 .mana { display: inline-flex; align-items: center; gap: 2px; }
 .mana img { display: block; }
 .decks-empty { max-width: 420px; padding: 28px 0; }
 .decks-empty a { color: var(--cyan-soft); }
 .decks-empty-title { margin: 0 0 6px; font-family: var(--font-display); font-size: 1.1rem; color: var(--text-primary); }
 .deck-form select { width: 100%; }
+/* New deck: nome, formato, Public e la lista facoltativa; il pulsante (solo icona) a destra. */
+.new-deck { width: min(560px, 94vw); }
+.new-deck textarea { resize: vertical; }
+.new-deck .modal-actions { justify-content: flex-end; }
+.new-deck .modal-actions .deck-icon-btn { flex: none; width: 48px; height: 42px; padding: 0; justify-content: center; }
 .import-meta-row { display: grid; grid-template-columns: 1fr 160px; gap: 8px; }
 
 /* Editor mazzo: barra + corpo (ricerca a sinistra su desktop, dal task 10). */
@@ -2970,9 +3006,9 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
   transition: color var(--transition);
 }
 .dilemma-tile:hover .dilemma-tile-q, .dilemma-tile:focus-visible .dilemma-tile-q { color: var(--cyan-soft); }
-/* + della scheda Dilemmas del mazzo: riquadro tratteggiato al posto dell'arte, magenta all'hover. */
-.dilemma-add .dilemma-split { display: flex; align-items: center; justify-content: center; border: 1px dashed rgba(255, 45, 149, 0.5); background: rgba(255, 45, 149, 0.04); box-shadow: none; color: var(--accent); }
-.dilemma-add:hover .dilemma-split, .dilemma-add:focus-visible .dilemma-split { border-color: var(--accent); background: rgba(255, 45, 149, 0.1); box-shadow: 0 0 16px rgba(255, 45, 149, 0.3); }
+/* + della scheda Dilemmas del mazzo (ultimo della griglia): riquadro tratteggiato al posto dell'arte, ciano del logo. */
+.dilemma-add .dilemma-split { display: flex; align-items: center; justify-content: center; border: 1px dashed rgba(0, 229, 255, 0.5); background: rgba(0, 229, 255, 0.04); box-shadow: none; color: var(--cyan); }
+.dilemma-add:hover .dilemma-split, .dilemma-add:focus-visible .dilemma-split { border-color: var(--cyan); background: rgba(0, 229, 255, 0.1); box-shadow: 0 0 16px rgba(0, 229, 255, 0.3); }
 .dilemma-tile-meta { margin-top: -6px; padding: 0 2px; font-size: 0.78rem; color: var(--text-muted); }
 .dilemma-tile-meta b { font-family: var(--font-display); font-weight: 500; letter-spacing: 0.02em; color: var(--cyan-soft); }
 /* Gioco (#/dilemmas/play): ogni dilemma entra da destra, come la carta successiva di un mazzo. */

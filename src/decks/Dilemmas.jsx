@@ -58,7 +58,10 @@ export function DeckDilemmas({ deck, uid, mine, notify, ask, onAsked }) {
       )}
       {list && (mine || list.length > 0) && (
         <ul className="dilemma-list">
-          {/* Nuovo dilemma: primo riquadro della griglia, grande quanto l'arte di un dilemma. */}
+          {list.map((d) => (
+            <DilemmaTile key={d.id} deckId={deck.id} d={d} uid={uid} solved={!!answered?.has(`${deck.id}_${d.id}`)} onClick={() => setOpenId(d.id)} />
+          ))}
+          {/* Nuovo dilemma: ultimo riquadro della griglia, grande quanto l'arte di un dilemma. */}
           {mine && (
             <li>
               <button type="button" className="dilemma-tile dilemma-add" onClick={() => setCreating([null, null])} aria-label="New dilemma" title="New dilemma">
@@ -66,9 +69,6 @@ export function DeckDilemmas({ deck, uid, mine, notify, ask, onAsked }) {
               </button>
             </li>
           )}
-          {list.map((d) => (
-            <DilemmaTile key={d.id} deckId={deck.id} d={d} uid={uid} solved={!!answered?.has(`${deck.id}_${d.id}`)} onClick={() => setOpenId(d.id)} />
-          ))}
         </ul>
       )}
       {creating && (
