@@ -9,6 +9,7 @@ import {
   listenDilemmaFeed, listenDilemma, getPublicDeck, listenPublicDeck, listenAnswered, countVotes,
 } from './deckStore';
 import { navigate } from '../hooks/useHashRoute';
+import { useBackClose } from '../hooks/useBackClose';
 import { groupMain, commanderRows, boardRows, scryfallImg } from './deckModel';
 import {
   IconPlus, IconArrowLeft, IconArrowRight, IconTrash, IconCheck, IconX, IconLock, IconLockOpen,
@@ -28,6 +29,7 @@ export function DeckDilemmas({ deck, uid, mine, notify }) {
   const [openId, setOpenId] = useState(null);
   const [creating, setCreating] = useState(false);
   const answered = useAnswered(uid);
+  useBackClose(!!openId, () => setOpenId(null)); // back del sistema = torna all'elenco, non lascia il mazzo
   const live = !!deck.public;
   useEffect(() => (live ? listenDilemmas(deck.id, (l) => { setList(l); setError(null); }, setError) : undefined), [deck.id, live]);
 

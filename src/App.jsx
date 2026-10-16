@@ -440,8 +440,11 @@ export default function App() {
   const isMobile = useIsMobile();
   const route = useHashRoute();
   const inDecks = route.startsWith('/decks') || route.startsWith('/community') || route.startsWith('/dilemmas') || route === '/profile' || route === '/settings';
-  // Feedback dai mazzi (stabile: i listener Firestore lo hanno tra le dipendenze).
-  const notify = useCallback((msg, kind = 'success') => setToast({ kind, msg }), []);
+  // Feedback dai mazzi (stabile: i listener Firestore lo hanno tra le dipendenze). action = { label,
+  // onClick } per un pulsante nel toast (es. Undo); il click esegue l'azione e chiude il toast.
+  const notify = useCallback((msg, kind = 'success', action) => setToast({
+    kind, msg, ...(action && { action: { label: action.label, onClick: () => { action.onClick(); setToast(null); } } }),
+  }), []);
 
   // "Print deck": scarica le immagini (nella lingua di Settings dove c'è), poi SOSTITUISCE la coda di
   // stampa, o la allunga con add (Settings), e apre la stampa. La conferma la chiede l'editor; la coda

@@ -17,7 +17,10 @@ import CardImg from './CardImg';
 import { CardFrame, CardFrameDefs } from '../components/CardFrame';
 import { cachedImg } from './cardLang';
 import { useSettings, setSetting } from '../utils/settings';
-import { IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy, IconFlip, IconPrinter } from '../components/icons';
+import {
+  IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy, IconFlip, IconPrinter, IconEye, IconX,
+} from '../components/icons';
+import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 
 const BOARD_LABEL = { main: 'main deck', side: 'sideboard', maybe: 'maybeboard' };
 // Larghezza dell'anteprima al passaggio (Settings → Card preview), 0 = spenta.
@@ -54,7 +57,10 @@ const menuPoint = (e) => {
 // readOnly (Community): niente menu, trascinamento, +/- e sezioni nuove; update cambia solo la vista.
 // tab (schede della testata, DeckTabs): 'deck' = barra e carte, 'stats' = statistiche e mano di prova.
 // onPrint(rows): Print nel menu, porta le righe scelte (anche una sola) nella stampa.
-export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab, onPrint }) {
+// notify(msg, kind, action): Remove e − sull'ultima copia tolgono subito, con Undo nel toast.
+// View card (menu, anche in sola lettura): la carta a tutto schermo, per leggerla da telefono.
+// Telefono (touch): − / + della carta selezionata (una sola) in una barra sopra quella in basso, a 44 px.
+export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab, onPrint, notify }) {
   const [sel, setSel] = useState(() => new Set());
   const [anchor, setAnchor] = useState(null);
   const [menu, setMenu] = useState(null); // { ids, x, y }
@@ -73,6 +79,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   const previewW = PREVIEW[settings.preview] ?? PREVIEW.medium;
   const [dialog, setDialog] = useState(null); // { id?, name?, moveIds? } nuova sezione o rinomina
   const [edition, setEdition] = useState(null); // { ids, name, current } righe a cui cambiare edizione
+  const [viewing, setViewing] = useState(null); // carta aperta con View card
   const [dropKey, setDropKey] = useState(null);
   const [dragging, setDragging] = useState(false); // durante il trascinamento il maybeboard vuoto accetta il rilascio
   const dragIds = useRef(null); // { ids, one } durante un trascinamento; one = Alt, una copia sola
@@ -177,8 +184,23 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     setMenu({ ids: inSel && selected.length > 1 ? selected : [id], x, y });
   };
 
+  // Tolte subito, con Undo nel toast: le righe tornano com'erano (zona, sezione, comandante, quantità).
+  const removeWithUndo = (rows) => {
+    const ids = rows.map((r) => r.id);
+    update((d) => removeRows(d, ids));
+    setSel((prev) => new Set([...prev].filter((id) => !ids.includes(id))));
+    const n = sum(rows);
+    notify?.(rows.length === 1 ? `Removed ${rows[0].card.name}` : `Removed ${n} cards`, 'success', {
+      label: 'Undo',
+      onClick: () => update((d) => ({ ...d, cards: [...d.cards, ...rows.filter((r) => !d.cards.some((x) => x.id === r.id))] })),
+    });
+  };
+  const less = (r) => (r.qty > 1 ? update((d) => bumpQty(d, r.id, -1)) : removeWithUndo([r]));
+  const canAdd = (r) => deck.format !== 'commander' || maxCopies('commander', r.card) > 1; // Commander: + solo dove il limite lo consente
+
   const menuRows = menu ? deck.cards.filter((r) => menu.ids.includes(r.id)) : [];
   const items = [];
+  if (menuRows.length === 1) items.push({ key: 'view', Icon: IconEye, label: 'View card', run: () => setViewing(menuRows[0].card) });
   if (menuRows.length && !readOnly) {
     const ids = menuRows.map((r) => r.id);
     if (onPrint) items.push({ key: 'print', Icon: IconPrinter, label: 'Print', run: () => onPrint(menuRows) });
@@ -211,7 +233,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     }
     items.push({
       key: 'rm', Icon: IconTrash, label: ids.length > 1 ? `Remove ${ids.length} cards` : 'Remove', danger: true,
-      run: () => { update((d) => removeRows(d, ids)); setSel(new Set()); },
+      run: () => removeWithUndo(menuRows),
     });
   }
 
@@ -322,8 +344,6 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     const ban = banOf(r);
     const banText = ban && legalityLabel(ban, deck.format);
     const turns = (r.card.back && flipped.get(r.id)) || 0;
-    // Commander è singleton: niente + tranne dove il limite lo consente (terre base, "any number").
-    const canAdd = deck.format !== 'commander' || maxCopies('commander', r.card) > 1;
     return (
       <li key={copy ? `${r.id}:${copy}` : r.id} data-row-id={r.id} className={`deck-row${sel.has(r.id) ? ' selected' : ''}${warn ? ' over' : ''}`} {...dragProps(r)}
         onMouseEnter={touch ? undefined : (e) => showPreview(e, r)} onMouseLeave={touch ? undefined : () => setHover(null)}>
@@ -377,9 +397,9 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
             singola: solo − e +, centrati). Lista: +/- in fondo alla riga, il numero è nella colonna. */}
         {(!readOnly || (view !== 'list' && r.qty > 1 && !split)) && (
           <span className="deck-row-qty">
-            {!readOnly && <button type="button" aria-label={`One less ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, -1))}><IconMinus size={13} /></button>}
+            {!readOnly && <button type="button" aria-label={`One less ${r.card.name}`} onClick={() => less(r)}><IconMinus size={13} /></button>}
             {view !== 'list' && r.qty > 1 && !split && <span className="deck-card-qty" aria-hidden="true">{r.qty}</span>}
-            {!readOnly && canAdd && <button type="button" aria-label={`One more ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, 1))}><IconPlus size={13} /></button>}
+            {!readOnly && canAdd(r) && <button type="button" aria-label={`One more ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, 1))}><IconPlus size={13} /></button>}
           </span>
         )}
       </li>
@@ -526,6 +546,18 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
             setEdition(null);
           }} />
       )}
+      {viewing && <CardView card={viewing} onClose={() => setViewing(null)} />}
+      {/* Telefono: − / + della carta selezionata, grandi, sopra la barra in basso (sulla carta non
+          stanno a 44 px nella fascia scoperta degli stack). */}
+      {touch && !readOnly && view !== 'list' && tab === 'deck' && selected.length === 1 && (() => {
+        const r = deck.cards.find((x) => x.id === selected[0]);
+        return r && createPortal(
+          <div className="deck-sel-bar" role="group" aria-label={`${r.card.name}, ${r.qty} ${r.qty === 1 ? 'copy' : 'copies'}`}>
+            <button type="button" className="btn-secondary deck-icon-btn" aria-label={`One less ${r.card.name}`} title="One less" onClick={() => less(r)}><IconMinus size={20} /></button>
+            <span className="deck-sel-qty" aria-hidden="true">{r.qty}</span>
+            {canAdd(r) && <button type="button" className="btn-secondary deck-icon-btn" aria-label={`One more ${r.card.name}`} title="One more" onClick={() => update((d) => bumpQty(d, r.id, 1))}><IconPlus size={20} /></button>}
+          </div>, document.body);
+      })()}
       {hover && createPortal(hover.back ? (
         <div className="deck-hover deck-hover-pair" style={{ left: hover.x, top: hover.y }}>
           <img src={hover.img} alt="" style={{ width: hover.w }} />
@@ -533,5 +565,25 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
         </div>
       ) : <img className="deck-hover" src={hover.img} alt="" style={{ left: hover.x, top: hover.y, width: hover.w }} />, document.body)}
     </div>
+  );
+}
+
+// View card: la carta a tutto schermo (lingua di Settings), le due facce si girano con Flip. Chiude con ✕,
+// Esc, il back del sistema o un tocco fuori.
+function CardView({ card, onClose }) {
+  const [side, setSide] = useState(0);
+  const ref = useOverlayDismiss(onClose);
+  return createPortal(
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="card-zoom-wrap" ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={card.name} onClick={(e) => e.stopPropagation()}>
+        <CardImg card={card} side={side} className="card-zoom" alt={side ? `${card.name}, back` : card.name} loading="eager" />
+        <button type="button" className="modal-close card-zoom-close" onClick={onClose} aria-label="Close" title="Close"><IconX size={20} /></button>
+        {card.back && (
+          <button type="button" className="btn-secondary deck-icon-btn card-zoom-flip" onClick={() => setSide((s) => 1 - s)}
+            aria-label={`Flip ${card.name}`} title="Flip"><IconFlip size={20} /></button>
+        )}
+      </div>
+    </div>,
+    document.body,
   );
 }

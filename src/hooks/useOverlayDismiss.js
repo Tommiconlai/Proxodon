@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { useBackClose } from './useBackClose';
 
 // Esc per chiudere + gestione focus per overlay (modali, sheet, dialog).
 // - Escape → onClose (capturato a livello documento).
+// - Back del sistema → onClose (useBackClose: una voce in cronologia finché è aperto).
 // - Al "apri" sposta il focus dentro l'overlay (sul contenitore tabIndex=-1).
 // - Alla chiusura ripristina il focus all'elemento che l'aveva (il trigger).
 // `active` = se l'overlay è aperto (per i componenti sempre montati che fanno
@@ -19,6 +21,7 @@ export function useOverlayDismiss(onClose, active = true, { focusContainer = tru
     // Chi aveva il focus quando l'overlay si è montato (prima di un autoFocus interno, che
     // nel commit arriva prima di questo effect): serve per restituirgli il focus alla chiusura.
     const [opener] = useState(() => (typeof document === 'undefined' ? null : document.activeElement));
+    useBackClose(active, onClose);
 
     useEffect(() => {
         if (!active) return undefined;

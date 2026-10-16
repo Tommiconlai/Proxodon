@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { listenDecks, listenCommunity, createDeck, saveDeck, deleteDeck, setDeckPublic, changedMs } from './deckStore';
 import {
   FORMATS, newDeck, duplicateDeck, deckIdentity, deckCover, scryfallImg, formatLabel, priceLabel, searchTerms, deckMatches,
@@ -22,6 +22,35 @@ import {
 
 const COLORS = [['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green'], ['C', 'Colorless']];
 const NO_FILTERS = { format: '', colors: [], card: '' };
+
+// Aprendo un mazzo la lista si smonta: ricerca, filtri e scorrimento (per scheda) restano qui, in memoria
+// per la sessione della pagina, e tornano al rientro. ponytail: niente sessionStorage, una ricarica azzera.
+const memory = { q: '', filters: NO_FILTERS, scroll: {} };
+const scrollParent = (el) => { // l'elemento stesso o il primo antenato che scorre (telefono: .decks-root)
+  for (let p = el; p; p = p.parentElement) {
+    if (/(auto|scroll)/.test(getComputedStyle(p).overflowY)) return p;
+  }
+  return document.scrollingElement;
+};
+// key null (dilemma aperto, Play) = in cima, senza ricordare. Il ripristino aspetta che la pagina sia
+// abbastanza lunga (le liste arrivano da Firestore), per al massimo ~40 frame.
+function useScrollMemory(ref, key) {
+  useLayoutEffect(() => {
+    const box = scrollParent(ref.current);
+    if (!box) return undefined;
+    const y = key ? memory.scroll[key] || 0 : 0;
+    let n = 0;
+    let raf = 0;
+    const go = () => {
+      if (box.scrollHeight - box.clientHeight >= y || n++ > 40) box.scrollTop = y;
+      else raf = requestAnimationFrame(go);
+    };
+    go();
+    const save = () => { if (key) memory.scroll[key] = box.scrollTop; };
+    box.addEventListener('scroll', save, { passive: true });
+    return () => { cancelAnimationFrame(raf); box.removeEventListener('scroll', save); };
+  }, [ref, key]);
+}
 const LIST_TABS = [['community', 'Community'], ['dilemmas', 'Dilemmas'], ['mine', 'My decks']];
 
 // Shift+F10 / tasto menu arrivano con 0,0: ancora il menu all'elemento.
@@ -120,8 +149,11 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play }) {
   const [decks, setDecks] = useState(null); // null = caricamento
   const [dialog, setDialog] = useState(null); // 'new' | 'import' | { rename: deck } | { del: deck } | { exp: deck }
   const [menu, setMenu] = useState(null); // { deck, x, y }
-  const [q, setQ] = useState('');
-  const [filters, setFilters] = useState(NO_FILTERS);
+  const [q, setQ] = useState(memory.q);
+  const [filters, setFilters] = useState(memory.filters);
+  useEffect(() => { memory.q = q; memory.filters = filters; }, [q, filters]);
+  const rootRef = useRef(null);
+  useScrollMemory(rootRef, open || play ? null : tab);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const press = useLongPress();
   const closeMenu = useCallback(() => setMenu(null), []);
@@ -156,7 +188,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play }) {
   ] : [];
 
   return (
-    <div className="decks-root decks-page">
+    <div className="decks-root decks-page" ref={rootRef}>
       <header className="decks-head">
         <nav className="decks-tabs" aria-label="Decks" ref={tabsRef}>
           {LIST_TABS.map(([t, label]) => (

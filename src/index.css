@@ -2854,12 +2854,12 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
   font-size: clamp(13px, 6.4cqi, 20px); overflow-wrap: anywhere;
 }
-.deck-tile-format { display: flex; align-items: center; gap: 6px; font-size: clamp(10px, 4.6cqi, 14px); opacity: 0.75; }
+.deck-tile-format { display: flex; align-items: center; gap: 6px; font-size: clamp(12px, 4.6cqi, 14px); opacity: 0.75; }
 .deck-tile-public { flex: none; display: inline-flex; margin-top: 0.15em; color: var(--cyan); }
 .deck-tile-public svg { width: 0.85em; height: 0.85em; }
 .deck-tile-title .deck-tile-public { font-size: clamp(13px, 6.4cqi, 20px); }
 /* Like ricevuti, sotto il formato: cuore magenta e numero. */
-.deck-tile-likes { display: flex; align-items: center; gap: 5px; font-size: clamp(10px, 4.6cqi, 14px); opacity: 0.85; }
+.deck-tile-likes { display: flex; align-items: center; gap: 5px; font-size: clamp(12px, 4.6cqi, 14px); opacity: 0.85; }
 .deck-tile-likes svg { width: 1em; height: 1em; color: var(--accent); }
 .deck-tile-body {
   display: flex; flex-direction: column; gap: 3cqi;
@@ -2870,7 +2870,7 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .deck-tile-foot .mana { gap: 4px; }
 .deck-tile-foot .mana img { width: clamp(14px, 7cqi, 20px); height: clamp(14px, 7cqi, 20px); }
 .deck-tile-price { font-size: clamp(12px, 6cqi, 18px); opacity: 0.85; }
-.deck-tile-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; font-size: clamp(10px, 4.6cqi, 13px); color: rgba(255, 255, 255, 0.5); }
+.deck-tile-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; font-size: clamp(12px, 4.6cqi, 13px); color: rgba(255, 255, 255, 0.5); }
 .deck-tile-by { color: var(--cyan-soft); }
 /* Export sull'angolo dell'arte: fratello del riquadro (niente pulsanti annidati), sempre visibile. */
 .deck-tile-wrap { position: relative; }
@@ -3163,7 +3163,7 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); justify-items: center; align-items: center; gap: 0; padding: 0 6px;
 }
 .mobile-decks .decks-tabs { flex: 1 1 100%; }
-.deck-editor.is-mobile .deck-tabs .decks-tab, .mobile-decks .decks-tabs .decks-tab { font-size: 0.74rem; letter-spacing: 0.1em; white-space: nowrap; }
+.deck-editor.is-mobile .deck-tabs .decks-tab, .mobile-decks .decks-tabs .decks-tab { min-height: 44px; align-items: center; font-size: 0.8rem; letter-spacing: 0.08em; white-space: nowrap; }
 span.deck-hero-art { cursor: default; }
 /* Testata del mazzo: pulsanti solo icona, quadrati da 36 px con il fondo scuro del prezzo (stanno sull'arte). */
 .deck-hero-meta .deck-icon-btn { flex: none; width: 36px; height: 36px; padding: 0; justify-content: center; background: rgba(8, 7, 15, 0.6); }
@@ -3526,23 +3526,25 @@ span.deck-hero-art { cursor: default; }
    spazio. Desktop: il gruppo non c'è (display: contents), i pulsanti restano nella riga in basso. */
 .deck-hero-actions { display: contents; }
 .deck-editor.is-mobile .deck-hero-actions { position: absolute; top: 0; right: 0; display: flex; gap: 8px; }
-.deck-editor.is-mobile .deck-hero-title { padding-right: 132px; }
+.deck-editor.is-mobile .deck-hero-title { padding-right: 156px; }
 /* Ordina / Vista / Raggruppa (+ nuova sezione) in una riga: etichetta piccola sopra, menu stretti. */
 .deck-editor.is-mobile .deck-toolbar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; align-items: end; gap: 8px; }
-.deck-editor.is-mobile .deck-tool { flex-direction: column; align-items: stretch; gap: 4px; min-width: 0; font-size: 0.68rem; letter-spacing: 0.08em; }
-.deck-editor.is-mobile .deck-tool select { width: 100%; height: 34px; padding: 0 8px; font-size: 0.74rem; }
-.deck-editor.is-mobile .deck-new-section { width: 34px; height: 34px; padding: 0; justify-content: center; }
+.deck-editor.is-mobile .deck-tool { flex-direction: column; align-items: stretch; gap: 4px; min-width: 0; font-size: 0.75rem; letter-spacing: 0.06em; }
+.deck-editor.is-mobile .deck-tool select { width: 100%; height: 44px; padding: 0 8px; }
+.deck-editor.is-mobile .deck-new-section { width: 44px; height: 44px; padding: 0; justify-content: center; }
 /* Stack: fascia scoperta fissa a 36 px (TOUCH_STRIP in DeckSections) invece del 14% della larghezza (23 px a
    165 px): il chip − / numero / + in alto (4 + 28 px) resta sulla sua carta. 139.344% = altezza della carta. */
 .deck-editor.is-mobile .deck-rows.view-stacks .deck-row + .deck-row { margin-top: calc(36px - 139.344%); }
-/* Bersagli da dito: − / + / numero e Flip a 28 px (erano 22, sotto il minimo di 24 px), anche nella lista. */
+/* Sulle carte di griglia e stack restano il numero di copie (28 px) e Flip; − / + stanno nella barra della
+   selezione (.deck-sel-bar), a 44 px: sulla carta non ci starebbero nella fascia scoperta degli stack. */
 .deck-editor.is-mobile .deck-rows:is(.view-grid, .view-stacks) .deck-row-qty { top: 4px; gap: 6px; }
-.deck-editor.is-mobile .deck-card-qty,
-.deck-editor.is-mobile .deck-rows:is(.view-grid, .view-stacks) .deck-row-qty button { min-width: 28px; height: 28px; font-size: 0.8rem; }
-.deck-editor.is-mobile .deck-rows:is(.view-grid, .view-stacks) .deck-row-qty button { width: 28px; }
+.deck-editor.is-mobile .deck-card-qty { min-width: 28px; height: 28px; font-size: 0.8rem; }
+.deck-editor.is-mobile .deck-rows:is(.view-grid, .view-stacks) .deck-row-qty button { display: none; }
 .deck-editor.is-mobile .deck-card-flip { top: 4px; left: 4px; width: 28px; height: 28px; }
+.deck-editor.is-mobile .deck-card-flip::after { content: ''; position: absolute; inset: -8px -8px -4px; } /* tocco 44 x 40 */
 .deck-editor.is-mobile .deck-row:has(.deck-card-flip) .deck-card-flags { left: 38px; }
-.deck-editor.is-mobile .deck-rows.view-list .deck-row-qty button { min-width: 32px; min-height: 32px; justify-content: center; align-items: center; }
+.deck-editor.is-mobile .deck-rows.view-list .deck-row-qty { opacity: 1; gap: 8px; }
+.deck-editor.is-mobile .deck-rows.view-list .deck-row-qty button { min-width: 44px; min-height: 44px; justify-content: center; align-items: center; }
 /* Griglia a due colonne (gli stack li fa a due DeckSections, touch). */
 .deck-editor.is-mobile .deck-rows.view-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 10px; }
 /* Pressione lunga = il nostro menu, non quello del sistema (Salva immagine): l'immagine non riceve il
@@ -3554,12 +3556,12 @@ span.deck-hero-art { cursor: default; }
 .deck-bottom-bar {
   position: absolute; left: 0; right: 0; bottom: 0; z-index: 7;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  min-height: 56px; padding: 8px 14px calc(8px + env(safe-area-inset-bottom, 0px));
+  min-height: 60px; padding: 8px 14px calc(8px + env(safe-area-inset-bottom, 0px));
   background: rgba(8, 7, 15, 0.8);
   border-top: 1px solid rgba(124, 92, 255, 0.18);
 }
 .deck-bottom-actions { display: flex; gap: 8px; }
-.deck-bottom-bar .deck-icon-btn { flex: none; width: 40px; height: 40px; padding: 0; justify-content: center; }
+.deck-bottom-bar .deck-icon-btn { flex: none; width: 44px; height: 44px; padding: 0; justify-content: center; }
 .deck-count.plain { position: static; flex-direction: row; align-items: baseline; gap: 16px; }
 .deck-count.plain .deck-count-chip { padding: 0; background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 /* Lista mazzi da telefono: Import / New deck / Play in basso a destra, tondi, sopra il contenuto. */
@@ -3568,6 +3570,45 @@ span.deck-hero-art { cursor: default; }
 .mobile-decks .decks-actions .btn-secondary { background: rgba(8, 7, 15, 0.92); }
 /* Settings della stampa da telefono: stesso spazio tra i gruppi della sidebar desktop (gap 24 px). */
 .mobile-page-body > .sidebar-section + .sidebar-section { margin-top: 24px; }
+/* ── Telefono, revisione UX: bersagli da dito di almeno 44 px. Dove l'aspetto resta piccolo (?, export dei
+   riquadri, matita del nickname) si allarga solo l'area di tocco con ::after. ── */
+.mobile-header { padding-block: 6px; }
+.mobile-header .nav-tab { min-height: 44px; display: inline-flex; align-items: center; font-size: 0.8rem; }
+.mobile-header .account-btn { width: 44px; height: 44px; }
+.mobile-header .help-btn, .mobile .profile-icon-btn { position: relative; }
+.mobile-header .help-btn::after, .mobile .deck-tile-export::after, .mobile .profile-icon-btn::after { content: ''; position: absolute; inset: -6px; }
+.deck-editor.is-mobile .deck-hero-meta .deck-icon-btn, .deck-editor.is-mobile .deck-format { height: 44px; }
+.deck-editor.is-mobile .deck-hero-meta .deck-icon-btn { width: 44px; }
+.deck-editor.is-mobile .deck-hero .deck-name { min-height: 44px; }
+.mobile .decks-search-box .import-link-input, .mobile .decks-filter-btn, .mobile .decks-format { height: 44px; }
+.mobile-page-header .modal-close, .card-zoom-close { width: 44px; height: 44px; justify-content: center; align-items: center; }
+.mobile-page-header .modal-close { margin-right: -10px; }
+.mobile .dilemma-head .deck-icon-btn { width: 44px; height: 44px; }
+.mobile .dilemma-why-row .deck-icon-btn { min-height: 44px; }
+.mobile .dilemma-deck a { display: inline-block; padding: 8px 4px; }
+.mobile .card-menu button { min-height: 44px; }
+.mobile .toast-action { min-height: 44px; }
+/* Cursore della qualità: area di tocco alta 44 px, traccia sempre di 4 px, pallino da 24. */
+.mobile .field input[type="range"] { height: 44px; margin: 0; background-size: 100% 4px; background-position: center; background-repeat: no-repeat; }
+.mobile .field input[type="range"]::-webkit-slider-thumb { width: 24px; height: 24px; }
+.mobile .field input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; }
+/* Campi a 16 px: sotto, iOS Safari ingrandisce la pagina al tocco. Il nome del mazzo (20 px) resta com'è. */
+.mobile :is(select, textarea, input:is([type="text"], [type="search"], [type="email"], [type="password"], [type="number"], [type="url"], :not([type]))):not(.deck-name) { font-size: 16px !important; }
+/* Testo mai sotto i 12 px. */
+.mobile .ct-lbl, .mobile .ct-nav span, .deck-editor.is-mobile .deck-sync, .mobile-page-body .sidebar-section h2,
+.mobile .profile-banner-hint, .mobile .profile-stats dt { font-size: 0.75rem; }
+.mobile .range-value, .mobile .field-hint { font-size: 0.78rem; }
+/* Barra della selezione (DeckSections, touch): − numero + della carta selezionata, sopra la barra in basso. */
+.deck-sel-bar {
+  position: fixed; left: 0; right: 0; bottom: calc(72px + env(safe-area-inset-bottom, 0px)); z-index: 55; width: max-content; margin: 0 auto; /* niente transform: fade-up lo anima */
+  display: flex; align-items: center; gap: 12px; padding: 6px;
+  background: rgba(8, 7, 15, 0.94); border: 1px solid rgba(0, 229, 255, 0.45); border-radius: 999px; box-shadow: var(--shadow-lg);
+  animation: fade-up 0.18s ease-out both;
+}
+.deck-sel-bar .deck-icon-btn { width: 44px; height: 44px; padding: 0; justify-content: center; border-radius: 50%; }
+.deck-sel-qty { min-width: 2ch; text-align: center; font-family: var(--font-mono); font-size: 1.15rem; font-weight: 600; color: var(--cyan); }
+/* View card: Flip sotto la carta, al centro. */
+.card-zoom-flip { position: absolute; left: 50%; bottom: -22px; transform: translateX(-50%); width: 44px; height: 44px; padding: 0; justify-content: center; border-radius: 50%; background: var(--bg-elevated); }
 
 .search-wrap { position: relative; }
 .search-box { display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-muted); }

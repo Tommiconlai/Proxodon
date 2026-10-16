@@ -4,6 +4,7 @@ import PageSettings from './PageSettings';
 import PagePreview from './PagePreview';
 import ExportProgress from './ExportProgress';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
+import { useBackClose } from '../hooks/useBackClose';
 
 // Icona "sliders" per Settings (inline; stesso stile della vecchia tab bar).
 function IconSliders({ size = 22 }) {
@@ -34,6 +35,9 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
   const [addOpen, setAddOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [page, setPage] = useState(null); // null | 'settings' | 'export'
+  // Back del sistema chiude anche i due overlay inline (le pagine hanno il loro, in MobilePage).
+  useBackClose(addOpen, () => setAddOpen(false));
+  useBackClose(helpOpen, () => setHelpOpen(false));
 
   // Esc chiude i due overlay inline (add-sheet, tooltip ?). Gli altri (menu carta,
   // MobilePage) hanno il loro useOverlayDismiss. Se una pagina è SOPRA (page),
