@@ -158,7 +158,7 @@ const CREDITS = [
     ['UpscalerJS', 'https://upscalerjs.com', 'AI upscale with the ESRGAN medium model on TensorFlow.js (MIT, Apache-2.0), loaded from jsDelivr.'],
   ]],
   ['Look', [
-    ['Google Fonts', 'https://fonts.google.com', 'Chakra Petch (Cadson Demak), Space Grotesk (Florian Karsten) and JetBrains Mono (JetBrains), SIL Open Font License.'],
+    ['Fontsource', 'https://fontsource.org', 'Chakra Petch (Cadson Demak), Space Grotesk (Florian Karsten) and JetBrains Mono (JetBrains), SIL Open Font License, bundled with the app.'],
     ['Lucide', 'https://lucide.dev', 'icons (ISC).'],
   ]],
   ['Built with', [
