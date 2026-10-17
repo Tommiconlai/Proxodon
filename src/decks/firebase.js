@@ -40,11 +40,15 @@ async function googleCredential() {
 // Popup; se il browser lo blocca, login a pagina intera (redirect). Popup chiuso = nessun errore.
 export async function signIn() {
   if (isApp) {
+    let credential;
     try {
-      await signInWithCredential(auth, await googleCredential());
+      credential = await googleCredential();
     } catch (e) {
-      if (e.code !== 'USER_CANCELLED') throw e; // foglio Google chiuso = nessun errore, come il popup
+      if (e.code === 'USER_CANCELLED') return; // foglio Google chiuso = nessun errore, come il popup
+      // il dettaglio tecnico (pacchetto, SHA-1, client id) è nel logcat, tag GoogleProvider
+      throw new Error('Google sign-in failed. Try again, or sign in with email.');
     }
+    await signInWithCredential(auth, credential);
     return;
   }
   try {

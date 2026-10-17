@@ -215,6 +215,13 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
   `D8:45:3A:45:A3:90:A9:2B:95:CD:5A:94:FF:24:D2:4F:06:FD:D2:67` (SHA-256
   `4F:EE:C1:1E:98:15:83:50:BB:9B:F6:35:6F:A0:68:6F:1D:45:00:4F:B5:F9:D0:58:91:08:79:8D:8C:CA:15:C0`).
   Not tested yet (need sign-in): deck export, backup / restore picker, profile photo.
+  Update (milestone 2, same day): `googleWebClientId` is now set (the project's Web client, the same
+  `client_id` Firebase puts in its Google redirect, read from `accounts:createAuthUri`). On the emulator the
+  native sheet "Choose an account to continue to Proxodon" opens; picking the account fails with
+  `[16] Account reauth failed` until the Android app with the debug SHA-1 above is registered in the Firebase
+  project (that creates the Android OAuth client). Plugin errors now show "Google sign-in failed. Try again,
+  or sign in with email." (details in logcat, tag `GoogleProvider`); closing the sheet (`USER_CANCELLED`)
+  shows nothing.
 - **Android app, milestone 1: scaffold (2026-10-17):** user choices: Capacitor, id
   `com.tommiconlai.proxodon`, personal debug APK (no Play yet), min Android 7 (API 24). Added Capacitor 8.5.3
   (`@capacitor/core`, `@capacitor/android`, dev `@capacitor/cli`), `capacitor.config.json`, the `android/`

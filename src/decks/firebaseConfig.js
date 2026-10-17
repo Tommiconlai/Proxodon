@@ -12,5 +12,6 @@ export const firebaseConfig = {
 };
 
 // Login Google nativo dell'app Android: il client OAuth "Web" del progetto (Authentication > Google >
-// Web SDK configuration), pubblico come il resto. Il client Android lo crea Firebase dallo SHA-1.
-export const googleWebClientId = '';
+// Web SDK configuration; è il client_id che Firebase usa anche per il redirect Google del web), pubblico come
+// il resto. Il client Android lo crea Firebase dallo SHA-1 della chiave di firma.
+export const googleWebClientId = '43667971625-vs4bpugk1rdptel5a5lhg5dsk57nchmj.apps.googleusercontent.com';
