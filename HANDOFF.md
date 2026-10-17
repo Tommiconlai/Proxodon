@@ -209,9 +209,15 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
   `deleteHelp`, counts); `deleteDeck` and `deleteUserData` clean them up; privacy text updated. `deckOnce` moved to
   deckStore and `artCrop` to deckModel (shared with Dilemmas, keeps Fast Refresh happy). Phone: deck tabs and deck list
   tabs now 4 on one row (`repeat(4, auto)`, 0.74rem). **Needs** the new `firestore.rules` published and a collection group
-  single-field index on `helps.createdAt` (descending; the first feed load gives the console link). Not verified end to
-  end yet (rules not published at commit time): checked the tabs at 1440x900 and 375x812, the card menu item, the
-  permission error state, lint, build, self-check.
+  single-field index on `helps.createdAt` (descending; the first feed load gives the console link). Verified live with the
+  rules published (2026-10-17, account blazedfoot, deck Aesi, a test request "Test request: I need to cut 3 cards..."
+  left open): post from the + (rules accept), tile, owner view, Solved and reopen, Ask for help from the menu (with a
+  request open: the notice; on Jetmir: the dialog with the card in focus and the cursor on the question),
+  `#/decks/:id/help`, phone 375x812; the reply form (rendered for the owner by a temporary local change, then
+  reverted): Add from search, Cut from the deck, and sending is rejected by the rules on one's own request, with the
+  error toast and the draft kept (`ReplyForm` keyed on `formKey`, bumped only when one's own reply is deleted, not on
+  the reply's presence, which a rejected write rolls back). Still to verify: the feed (needs the `helps.createdAt`
+  collection group index), a real reply from another account, Apply / Undo on it.
 - **Android app, milestone 4: polish (2026-10-17):** back button: `@capacitor/app` alone only
   calls `goBack` and does nothing at the root, so `main.jsx` adds a `backButton` listener (app only):
   `history.back()` while there is history (overlays via `useBackClose`, hash routes), else `minimizeApp()`

@@ -231,6 +231,9 @@ function HelpView({ deck, help, uid, mine, notify, update, onBack, deckHref }) {
   const [replies, setReplies] = useState(null);
   const [confirm, setConfirm] = useState(null); // 'help' | uid della risposta da cancellare
   const [busy, setBusy] = useState(null); // uid della risposta in Apply
+  // Il modulo della propria risposta riparte vuoto solo dopo averla cancellata: una risposta rifiutata (richiesta
+  // appena risolta) sparisce dal listener ma la bozza resta.
+  const [formKey, setFormKey] = useState(0);
   const [seen] = useState(() => ms(help.seenAt)); // le "new" restano evidenziate finché la richiesta è aperta qui
   useEffect(() => listenReplies(deck.id, help.id, setReplies, () => setReplies([])), [deck.id, help.id]);
   useEffect(() => { if (mine) seeHelp(deck.id, help.id).catch(() => {}); }, [mine, deck.id, help.id]);
@@ -270,6 +273,7 @@ function HelpView({ deck, help, uid, mine, notify, update, onBack, deckHref }) {
       onBack();
       deleteHelp(deck.id, help.id).then(() => notify('Help request deleted')).catch((e) => notify(`Could not delete the request: ${e.message}`, 'error'));
     } else {
+      if (what === uid) setFormKey((k) => k + 1);
       deleteReply(uid, deck.id, help.id, what).then(() => notify('Suggestion deleted')).catch((e) => notify(`Could not delete the suggestion: ${e.message}`, 'error'));
     }
   };
@@ -296,7 +300,7 @@ function HelpView({ deck, help, uid, mine, notify, update, onBack, deckHref }) {
         {help.cards.length > 0 && <CardChips cards={help.cards} label="Cards in focus" className="focus" />}
       </div>
       {!mine && !solved && replies && (
-        <ReplyForm key={own ? 'edit' : 'new'} deck={deck} help={help} uid={uid} reply={own} notify={notify} onDelete={() => setConfirm(uid)} />
+        <ReplyForm key={formKey} deck={deck} help={help} uid={uid} reply={own} notify={notify} onDelete={() => setConfirm(uid)} />
       )}
       <section className="help-replies" aria-label="Suggestions">
         <h4>{mine ? 'Suggestions' : 'Other suggestions'} <span className="n">{shown.length}</span></h4>
