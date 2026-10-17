@@ -17,6 +17,8 @@ import { useIsMobile } from './hooks/useIsMobile';
 import { generatePDF, getGridInfo, PAPER_FORMATS, nextBleedMode } from './utils/pdfGenerator';
 import { DEFAULT_PROFILE_ID, UPLOAD_ID, getProfileMeta, loadBundledProfileBytes } from './utils/iccProfiles';
 import { buildDeckList, fetchScryfallImages } from './utils/scryfall';
+import { downloadText } from './utils/download';
+import { Capacitor } from '@capacitor/core';
 import { IconFile, IconAlert, IconTrash, IconDownload, IconList, IconImage, IconPlus, IconX, Wordmark } from './components/icons';
 import NavTabs from './components/NavTabs';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -194,7 +196,15 @@ export default function App() {
   // Upload manuali (drag&drop / file picker): nessuna abbondanza generata.
   // Upload manuali: nessuna abbondanza generata (carta a misura di taglio).
   // Per le carte già al vivo: Bleed style → "Bleed in art", o il toggle per-carta.
-  const handleImagesAdded = (files) => addItems(files.map(file => ({ file, bleedMode: 'none' })));
+  // App Android: i file scelti sono URI content:// letti in modo pigro e il permesso scade dopo la scelta
+  // (NotReadableError al PDF), quindi si copiano subito in memoria, come i file scaricati da Scryfall.
+  const handleImagesAdded = (files) => {
+    const toItems = (list) => addItems(list.map(file => ({ file, bleedMode: 'none' })));
+    if (!Capacitor.isNativePlatform()) return toItems(files);
+    Promise.all(files.map(async (f) => new File([await f.arrayBuffer()], f.name, { type: f.type, lastModified: f.lastModified })))
+      .then(toItems)
+      .catch(() => setError('Cannot read the chosen files. Pick them again.'));
+  };
 
   // Rimozione con UNDO: niente revoke immediato. Cattura gli item + indici (puro,
   // da `images` corrente), mostra un toast con azione Undo, e revoca gli object URL
@@ -347,15 +357,11 @@ export default function App() {
         : 'No cards to save.' });
       return;
     }
-    const blob = new Blob([text + '\n'], { type: 'text/plain' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'proxodon.txt';
-    a.click();
-    URL.revokeObjectURL(a.href);
-    setToast({ kind: 'success', msg: custom
-      ? `Saved ${cards} Scryfall card${cards > 1 ? 's' : ''}. ${custom} custom image${custom > 1 ? 's' : ''} not included.`
-      : `Saved ${cards} Scryfall card${cards > 1 ? 's' : ''} to proxodon.txt.` });
+    downloadText('proxodon.txt', text + '\n')
+      .then(() => setToast({ kind: 'success', msg: custom
+        ? `Saved ${cards} Scryfall card${cards > 1 ? 's' : ''}. ${custom} custom image${custom > 1 ? 's' : ''} not included.`
+        : `Saved ${cards} Scryfall card${cards > 1 ? 's' : ''} to proxodon.txt.` }))
+      .catch((e) => setToast({ kind: 'error', msg: e.message || 'Could not save the list.' }));
   };
 
   // Carica + valida un profilo ICC CMYK personalizzato (.icc). Non persistito (binario).

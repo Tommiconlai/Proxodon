@@ -110,7 +110,7 @@ export function ExportDeckDialog({ deck, onClose }) {
         <textarea className="import-textarea export-text" value={text} readOnly rows={12} spellCheck={false} aria-label="Deck list"
           onFocus={(e) => e.target.select()} />
         <div className="modal-actions">
-          <button type="button" className="btn-secondary" onClick={() => downloadText(`${safeName(deck.name)}.txt`, `${text}\n`)}>
+          <button type="button" className="btn-secondary" onClick={() => downloadText(`${safeName(deck.name)}.txt`, `${text}\n`).catch(() => { /* salvataggio fallito: il testo resta qui da copiare */ })}>
             <IconDownload size={15} /> Download .txt
           </button>
           <button type="button" className="btn-generate import-btn" onClick={copy}><IconCopy size={15} /> {copied ? 'Copied' : 'Copy'}</button>

@@ -7,6 +7,9 @@
     "SystemBars": {
       "insetsHandling": "native",
       "style": "DARK"
+    },
+    "SocialLogin": {
+      "providers": { "google": true, "facebook": false, "apple": false, "twitter": false }
     }
   }
 }

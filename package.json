@@ -12,6 +12,9 @@
   "dependencies": {
     "@capacitor/android": "^8.5.3",
     "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/share": "^8.0.3",
+    "@capgo/capacitor-social-login": "^8.5.19",
     "@tensorflow/tfjs": "~4.11.0",
     "@upscalerjs/esrgan-medium": "^1.0.0",
     "firebase": "^13.0.0",

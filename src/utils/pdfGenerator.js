@@ -4,6 +4,7 @@
  * Costanti: tutte le misure in mm, jsPDF usa 'mm' come unità.
  * Orientamento: auto-calcolato per massimizzare il numero di immagini.
  */
+import { saveFile } from './download.js';
 
 export const CARD_W = 63;   // mm
 export const CARD_H = 88;   // mm
@@ -361,6 +362,6 @@ export async function generatePDF(items, formatKey, bleedMm, dpi = 600, bleedSty
   }
 
   const ts = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-');
-  doc.save(`proxies_${formatKey}_${ts}.pdf`);
+  await saveFile(`proxies_${formatKey}_${ts}.pdf`, doc.output('blob'));
 }
 

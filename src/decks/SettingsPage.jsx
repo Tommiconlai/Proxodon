@@ -68,8 +68,9 @@ export default function SettingsPage({ user, notify }) {
   useEffect(() => listenDecks(uid, setDecks, (e) => notify(`Could not load your decks: ${e.message}`, 'error')), [uid, notify]);
 
   const backup = () => {
-    downloadText(`proxodon-decks-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(toBackup(decks), null, 2), 'application/json');
-    notify(`Backup of ${plural(decks.length, 'deck')} downloaded`);
+    downloadText(`proxodon-decks-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(toBackup(decks), null, 2), 'application/json')
+      .then(() => notify(`Backup of ${plural(decks.length, 'deck')} downloaded`))
+      .catch((e) => notify(`Backup failed: ${e.message}`, 'error'));
   };
   const restore = async (e) => {
     const file = e.target.files?.[0];

@@ -10,3 +10,7 @@ export const firebaseConfig = {
   messagingSenderId: '43667971625',
   appId: '1:43667971625:web:33cbf783d7d72cd6460638',
 };
+
+// Login Google nativo dell'app Android: il client OAuth "Web" del progetto (Authentication > Google >
+// Web SDK configuration), pubblico come il resto. Il client Android lo crea Firebase dallo SHA-1.
+export const googleWebClientId = '';

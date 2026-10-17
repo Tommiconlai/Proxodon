@@ -1,5 +1,6 @@
 import { PAPER_FORMATS, getGridInfo } from '../utils/pdfGenerator';
 import { BUNDLED_PROFILES, UPLOAD_ID } from '../utils/iccProfiles';
+import { Capacitor } from '@capacitor/core';
 
 const DPI_OPTIONS = [150, 300, 600, 800, 1000, 1200];
 const BLEED_OPTIONS = [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
@@ -164,7 +165,8 @@ export default function PageSettings({
                                     <>
                                         <div className="icc-row">
                                             <label className="btn-icc">
-                                                <input type="file" accept=".icc,.icm" hidden
+                                                {/* App Android: il picker filtra per MIME e .icc/.icm non ne hanno uno noto (lista vuota): tutti i file, il profilo lo valida onIccUpload */}
+                                                <input type="file" accept={Capacitor.isNativePlatform() ? undefined : '.icc,.icm'} hidden
                                                     onChange={e => { const f = e.target.files?.[0]; if (f) onIccUpload?.(f); e.target.value = ''; }} />
                                                 {uploadedIcc ? 'Change ICC…' : 'Load .icc / .icm…'}
                                             </label>

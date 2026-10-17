@@ -20,6 +20,7 @@
 import { getGridInfo, cropMarkSpan, resolveBleedMode, drawCardWithBleed, CARD_W, CARD_H } from './pdfGenerator.js';
 import { isCmykJpeg, cmykCellBuffer } from './cmykRaster.js';
 import { decodeCMYK } from './vendor/jpegCmykDecoder.js';
+import { saveFile } from './download.js';
 
 const MM_TO_PT = 72 / 25.4;
 
@@ -251,13 +252,5 @@ export async function buildCmykPdfBytes(items, formatKey, bleedMm, dpi = 300, bl
 export async function generatePDFCmyk(...args) {
   const { bytes, ts } = await buildCmykPdfBytes(...args);
   const formatKey = args[1];
-  const blob = new Blob([bytes], { type: 'application/pdf' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `proxies_CMYK_${formatKey}_${ts}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  await saveFile(`proxies_CMYK_${formatKey}_${ts}.pdf`, new Blob([bytes], { type: 'application/pdf' }));
 }

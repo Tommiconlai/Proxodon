@@ -5,12 +5,13 @@
 import { initializeApp } from 'firebase/app';
 import {
   getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged,
-  signOut as fbSignOut, deleteUser, reauthenticateWithPopup,
+  signOut as fbSignOut, deleteUser, reauthenticateWithPopup, signInWithCredential,
   signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification,
   updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider,
 } from 'firebase/auth';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
-import { firebaseConfig } from './firebaseConfig';
+import { Capacitor } from '@capacitor/core';
+import { firebaseConfig, googleWebClientId } from './firebaseConfig';
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
@@ -21,8 +22,31 @@ export const db = initializeFirestore(app, {
 
 const provider = new GoogleAuthProvider();
 
+// App Android: popup e redirect non funzionano nella WebView. Login Google nativo (Credential Manager,
+// plugin caricato solo nell'app) e il suo idToken passa all'SDK web: Firestore e watchUser restano uguali.
+const isApp = Capacitor.isNativePlatform();
+let socialLogin = null;
+const getSocialLogin = () => (socialLogin ??= import('@capgo/capacitor-social-login')
+  .then(async ({ SocialLogin }) => {
+    await SocialLogin.initialize({ google: { webClientId: googleWebClientId } });
+    return SocialLogin;
+  })
+  .catch((e) => { socialLogin = null; throw e; })); // un errore non resta in cache: il tentativo dopo riprova
+async function googleCredential() {
+  const { result } = await (await getSocialLogin()).login({ provider: 'google', options: {} });
+  return GoogleAuthProvider.credential(result.idToken);
+}
+
 // Popup; se il browser lo blocca, login a pagina intera (redirect). Popup chiuso = nessun errore.
 export async function signIn() {
+  if (isApp) {
+    try {
+      await signInWithCredential(auth, await googleCredential());
+    } catch (e) {
+      if (e.code !== 'USER_CANCELLED') throw e; // foglio Google chiuso = nessun errore, come il popup
+    }
+    return;
+  }
   try {
     await signInWithPopup(auth, provider);
   } catch (e) {
@@ -80,7 +104,11 @@ export async function changePassword(current, next) {
   await updatePassword(u, next);
 }
 
-export const signOut = () => fbSignOut(auth);
+// Nell'app si azzera anche la scelta dell'account Google, così il prossimo accesso può cambiarlo.
+export async function signOut() {
+  await fbSignOut(auth);
+  if (isApp) await getSocialLogin().then((s) => s.logout({ provider: 'google' })).catch(() => {});
+}
 export const watchUser = (cb) => onAuthStateChanged(auth, cb);
 
 // Prima i dati (servono ancora i permessi), poi l'account. Firebase può chiedere un login recente:
@@ -96,7 +124,8 @@ export async function deleteAccount(deleteData) {
     if (!user.providerData.some((p) => p.providerId === 'google.com')) {
       throw new Error('Your decks were deleted. To delete the account too, sign out, sign in again and repeat.');
     }
-    await reauthenticateWithPopup(user, provider);
+    if (isApp) await reauthenticateWithCredential(user, await googleCredential());
+    else await reauthenticateWithPopup(user, provider);
     await deleteUser(user);
   }
 }
