@@ -1,0 +1,12 @@
+{
+  "appId": "com.tommiconlai.proxodon",
+  "appName": "Proxodon",
+  "webDir": "dist",
+  "backgroundColor": "#08070f",
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "native",
+      "style": "DARK"
+    }
+  }
+}

@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
     "@tensorflow/tfjs": "~4.11.0",
     "@upscalerjs/esrgan-medium": "^1.0.0",
     "firebase": "^13.0.0",
@@ -22,6 +24,7 @@
     "upscaler": "^1.0.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
     "@eslint/js": "^9.39.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
