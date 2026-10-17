@@ -7,6 +7,7 @@ import { navigate } from '../hooks/useHashRoute';
 import DeckSections from './DeckSections';
 import { DeckTabs, DeckCount, DeckBottomBar, DeckTagList } from './DeckTabs';
 import { DeckDilemmas } from './Dilemmas';
+import { DeckHelps } from './HelpRequests';
 import { ExportDeckDialog } from './dialogs';
 import { IconCopy, IconExport, IconHeart } from '../components/icons';
 
@@ -118,6 +119,7 @@ export default function CommunityDeck({ uid, id, notify }) {
         <div className="deck-body">
           <section className="deck-main">
             {tab === 'dilemmas' ? <DeckDilemmas deck={deck} uid={uid} mine={false} notify={notify} />
+              : tab === 'help' ? <DeckHelps deck={deck} uid={uid} mine={deck.uid === uid} notify={notify} />
               : <DeckSections deck={deck} update={update} touch={mobile} readOnly tab={tab} onTab={setTab} />}
           </section>
         </div>

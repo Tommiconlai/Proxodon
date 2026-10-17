@@ -5,7 +5,7 @@
  */
 import {
   collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, getDoc, getDocs, writeBatch, runTransaction,
-  query, where, orderBy, limit, getCountFromServer, collectionGroup,
+  query, where, orderBy, limit, getCountFromServer, collectionGroup, arrayUnion, arrayRemove, Timestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { searchTerms, contentSig, deckTags } from './deckModel';
@@ -101,6 +101,7 @@ export const setDeckPublic = (uid, deck, on) => Promise.all([
 export const deleteDeck = (uid, deck) => Promise.all([
   deleteDoc(doc(decksCol(uid), deck.id)), deck.public && unpublishDeck(deck.id),
   deck.public && deleteDilemmasOf(deck.id).catch(() => {}), // pulizia: se fallisce il mazzo resta comunque eliminato
+  deck.public && deleteHelpsOf(deck.id).catch(() => {}),
 ]);
 
 // Gli ultimi creati, o quelli con una parola che inizia per word; i più recenti prima.
@@ -140,6 +141,13 @@ export const listenDilemmaFeed = (onChange, onError) =>
 export const listenDilemma = (deckId, dId, onChange, onError) =>
   onSnapshot(doc(dilemmasCol(deckId), dId), (s) => onChange(s.exists() ? plainDoc(s) : null), onError);
 export const getPublicDeck = (id) => getDoc(doc(publicCol, id)).then((s) => (s.exists() ? fromDoc(s) : null));
+// Nome, formato e autore del mazzo pubblico per i feed (dilemmi, help request), letto una volta per mazzo. ponytail: cache
+// per la sessione, un nome cambiato si vede ricaricando. null = mazzo non più pubblico; errore = undefined, resta "…".
+const publicDecks = new Map();
+export const deckOnce = (id) => {
+  if (!publicDecks.has(id)) publicDecks.set(id, getPublicDeck(id).catch(() => undefined));
+  return publicDecks.get(id);
+};
 // Id {deck}_{dilemma} dei dilemmi a cui l'account ha risposto.
 export const listenAnswered = (uid, onChange, onError) =>
   onSnapshot(answeredCol(uid), (qs) => onChange(new Set(qs.docs.map((d) => d.id))), onError);
@@ -167,6 +175,69 @@ export function voteDilemma(uid, deckId, dId, pick, why = '') {
 }
 export const explainVote = (uid, deckId, dId, why) => updateDoc(doc(votesCol(deckId, dId), uid), { why });
 export const countAnswered = (uid) => getCountFromServer(answeredCol(uid)).then((s) => s.data().count);
+
+// Help request (solo mazzi pubblici): publicDecks/{deck}/helps/{id} = { uid, kind, text, cards: [0-10 carte], status:
+// 'open' | 'solved', applied: [uid delle risposte applicate], seenAt (ultima apertura del proprietario), createdAt };
+// risposte in .../replies/{uid} = { text, add: [carte], cut: [carte], owner (nickname), at }, una per account, mai del
+// proprietario. Ogni risposta ha users/{uid}/replied/{deck}_{id} = { deck, help, at }, per cancellarla con l'account.
+const helpsCol = (deckId) => collection(publicCol, deckId, 'helps');
+const repliesCol = (deckId, hId) => collection(helpsCol(deckId), hId, 'replies');
+const repliedCol = (uid) => collection(db, 'users', uid, 'replied');
+export const listenHelps = (deckId, onChange, onError) =>
+  onSnapshot(query(helpsCol(deckId), orderBy('createdAt', 'desc')), (qs) => onChange(qs.docs.map(plainDoc)), onError);
+// Feed della scheda Help: le ultime 60 di tutti i mazzi pubblici (serve l'indice collection group su
+// helps.createdAt, come per i dilemmi). ponytail: aperte / risolte le separa la lista.
+export const listenHelpFeed = (onChange, onError) =>
+  onSnapshot(query(collectionGroup(db, 'helps'), orderBy('createdAt', 'desc'), limit(60)),
+    (qs) => onChange(qs.docs.map((s) => ({ ...plainDoc(s), deckId: s.ref.parent.parent.id }))), onError);
+export const listenHelp = (deckId, id, onChange, onError) =>
+  onSnapshot(doc(helpsCol(deckId), id), (s) => onChange(s.exists() ? plainDoc(s) : null), onError);
+export const createHelp = (uid, deckId, kind, text, cards) => addDoc(helpsCol(deckId), {
+  uid, kind, text, cards: cards.map(dilemmaCard), status: 'open', applied: [], seenAt: serverTimestamp(), createdAt: serverTimestamp(),
+});
+// Solo il proprietario: aperta / risolta, l'ha appena aperta (le risposte "new" ripartono da qui), la risposta di
+// rUid applicata al mazzo o no (Undo).
+const helpDoc = (deckId, id) => doc(helpsCol(deckId), id);
+export const setHelpStatus = (deckId, id, status) => updateDoc(helpDoc(deckId, id), { status });
+export const seeHelp = (deckId, id) => updateDoc(helpDoc(deckId, id), { seenAt: serverTimestamp() });
+export const setApplied = (deckId, id, rUid, on) => updateDoc(helpDoc(deckId, id), { applied: on ? arrayUnion(rUid) : arrayRemove(rUid) });
+// Id {deck}_{help} delle richieste a cui l'account ha risposto.
+export const listenReplied = (uid, onChange, onError) =>
+  onSnapshot(repliedCol(uid), (qs) => onChange(new Set(qs.docs.map((d) => d.id))), onError);
+export async function deleteHelp(deckId, id) {
+  const replies = await getDocs(repliesCol(deckId, id));
+  const batch = writeBatch(db);
+  replies.docs.forEach((r) => batch.delete(r.ref));
+  batch.delete(doc(helpsCol(deckId), id));
+  await batch.commit();
+}
+async function deleteHelpsOf(deckId) {
+  const list = await getDocs(helpsCol(deckId));
+  await Promise.all(list.docs.map((h) => deleteHelp(deckId, h.id)));
+}
+export const listenReplies = (deckId, hId, onChange, onError) =>
+  onSnapshot(query(repliesCol(deckId, hId), orderBy('at', 'desc')), (qs) => onChange(qs.docs.map(plainDoc)), onError);
+export const countReplies = (deckId, hId) => getCountFromServer(repliesCol(deckId, hId)).then((s) => s.data().count);
+// Risposte arrivate dopo since (ms): le "new" del proprietario.
+export const countRepliesSince = (deckId, hId, since) =>
+  getCountFromServer(query(repliesCol(deckId, hId), where('at', '>', Timestamp.fromMillis(since)))).then((s) => s.data().count);
+// Scrive (o riscrive) la risposta dell'account, con la firma attuale.
+export async function replyHelp(uid, deckId, hId, { text, add, cut }) {
+  const owner = await ownerOf(uid);
+  const batch = writeBatch(db);
+  batch.set(doc(repliesCol(deckId, hId), uid), {
+    text, add: add.map(dilemmaCard), cut: cut.map(dilemmaCard), ...(owner && { owner }), at: serverTimestamp(),
+  });
+  batch.set(doc(repliedCol(uid), `${deckId}_${hId}`), { deck: deckId, help: hId, at: serverTimestamp() });
+  return batch.commit();
+}
+// La propria (con la traccia) o, per il proprietario della richiesta, quella di un altro.
+export function deleteReply(uid, deckId, hId, rUid) {
+  const batch = writeBatch(db);
+  batch.delete(doc(repliesCol(deckId, hId), rUid));
+  if (rUid === uid) batch.delete(doc(repliedCol(uid), `${deckId}_${hId}`));
+  return batch.commit();
+}
 
 // Profilo in users/{uid}: photo e banner (data URL), nickname (come scritto; il nome mostrato resta il
 // displayName di Firebase Auth). followers / following arriveranno con i profili pubblici.
@@ -205,8 +276,8 @@ export async function claimNickname(uid, name, old) {
     .catch(() => {});
 }
 
-// Elimina account: i propri voti ai dilemmi (e le loro tracce), i dilemmi dei propri mazzi pubblici, tutti i
-// mazzi con le copie pubbliche, il nickname, poi il profilo.
+// Elimina account: i propri voti ai dilemmi e le risposte alle help request (con le loro tracce), dilemmi e help
+// request dei propri mazzi pubblici, tutti i mazzi con le copie pubbliche, il nickname, poi il profilo.
 export async function deleteUserData(uid) {
   const answered = await getDocs(answeredCol(uid));
   await Promise.all(answered.docs.map((a) => {
@@ -216,8 +287,10 @@ export async function deleteUserData(uid) {
     batch.delete(a.ref);
     return batch.commit();
   }));
+  const replied = await getDocs(repliedCol(uid));
+  await Promise.all(replied.docs.map((r) => deleteReply(uid, r.data().deck, r.data().help, uid)));
   const snap = await getDocs(decksCol(uid));
-  await Promise.all(snap.docs.filter((d) => d.data().public).map((d) => deleteDilemmasOf(d.id)));
+  await Promise.all(snap.docs.filter((d) => d.data().public).flatMap((d) => [deleteDilemmasOf(d.id), deleteHelpsOf(d.id)]));
   for (let i = 0; i < snap.docs.length; i += 200) {
     const batch = writeBatch(db);
     snap.docs.slice(i, i + 200).forEach((d) => {

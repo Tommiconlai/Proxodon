@@ -6,12 +6,12 @@ import CardSearch from './CardSearch';
 import { ManaCost } from './Mana';
 import {
   listenDilemmas, createDilemma, deleteDilemma, listenVotes, voteDilemma, explainVote,
-  listenDilemmaFeed, listenDilemma, getPublicDeck, listenPublicDeck, listenAnswered, countVotes,
+  listenDilemmaFeed, listenDilemma, deckOnce, listenPublicDeck, listenAnswered, countVotes,
 } from './deckStore';
 import { navigate } from '../hooks/useHashRoute';
 import { useBackClose } from '../hooks/useBackClose';
 import { useCount } from './useCount';
-import { groupMain, commanderRows, boardRows, scryfallImg, shuffle, splitSlices, MAX_DILEMMA_CARDS } from './deckModel';
+import { groupMain, commanderRows, boardRows, scryfallImg, artCrop as art, shuffle, splitSlices, MAX_DILEMMA_CARDS } from './deckModel';
 import {
   IconPlus, IconArrowLeft, IconArrowRight, IconTrash, IconCheck, IconX,
 } from '../components/icons';
@@ -19,8 +19,6 @@ import {
 const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 const img = (c) => scryfallImg(c.img); // solo immagini Scryfall (i dilemmi li scrive chi possiede il mazzo)
-// Arte della carta (art_crop): stessa immagine Scryfall, altra versione nel percorso.
-const art = (c) => scryfallImg((c.img || '').replace(/\/(small|normal|large|png|border_crop)\//, '/art_crop/').replace(/\.png(?=\?|$)/, '.jpg'));
 
 // Scheda Dilemmas della vista mazzo (editor e Community). Solo mazzi pubblici. Elenco dei dilemmi del
 // mazzo, il proprietario ne crea di nuovi (+); click = il dilemma aperto (DilemmaView). ask = 2 carte (Dilemma
@@ -134,14 +132,6 @@ function DilemmaTile({ deckId, d, uid, solved, meta, href, onClick }) {
     </li>
   );
 }
-
-// Nome, formato e autore dal mazzo pubblico, letto una volta per mazzo. ponytail: cache per la sessione,
-// un nome cambiato si vede ricaricando. null = mazzo non più pubblico; errore = undefined, resta "…".
-const publicDecks = new Map();
-const deckOnce = (id) => {
-  if (!publicDecks.has(id)) publicDecks.set(id, getPublicDeck(id).catch(() => undefined));
-  return publicDecks.get(id);
-};
 
 // Scheda Dilemmas della lista mazzi (#/dilemmas): gli ultimi dilemmi degli altri giocatori, filtrati dalla
 // ricerca (domanda, carte, mazzo, autore) e dal formato del mazzo (terms e format da DeckList).
@@ -412,8 +402,8 @@ function WhyBox({ initial, onSave }) {
   );
 }
 
-// Lista del mazzo in sola lettura, per ora fissa: vista lista, per nome, raggruppata per tipo.
-function DeckListText({ deck }) {
+// Lista del mazzo in sola lettura, per ora fissa: vista lista, per nome, raggruppata per tipo (anche nelle help request).
+export function DeckListText({ deck }) {
   const blocks = [
     ['Commander', commanderRows(deck)],
     ...groupMain({ ...deck, groupBy: 'type' }, 'name').map((g) => [g.label, g.rows]),

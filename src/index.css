@@ -3083,6 +3083,109 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 /* Conferma solo icona, quadrata e a destra (non a tutta larghezza come gli altri btn-generate). */
 .dilemma-new .modal-actions { justify-content: flex-end; }
 .dilemma-new .modal-actions .deck-icon-btn { flex: none; width: 48px; height: 42px; padding: 0; justify-content: center; }
+/* Help request (HelpRequests.jsx): riquadri (feed e scheda del mazzo), richiesta aperta con le risposte, moduli.
+   Tipo della richiesta in magenta pieno; carte da aggiungere ciano (+), da togliere magenta (−). */
+.dilemma-flag.solved { border-color: rgba(255, 255, 255, 0.25); color: var(--text-secondary); }
+.help-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 340px)); justify-content: center; align-items: start; gap: 26px 22px; }
+.help-card {
+  width: 100%; display: flex; flex-direction: column; gap: 8px; padding: 0;
+  background: none; border: 0; color: var(--text-primary); font: inherit; text-align: left; text-decoration: none; cursor: pointer;
+}
+.help-card:focus-visible { outline: none; }
+.help-card-art {
+  position: relative; display: block; aspect-ratio: 16 / 7; overflow: hidden;
+  background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-md);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.help-card:hover .help-card-art, .help-card:focus-visible .help-card-art { border-color: var(--cyan); box-shadow: 0 0 16px rgba(0, 229, 255, 0.25); }
+.help-card-img { position: absolute; inset: 0; background-size: cover; background-position: center 30%; filter: brightness(0.8); transition: filter 0.25s ease; }
+.help-card-img::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(8, 7, 15, 0.9), rgba(8, 7, 15, 0) 65%); }
+.help-card:hover .help-card-img { filter: brightness(1); }
+.help-card.solved .help-card-img { filter: grayscale(0.8) brightness(0.55); }
+.help-kind {
+  display: inline-flex; align-items: center; padding: 3px 8px; border-radius: var(--radius-sm);
+  background: var(--accent); color: #08070f; font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.help-card-art .help-kind { position: absolute; left: 10px; bottom: 10px; }
+.help-card.solved .help-kind { background: var(--text-muted); }
+.help-count {
+  position: absolute; top: 8px; left: 8px; display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px;
+  background: rgba(8, 7, 15, 0.85); border: 1px solid rgba(0, 229, 255, 0.45); border-radius: var(--radius-sm);
+  font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; color: var(--cyan);
+}
+.help-card-text {
+  padding: 0 2px; font-family: var(--font-display); font-size: 1rem; line-height: 1.35; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; transition: color var(--transition);
+}
+.help-card:hover .help-card-text, .help-card:focus-visible .help-card-text { color: var(--cyan-soft); }
+.help-card-cards { padding: 0 2px; font-size: 0.78rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.help-card .dilemma-tile-meta { margin-top: -2px; }
+/* + nella scheda Help del mazzo: grande quanto l'arte di un riquadro, tratteggiato, ciano del logo. */
+.help-add {
+  aspect-ratio: 16 / 7; align-items: center; justify-content: center;
+  border: 1px dashed rgba(0, 229, 255, 0.5); border-radius: var(--radius-lg); background: rgba(0, 229, 255, 0.04); color: var(--cyan);
+  transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+}
+.help-add:hover, .help-add:focus-visible { border-color: var(--cyan); background: rgba(0, 229, 255, 0.1); box-shadow: 0 0 16px rgba(0, 229, 255, 0.3); }
+.help-intro { max-width: 560px; }
+.help-blocked { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 18px; }
+/* Richiesta aperta: colonna di 760 px al centro; la domanda in un riquadro magenta sottile, sfumato dall'angolo. */
+.help-question, .help-form, .help-replies { width: min(760px, 100%); margin-inline: auto; }
+.help-question {
+  padding: 16px 20px 18px; border: 1px solid rgba(255, 45, 149, 0.35); border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, rgba(255, 45, 149, 0.1), rgba(255, 45, 149, 0) 45%), var(--bg-surface);
+}
+.help-question-kind { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; }
+.help-question .dilemma-deck { font-size: 1.15rem; margin-bottom: 6px; }
+.help-by { font-family: var(--font); font-size: 0.85rem; letter-spacing: 0; color: var(--text-muted); }
+.help-text { margin: 0; font-size: 1.05rem; line-height: 1.55; color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
+.help-when { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); }
+.help-view h4 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 12px; font-family: var(--font-display); font-size: 0.95rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-primary); }
+.help-view h4 .n { font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0; color: var(--text-muted); }
+.help-chips { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.help-changes { display: flex; flex-direction: column; gap: 0; }
+.help-chip {
+  display: inline-flex; align-items: center; gap: 7px; min-width: 0; padding: 3px 9px 3px 3px;
+  background: rgba(8, 7, 15, 0.6); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.82rem;
+}
+.help-chip img, .help-chip-ph { flex: none; width: 34px; height: 25px; border-radius: 2px; object-fit: cover; background: rgba(124, 92, 255, 0.15); }
+.help-chip-name { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.help-sign { flex: none; width: 12px; margin-left: 5px; text-align: center; font-family: var(--font-mono); font-weight: 700; }
+.help-chips.add .help-chip { border-color: rgba(0, 229, 255, 0.45); }
+.help-chips.add .help-sign { color: var(--cyan); }
+.help-chips.cut .help-chip { border-color: rgba(255, 45, 149, 0.45); }
+.help-chips.cut .help-sign { color: var(--accent); }
+.help-chip-rm { display: inline-flex; margin-left: 2px; padding: 3px; background: none; border: 0; border-radius: 2px; color: var(--text-muted); cursor: pointer; }
+.help-chip-rm:hover, .help-chip-rm:focus-visible { color: var(--text-primary); background: rgba(255, 255, 255, 0.08); }
+/* La propria risposta: riquadro tratteggiato ciano, Add (ricerca Scryfall) e Cut (dal mazzo) affiancati. */
+.help-form { display: flex; flex-direction: column; gap: 8px; margin-top: 22px; padding: 16px 20px 18px; border: 1px dashed rgba(0, 229, 255, 0.35); border-radius: var(--radius-sm); }
+.help-form textarea { width: 100%; resize: vertical; }
+.help-form-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.help-form-cols > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.help-form-cols select { width: 100%; }
+.mobile .help-form-cols { grid-template-columns: 1fr; }
+.help-form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.help-form-actions .deck-icon-btn { flex: none; width: 48px; height: 42px; padding: 0; justify-content: center; }
+.help-replies { margin-top: 28px; }
+.help-replies > ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.help-reply { padding: 12px 16px 14px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-sm); transition: border-color var(--transition); }
+.help-reply.fresh { border-color: rgba(0, 229, 255, 0.6); box-shadow: 0 0 14px rgba(0, 229, 255, 0.15); }
+.help-reply-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 0.85rem; }
+.help-reply-actions { display: flex; gap: 6px; margin-left: auto; }
+.help-reply-actions .deck-icon-btn { flex: none; width: 36px; height: 36px; padding: 0; justify-content: center; }
+.help-reply-text { margin: 8px 0 0; font-size: 0.92rem; line-height: 1.5; color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
+/* Nuova richiesta: il tipo come scelte a pastiglia (radio nascosti, il focus resta visibile). */
+.help-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; border: 0; }
+.help-kinds legend { padding: 0; margin-bottom: 6px; }
+.help-kind-opt {
+  position: relative; display: inline-flex; align-items: center; padding: 7px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 0.85rem; color: var(--text-secondary); cursor: pointer; transition: border-color var(--transition), color var(--transition), background var(--transition);
+}
+.help-kind-opt input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.help-kind-opt:hover { border-color: rgba(255, 45, 149, 0.6); color: var(--text-primary); }
+.help-kind-opt.on { border-color: var(--accent); background: rgba(255, 45, 149, 0.12); color: var(--accent); }
+.help-kind-opt:has(input:focus-visible) { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.help-new .help-chips { margin-top: 4px; }
 .dilemma-slots { display: flex; justify-content: center; align-items: flex-start; gap: 12px; margin: 4px 0 8px; }
 .dilemma-slot-wrap { position: relative; flex: 0 1 140px; min-width: 0; }
 .dilemma-slot { width: 100%; padding: 0; border: 2px solid transparent; border-radius: 8px; background: none; cursor: pointer; }
@@ -3104,13 +3207,14 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .dilemma-slot.active { border-color: var(--cyan); box-shadow: 0 0 14px rgba(0, 229, 255, 0.3); }
 /* Telefono: la testata ha il suo padding (va riallungato per le schede), schede più strette. */
 .deck-editor.is-mobile .deck-hero.has-tabs { padding-bottom: 56px; }
-/* Schede su tre colonne uguali, ognuna centrata nella sua: le parentesi (invisibili sulle altre) sono
-   simmetriche, quindi il testo resta al centro. Lista mazzi: una riga sola, a tutta larghezza. */
+/* Quattro schede (mazzo: Deck / Stats / Dilemmas / Help; lista: Community / Dilemmas / Help / My decks) su una riga,
+   colonne larghe quanto il testo e spazio uguale intorno: le parentesi (invisibili sulle altre) sono simmetriche,
+   quindi il testo resta al centro della sua colonna. */
 .deck-editor.is-mobile .deck-tabs, .mobile-decks .decks-tabs {
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); justify-items: center; align-items: center; gap: 0; padding: 0 6px;
+  display: grid; grid-template-columns: repeat(4, auto); justify-content: space-around; align-items: center; gap: 0; padding: 0 4px;
 }
 .mobile-decks .decks-tabs { flex: 1 1 100%; }
-.deck-editor.is-mobile .deck-tabs .decks-tab, .mobile-decks .decks-tabs .decks-tab { min-height: 44px; align-items: center; font-size: 0.8rem; letter-spacing: 0.08em; white-space: nowrap; }
+.deck-editor.is-mobile .deck-tabs .decks-tab, .mobile-decks .decks-tabs .decks-tab { min-height: 44px; align-items: center; font-size: 0.74rem; letter-spacing: 0.05em; white-space: nowrap; }
 span.deck-hero-art { cursor: default; }
 /* Testata del mazzo: pulsanti solo icona, quadrati da 36 px con il fondo scuro del prezzo (stanno sull'arte). */
 .deck-hero-meta .deck-icon-btn { flex: none; width: 36px; height: 36px; padding: 0; justify-content: center; background: rgba(8, 7, 15, 0.6); }

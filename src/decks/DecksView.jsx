@@ -15,7 +15,8 @@ import SettingsPage from './SettingsPage';
 import { deleteUserData } from './deckStore';
 
 // Radice dell'area mazzi (lazy): attende lo stato di login, poi lista (#/decks, #/community, #/dilemmas con
-// #/dilemmas/:mazzo/:dilemma per quello aperto e #/dilemmas/play per il gioco), editor (#/decks/:id), mazzo della Community
+// #/dilemmas/:mazzo/:dilemma per quello aperto e #/dilemmas/play per il gioco, #/help con #/help/:mazzo/:richiesta),
+// editor (#/decks/:id, #/decks/:id/help sulla scheda Help), mazzo della Community
 // (#/community/:id), profilo o impostazioni. Avatar (e il ?
 // nell'editor) vanno nell'header dell'app, in headerSlot.
 export default function DecksView({ route, notify, printQueueCount, onPrintDeck, headerSlot }) {
@@ -34,9 +35,10 @@ export default function DecksView({ route, notify, printQueueCount, onPrintDeck,
       {route === '/profile' ? <ProfilePage user={user} profile={profile} notify={notify} onChange={rerender} />
         : route === '/settings' ? <SettingsPage user={user} notify={notify} />
         : area === 'dilemmas' ? <DeckList uid={user.uid} notify={notify} tab="dilemmas" open={id && sub ? { deckId: id, id: sub } : null} play={id === 'play'} />
+        : area === 'help' ? <DeckList uid={user.uid} notify={notify} tab="help" open={id && sub ? { deckId: id, id: sub } : null} />
         : area === 'decks' && id === 'folder' ? <DeckList uid={user.uid} notify={notify} tab="mine" folder={sub} />
         : community && id ? <CommunityDeck key={id} uid={user.uid} id={id} notify={notify} />
-        : id ? <DeckEditor key={id} uid={user.uid} id={id} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} />
+        : id ? <DeckEditor key={id} uid={user.uid} id={id} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} initialTab={sub} />
           : <DeckList uid={user.uid} notify={notify} tab={community ? 'community' : 'mine'} />}
     </>
   );

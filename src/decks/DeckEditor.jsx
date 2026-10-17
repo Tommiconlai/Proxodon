@@ -9,6 +9,7 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
 import { DeckTabs, DeckCount, DeckBottomBar, DeckTagList } from './DeckTabs';
 import { DeckDilemmas } from './Dilemmas';
+import { DeckHelps } from './HelpRequests';
 import CardSearch from './CardSearch';
 import AdvancedSearch from './AdvancedSearch';
 import { MobilePage } from '../components/MobileLayout';
@@ -26,7 +27,7 @@ const STUCK_AT = 72; // px: padding della barra + casella di ricerca, circa
 // la testata è uscita prende lo sfondo. Telefono: il nome sta nella testata e scorre con lei, Print /
 // Export / Public in alto a destra; in basso la barra (DeckBottomBar) con il conteggio, Back to top e la
 // lente che apre la ricerca a tutto schermo.
-export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDeck }) {
+export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDeck, initialTab }) {
   const { deck, update, saving, error } = useDeck(uid, id);
   const mobile = useIsMobile();
   const settings = useSettings(); // stampa (aggiungi o sostituisci, sideboard), valuta dei prezzi
@@ -37,9 +38,11 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const [coverOpen, setCoverOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
   const [ask, setAsk] = useState(null); // Dilemma dal menu delle carte: le 2 carte per il nuovo dilemma
+  const [helpAsk, setHelpAsk] = useState(null); // Ask for help dal menu delle carte: le carte in focus della nuova richiesta
   const [advOpen, setAdvOpen] = useState(false); // pannello della ricerca avanzata (desktop)
   const [stuck, setStuck] = useState(false); // la testata è uscita: la fascia ricerca ha lo sfondo
-  const [tab, setTab] = useState('deck'); // schede della testata: deck | stats | dilemmas
+  // Schede della testata: deck | stats | dilemmas | help; #/decks/:id/help (le proprie richieste dal feed Help) apre Help.
+  const [tab, setTab] = useState(initialTab === 'help' ? 'help' : 'deck');
   const heroRef = useRef(null);
   const scrollRef = useRef(null); // .deck-scroll: Back to top della barra in basso (telefono)
   const refreshed = useRef(false);
@@ -175,8 +178,10 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
           )}
           {/* Print dal menu delle carte: si aggiungono alla coda di stampa (mai la sostituiscono), anche dal maybeboard. */}
           {tab === 'dilemmas' ? <DeckDilemmas deck={deck} uid={uid} mine notify={notify} ask={ask} onAsked={() => setAsk(null)} />
+            : tab === 'help' ? <DeckHelps deck={deck} uid={uid} mine notify={notify} update={update} ask={helpAsk} onAsked={() => setHelpAsk(null)} />
             : <DeckSections deck={deck} update={update} touch={mobile} tab={tab} onTab={setTab} notify={notify}
             onDilemma={(cards) => { setAsk(cards); setTab('dilemmas'); }}
+            onHelp={(cards) => { setHelpAsk(cards); setTab('help'); }}
             onPrint={(rows) => onPrintDeck(toPrintEntries({ cards: rows.map((r) => ({ ...r, board: 'main' })) }), true)} />}
         </section>
       </div>

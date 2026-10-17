@@ -33,6 +33,13 @@ service cloud.firestore {
         && id == request.resource.data.deck + '_' + request.resource.data.dilemma
         && existsAfter(/databases/$(db)/documents/publicDecks/$(request.resource.data.deck)/dilemmas/$(request.resource.data.dilemma)/votes/$(uid));
     }
+    // Help request a cui l'account ha risposto: solo sue, solo insieme alla risposta (stesso batch), id {deck}_{help}.
+    match /users/{uid}/replied/{id} {
+      allow read, delete: if owner(uid);
+      allow create, update: if owner(uid) && request.resource.data.keys().hasOnly(['deck', 'help', 'at'])
+        && id == request.resource.data.deck + '_' + request.resource.data.help
+        && existsAfter(/databases/$(db)/documents/publicDecks/$(request.resource.data.deck)/helps/$(request.resource.data.help)/replies/$(uid));
+    }
     match /users/{uid}/decks/{deckId} {
       allow read, delete: if owner(uid);
       allow create, update: if owner(uid) && request.resource.data.cards.size() <= 500;
@@ -55,6 +62,24 @@ service cloud.firestore {
       return d.keys().hasOnly(['pick', 'why', 'owner', 'at'])
         && d.pick is int && d.pick >= 0 && d.pick <= 3
         && d.why is string && d.why.size() <= 500
+        && (d.get('owner', null) == null || (d.owner is string
+          && get(/databases/$(db)/documents/usernames/$(d.owner.lower())).data.uid == request.auth.uid));
+    }
+    function validHelp(d) {
+      return d.keys().hasOnly(['uid', 'kind', 'text', 'cards', 'status', 'applied', 'seenAt', 'createdAt'])
+        && d.kind in ['cuts', 'upgrades', 'budget', 'mana', 'synergy', 'other']
+        && d.text is string && d.text.size() > 0 && d.text.size() <= 500
+        && d.cards is list && d.cards.size() <= 10
+        && d.status in ['open', 'solved']
+        && d.applied is list && d.applied.size() <= 200;
+    }
+    // Risposta: testo (max 1000) e/o carte da aggiungere e da togliere (max 10 + 10); la firma come nei voti.
+    function validReply(d) {
+      return d.keys().hasOnly(['text', 'add', 'cut', 'owner', 'at'])
+        && d.text is string && d.text.size() <= 1000
+        && d.add is list && d.add.size() <= 10
+        && d.cut is list && d.cut.size() <= 10
+        && (d.text.size() > 0 || d.add.size() > 0 || d.cut.size() > 0)
         && (d.get('owner', null) == null || (d.owner is string
           && get(/databases/$(db)/documents/usernames/$(d.owner.lower())).data.uid == request.auth.uid));
     }
@@ -93,10 +118,37 @@ service cloud.firestore {
             && get(/databases/$(db)/documents/publicDecks/$(deckId)/dilemmas/$(dId)).data.uid == request.auth.uid);
         }
       }
+      // Help request: le crea il proprietario del mazzo pubblico, le legge chi ha un account; dopo cambiano solo
+      // status (open / solved), applied e seenAt, sempre del proprietario, che può cancellarle. Risposte: una
+      // per account (id = uid), mai sulla propria richiesta, solo finché è aperta; le cancella chi ha risposto
+      // o il proprietario della richiesta.
+      match /helps/{hId} {
+        allow read: if verified();
+        allow create: if verified() && request.resource.data.uid == request.auth.uid
+          && get(/databases/$(db)/documents/publicDecks/$(deckId)).data.uid == request.auth.uid
+          && request.resource.data.status == 'open' && request.resource.data.applied.size() == 0
+          && validHelp(request.resource.data);
+        allow update: if verified() && resource.data.uid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'applied', 'seenAt'])
+          && validHelp(request.resource.data);
+        allow delete: if verified() && resource.data.uid == request.auth.uid;
+        match /replies/{uid} {
+          allow read: if verified();
+          allow create, update: if owner(uid) && validReply(request.resource.data)
+            && get(/databases/$(db)/documents/publicDecks/$(deckId)/helps/$(hId)).data.uid != uid
+            && get(/databases/$(db)/documents/publicDecks/$(deckId)/helps/$(hId)).data.status == 'open';
+          allow delete: if owner(uid) || (verified()
+            && get(/databases/$(db)/documents/publicDecks/$(deckId)/helps/$(hId)).data.uid == request.auth.uid);
+        }
+      }
     }
     // Feed della scheda Dilemmas: query collection group sui dilemmi di tutti i mazzi, solo lettura
     // (le scritture restano quelle di publicDecks/{deckId}/dilemmas sopra).
     match /{path=**}/dilemmas/{dId} {
+      allow read: if verified();
+    }
+    // Feed della scheda Help, come quello dei dilemmi.
+    match /{path=**}/helps/{hId} {
       allow read: if verified();
     }
     // Nickname unici: usernames/{nome in minuscolo} = { uid }. Lo legge chi ha un account (per sapere

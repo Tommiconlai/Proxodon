@@ -444,7 +444,7 @@ export default function App() {
 
   const isMobile = useIsMobile();
   const route = useHashRoute();
-  const inDecks = route.startsWith('/decks') || route.startsWith('/community') || route.startsWith('/dilemmas') || route === '/profile' || route === '/settings';
+  const inDecks = route.startsWith('/decks') || route.startsWith('/community') || route.startsWith('/dilemmas') || route.startsWith('/help') || route === '/profile' || route === '/settings';
   // Feedback dai mazzi (stabile: i listener Firestore lo hanno tra le dipendenze). action = { label,
   // onClick } per un pulsante nel toast (es. Undo); il click esegue l'azione e chiude il toast.
   const notify = useCallback((msg, kind = 'success', action) => setToast({

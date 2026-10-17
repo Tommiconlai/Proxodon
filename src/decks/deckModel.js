@@ -60,6 +60,32 @@ export function splitSlices(n) {
   };
 }
 
+// Help request: il tipo (stessi id delle regole Firestore) e fino a MAX_HELP_CARDS carte su cui concentrarsi; nelle
+// risposte fino a MAX_HELP_CARDS carte da aggiungere e altrettante da togliere.
+export const HELP_KINDS = [
+  ['cuts', 'Cuts'], ['upgrades', 'Upgrades'], ['budget', 'Budget'], ['mana', 'Mana base'], ['synergy', 'Synergy'], ['other', 'Other'],
+];
+export const MAX_HELP_CARDS = 10;
+export const helpKindLabel = (id) => HELP_KINDS.find(([k]) => k === id)?.[1] || 'Other';
+// Apply di una risposta: prima i tagli (cut = oracle id, una copia dal main, mai il comandante), poi le aggiunte
+// (add = snapshot, una copia in main, saltate quelle già al limite del formato). → { deck, added, cut } applicate.
+export function applySuggestion(deck, add, cut) {
+  let d = deck;
+  let removed = 0;
+  for (const oid of cut) {
+    const row = d.cards.find((r) => r.board === 'main' && !r.commander && r.card.oid === oid);
+    if (row) { d = bumpQty(d, row.id, -1); removed += 1; }
+  }
+  let added = 0;
+  for (const card of add) {
+    const have = d.cards.filter((r) => r.board === 'main' && r.card.oid === card.oid).reduce((n, r) => n + r.qty, 0);
+    if (have >= maxCopies(d.format, card)) continue;
+    const r = addCard(d, card);
+    if (r.added) { d = r.deck; added += 1; }
+  }
+  return { deck: d, added, cut: removed };
+}
+
 export const MAX_ROWS = 500;
 export const MAX_QTY = 99;
 
@@ -464,6 +490,8 @@ export function scryfallImg(url) {
     return '';
   }
 }
+// Arte della carta (art_crop) da un'immagine Scryfall della carta: stessa immagine, altra versione nel percorso.
+export const artCrop = (c) => scryfallImg((c.img || '').replace(/\/(small|normal|large|png|border_crop)\//, '/art_crop/').replace(/\.png(?=\?|$)/, '.jpg'));
 // Mazzo di un altro account (Community): snapshot con le sole immagini ammesse.
 export const withScryfallImgs = (deck) => ({
   ...deck,

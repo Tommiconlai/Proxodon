@@ -10,7 +10,7 @@ import {
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
   splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies, packPiles,
   libraryCards, shuffle, mulliganBottom, hyperAtLeast, deckPrice, addEntries, searchTerms, deckMatches, contentSig,
-  scryfallImg, withScryfallImgs, deckTags, MAX_TAGS, splitSlices,
+  scryfallImg, withScryfallImgs, deckTags, MAX_TAGS, splitSlices, applySuggestion,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
 
@@ -450,6 +450,19 @@ eq([clean.img, clean.back, clean.art, clean.name, foreign.cards[0].card.back], [
   ], [[60, 40]]], 'dilemma: 2 fette come prima');
   const four = splitSlices(4);
   eq([four.lines, four.slices.map((s) => Math.round((s.left + s.width) * 100) / 100)], [[[30, 20], [55, 45], [80, 70]], [30, 55, 80, 100]], 'dilemma: 4 fette');
+}
+
+// help request, Apply: tagli prima (mai il comandante), aggiunte saltate oltre il limite del formato
+{
+  const cmdr = snap({ id: 'cmd', name: 'Cmd', type: 'Legendary Creature' });
+  const ring = snap({ id: 'ring', name: 'Sol Ring', type: 'Artifact' });
+  const signet = snap({ id: 'sig', name: 'Arcane Signet', type: 'Artifact' });
+  let d = addCard(addCard(newDeck({ name: 'H' }), cmdr).deck, ring).deck;
+  d = setCommander(d, [d.cards[0].id], true);
+  const r = applySuggestion(d, [ring, signet], ['o-cmd', 'o-zzz']);
+  eq([r.added, r.cut, r.deck.cards.map((x) => [x.card.name, x.qty])], [1, 0, [['Cmd', 1], ['Sol Ring', 1], ['Arcane Signet', 1]]], 'help: limite e comandante');
+  const s = applySuggestion(d, [ring], ['o-ring']);
+  eq([s.added, s.cut, s.deck.cards.map((x) => x.card.name)], [1, 1, ['Cmd', 'Sol Ring']], 'help: taglio poi aggiunta');
 }
 
 console.log('deckModel selfcheck: ok');

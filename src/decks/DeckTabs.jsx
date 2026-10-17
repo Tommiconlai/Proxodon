@@ -3,7 +3,7 @@ import { useBracketSlide } from '../hooks/useBracketSlide';
 import { boardCounts, countTarget, countOk, deckTags } from './deckModel';
 import { IconArrowUp, IconSearch } from '../components/icons';
 
-const TABS = [['deck', 'Deck'], ['stats', 'Stats'], ['dilemmas', 'Dilemmas']];
+const TABS = [['deck', 'Deck'], ['stats', 'Stats'], ['dilemmas', 'Dilemmas'], ['help', 'Help']];
 
 // Testo di una scheda tra le sue parentesi (visibili solo su quella aperta, scivolano con useBracketSlide).
 export function TabLabel({ children }) {

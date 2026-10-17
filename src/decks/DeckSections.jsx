@@ -9,7 +9,7 @@ import { cardsByIds } from './scryfallSearch';
 import {
   GROUP_MODES, SORT_MODES, VIEWS, groupMain, commanderRows, boardRows, bumpQty, removeRows, setCommander, moveToBoard,
   addSection, renameSection, deleteSection, moveToSection, placeRows, overLimit, formatLabel, illegalIn, legalityLabel,
-  splitRow, changeEdition, snapshotFromCard, validateDeck, packPiles, maxCopies, MAX_DILEMMA_CARDS,
+  splitRow, changeEdition, snapshotFromCard, validateDeck, packPiles, maxCopies, MAX_DILEMMA_CARDS, MAX_HELP_CARDS,
 } from './deckModel';
 import DeckStats from './DeckStats';
 import SampleHand from './SampleHand';
@@ -18,7 +18,7 @@ import { CardFrame, CardFrameDefs } from '../components/CardFrame';
 import { cachedImg, useCardImg } from './cardLang';
 import { useSettings, setSetting } from '../utils/settings';
 import {
-  IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy, IconFlip, IconPrinter, IconEye, IconX, IconScale,
+  IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy, IconFlip, IconPrinter, IconEye, IconX, IconScale, IconLifebuoy,
 } from '../components/icons';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 
@@ -55,8 +55,9 @@ const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 // notify(msg, kind, action): Remove e − sull'ultima copia tolgono subito, con Undo nel toast.
 // View card (menu, anche in sola lettura): la carta a tutto schermo, per leggerla da telefono.
 // onDilemma(cards): Dilemma nel menu, attivo solo con 2-4 carte diverse selezionate e il mazzo pubblico.
+// onHelp(cards): Ask for help nel menu, le carte scelte (fino a MAX_HELP_CARDS diverse) in focus nella nuova richiesta.
 // Telefono (touch): − / + della carta selezionata (una sola) in una barra sopra quella in basso, a 44 px.
-export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab, onPrint, onDilemma, notify }) {
+export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab, onPrint, onDilemma, onHelp, notify }) {
   const [sel, setSel] = useState(() => new Set());
   const [anchor, setAnchor] = useState(null);
   const [menu, setMenu] = useState(null); // { ids, x, y }
@@ -207,6 +208,14 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
         key: 'dilemma', Icon: IconScale, label: 'Dilemma', disabled: !fits || !distinct || !deck.public,
         note: !fits ? `Select 2 to ${MAX_DILEMMA_CARDS} cards` : !distinct ? 'Pick different cards' : 'Make the deck public first',
         run: () => onDilemma(menuRows.map((r) => r.card)),
+      });
+    }
+    if (onHelp) {
+      const focus = [...new Map(menuRows.map((r) => [r.card.oid, r.card])).values()];
+      items.push({
+        key: 'help', Icon: IconLifebuoy, label: 'Ask for help', disabled: focus.length > MAX_HELP_CARDS || !deck.public,
+        note: !deck.public ? 'Make the deck public first' : `Select up to ${MAX_HELP_CARDS} cards`,
+        run: () => onHelp(focus),
       });
     }
     const allMain = menuRows.every((r) => r.board === 'main');

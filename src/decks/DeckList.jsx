@@ -15,6 +15,7 @@ import NewDeckDialog from './NewDeckDialog';
 import { useCount } from './useCount';
 import { TabLabel } from './DeckTabs';
 import { DilemmaFeed } from './Dilemmas';
+import { HelpFeed } from './HelpRequests';
 import { useBracketSlide } from '../hooks/useBracketSlide';
 import {
   IconPlus, IconCopy, IconTrash, IconPencil, IconExport, IconGlobe, IconSearch, IconFilter, IconHeart, IconPlay, IconFolder, IconArrowLeft,
@@ -51,7 +52,7 @@ function useScrollMemory(ref, key) {
     return () => { cancelAnimationFrame(raf); box.removeEventListener('scroll', save); };
   }, [ref, key]);
 }
-const LIST_TABS = [['community', 'Community'], ['dilemmas', 'Dilemmas'], ['mine', 'My decks']];
+const LIST_TABS = [['community', 'Community'], ['dilemmas', 'Dilemmas'], ['help', 'Help'], ['mine', 'My decks']];
 
 // Riquadro di un mazzo (lista, Community, profilo): sull'arte, in alto a sinistra sotto una sfumatura
 // nera, nome (accanto il globo se è pubblico, fuori dalla Community), formato e like ricevuti; sotto
@@ -188,15 +189,17 @@ function CommunityGrid({ uid, terms, filters }) {
   );
 }
 
-// Lista mazzi: schede Community, Dilemmas e My decks (rotte #/community, #/dilemmas e #/decks, stesso
+// Lista mazzi: schede Community, Dilemmas, Help e My decks (rotte #/community, #/dilemmas, #/help e #/decks, stesso
 // componente: ricerca e filtri restano passando dall'una all'altra), ricerca per nome e Filters (formato,
-// colori, carta); in Dilemmas la ricerca (domanda, carte, mazzo, autore) e accanto solo il formato.
-// open = il dilemma aperto dal feed (#/dilemmas/:mazzo/:dilemma), play = il gioco (#/dilemmas/play, dal
-// Play al posto del +): niente ricerca. folder = la cartella aperta in My decks (#/decks/folder/:id).
+// colori, carta); in Dilemmas e Help la ricerca (domanda, carte, mazzo, autore) e accanto solo il formato.
+// open = il dilemma o la help request aperti dal feed (#/dilemmas/:mazzo/:dilemma, #/help/:mazzo/:richiesta), play =
+// il gioco (#/dilemmas/play, dal Play al posto del +): niente ricerca. folder = la cartella aperta in My decks (#/decks/folder/:id).
 export default function DeckList({ uid, notify, tab = 'mine', open, play, folder: folderId }) {
   const community = tab === 'community';
   const dilemmas = tab === 'dilemmas';
-  const searchLabel = dilemmas ? 'Search dilemmas' : 'Search decks by name or tag';
+  const help = tab === 'help';
+  const feed = dilemmas || help; // ricerca nei testi e solo il formato accanto
+  const searchLabel = dilemmas ? 'Search dilemmas' : help ? 'Search requests' : 'Search decks by name or tag';
   const tabsRef = useRef(null);
   useBracketSlide(tabsRef, LIST_TABS.findIndex(([t]) => t === tab));
   const [decks, setDecks] = useState(null); // null = caricamento
@@ -305,8 +308,8 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
           <input type="search" className="import-link-input" value={q} onChange={(e) => setQ(e.target.value)}
             placeholder={searchLabel} aria-label={searchLabel} spellCheck={false} />
         </label>
-        {/* Dilemmas: solo il formato, accanto alla ricerca (lo stesso filtro formato delle altre schede). */}
-        {dilemmas ? (
+        {/* Dilemmas e Help: solo il formato, accanto alla ricerca (lo stesso filtro formato delle altre schede). */}
+        {feed ? (
           <select className={`decks-format${filters.format ? ' on' : ''}`} value={filters.format} aria-label="Format" title="Format"
             onChange={(e) => setFilters((f) => ({ ...f, format: e.target.value }))}>
             <option value="">Any format</option>
@@ -319,7 +322,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
           </button>
         )}
       </div>
-      {filtersOpen && !dilemmas && (
+      {filtersOpen && !feed && (
         <div id="deck-filters" className="decks-filters">
           <label className="decks-filter">
             <span>Format</span>
@@ -350,6 +353,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
       </>}
 
       {dilemmas ? <DilemmaFeed uid={uid} notify={notify} open={open} play={play} terms={terms} format={filters.format} />
+        : help ? <HelpFeed uid={uid} notify={notify} open={open} terms={terms} format={filters.format} />
         : community ? <CommunityGrid uid={uid} terms={terms} filters={filters} /> : <>
         {decks === null && <span className="import-spinner" aria-label="Loading" />}
         {decks?.length === 0 && <Empty title="Start your first deck" hint="Create one with the + below, from scratch or from a list." />}
