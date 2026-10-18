@@ -3869,3 +3869,107 @@ span.deck-hero-art { cursor: default; }
 .deck-adv-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .deck-adv-panel .adv-form { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
 .deck-adv-panel .search-results { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); max-height: 60vh; overflow-y: auto; }
+
+/* ============================================================
+   TUTORIAL GUIDATO (src/tutorial): pagina demo sopra quella vera, velo scuro con il buco sulla zona del passo,
+   scheda del passo e cursore finto che mostra i gesti (click, area, trascinamento, menu, pressione lunga).
+   ============================================================ */
+/* Riga del popover ?: testo e pulsante che avvia il tutorial della pagina. */
+.help-tour {
+  display: flex; align-items: center; gap: 12px;
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+  font-size: 0.74rem; line-height: 1.45; color: var(--text-secondary);
+}
+.help-tour span { flex: 1; }
+.help-tour .deck-icon-btn, .tut-nav .deck-icon-btn {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; padding: 0;
+}
+.tut { position: fixed; inset: 0; z-index: 1000; pointer-events: none; }
+.tut-stage { position: fixed; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-base); }
+.tut-stage > * { flex: 1; min-height: 0; }
+/* Buco: il velo è l'ombra enorme del riquadro, il bordo ciano lo disegna sulla zona. */
+.tut-spot {
+  position: fixed; left: 50%; top: 50%; width: 0; height: 0; border-radius: var(--radius-md);
+  box-shadow: 0 0 0 200vmax rgba(4, 2, 10, 0.74), 0 0 0 1px var(--cyan), 0 0 26px var(--cyan-glow);
+  transition: left 0.38s cubic-bezier(0.4, 0, 0.2, 1), top 0.38s cubic-bezier(0.4, 0, 0.2, 1), width 0.38s cubic-bezier(0.4, 0, 0.2, 1), height 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tut-spot.none { box-shadow: 0 0 0 200vmax rgba(4, 2, 10, 0.74); }
+.tut-fx { position: fixed; inset: 0; }
+.tut-fx .card-menu { z-index: 1; }
+/* Scheda del passo: in alto il nome del tour e il numero, sotto titolo, testo, avanzamento a tacche e i comandi. */
+.tut-card {
+  position: fixed; left: 0; top: 0; width: min(340px, calc(100vw - 32px)); pointer-events: auto;
+  padding: 14px 16px 12px; border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(255, 45, 149, 0.07), transparent 42%), var(--bg-elevated);
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255, 45, 149, 0.12), 0 0 32px rgba(123, 92, 255, 0.18);
+  transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tut-card::before { /* tacca HUD in alto a sinistra, come le cornici delle carte */
+  content: ''; position: absolute; left: -1px; top: -1px; width: 22px; height: 22px;
+  border-left: 2px solid var(--accent); border-top: 2px solid var(--accent); border-top-left-radius: var(--radius-md);
+}
+.tut-count {
+  display: flex; justify-content: space-between; gap: 8px; margin: 0;
+  font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cyan);
+}
+.tut-count span:last-child { color: var(--text-muted); }
+.tut-title { margin: 8px 0 6px; font-family: var(--font-display); font-size: 1.08rem; font-weight: 600; letter-spacing: 0.02em; color: var(--text-primary); }
+.tut-text { margin: 0; font-size: 0.85rem; line-height: 1.5; color: var(--text-secondary); }
+.tut-dots { display: flex; gap: 4px; margin: 14px 0 12px; }
+.tut-dots span { flex: 1; height: 3px; border-radius: 2px; background: rgba(124, 92, 255, 0.25); transition: background var(--transition); }
+.tut-dots .done { background: rgba(0, 229, 255, 0.55); }
+.tut-dots .on { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+.tut-nav { display: flex; align-items: center; gap: 8px; }
+.tut-nav-gap { flex: 1; }
+.tut-nav [aria-disabled="true"] { opacity: 0.4; cursor: default; }
+.tut.is-mobile .tut-card { width: calc(100vw - 24px); }
+.tut.is-mobile .tut-nav .deck-icon-btn { width: 44px; height: 44px; }
+/* Cursore finto: freccia bianca con il bordo magenta; su telefono un polpastrello. down = premuto. */
+.tut-cursor { position: fixed; left: 0; top: 0; z-index: 3; will-change: transform; }
+.tut-cursor svg {
+  display: block; margin: -2px 0 0 -3px; fill: #fff; stroke: var(--accent); stroke-width: 1.4; stroke-linejoin: round;
+  filter: drop-shadow(0 0 6px var(--accent-glow)) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
+  transform-origin: 4px 3px; transition: transform 0.12s ease;
+}
+.tut-cursor.down svg { transform: scale(0.8); }
+.tut-cursor.touch::before {
+  content: ''; position: absolute; left: -18px; top: -18px; width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.9); box-shadow: 0 0 16px var(--cyan-glow);
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+.tut-cursor.touch.down::before { transform: scale(0.82); background: rgba(0, 229, 255, 0.35); }
+.tut-label {
+  position: absolute; left: 22px; top: 24px; white-space: nowrap; padding: 3px 7px; border-radius: 4px;
+  font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: #fff; background: var(--accent); box-shadow: 0 0 12px var(--accent-glow);
+}
+.tut-cursor.touch .tut-label { left: 26px; top: 18px; }
+.tut-ripple {
+  position: fixed; z-index: 2; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%;
+  border: 2px solid var(--cyan); pointer-events: none; animation: tut-ripple 0.6s ease-out forwards;
+}
+.tut-ripple.alt { border-color: var(--accent); }
+.tut-ripple.hold { border-color: var(--acid); animation-duration: 0.9s; }
+@keyframes tut-ripple { from { transform: scale(0.3); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
+/* Ciò che si trascina, sotto il cursore: una carta o una pila di file. */
+.tut-ghost { position: fixed; left: 0; top: 0; z-index: 2; }
+.tut-ghost > * { transform: translate(-28%, -18%) rotate(-5deg); opacity: 0.92; }
+.tut-card-img { display: block; width: 92px; border-radius: 4.75% / 3.4%; box-shadow: 0 10px 26px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--cyan); }
+.tut-files { position: relative; width: 112px; height: 104px; }
+.tut-files img { position: absolute; top: 0; width: 64px; border-radius: 4px; box-shadow: 0 8px 18px rgba(0, 0, 0, 0.6); }
+.tut-files img:nth-child(1) { left: 0; transform: rotate(-10deg); }
+.tut-files img:nth-child(2) { left: 22px; transform: rotate(-2deg); }
+.tut-files img:nth-child(3) { left: 44px; transform: rotate(7deg); }
+.tut-files span {
+  position: absolute; right: -4px; top: -8px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px;
+  display: grid; place-items: center; font-family: var(--font-mono); font-size: 0.72rem; color: #fff;
+  background: var(--accent); box-shadow: 0 0 10px var(--accent-glow);
+}
+.tut-box { position: fixed; z-index: 1; }
+.tut-drop {
+  position: fixed; z-index: 1; border: 2px dashed var(--accent); border-radius: var(--radius-sm);
+  background: rgba(255, 45, 149, 0.1); box-shadow: 0 0 18px var(--accent-glow);
+}
+/* Popover ? senza istruzioni (pagine mazzi fuori dall'editor): solo la riga del tutorial, senza filetto. */
+.help-tooltip strong + .help-tour { margin-top: 0; padding-top: 0; border-top: 0; }
+.tut-card-img.tut-art { width: 132px; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--radius-sm); }

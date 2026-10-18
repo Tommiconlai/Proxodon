@@ -9,8 +9,14 @@ export default class ErrorBoundary extends Component {
     return { error };
   }
 
+  // onError: chi lo usa può spegnere ciò che si è rotto (il tutorial); fallback: al posto del messaggio dei mazzi.
+  componentDidCatch() {
+    this.props.onError?.();
+  }
+
   render() {
     if (!this.state.error) return this.props.children;
+    if ('fallback' in this.props) return this.props.fallback;
     return (
       <div className="decks-root decks-center">
         <div className="signin-panel" role="alert">

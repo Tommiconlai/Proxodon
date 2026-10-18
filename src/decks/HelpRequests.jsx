@@ -132,9 +132,12 @@ function useFresh(deckId, h, on) {
 // Riquadro di una richiesta: in alto l'arte (prima carta in focus, o la copertina del mazzo, caricata solo quando
 // serve) con il tipo, le risposte e i segnali (Yours, Replied, N new, Solved); sotto la domanda, le carte in focus e
 // meta (nel feed mazzo e autore, quando). L'etichetta letta dice anche mazzo, autore e carte. Link (href) o pulsante (onClick).
-function HelpItem({ deckId, info, h, mine, flags = [], inFeed, href, onClick }) {
-  const replies = useCount(countReplies, deckId, h.id);
-  const fresh = useFresh(deckId, h, mine);
+// counts = { replies, fresh } già noti (demo del tutorial): niente letture dal server.
+export function HelpItem({ deckId, info, h, mine, flags = [], inFeed, href, onClick, counts }) {
+  const repliesNow = useCount(countReplies, deckId, h.id, !counts);
+  const freshNow = useFresh(deckId, h, mine && !counts);
+  const replies = counts ? counts.replies : repliesNow;
+  const fresh = counts ? counts.fresh : freshNow;
   const pic = (h.cards[0] && artCrop(h.cards[0])) || coverOf(info);
   const solved = h.status === 'solved';
   const Tag = href ? 'a' : 'button';
@@ -536,7 +539,7 @@ function HelpView({ deck, help, uid, notify, update, onBack, canReopen }) {
 // Carte di una richiesta o di una risposta: miniatura dell'arte (solo Scryfall) e nome; sign = + / − davanti;
 // off = la carta non torna (non è nel mazzo, Scryfall non la trova), segnata e spiegata nel title. onRemove(i) = ×
 // per toglierla (nei moduli): il focus passa al × accanto o, se non ne restano, alla zona (data-focus-zone).
-function CardChips({ cards, label, sign, className = '', onRemove }) {
+export function CardChips({ cards, label, sign, className = '', onRemove }) {
   const ref = useRef(null);
   const remove = (i) => {
     const zone = ref.current?.closest('[data-focus-zone]');

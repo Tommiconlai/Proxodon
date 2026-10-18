@@ -5,9 +5,10 @@ import PagePreview from './PagePreview';
 import ExportProgress from './ExportProgress';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 import { useBackClose } from '../hooks/useBackClose';
+import HelpTour from '../tutorial/HelpTour';
 
-// Icona "sliders" per Settings (inline; stesso stile della vecchia tab bar).
-function IconSliders({ size = 22 }) {
+// Icona "sliders" per Settings (inline; stesso stile della vecchia tab bar). Anche nella demo del tutorial.
+export function IconSliders({ size = 22 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
       <line x1="4" y1="8" x2="20" y2="8" /><line x1="4" y1="16" x2="20" y2="16" />
@@ -69,6 +70,7 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
                   <li><b>Export</b>. Tap <b>Export</b> (bottom-right) for <b>Generate PDF</b>; <b>Save list</b> exports your Scryfall cards as a reloadable deck list.</li>
                 </ol>
                 <p className="help-controls"><b>Tap</b> select or deselect · <b>Long-press</b> options</p>
+                <HelpTour onStart={() => setHelpOpen(false)} />
               </div>
             </div>
             {account}

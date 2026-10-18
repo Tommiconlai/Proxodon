@@ -95,8 +95,10 @@ function useAnswered(uid) {
 // propri, a cui non si risponde). Sotto, fuori dal bordo, la domanda e nel feed mazzo e autore (meta). Link
 // (href) nel feed e nel profilo, pulsante (onClick) nella scheda del mazzo.
 const NEW_MS = 12 * 3600 * 1000;
-export function DilemmaTile({ deckId, d, uid, solved, meta, href, onClick }) {
-  const votes = useCount(countVotes, deckId, d.id);
+// votes già noti (demo del tutorial) = niente lettura dal server.
+export function DilemmaTile({ deckId, d, uid, solved, meta, href, onClick, votes: known }) {
+  const counted = useCount(countVotes, deckId, d.id, known == null);
+  const votes = known ?? counted;
   const voted = solved && d.uid !== uid;
   const [now] = useState(() => Date.now()); // all'apertura della lista: basta per una soglia di 12 ore
   const fresh = now - (d.createdAt?.toMillis?.() ?? 0) < NEW_MS;

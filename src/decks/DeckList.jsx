@@ -59,11 +59,15 @@ const LIST_TABS = [['community', 'Community'], ['dilemmas', 'Dilemmas'], ['help'
 // help request aperta, anche nella Community), formato e like ricevuti; sotto
 // identità di colore, poi autore (by, nella Community) e ultima modifica; il prezzo sta solo in Stats.
 // Testi in cqi: il riquadro è largo una percentuale della griglia e tutto scala con lui. props vanno sul pulsante.
-export function DeckTile({ deck: d, by, ...props }) {
+// stats = { likes, help } già noti (demo del tutorial): niente letture dal server.
+export function DeckTile({ deck: d, by, stats, ...props }) {
   const cover = scryfallImg(deckCover(d));
   const updated = changedMs(d); // ultimo cambio di carte (changedAt), non l'ultima scrittura
-  const likes = useCount(countLikes, d.id, undefined, !!d.public);
-  const helping = useCount(countOpenHelps, d.id, undefined, !!d.public) > 0; // chiave inglese: help request aperta
+  const live = !stats && !!d.public;
+  const likesNow = useCount(countLikes, d.id, undefined, live);
+  const helpsNow = useCount(countOpenHelps, d.id, undefined, live);
+  const likes = stats ? stats.likes : likesNow;
+  const helping = stats ? stats.help : helpsNow > 0; // chiave inglese: help request aperta
   const tags = deckTags(d).join(' · ');
   return (
     <button type="button" className="deck-tile" {...props}>
@@ -135,7 +139,7 @@ function FolderName({ name, onRename, className = '' }) {
 
 // Cartella in My decks: le copertine dei primi 4 mazzi a mosaico, il nome (rinominabile) sopra, sotto quanti
 // mazzi. Click sul riquadro = la apre. drop = props del trascinamento (un mazzo lasciato qui ci entra).
-function FolderTile({ folder, onOpen, onRename, drop, active }) {
+export function FolderTile({ folder, onOpen, onRename, drop, active }) {
   const covers = folder.decks.map((d) => scryfallImg(deckCover(d))).filter(Boolean).slice(0, 4);
   const n = folder.decks.length;
   return (

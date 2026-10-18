@@ -23,10 +23,15 @@ import { IconFile, IconAlert, IconTrash, IconDownload, IconList, IconImage, Icon
 import NavTabs from './components/NavTabs';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useHashRoute, navigate } from './hooks/useHashRoute';
+import { stopTutorial, useTutorial } from './tutorial/control';
+import HelpTour from './tutorial/HelpTour';
 
 // Area mazzi caricata solo quando serve (porta con sé Firebase): la stampa resta leggera.
 const DecksView = lazy(() => import('./decks/DecksView'));
 const HeaderAccount = lazy(() => import('./decks/AccountMenu').then((m) => ({ default: m.HeaderAccount })));
+// Tutorial guidato (dal ? di ogni pagina): demo della stampa o della pagina mazzi aperta, caricato al primo avvio.
+const PrintTour = lazy(() => import('./tutorial/PrintTour'));
+const DeckTour = lazy(() => import('./tutorial/DeckTour'));
 
 // Lettura numerica da localStorage con default (null/NaN → default, 0 valido).
 const readNum = (k, d) => {
@@ -444,6 +449,9 @@ export default function App() {
 
   const isMobile = useIsMobile();
   const route = useHashRoute();
+  // Tutorial: si chiude se si cambia pagina (link, back); key = layout, passando da telefono a desktop riparte.
+  const tutorial = useTutorial();
+  useEffect(() => { if (tutorial && tutorial !== route) stopTutorial(); }, [tutorial, route]);
   const inDecks = route.startsWith('/decks') || route.startsWith('/community') || route.startsWith('/dilemmas') || route.startsWith('/help') || route === '/profile' || route === '/settings';
   // Feedback dai mazzi (stabile: i listener Firestore lo hanno tra le dipendenze). action = { label,
   // onClick } per un pulsante nel toast (es. Undo); il click esegue l'azione e chiude il toast.
@@ -484,6 +492,15 @@ export default function App() {
     <ErrorBoundary>
       <Suspense fallback={<span className="account-btn account-placeholder" aria-hidden="true" />}>
         <HeaderAccount notify={notify} />
+      </Suspense>
+    </ErrorBoundary>
+  );
+
+  const tutorialNode = tutorial && (
+    <ErrorBoundary fallback={null} onError={stopTutorial}>
+      <Suspense fallback={null}>
+        {inDecks ? <DeckTour key={String(isMobile)} route={tutorial} mobile={isMobile} onClose={stopTutorial} />
+          : <PrintTour key={String(isMobile)} mobile={isMobile} onClose={stopTutorial} />}
       </Suspense>
     </ErrorBoundary>
   );
@@ -530,6 +547,7 @@ export default function App() {
         <ConfirmDialog open={!!confirm} message={confirm?.message} confirmLabel={confirm?.confirmLabel}
           onConfirm={() => { confirm?.onConfirm?.(); setConfirm(null); }} onCancel={() => setConfirm(null)} />
         <Toast toast={toast} onClose={() => setToast(null)} />
+        {tutorialNode}
       </>
     );
   }
@@ -554,6 +572,7 @@ export default function App() {
                 <li><b>Export</b>. <b>Generate PDF</b> (print-ready). <b>Save list</b> exports your Scryfall cards as a reloadable deck list.</li>
               </ol>
               <p className="help-controls"><b>Click</b> select or deselect · <b>Right-click</b> options · <b>Drag</b> swap</p>
+              <HelpTour onStart={() => setHelpOpen(false)} />
             </div>
           </div>
         )}
@@ -646,6 +665,7 @@ export default function App() {
       <ConfirmDialog open={!!confirm} message={confirm?.message} confirmLabel={confirm?.confirmLabel}
         onConfirm={() => { confirm?.onConfirm?.(); setConfirm(null); }} onCancel={() => setConfirm(null)} />
       <Toast toast={toast} onClose={() => setToast(null)} />
+      {tutorialNode}
     </div>
   );
 }
