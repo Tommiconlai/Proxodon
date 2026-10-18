@@ -245,10 +245,11 @@ export function HelpReply({ deck, help, uid, notify, update, touch }) {
   );
 }
 
-// Due zone affiancate: Cuts (carte trascinate dalla lista del mazzo sotto, o Suggest cut dal menu della carta, che su
-// telefono sostituisce il trascinamento; solo main, mai il comandante) e Suggestions (ricerca Scryfall, carte
-// legali nel formato), fino a MAX_HELP_CARDS ciascuna; sotto la spiegazione facoltativa e l'invio. Poi le altre
-// risposte (chiuse in un details) e la lista del mazzo. Richiesta risolta: niente modulo, le risposte restano.
+// Due zone affiancate, ferme in alto mentre si scorre la lista del mazzo (desktop): Cuts (carte trascinate dalla
+// lista, o Suggest cut dal menu della carta, che su telefono sostituisce il trascinamento; solo main, mai il
+// comandante) e Suggestions (ricerca Scryfall per nome, carte legali nel formato), fino a MAX_HELP_CARDS ciascuna;
+// sotto la spiegazione facoltativa e l'invio, le altre risposte (chiuse in un details) e la lista del mazzo.
+// Richiesta risolta: niente zone, le risposte restano.
 function ReplyDraft({ deck, help, uid, reply, others, notify, update, touch, onDeleted }) {
   const open = help.status === 'open';
   const [text, setText] = useState(reply?.text || '');
@@ -267,6 +268,7 @@ function ReplyDraft({ deck, help, uid, reply, others, notify, update, touch, onD
   const onCut = (rows) => {
     const ok = rows.filter((r) => r.board === 'main' && !r.commander);
     if (ok.length < rows.length) notify('Only cards of the main deck can be cut, not the commander', 'error');
+    else if (touch) notify(ok.length === 1 ? `${ok[0].card.name} added to Cuts` : `${ok.length} cards added to Cuts`); // telefono: zone non fisse
     put(setCut)(ok.map((r) => r.card));
   };
   // Successi della ricerca muti: la carta non entra nel mazzo, va solo nella risposta.
@@ -292,14 +294,17 @@ function ReplyDraft({ deck, help, uid, reply, others, notify, update, touch, onD
   const shown = open ? others : [...(reply ? [reply] : []), ...others];
   return (
     <>
-      <div className="help-page">
-        <div className="dilemma-head">
-          <button type="button" className="btn-secondary deck-icon-btn" onClick={() => navigate('/help')} aria-label="All help requests" title="All help requests"><IconArrowLeft size={18} /></button>
-          <h3 className="deck-analysis-head">{!open ? 'Solved' : reply ? 'Your suggestion' : 'Suggest changes'}</h3>
+      {/* Contenitore di zone e lista: le zone (sticky, desktop) restano in alto finché si scorre la lista del mazzo. */}
+      <div className="help-reply-body">
+        <div className="help-page">
+          <div className="dilemma-head">
+            <button type="button" className="btn-secondary deck-icon-btn" onClick={() => navigate('/help')} aria-label="All help requests" title="All help requests"><IconArrowLeft size={18} /></button>
+            <h3 className="deck-analysis-head">{!open ? 'Solved' : reply ? 'Your suggestion' : 'Suggest changes'}</h3>
+          </div>
+          {!open && <p className="field-hint">This request is solved: no new suggestions.</p>}
         </div>
-        {/* Niente <form>: la ricerca avanzata della zona Suggestions ha il suo, e il suo invio risalirebbe fin qui. */}
-        {open ? (
-          <div>
+        {open && (
+          <div className="help-zones-bar">
             <div className="help-zones">
               <section className={`help-zone cut${over ? ' over' : ''}`} aria-label="Cuts" {...drop}>
                 <h4>Cuts <span className="n">{cut.length} of {MAX_HELP_CARDS}</span></h4>
@@ -309,10 +314,14 @@ function ReplyDraft({ deck, help, uid, reply, others, notify, update, touch, onD
               </section>
               <section className="help-zone add" aria-label="Suggestions">
                 <h4>Suggestions <span className="n">{add.length} of {MAX_HELP_CARDS}</span></h4>
-                <CardSearch format={deck.format} onAdd={(card) => put(setAdd)([card])} notify={quiet} />
+                <CardSearch format={deck.format} onAdd={(card) => put(setAdd)([card])} notify={quiet} noAdvanced />
                 {add.length > 0 && <CardChips cards={add} label="Cards to add" sign="+" className="add" onRemove={drop1(setAdd)} />}
               </section>
             </div>
+          </div>
+        )}
+        <div className="help-page">
+          {open && (
             <div className="help-why">
               <label className="field-label" htmlFor="help-why">Why? <span className="field-hint">Optional</span></label>
               <textarea id="help-why" className="import-link-input" value={text} maxLength={1000} rows={3}
@@ -324,18 +333,16 @@ function ReplyDraft({ deck, help, uid, reply, others, notify, update, touch, onD
                   title={empty ? 'Pick cards to cut or suggest, or write why' : reply ? 'Save suggestion' : 'Send suggestion'}><IconCheck size={18} /></button>
               </div>
             </div>
-          </div>
-        ) : (
-          <p className="field-hint">This request is solved: no new suggestions.</p>
-        )}
-        {shown.length > 0 && (
-          <details className="help-others" open={!open}>
-            <summary>{open ? 'Other suggestions' : 'Suggestions'} <span className="n">{shown.length}</span></summary>
-            <ul>{shown.map((r) => <ReplyCard key={r.id} r={r} mine={r.id === uid} />)}</ul>
-          </details>
-        )}
+          )}
+          {shown.length > 0 && (
+            <details className="help-others" open={!open}>
+              <summary>{open ? 'Other suggestions' : 'Suggestions'} <span className="n">{shown.length}</span></summary>
+              <ul>{shown.map((r) => <ReplyCard key={r.id} r={r} mine={r.id === uid} />)}</ul>
+            </details>
+          )}
+        </div>
+        <DeckSections deck={deck} update={update} touch={touch} readOnly tab="deck" onTab={() => {}} notify={notify} onCut={open ? onCut : undefined} />
       </div>
-      <DeckSections deck={deck} update={update} touch={touch} readOnly tab="deck" onTab={() => {}} notify={notify} onCut={open ? onCut : undefined} />
       <ConfirmDialog open={confirm} confirmLabel="Delete suggestion" message="Delete your suggestion?"
         onCancel={() => setConfirm(false)}
         onConfirm={() => {

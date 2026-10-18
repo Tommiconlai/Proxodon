@@ -189,7 +189,17 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Help request page for helpers (most recent, 2026-10-18):** user request, verbatim structure: "1. testata del
+- **Help request page: zones always in reach, no filters (most recent, 2026-10-18):** user request: "le due zone
+  rendile sempre disponibili, così quando uno scorre la pagina può sempre trascinare dentro le carte / la ricerca con
+  i filtri non funziona visivamente, toglila". Desktop: the Cuts / Suggestions zones sit in `.help-zones-bar`, sticky at
+  the top of `.deck-scroll` (dark band like the deck tab bar, z 5) inside `.help-reply-body`, which also holds Why?,
+  the other suggestions and the deck list, so they stay until the end of the list; zones 128 px tall, chips scroll
+  inside them (max 72 px); the search dropdown opens over the cards. CommunityDeck drops its empty `.deck-sticky` bar
+  in help mode (it would cover the zones). Phone: zones not sticky (no drag there), Suggest cut confirms with a toast
+  ("X added to Cuts"). `CardSearch` gains `noAdvanced` (hides the Advanced search link and panel), used only in the
+  Suggestions zone. Verified at 1440x900 (scrolled 2500 px: the bar at the top, a card dragged from mid-list lands in
+  Cuts, dropdown above the cards) and 375x812, helper view forced locally then reverted; Aesi still 100 cards.
+- **Help request page for helpers (2026-10-18):** user request, verbatim structure: "1. testata del
   mazzo con la domanda 2. due aree affiancate: cuts e suggestions 3. sotto la lista del mazzo come una qualsiasi altra
   lista 4. drag and drop direttamente dal mazzo alla zona cut 5. search bar nella zona suggestions e un box testo per
   lasciare una spiegazione facoltativa". `#/help/:deck/:id` now renders `CommunityDeck` with `helpId` (DecksView):

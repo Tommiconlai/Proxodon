@@ -80,7 +80,8 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
   return (
     <div className={`deck-editor${mobile ? ' is-mobile' : ''}`}>
       <div className="deck-scroll" ref={scrollRef} onScroll={mobile ? undefined : (e) => setStuck(e.currentTarget.scrollTop > (heroRef.current?.offsetHeight || 0) - STUCK_AT)}>
-        {!mobile && (
+        {/* Pagina della richiesta: niente barra delle schede, in alto restano ferme le zone Cuts / Suggestions. */}
+        {!mobile && !helpId && (
           <div className="deck-sticky">
             <div className={`deck-sticky-bar has-tabs${stuck ? ' stuck' : ''}`}>
               <span />

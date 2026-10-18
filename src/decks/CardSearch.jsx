@@ -11,8 +11,9 @@ const front = (name) => name.split(' // ')[0];
 // Ricerca per nome: solo il menu a tendina dei suggerimenti; le frecce scelgono, Invio aggiunge
 // (Shift = 4, Alt = sideboard). Le carte bandite o non legali nel formato non compaiono.
 // "Advanced search": se il genitore passa onAdvanced (desktop, ricerca nella testata) apre il suo
-// pannello fuori da qui; altrimenti (telefono) i filtri si aprono qui sotto.
-export default function CardSearch({ format, onAdd, notify, autoFocus, advanced: advancedProp, onAdvanced }) {
+// pannello fuori da qui; altrimenti (telefono) i filtri si aprono qui sotto. noAdvanced = solo il nome (zona
+// Suggestions delle help request, dove il pannello dei filtri non ci sta).
+export default function CardSearch({ format, onAdd, notify, autoFocus, advanced: advancedProp, onAdvanced, noAdvanced }) {
   const [q, setQ] = useState('');
   const [sugg, setSugg] = useState([]);
   const [emptyFor, setEmptyFor] = useState(null); // testo per cui nessuna carta giocabile corrisponde
@@ -86,13 +87,15 @@ export default function CardSearch({ format, onAdd, notify, autoFocus, advanced:
         )}
         {noMatch && <p className="search-suggest search-none" role="status">No playable card with this name.</p>}
       </div>
-      <div className="search-foot">
-        <button type="button" className="search-adv-toggle" aria-expanded={advanced}
-          onClick={() => (controlled ? onAdvanced(!advanced) : setOwnAdvanced((v) => !v))}>
-          {advanced ? 'Hide advanced search' : 'Advanced search'}
-        </button>
-      </div>
-      {advanced && !controlled && <AdvancedSearch format={format} onAdd={onAdd} notify={notify} />}
+      {!noAdvanced && (
+        <div className="search-foot">
+          <button type="button" className="search-adv-toggle" aria-expanded={advanced}
+            onClick={() => (controlled ? onAdvanced(!advanced) : setOwnAdvanced((v) => !v))}>
+            {advanced ? 'Hide advanced search' : 'Advanced search'}
+          </button>
+        </div>
+      )}
+      {advanced && !controlled && !noAdvanced && <AdvancedSearch format={format} onAdd={onAdd} notify={notify} />}
     </div>
   );
 }
