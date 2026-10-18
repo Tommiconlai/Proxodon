@@ -456,16 +456,16 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     </section>
   );
 
-  // Zone del trascinamento: Main (in custom anche le sezioni), Sideboard dove c'è, Maybeboard; non quella dove stanno
-  // già tutte le carte trascinate. section undefined = la riga tiene la sua sezione (come il rilascio sui gruppi per tipo).
+  // Zone del trascinamento: Main sempre (in custom poi le sezioni), Sideboard dove c'è, Maybeboard; le altre zone non se ci
+  // stanno già tutte le carte trascinate. section undefined = la riga tiene la sua sezione (come il rilascio sui gruppi per tipo).
   const dragRows = dragging ? deck.cards.filter((r) => dragging.ids.includes(r.id)) : [];
   const zones = !dragging ? [] : [
     ...(custom
-      ? blocks.groups.map((g) => ({ key: `zone-${g.key}`, label: g.section ? g.label : 'Main', board: 'main', section: g.section, n: g.count }))
-      : [{ key: 'zone-main', label: 'Main', board: 'main', section: undefined, n: sum(deck.cards.filter((r) => r.board === 'main')) }]),
+      ? blocks.groups.map((g) => ({ key: `zone-${g.key}`, label: g.section ? g.label : 'Main', main: !g.section, board: 'main', section: g.section, n: g.count }))
+      : [{ key: 'zone-main', label: 'Main', main: true, board: 'main', section: undefined, n: sum(deck.cards.filter((r) => r.board === 'main')) }]),
     ...(blocks.side ? [{ key: 'zone-side', label: 'Sideboard', board: 'side', section: undefined, n: sum(blocks.side.rows) }] : []),
     { key: 'zone-maybe', label: 'Maybeboard', board: 'maybe', section: undefined, n: sum(blocks.maybe.rows) },
-  ].filter((z) => !dragRows.every((r) => r.board === z.board && (z.section === undefined || (r.section ?? null) === z.section)));
+  ].filter((z) => z.main || !dragRows.every((r) => r.board === z.board && (z.section === undefined || (r.section ?? null) === z.section)));
 
   if (!deck.cards.length) {
     return <p className="deck-empty deck-empty-big">No cards yet.</p>;
