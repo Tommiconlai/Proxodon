@@ -5,17 +5,17 @@ import { cardsByIds } from './scryfallSearch';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { navigate } from '../hooks/useHashRoute';
 import DeckSections from './DeckSections';
-import { DeckTabs, DeckCount, DeckBottomBar, DeckTagList } from './DeckTabs';
+import { DeckTabs, DeckBand, DeckTitle, DeckCount, DeckBottomBar, DeckTagList } from './DeckTabs';
 import { DeckDilemmas } from './Dilemmas';
 import { DeckHelps, HelpQuestion, HelpReply } from './HelpRequests';
 import { ExportDeckDialog } from './dialogs';
-import { IconCopy, IconExport, IconHeart } from '../components/icons';
+import { IconCopy, IconDeckExport, IconDeckHeart } from '../components/icons';
 
 const STUCK_AT = 64; // px: la barra delle schede (padding + 40 px), come STUCK_AT nell'editor
 
 // Mazzo della Community in sola lettura (#/community/:id): testata come l'editor (arte, nome con il cuore
-// dei like, formato, prezzo, autore), Copy to my decks ed Export; schede Deck / Stats / Dilemmas (DeckTabs,
-// Dilemmas vuota per ora) in alto al centro come nell'editor (telefono: sotto la testata); sotto le sezioni
+// dei like, autore, formato), Copy to my decks ed Export; da desktop nome e cuore nella barra in alto, formato e
+// schede nella fascia (DeckBand) come nell'editor (telefono: tutto nella testata, schede sotto); sotto le sezioni
 // senza comandi di modifica. Vista e raggruppamento cambiano solo la copia sullo schermo.
 // helpId = pagina di una help request (#/help/:mazzo/:richiesta): la domanda nella testata, niente schede, sotto la
 // risposta di chi aiuta (zone Cuts e Suggestions) e la lista del mazzo da cui si trascinano i tagli (HelpReply).
@@ -77,16 +77,23 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
     notify('Copied to your decks');
     navigate(`/decks/${nid}`);
   };
+  const by = deck.owner || 'a player';
+  const like = (
+    <button type="button" className={`deck-like${liked ? ' on' : ''}`} aria-pressed={liked} onClick={toggleLike}
+      aria-label={`Like, ${likes} ${likes === 1 ? 'like' : 'likes'}`} title={liked ? 'Unlike' : 'Like'}>
+      <IconDeckHeart filled={liked} /> <span>{likes}</span>
+    </button>
+  );
+  // La pagina di una richiesta non ha barra né fascia: nome e formato restano nella testata anche da desktop.
+  const inHero = mobile || helpId;
   return (
     <div className={`deck-editor${mobile ? ' is-mobile' : ''}`}>
       <div className="deck-scroll" ref={scrollRef} onScroll={mobile ? undefined : (e) => setStuck(e.currentTarget.scrollTop > (heroRef.current?.offsetHeight || 0) - STUCK_AT)}>
         {/* Pagina della richiesta: niente barra delle schede, in alto restano ferme le zone Cuts / Suggestions. */}
         {!mobile && !helpId && (
           <div className="deck-sticky">
-            <div className={`deck-sticky-bar has-tabs${stuck ? ' stuck' : ''}`}>
-              <span />
-              <DeckTabs tab={tab} onTab={setTab} bar />
-              <span />
+            <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`}>
+              <DeckTitle by={by}><h2 className="deck-name deck-name-static">{deck.name}</h2>{like}</DeckTitle>
             </div>
           </div>
         )}
@@ -100,28 +107,28 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
             )}
           </span>
           <div className="deck-hero-content">
-            <div className="deck-hero-title">
-              <h2 className="deck-name deck-name-static">{deck.name}</h2>
-              <button type="button" className={`deck-like${liked ? ' on' : ''}`} aria-pressed={liked} onClick={toggleLike}
-                aria-label={`Like, ${likes} ${likes === 1 ? 'like' : 'likes'}`} title={liked ? 'Unlike' : 'Like'}>
-                <IconHeart size={20} fill={liked ? 'currentColor' : 'none'} /> <span>{likes}</span>
-              </button>
-            </div>
+            {inHero && (
+              <div className="deck-hero-title">
+                <h2 className="deck-name deck-name-static">{deck.name}</h2>
+                {like}
+              </div>
+            )}
             {help && <HelpQuestion help={help} />}
             <DeckTagList deck={deck} />
             <div className="deck-hero-meta">
-              <span className="deck-price">{formatLabel(deck.format)}</span>
+              {inHero && <span className="deck-price">{formatLabel(deck.format)}</span>}
               <span className="deck-hero-actions">
                 <button type="button" className="btn-secondary deck-icon-btn" onClick={copy}
                   aria-label="Copy to my decks" title="Copy to my decks"><IconCopy size={17} /></button>
                 <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setExportOpen(true)} disabled={!deck.cards.length}
-                  aria-label="Export" title="Export"><IconExport size={17} /></button>
+                  aria-label="Export" title="Export"><IconDeckExport /></button>
               </span>
-              <span className="deck-sync">by {deck.owner || 'a player'}</span>
+              {inHero && <span className="deck-sync">by {by}</span>}
             </div>
           </div>
         </header>
-        {mobile && !helpId && <DeckTabs tab={tab} onTab={setTab} />}
+        {!helpId && (mobile ? <DeckTabs tab={tab} onTab={setTab} />
+          : <DeckBand tab={tab} onTab={setTab} format={<span className="deck-format-static">{formatLabel(deck.format)}</span>} />)}
         <div className="deck-body">
           <section className="deck-main">
             {helpId ? (

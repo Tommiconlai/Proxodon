@@ -5,7 +5,7 @@
    su nero-violaceo, Chakra Petch / Space Grotesk / JetBrains Mono. Il foglio di
    stampa resta BIANCO PURO (accuratezza stampa), mai tinto. */
 :root {
-  --bg-base: #08070f;
+  --bg-base: #0b0b14; /* fondo del Figma "Proxodon" 47:108 (era #08070f) */
   --bg-surface: #0d0b1a;
   --bg-elevated: #14112a;
   --bg-glass: rgba(124, 92, 255, 0.06);
@@ -2945,8 +2945,8 @@ a.deck-tile.deck-add { text-decoration: none; }
 .deck-like.on { color: var(--accent); border-color: rgba(255, 45, 149, 0.7); box-shadow: 0 0 12px rgba(255, 45, 149, 0.35); }
 .deck-like.on svg { transform: scale(1.12); }
 .deck-like span { color: var(--text-primary); }
-/* Schede Deck / Stats / Dilemmas. Desktop (.in-bar): al centro della barra in alto, tra nome e ricerca.
-   Telefono: sovrapposte al fondo della testata (che ha 44 px di padding in più), centrate, sticky in cima,
+/* Schede Deck / Stats / Dilemmas / Help da telefono (da desktop: .deck-band, in fondo al file).
+   Sovrapposte al fondo della testata (che ha 44 px di padding in più), centrate, sticky in cima,
    col fondo della barra quando sono attaccate. */
 .deck-tabs {
   /* z 5: sopra la testata (viene dopo), sotto la barra del nome (6), la cui tendina dei suggerimenti deve coprirle. */
@@ -2964,13 +2964,6 @@ a.deck-tile.deck-add { text-decoration: none; }
   border-bottom: 1px solid rgba(124, 92, 255, 0.16);
   box-shadow: var(--shadow-md);
 }
-.deck-tabs.in-bar { position: static; height: 40px; margin: 0; }
-/* Barra in alto con le schede: tre colonne, nome a sinistra, schede al centro, ricerca a destra. */
-.deck-sticky-bar.has-tabs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: start; }
-.deck-sticky-bar.has-tabs .deck-name { justify-self: start; }
-.deck-sticky-bar.has-tabs .deck-hero-search { justify-self: end; width: min(400px, 100%); }
-/* Community da desktop: il nome (con il cuore) resta nella testata, sotto la barra; si ferma prima delle schede. */
-.deck-editor:not(.is-mobile) .deck-hero-title:has(.deck-name-static) { max-width: calc(50% - 220px); }
 .deck-name-static { overflow-wrap: anywhere; }
 .deck-sections.tab-stats .deck-analysis { width: auto; min-width: 0; margin-top: 0; }
 /* Dilemmi (Dilemmas.jsx): elenco, dilemma aperto (due carte, nome del mazzo, domanda, voto, spiegazioni,
@@ -3995,3 +3988,173 @@ span.deck-hero-art { cursor: default; }
 }
 .deck-drop-zone .n { font-family: var(--font-mono); font-size: 0.82rem; letter-spacing: 0; color: var(--cyan); }
 .deck-drop-zone.drop-target { border-style: solid; border-color: var(--accent); color: #fff; background: rgba(255, 45, 149, 0.18); box-shadow: 0 0 18px var(--accent-glow); }
+
+/* ============================================================
+   RESTYLE dal Figma "Proxodon" (M8c1qKltd3Wxh3Ii42zn0v, nodo 47:108). Misure 1:1 dal frame (1920x1080),
+   le linee si allungano con la pagina. Desktop; il telefono prende header, colori e icone.
+   ============================================================ */
+
+/* Header: alto 42, fondo pieno; la linea sfumata scende di 17 px sotto il logo con uno scalino arrotondato
+   (x 170-203) e a destra corre a 42. ::before riempie l'incavo sotto il logo col fondo. */
+.app-header {
+  height: 42px; padding: 0 18px 0 24px; align-items: flex-start;
+  background: var(--bg-base); -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.app-header > .brand { margin-top: 13.5px; }
+.app-header > :not(.brand, .nav-tabs) { align-self: center; }
+.app-header::after {
+  left: 0; right: 0; top: 42px; bottom: auto; height: 18px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='18'%3E%3Cdefs%3E%3ClinearGradient id='g' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='100%25' y2='0'%3E%3Cstop stop-color='%23FF2E96' stop-opacity='0'/%3E%3Cstop offset='.1' stop-color='%23FF2E96'/%3E%3Cstop offset='.5' stop-color='%23AB61ED'/%3E%3Cstop offset='.9' stop-color='%2300E5FF'/%3E%3Cstop offset='1' stop-color='%2300E5FF' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg fill='none' stroke='url(%23g)'%3E%3Cpath d='M203.284 .5C197.98 .5 192.893 2.607 189.142 6.358L183.858 11.642C180.107 15.393 175.02 17.5 169.716 17.5H0'/%3E%3Cline x1='203.284' y1='.5' x2='100%25' y2='.5'/%3E%3C/g%3E%3C/svg%3E") no-repeat 0 0 / 100% 18px;
+}
+.app-header::before {
+  content: ''; position: absolute; left: 0; top: 42px; width: 204px; height: 18px;
+  background: var(--bg-base); clip-path: polygon(0 0, 203.3px 0, 169.7px 17.5px, 0 17.5px); pointer-events: none;
+}
+/* Sezioni (Decks | Print): Chakra Petch 12 bold spaziato 0.2em, al 50%; aperta = ciano col "tetto" sfumato sopra. */
+.app-header .nav-tabs { gap: 15px; margin: 20px 0 0 47px; } /* prima sezione a x 211 */
+.nav-tab {
+  padding: 0 6px; border-radius: 0; line-height: 16px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.2em; color: rgba(255, 255, 255, 0.5);
+}
+.nav-tab:hover { color: rgba(255, 255, 255, 0.8); }
+.nav-tab[aria-current="page"] { color: var(--cyan); }
+.nav-tab[aria-current="page"]::after {
+  left: 0; right: 0; top: -4.5px; bottom: auto; height: 6.85px; border-radius: 0; box-shadow: none;
+  background: url('./assets/figma/nav-roof.svg') no-repeat 0 0 / 100% 100%;
+}
+.mobile-header .nav-tab { line-height: 16px; }
+.mobile-header .nav-tab[aria-current="page"]::after { top: 1.5px; }
+
+/* Testata del mazzo: alta 370 (dalla linea dell'header alla fascia), sul fondo della pagina. La copertina è
+   l'art_crop 572x353 a (-25, 18), all'80%, ritagliata dal trapezio sfocato del design (deck-art-mask.svg). */
+.deck-editor:not(.is-mobile) .deck-hero {
+  display: block; height: 370px; min-height: 0; padding: 0; overflow: hidden;
+  background: none; border: 0;
+}
+.deck-editor:not(.is-mobile) .deck-hero::before,
+.deck-editor:not(.is-mobile) .deck-hero-art::after,
+.deck-editor:not(.is-mobile) .deck-hero-blur { display: none; }
+.deck-editor:not(.is-mobile) .deck-hero-art { inset: auto; left: -25px; top: 18px; width: 572px; height: 353px; overflow: visible; }
+.deck-editor:not(.is-mobile) .deck-hero-art:focus-visible { box-shadow: none; outline: 2px solid var(--cyan); outline-offset: -2px; }
+.deck-editor:not(.is-mobile) .deck-hero-img {
+  background-position: center; opacity: 0.8;
+  -webkit-mask: url('./assets/figma/deck-art-mask.svg') 41px -6px / 417.763px 365px no-repeat;
+  mask: url('./assets/figma/deck-art-mask.svg') 41px -6px / 417.763px 365px no-repeat;
+}
+/* A destra della copertina, in basso: tag, stato del salvataggio e le icone (30x30, a 70 px dal bordo, sopra la fascia). */
+.deck-editor:not(.is-mobile) .deck-hero-content {
+  position: absolute; left: 420px; right: 70px; top: 24px; bottom: 0;
+  align-items: flex-end; justify-content: flex-end; gap: 10px;
+}
+.deck-editor:not(.is-mobile) .deck-hero-meta { margin-top: 0; justify-content: flex-end; gap: 14px; }
+/* Pagina di una help request (niente barra né fascia): il nome resta nella testata, in alto a sinistra come
+   nella barra; domanda, autore, formato e icone in basso a destra. */
+.deck-editor:not(.is-mobile) .deck-hero:has(.deck-hero-title) .deck-hero-content { left: 48px; top: 32px; justify-content: space-between; }
+.deck-editor:not(.is-mobile) .deck-hero-title { align-self: flex-start; gap: 14px; max-width: 100%; }
+.deck-editor:not(.is-mobile) .deck-hero-title .deck-name {
+  width: auto; padding: 0; font-family: var(--font-mono); font-size: 25px; font-weight: 700; line-height: 33px; color: #fff; text-shadow: none;
+}
+.deck-editor:not(.is-mobile) .deck-hero-question { max-width: 560px; }
+/* Sotto 1100 px le icone arriverebbero sopra le schede (centrate): la riga sale sopra la fascia. */
+@media (max-width: 1100px) { .deck-editor:not(.is-mobile) .deck-hero-content { bottom: 14px; } }
+.deck-editor:not(.is-mobile) .deck-hero-meta .deck-sync { order: -1; }
+.deck-editor:not(.is-mobile) .deck-tags { margin: 0; justify-content: flex-end; }
+.deck-hero-actions { display: inline-flex; gap: 10px; }
+.deck-editor:not(.is-mobile) .deck-hero-meta .deck-icon-btn {
+  width: 30px; height: 30px; padding: 0; display: inline-grid; place-items: center;
+  background: rgba(0, 39, 43, 0.25); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 5px;
+  color: rgba(255, 255, 255, 0.75); box-shadow: none;
+}
+.deck-editor:not(.is-mobile) .deck-hero-meta .deck-icon-btn:hover:not(:disabled) { border-color: rgba(255, 255, 255, 0.55); color: #fff; }
+.deck-editor:not(.is-mobile) .deck-hero-meta .deck-icon-btn.is-public { border-color: var(--cyan); color: var(--cyan); background: rgba(0, 229, 255, 0.12); box-shadow: 0 0 10px rgba(0, 229, 255, 0.3); }
+.deck-icon-btn > svg[width="30"] { margin: -7px; } /* stampa e mondo hanno il riquadro 30x30 del design attorno al simbolo */
+
+/* Barra in alto: nome (JetBrains Mono 25 bold) e cuore a 48 / 32 px, sotto "by"; ricerca 227x38 a 6 px dal
+   bordo destro, 54 px sotto l'header, con la barra ciano sul bordo. Quando la testata esce (.stuck): alta 62,
+   col fondo; sotto si attacca la fascia. */
+.deck-editor:not(.is-mobile) .deck-sticky-bar { justify-content: space-between; align-items: flex-start; gap: 24px; padding: 32px 6px 0 48px; }
+.deck-editor:not(.is-mobile) .deck-sticky-bar.stuck {
+  height: 62px; padding: 12px 6px 12px 48px; align-items: center;
+  background: var(--bg-base); border-bottom: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.deck-title { min-width: 0; display: flex; flex-direction: column; }
+.deck-title-row { min-width: 0; display: flex; align-items: center; gap: 14px; }
+.deck-editor:not(.is-mobile) .deck-sticky-bar .deck-name {
+  margin: 0 0 0 -5px; padding: 0 4px; max-width: min(620px, 100%);
+  font-family: var(--font-mono); font-size: 25px; font-weight: 700; line-height: 33px; color: #fff; text-shadow: none;
+}
+.deck-editor:not(.is-mobile) .deck-sticky-bar.stuck .deck-name { font-size: 18px; line-height: 26px; }
+.deck-editor:not(.is-mobile) .deck-sticky-bar .deck-name-static { margin-left: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.deck-by { margin-top: -5px; font-family: var(--font-display); font-size: 10px; font-weight: 400; line-height: 13px; color: #b2b2b2; }
+.deck-sticky-bar.stuck .deck-by { display: none; }
+.deck-likes { flex: none; display: inline-flex; align-items: center; gap: 6px; color: var(--accent); font-family: var(--font-mono); font-size: 12px; }
+.deck-likes span { color: rgba(255, 255, 255, 0.75); }
+:is(.deck-sticky-bar, .deck-editor:not(.is-mobile) .deck-hero-title) .deck-like { padding: 4px; gap: 6px; background: none; border: 0; border-radius: 6px; color: var(--accent); font-size: 12px; box-shadow: none; }
+:is(.deck-sticky-bar, .deck-editor:not(.is-mobile) .deck-hero-title) .deck-like:is(:hover, :focus-visible) { box-shadow: var(--focus-ring); }
+:is(.deck-sticky-bar, .deck-editor:not(.is-mobile) .deck-hero-title) .deck-like span { color: rgba(255, 255, 255, 0.75); }
+.deck-editor:not(.is-mobile) .deck-hero-search { width: 227px; margin-top: 22px; }
+.deck-editor:not(.is-mobile) .deck-sticky-bar.stuck .deck-hero-search { margin-top: 0; }
+.deck-editor:not(.is-mobile) .deck-hero-search .search-box {
+  height: 38px; gap: 9px; padding: 0 10px 0 11px; color: var(--cyan);
+  background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(0, 229, 255, 0.1); border-radius: 10px;
+}
+.deck-editor:not(.is-mobile) .deck-hero-search .search-box:focus-within { border-color: rgba(0, 229, 255, 0.55); box-shadow: none; }
+.deck-editor:not(.is-mobile) .deck-hero-search .search-box input { padding: 0; height: 100%; font-size: 0.85rem; }
+/* Barra ciano (vettori 48 + 49): 3x62 sul bordo destro, centrata sulla casella, specchiata (bordo dritto fuori). */
+.deck-editor:not(.is-mobile) .deck-hero-search .search-wrap::after {
+  content: ''; position: absolute; left: 225px; top: -17px; width: 8px; height: 72px; pointer-events: none;
+  transform: scaleX(-1);
+  background: url('./assets/figma/glow-cyan.svg') 0 5px / 3px 62px no-repeat, url('./assets/figma/glow-cyan-blur.svg') -5px 0 / 13px 72px no-repeat;
+}
+
+/* Fascia (DeckBand): la linea a 28 px, a sinistra l'incavo (11-45) col formato, al centro le schede a trapezio
+   (566 px, alte 28) appoggiate sulla linea, che le copre (::after, come nel design). Sticky sotto la barra. */
+.deck-band { position: sticky; top: 62px; z-index: 5; flex: none; height: 47px; margin-top: -11px; pointer-events: none; }
+.deck-band.solid { background: var(--bg-base); }
+.deck-band::after { content: ''; position: absolute; inset: 0; z-index: 6; pointer-events: none; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='47'%3E%3Cdefs%3E%3ClinearGradient id='g' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='100%25' y2='0'%3E%3Cstop stop-color='%23FF2E96' stop-opacity='0'/%3E%3Cstop offset='.1' stop-color='%23FF2E96'/%3E%3Cstop offset='.5' stop-color='%23AB61ED'/%3E%3Cstop offset='.9' stop-color='%2300E5FF'/%3E%3Cstop offset='1' stop-color='%2300E5FF' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg fill='none' stroke='url(%23g)' stroke-width='2'%3E%3Cpath d='M203.284 28C197.98 28 192.893 25.893 189.142 22.142L183.858 16.858C180.107 13.107 175.02 11 169.716 11H0'/%3E%3Cpath d='M203.284 28C197.98 28 192.893 30.107 189.142 33.858L183.858 39.142C180.107 42.893 175.02 45 169.716 45H0'/%3E%3Cline x1='203.284' y1='28' x2='100%25' y2='28'/%3E%3C/g%3E%3C/svg%3E") no-repeat 0 0 / 100% 47px; }
+.deck-band-format { position: absolute; left: 40px; top: 11px; z-index: 7; height: 34px; display: flex; align-items: center; pointer-events: auto; }
+.deck-band .deck-format {
+  height: 28px; padding: 0 18px 0 8px; appearance: none; -webkit-appearance: none; cursor: pointer;
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='white' stroke-opacity='.5' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 4px center; border: 1px solid transparent; border-radius: 6px;
+  font-family: var(--font-display); font-size: 15px; font-weight: 400; color: #fff;
+}
+.deck-band .deck-format:hover { border-color: rgba(255, 255, 255, 0.15); }
+.deck-band .deck-format:focus-visible { outline: none; border-color: var(--cyan); }
+.deck-band .deck-format option { background: var(--bg-elevated); color: var(--text-primary); }
+.deck-format-static { padding-left: 8px; font-family: var(--font-display); font-size: 15px; color: #fff; }
+.deck-tabs.in-band {
+  position: absolute; left: 50%; top: 0; z-index: 1; width: 566px; height: 28px; margin: 0 0 0 -283px;
+  display: block; background: none; border: 0; box-shadow: none; pointer-events: none;
+}
+.deck-tab-shapes { position: absolute; left: -10px; top: -10px; z-index: 0; overflow: visible; pointer-events: none; }
+.deck-tabs.in-band .decks-tab {
+  position: absolute; top: 0; width: 168px; height: 28px; padding: 0 0 0 0.2em;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: 0; pointer-events: auto; cursor: pointer;
+  clip-path: polygon(25.07px 0, 142.93px 0, 168px 100%, 0 100%);
+  font-family: var(--font-display); font-size: 14px; font-weight: 700; letter-spacing: 0.2em; line-height: 18px; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+.deck-tabs.in-band .decks-tab:hover { color: rgba(255, 255, 255, 0.8); }
+.deck-tabs.in-band .decks-tab[aria-current] { color: #fff; }
+.deck-tabs.in-band .decks-tab:focus-visible { box-shadow: none; color: var(--cyan); text-decoration: underline; text-underline-offset: 3px; }
+/* Sotto 980 px centrate coprirebbero il formato: partono dopo l'incavo (x 210); sotto 800 un po' più piccole. */
+@media (max-width: 980px) { .deck-tabs.in-band { left: 210px; margin-left: 0; } }
+@media (max-width: 800px) { .deck-tabs.in-band { transform: scale(0.92); transform-origin: 0 0; } }
+
+/* Contatori Main / Side: 58x40 a 8 px dal bordo, numero (Mono 20 bold) sopra l'etichetta, barra magenta sul
+   bordo sinistro (gruppi 93 / 94). Ambra se il mazzo non torna col formato. */
+.deck-count:not(.plain) { left: 8px; bottom: calc(62px + env(safe-area-inset-bottom, 0px)); gap: 16px; }
+.deck-count:not(.plain) .deck-count-chip {
+  position: relative; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+  width: 58px; height: 40px; padding: 0;
+  background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 45, 149, 0.1); border-radius: 10px; box-shadow: none;
+  font-size: 10px; line-height: 13px; letter-spacing: 0; text-transform: capitalize; color: rgba(255, 255, 255, 0.8);
+}
+.deck-count:not(.plain) .deck-count-chip::before {
+  content: ''; position: absolute; left: -13px; top: -16px; width: 13px; height: 72px; pointer-events: none;
+  background: url('./assets/figma/glow-magenta.svg') no-repeat 0 0 / 100% 100%;
+}
+.deck-count:not(.plain) .n { font-size: 20px; font-weight: 700; line-height: 26px; color: rgba(255, 255, 255, 0.8); }
+.deck-count:not(.plain) .deck-count-chip.warn { border-color: rgba(245, 158, 11, 0.4); }
+.deck-count:not(.plain) .deck-count-chip.warn .n { color: var(--warning); }

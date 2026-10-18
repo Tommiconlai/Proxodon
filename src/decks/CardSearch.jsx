@@ -4,7 +4,7 @@ import { lookupCards } from '../utils/scryfall';
 import { illegalIn } from './deckModel';
 import { useAddCard } from './useAddCard';
 import AdvancedSearch from './AdvancedSearch';
-import { IconSearch } from '../components/icons';
+import { IconDeckSearch } from '../components/icons';
 
 const front = (name) => name.split(' // ')[0];
 
@@ -73,7 +73,7 @@ export default function CardSearch({ format, identity, onAdd, notify, autoFocus,
     <div className="card-search">
       <div className="search-wrap">
         <div className="search-box">
-          <IconSearch size={16} />
+          <IconDeckSearch />
           <input role="combobox" aria-label="Search cards" aria-expanded={visible.length > 0} aria-controls={listId}
             aria-autocomplete="list" aria-activedescendant={visible.length ? `${listId}-${active}` : undefined}
             value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onKeyDown}

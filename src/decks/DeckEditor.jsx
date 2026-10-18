@@ -1,35 +1,36 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDeck } from './useDeck';
-import { unpublishDeck, changedMs } from './deckStore';
+import { unpublishDeck, changedMs, countLikes } from './deckStore';
+import { useCount } from './useCount';
 import { FORMATS, boardCounts, refreshSnapshots, addCard, toPrintEntries, coverRow, deckTags, searchIdentity } from './deckModel';
 import { useSettings } from '../utils/settings';
 import { cardsByIds } from './scryfallSearch';
 import { navigate } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
-import { DeckTabs, DeckCount, DeckBottomBar, DeckTagList } from './DeckTabs';
+import { DeckTabs, DeckBand, DeckTitle, DeckCount, DeckBottomBar, DeckTagList } from './DeckTabs';
 import { DeckDilemmas } from './Dilemmas';
 import { DeckHelps } from './HelpRequests';
 import CardSearch from './CardSearch';
 import AdvancedSearch from './AdvancedSearch';
 import { MobilePage } from '../components/MobileLayout';
 import { PrintDeckDialog, CoverDialog, ExportDeckDialog, TagsDialog } from './dialogs';
-import { IconPrinter, IconX, IconExport, IconGlobe, IconTag } from '../components/icons';
+import { IconX, IconDeckTag, IconDeckPrint, IconDeckExport, IconDeckPublic, IconDeckHeart } from '../components/icons';
 import { timeAgo } from '../utils/timeAgo';
 
 const STUCK_AT = 72; // px: padding della barra + casella di ricerca, circa
 
-// Editor del mazzo: testata con la copertina (arte della carta scelta, a sinistra, che verso destra
-// si sfoca e svanisce; click = scegli un'altra carta del mazzo, lo dice il cursore a mano) e sopra,
-// a sinistra, in basso formato, stato sync, conteggio, Print deck ed Export (si torna alla lista con la tab
-// Decks). Sotto il corpo con le sezioni (o Stats / Dilemmas). Tutto scorre insieme (deck-scroll) tranne la fascia
-// con il nome del mazzo, le schede Deck / Stats / Dilemmas al centro e la ricerca (desktop), che resta in alto: sopra la testata è trasparente, quando
-// la testata è uscita prende lo sfondo. Telefono: il nome sta nella testata e scorre con lei, Print /
-// Export / Public in alto a destra; in basso la barra (DeckBottomBar) con il conteggio, Back to top e la
-// lente che apre la ricerca a tutto schermo.
-export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDeck, initialTab }) {
+// Editor del mazzo. Desktop (Figma "Proxodon" 47:108): in alto la barra con il nome (cuore = like ricevuti, se
+// pubblico; sotto "by" il nickname, owner) a sinistra e la ricerca a destra, ferma in alto (sopra la testata è
+// trasparente, quando la testata è uscita prende lo sfondo); la testata con la copertina a sinistra (sfumata ai
+// bordi; click = scegli un'altra carta) e in basso a destra tag, stato sync e le icone; sotto la fascia
+// (DeckBand) col formato nell'incavo e le schede, ferma sotto la barra. Poi il corpo con le sezioni (o Stats /
+// Dilemmas / Help). Telefono: il nome sta nella testata e scorre con lei, formato e icone in alto a destra, le
+// schede sotto; in basso la barra (DeckBottomBar) con il conteggio, Back to top e la lente della ricerca.
+export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDeck, initialTab, owner }) {
   const { deck, update, saving, synced, error } = useDeck(uid, id);
   const mobile = useIsMobile();
+  const likes = useCount(countLikes, id, undefined, !!deck?.public);
   const settings = useSettings(); // stampa (aggiungi o sostituisci, sideboard), valuta dei prezzi
   const [online, setOnline] = useState(() => navigator.onLine);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -112,15 +113,22 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
       onChange={(e) => update((d) => ({ ...d, name: e.target.value }))}
       onBlur={() => update((d) => (d.name.trim() ? d : { ...d, name: 'Untitled deck' }))} />
   );
+  const format = (
+    <select className="deck-format" value={deck.format} aria-label="Format" onChange={(e) => update((d) => ({ ...d, format: e.target.value }))}>
+      {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+    </select>
+  );
   return (
     <div className={`deck-editor${mobile ? ' is-mobile' : ''}`}>
       <div className="deck-scroll" ref={scrollRef} onScroll={mobile ? undefined : onScroll}>
       {!mobile && (
         <div className="deck-sticky">
-          {/* Nome a sinistra, schede al centro, ricerca a destra. */}
-          <div className={`deck-sticky-bar has-tabs${stuck ? ' stuck' : ''}`}>
-            {name}
-            <DeckTabs tab={tab} onTab={setTab} bar />
+          {/* Nome a sinistra, ricerca a destra. */}
+          <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`}>
+            <DeckTitle by={owner}>
+              {name}
+              {deck.public && <span className="deck-likes" role="img" aria-label={`${likes} ${likes === 1 ? 'like' : 'likes'}`} title={`${likes} ${likes === 1 ? 'like' : 'likes'}`}><IconDeckHeart />{likes > 0 && <span>{likes}</span>}</span>}
+            </DeckTitle>
             <div className="deck-hero-search">
               <CardSearch format={deck.format} identity={searchIdentity(deck)} onAdd={add} notify={notify} advanced={advOpen} onAdvanced={setAdvOpen} />
             </div>
@@ -141,17 +149,15 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
           {mobile && <div className="deck-hero-title">{name}</div>}
           <DeckTagList deck={deck} />
           <div className="deck-hero-meta">
-            <select className="deck-format" value={deck.format} aria-label="Format" onChange={(e) => update((d) => ({ ...d, format: e.target.value }))}>
-              {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
-            </select>
+            {mobile && format}
             {/* Pulsanti solo icona: il nome sta in aria-label e nel tooltip. Telefono: in alto a destra della testata. */}
             <span className="deck-hero-actions">
             <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setTagsOpen(true)}
-              aria-label="Tags" title="Tags"><IconTag size={17} /></button>
+              aria-label="Tags" title="Tags"><IconDeckTag /></button>
             <button type="button" className="btn-secondary deck-icon-btn" onClick={startPrint} disabled={!c.main}
-              aria-label="Print deck" title="Print deck"><IconPrinter size={17} /></button>
+              aria-label="Print deck" title="Print deck"><IconDeckPrint /></button>
             <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setExportOpen(true)} disabled={!deck.cards.length}
-              aria-label="Export" title="Export"><IconExport size={17} /></button>
+              aria-label="Export" title="Export"><IconDeckExport /></button>
             {/* Pubblico = copia in Community, riscritta a ogni salvataggio (deckStore); acceso = ciano. */}
             <button type="button" className={`btn-secondary deck-icon-btn${deck.public ? ' is-public' : ''}`} aria-pressed={!!deck.public}
               aria-label="Share in Community"
@@ -161,13 +167,13 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
                 update((d) => ({ ...d, public: on }));
                 if (!on) unpublishDeck(uid, id).catch((e) => notify(`Sync error: ${e.message}`, 'error'));
                 notify(on ? 'Shared in Community' : 'Removed from Community, with its dilemmas and help requests');
-              }}><IconGlobe size={17} /></button>
+              }}><IconDeckPublic /></button>
             </span>
             <span className={`deck-sync${online ? '' : ' offline'}`} role="status">{sync}</span>
           </div>
         </div>
       </header>
-      {mobile && <DeckTabs tab={tab} onTab={setTab} />}
+      {mobile ? <DeckTabs tab={tab} onTab={setTab} /> : <DeckBand tab={tab} onTab={setTab} format={format} />}
       <div className="deck-body">
         <section className="deck-main">
           {!mobile && advOpen && (

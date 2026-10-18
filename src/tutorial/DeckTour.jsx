@@ -4,7 +4,7 @@ import { touches } from './control';
 import { Shell, ProfileStage, SettingsStage } from './AccountStages';
 import { C, demoDeck, myDecks, communityDecks, LIKES, dilemmas, DILEMMA_VOTES, helps, HELP_REPLIES } from './demo';
 import DeckSections from '../decks/DeckSections';
-import { DeckTabs, DeckCount, DeckBottomBar, DeckTagList, TabLabel } from '../decks/DeckTabs';
+import { DeckTabs, DeckBand, DeckTitle, DeckCount, DeckBottomBar, DeckTagList, TabLabel } from '../decks/DeckTabs';
 import { DeckTile, GhostTile, FolderTile } from '../decks/DeckList';
 import { DilemmaTile } from '../decks/Dilemmas';
 import { HelpItem, HelpQuestion, CardChips } from '../decks/HelpRequests';
@@ -13,7 +13,8 @@ import { useBracketSlide } from '../hooks/useBracketSlide';
 import { FORMATS, formatLabel, coverRow, searchTerms, deckMatches, MAX_HELP_CARDS } from '../decks/deckModel';
 import {
   IconPlus, IconMinus, IconCopy, IconTrash, IconPencil, IconExport, IconGlobe, IconSearch, IconFilter, IconPlay, IconFolder, IconArrowLeft,
-  IconHeart, IconTag, IconPrinter, IconEye, IconScale, IconLifebuoy, IconImage, IconList, IconCheck,
+  IconPrinter, IconEye, IconScale, IconLifebuoy, IconImage, IconList, IconCheck,
+  IconDeckTag, IconDeckPrint, IconDeckExport, IconDeckPublic, IconDeckSearch, IconDeckHeart,
 } from '../components/icons';
 
 // Tutorial delle pagine mazzi: per ogni pagina una copia demo (stesse classi e, dove si può, gli stessi componenti:
@@ -31,7 +32,7 @@ function FakeSearch({ q, active = 0, adv = true }) {
   return (
     <div className="card-search">
       <div className="search-wrap">
-        <div className="search-box"><IconSearch size={16} /><input value={q} readOnly placeholder="Search a card name" aria-label="Search cards" /></div>
+        <div className="search-box"><IconDeckSearch /><input value={q} readOnly placeholder="Search a card name" aria-label="Search cards" /></div>
         {list.length > 0 && <ul className="search-suggest">{list.map((n, i) => <li key={n} className={i === active ? 'active' : undefined}>{n}</li>)}</ul>}
       </div>
       {adv && <div className="search-foot"><button type="button" className="search-adv-toggle">Advanced search</button></div>}
@@ -76,6 +77,17 @@ function DeckStage({ apiRef, mobile, mode }) {
   const name = editor ? <input className="deck-name" value={deck.name} readOnly aria-label="Deck name" />
     : <h2 className="deck-name deck-name-static">{deck.name}</h2>;
   const likes = 12 + (liked ? 1 : 0);
+  const like = (
+    <button type="button" className={`deck-like${liked ? ' on' : ''}`} aria-label={`Like, ${likes} likes`} title="Like">
+      <IconDeckHeart filled={liked} /> <span>{likes}</span>
+    </button>
+  );
+  const format = editor ? (
+    <select className="deck-format" value={deck.format} aria-label="Format" onChange={noop}>
+      {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+    </select>
+  ) : <span className="deck-format-static">{formatLabel(deck.format)}</span>;
+  const inHero = mobile || help; // come nell'editor e nella Community: da desktop nome in alto, formato nella fascia
   const btn = (Icon, label, extra = '') => (
     <button type="button" className={`btn-secondary deck-icon-btn${extra}`} aria-label={label} title={label}><Icon size={17} /></button>
   );
@@ -86,41 +98,29 @@ function DeckStage({ apiRef, mobile, mode }) {
           onScroll={mobile ? undefined : (e) => setStuck(e.currentTarget.scrollTop > (heroRef.current?.offsetHeight || 0) - 72)}>
           {!mobile && !help && (
             <div className="deck-sticky">
-              <div className={`deck-sticky-bar has-tabs${stuck ? ' stuck' : ''}`}>
-                {editor ? name : <span />}
-                <DeckTabs tab={tab} onTab={setTab} bar />
-                {editor ? <div className="deck-hero-search"><FakeSearch q={q} active={active} /></div> : <span />}
+              <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`}>
+                <DeckTitle by={editor ? 'demoplayer' : deck.owner}>{name}{!editor && like}</DeckTitle>
+                {editor && <div className="deck-hero-search"><FakeSearch q={q} active={active} /></div>}
               </div>
             </div>
           )}
           <header className={`deck-hero${mobile && !help ? ' has-tabs' : ''}`} ref={heroRef}>
             {editor ? <button type="button" className="deck-hero-art" aria-label="Deck cover">{art}</button> : <span className="deck-hero-art">{art}</span>}
             <div className="deck-hero-content">
-              {editor ? mobile && <div className="deck-hero-title">{name}</div> : (
-                <div className="deck-hero-title">
-                  {name}
-                  <button type="button" className={`deck-like${liked ? ' on' : ''}`} aria-label={`Like, ${likes} likes`} title="Like">
-                    <IconHeart size={20} fill={liked ? 'currentColor' : 'none'} /> <span>{likes}</span>
-                  </button>
-                </div>
-              )}
+              {inHero && <div className="deck-hero-title">{name}{!editor && like}</div>}
               {help && <HelpQuestion help={HELP} />}
               <DeckTagList deck={deck} />
               <div className="deck-hero-meta">
-                {editor ? (
-                  <select className="deck-format" value={deck.format} aria-label="Format" onChange={noop}>
-                    {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
-                  </select>
-                ) : <span className="deck-price">{formatLabel(deck.format)}</span>}
+                {inHero && (editor ? format : <span className="deck-price">{formatLabel(deck.format)}</span>)}
                 <span className="deck-hero-actions">
-                  {editor ? <>{btn(IconTag, 'Tags')}{btn(IconPrinter, 'Print deck')}{btn(IconExport, 'Export')}{btn(IconGlobe, 'Share in Community', ' is-public')}</>
-                    : <>{btn(IconCopy, 'Copy to my decks')}{btn(IconExport, 'Export')}</>}
+                  {editor ? <>{btn(IconDeckTag, 'Tags')}{btn(IconDeckPrint, 'Print deck')}{btn(IconDeckExport, 'Export')}{btn(IconDeckPublic, 'Share in Community', ' is-public')}</>
+                    : <>{btn(IconCopy, 'Copy to my decks')}{btn(IconDeckExport, 'Export')}</>}
                 </span>
-                <span className="deck-sync">{editor ? 'Saved 2 minutes ago' : `by ${deck.owner}`}</span>
+                {(editor || inHero) && <span className="deck-sync">{editor ? 'Saved 2 minutes ago' : `by ${deck.owner}`}</span>}
               </div>
             </div>
           </header>
-          {mobile && !help && <DeckTabs tab={tab} onTab={setTab} />}
+          {!help && (mobile ? <DeckTabs tab={tab} onTab={setTab} /> : <DeckBand tab={tab} onTab={setTab} format={format} />)}
           <div className="deck-body">
             <section className="deck-main">
               {help ? <HelpReplyDemo deck={deck} update={update} mobile={mobile} cut={cut} add={add} q={q} why={why} over={over} />

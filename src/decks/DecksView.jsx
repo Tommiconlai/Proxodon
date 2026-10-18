@@ -39,7 +39,7 @@ export default function DecksView({ route, notify, printQueueCount, onPrintDeck,
         : area === 'help' ? <DeckList uid={user.uid} notify={notify} tab="help" />
         : area === 'decks' && id === 'folder' ? <DeckList uid={user.uid} notify={notify} tab="mine" folder={sub} />
         : community && id ? <CommunityDeck key={id} uid={user.uid} id={id} notify={notify} />
-        : id ? <DeckEditor key={id} uid={user.uid} id={id} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} initialTab={sub} />
+        : id ? <DeckEditor key={id} uid={user.uid} id={id} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} initialTab={sub} owner={profile?.nickname} />
           : <DeckList uid={user.uid} notify={notify} tab={community ? 'community' : 'mine'} />}
     </>
   );
