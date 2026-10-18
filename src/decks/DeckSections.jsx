@@ -18,7 +18,7 @@ import { CardFrame, CardFrameDefs } from '../components/CardFrame';
 import { cachedImg, useCardImg } from './cardLang';
 import { useSettings, setSetting } from '../utils/settings';
 import {
-  IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy, IconFlip, IconPrinter, IconEye, IconX, IconScale, IconLifebuoy,
+  IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy, IconFlip, IconPrinter, IconEye, IconX, IconScale, IconLifebuoy, IconZap,
 } from '../components/icons';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 
@@ -364,12 +364,13 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     const warnText = warn && `${warn.count} copies, max ${warn.max} in ${formatLabel(deck.format)}`;
     const ban = banOf(r);
     const banText = ban && legalityLabel(ban, deck.format);
+    const gc = deck.format === 'commander' && r.card.gc; // game changer, solo nei mazzi Commander
     const turns = (r.card.back && flipped.get(r.id)) || 0;
     return (
       <li key={copy ? `${r.id}:${copy}` : r.id} data-row-id={r.id} className={`deck-row${sel.has(r.id) ? ' selected' : ''}${warn ? ' over' : ''}`} {...dragProps(r)}
         onMouseEnter={touch ? undefined : (e) => showPreview(e, r)} onMouseLeave={touch ? undefined : () => setHover(null)}>
         <button type="button" className="deck-row-main" aria-pressed={sel.has(r.id)}
-          aria-label={view === 'list' ? undefined : `${split ? `${r.card.name}, copy ${copy + 1} of ${r.qty}` : `${r.qty} ${r.card.name}`}${ban ? `, ${banText}` : ''}${warn ? `, ${warnText}` : ''}`}
+          aria-label={view === 'list' ? undefined : `${split ? `${r.card.name}, copy ${copy + 1} of ${r.qty}` : `${r.qty} ${r.card.name}`}${ban ? `, ${banText}` : ''}${warn ? `, ${warnText}` : ''}${gc ? ', game changer' : ''}`}
           onClick={(e) => onRowClick(e, r.id)}
           onContextMenu={(e) => { e.preventDefault(); const p = menuPoint(e); openMenu(r.id, p.x, p.y); }}
           onKeyDown={(e) => {
@@ -386,6 +387,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
               <span className="deck-name-cell">{r.card.name}</span>
               {ban && <span className="deck-ban-icon" title={banText}><IconBan size={13} /><span className="sr-only">{banText}</span></span>}
             {warn && <span className="deck-warn-icon" title={warnText}><IconAlert size={13} /><span className="sr-only">{warnText}</span></span>}
+              {gc && <span className="deck-gc-icon" title="Game changer"><IconZap size={13} /><span className="sr-only">Game changer</span></span>}
               <ManaCost cost={r.card.mana} />
               <span className="deck-set">{r.card.set.toUpperCase()}</span>
             </>
@@ -398,10 +400,11 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
                   <CardImg card={r.card} side={1} className="deck-card-backface" />
                 </span>
               ) : r.card.img ? <CardImg card={r.card} /> : <span className="deck-card-ph">{r.card.name}</span>}
-              {(ban || warn) && (
+              {(ban || warn || gc) && (
               <span className="deck-card-flags">
                 {ban && <span className="deck-card-ban" title={banText}><IconBan size={13} /></span>}
                 {warn && <span className="deck-card-warn" title={warnText}><IconAlert size={12} /></span>}
+                {gc && <span className="deck-card-gc" title="Game changer"><IconZap size={12} /></span>}
               </span>
             )}
             </>

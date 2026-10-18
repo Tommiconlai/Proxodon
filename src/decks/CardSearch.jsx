@@ -9,11 +9,12 @@ import { IconSearch } from '../components/icons';
 const front = (name) => name.split(' // ')[0];
 
 // Ricerca per nome: solo il menu a tendina dei suggerimenti; le frecce scelgono, Invio aggiunge
-// (Shift = 4, Alt = sideboard). Le carte bandite o non legali nel formato non compaiono.
+// (Shift = 4, Alt = sideboard). Le carte bandite o non legali nel formato non compaiono, né (identity, da
+// searchIdentity) quelle fuori dai colori del comandante.
 // "Advanced search": se il genitore passa onAdvanced (desktop, ricerca nella testata) apre il suo
 // pannello fuori da qui; altrimenti (telefono) i filtri si aprono qui sotto. noAdvanced = solo il nome (zona
 // Suggestions delle help request, dove il pannello dei filtri non ci sta).
-export default function CardSearch({ format, onAdd, notify, autoFocus, advanced: advancedProp, onAdvanced, noAdvanced }) {
+export default function CardSearch({ format, identity, onAdd, notify, autoFocus, advanced: advancedProp, onAdvanced, noAdvanced }) {
   const [q, setQ] = useState('');
   const [sugg, setSugg] = useState([]);
   const [emptyFor, setEmptyFor] = useState(null); // testo per cui nessuna carta giocabile corrisponde
@@ -28,6 +29,7 @@ export default function CardSearch({ format, onAdd, notify, autoFocus, advanced:
   const open = text.length >= 2 && hideFor !== text;
   const visible = open ? sugg : [];
   const noMatch = open && emptyFor === text;
+  const idKey = identity ? identity.join('') : null; // stringa: l'array cambia a ogni render del genitore
 
   // Autocompletamento: 250 ms dopo l'ultima battuta, la richiesta precedente viene annullata. Fuori
   // da Casual i nomi passano da una richiesta /cards/collection per togliere bandite e non legali;
@@ -44,7 +46,7 @@ export default function CardSearch({ format, onAdd, notify, autoFocus, advanced:
               const find = await lookupCards(names.map((n) => ({ name: front(n) })));
               shown = names.filter((n) => {
                 const c = find({ name: front(n) });
-                return !c || !illegalIn(format, { legal: c.legalities });
+                return !c || (!illegalIn(format, { legal: c.legalities }) && (idKey === null || (c.color_identity || []).every((x) => idKey.includes(x))));
               });
             } catch { /* senza dati: nessun filtro */ }
           }
@@ -53,7 +55,7 @@ export default function CardSearch({ format, onAdd, notify, autoFocus, advanced:
         .catch((e) => { if (e.name !== 'AbortError') setSugg([]); });
     }, 250);
     return () => { clearTimeout(t); ctrl.abort(); };
-  }, [text, format]);
+  }, [text, format, idKey]);
 
   const addSuggestion = (name, e) => { setQ(''); setSugg([]); add(() => namedCard(name), e); };
 
@@ -85,7 +87,7 @@ export default function CardSearch({ format, onAdd, notify, autoFocus, advanced:
             ))}
           </ul>
         )}
-        {noMatch && <p className="search-suggest search-none" role="status">No playable card with this name.</p>}
+        {noMatch && <p className="search-suggest search-none" role="status">{idKey === null ? 'No playable card with this name.' : 'No playable card with this name in the commander\'s colors.'}</p>}
       </div>
       {!noAdvanced && (
         <div className="search-foot">
@@ -95,7 +97,7 @@ export default function CardSearch({ format, onAdd, notify, autoFocus, advanced:
           </button>
         </div>
       )}
-      {advanced && !controlled && !noAdvanced && <AdvancedSearch format={format} onAdd={onAdd} notify={notify} />}
+      {advanced && !controlled && !noAdvanced && <AdvancedSearch format={format} identity={identity} onAdd={onAdd} notify={notify} />}
     </div>
   );
 }

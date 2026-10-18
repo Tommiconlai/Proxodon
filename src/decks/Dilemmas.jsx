@@ -11,7 +11,7 @@ import {
 import { navigate } from '../hooks/useHashRoute';
 import { useBackClose } from '../hooks/useBackClose';
 import { useCount } from './useCount';
-import { groupMain, commanderRows, boardRows, scryfallImg, artCrop as art, shuffle, splitSlices, MAX_DILEMMA_CARDS } from './deckModel';
+import { groupMain, commanderRows, boardRows, scryfallImg, artCrop as art, shuffle, splitSlices, MAX_DILEMMA_CARDS, searchIdentity } from './deckModel';
 import {
   IconPlus, IconArrowLeft, IconArrowRight, IconTrash, IconCheck, IconX,
 } from '../components/icons';
@@ -477,7 +477,7 @@ function NewDilemmaDialog({ deck, notify, initial, onSubmit, onClose }) {
           {own.map((c) => <option key={c.oid} value={c.oid}>{c.name}</option>)}
         </select>
         <span className="field-label">Or search Scryfall</span>
-        <CardSearch format={deck.format} onAdd={put} notify={quiet} />
+        <CardSearch format={deck.format} identity={searchIdentity(deck)} onAdd={put} notify={quiet} />
         <label className="field-label" htmlFor="dilemma-q">Question</label>
         <textarea id="dilemma-q" className="import-link-input" value={question} maxLength={280} rows={3} autoFocus={!initial.includes(null)}
           onChange={(e) => setQuestion(e.target.value)} placeholder="Which one fits better in this deck?" />

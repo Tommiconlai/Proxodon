@@ -11,7 +11,7 @@ import { cardsByIds } from './scryfallSearch';
 import { useBackClose } from '../hooks/useBackClose';
 import { useCount } from './useCount';
 import {
-  HELP_KINDS, MAX_HELP_CARDS, DRAG_ROWS, helpKindLabel, applySuggestion, revertSuggestion, snapshotFromCard, scryfallImg, artCrop, deckCover,
+  HELP_KINDS, MAX_HELP_CARDS, DRAG_ROWS, searchIdentity, helpKindLabel, applySuggestion, revertSuggestion, snapshotFromCard, scryfallImg, artCrop, deckCover,
 } from './deckModel';
 import { timeAgo } from '../utils/timeAgo';
 import { IconPlus, IconArrowLeft, IconTrash, IconCheck, IconX, IconLifebuoy, IconMerge } from '../components/icons';
@@ -367,7 +367,7 @@ function ReplyDraft({ deck, help, uid, reply, others, notify, update, touch }) {
               </section>
               <section className="help-zone add" aria-label="Suggestions: cards to add" tabIndex={-1} data-focus-zone>
                 <h4>Suggestions <span className="n">{add.length} of {MAX_HELP_CARDS}</span></h4>
-                <CardSearch format={deck.format} onAdd={suggest} notify={quiet} noAdvanced />
+                <CardSearch format={deck.format} identity={searchIdentity(deck)} onAdd={suggest} notify={quiet} noAdvanced />
                 {add.length > 0 && <CardChips cards={add} label="Cards to add" sign="+" className="add" onRemove={drop1(setAdd)} />}
               </section>
             </div>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDeck } from './useDeck';
 import { unpublishDeck, changedMs } from './deckStore';
-import { FORMATS, boardCounts, refreshSnapshots, addCard, toPrintEntries, coverRow, deckTags } from './deckModel';
+import { FORMATS, boardCounts, refreshSnapshots, addCard, toPrintEntries, coverRow, deckTags, searchIdentity } from './deckModel';
 import { useSettings } from '../utils/settings';
 import { cardsByIds } from './scryfallSearch';
 import { navigate } from '../hooks/useHashRoute';
@@ -122,7 +122,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
             {name}
             <DeckTabs tab={tab} onTab={setTab} bar />
             <div className="deck-hero-search">
-              <CardSearch format={deck.format} onAdd={add} notify={notify} advanced={advOpen} onAdvanced={setAdvOpen} />
+              <CardSearch format={deck.format} identity={searchIdentity(deck)} onAdd={add} notify={notify} advanced={advOpen} onAdvanced={setAdvOpen} />
             </div>
           </div>
         </div>
@@ -176,7 +176,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
                 <h2 className="decks-title">Advanced search</h2>
                 <button type="button" className="modal-close" onClick={() => setAdvOpen(false)} aria-label="Close advanced search"><IconX size={18} /></button>
               </div>
-              <AdvancedSearch format={deck.format} onAdd={add} notify={notify} />
+              <AdvancedSearch format={deck.format} identity={searchIdentity(deck)} onAdd={add} notify={notify} />
             </section>
           )}
           {/* Print dal menu delle carte: si aggiungono alla coda di stampa (mai la sostituiscono), anche dal maybeboard. */}
@@ -198,7 +198,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
       )}
       {mobile && searchOpen && (
         <MobilePage title="Search cards" onClose={() => setSearchOpen(false)}>
-          <CardSearch format={deck.format} onAdd={add} notify={notify} autoFocus />
+          <CardSearch format={deck.format} identity={searchIdentity(deck)} onAdd={add} notify={notify} autoFocus />
         </MobilePage>
       )}
       {tagsOpen && <TagsDialog tags={deckTags(deck)} onChange={(tags) => update((d) => ({ ...d, tags }))} onClose={() => setTagsOpen(false)} />}

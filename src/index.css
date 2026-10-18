@@ -3770,6 +3770,16 @@ span.deck-hero-art { cursor: default; }
   cursor: help;
 }
 .deck-ban-icon { display: flex; flex: none; color: var(--danger); }
+/* Game changer (mazzi Commander): fulmine ciano, accanto al nome nella lista e come chip sull'immagine. */
+.deck-gc-icon { display: flex; flex: none; color: var(--cyan); filter: drop-shadow(0 0 4px var(--cyan-glow)); }
+.deck-card-gc {
+  display: grid; place-items: center;
+  width: 20px; height: 20px;
+  border: 1px solid var(--cyan); border-radius: 50%;
+  background: rgba(8, 7, 18, 0.88);
+  color: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan-glow);
+}
 .search-more { width: 100%; justify-content: center; margin-top: 12px; }
 
 .search-none { padding: 9px 12px; margin: 0; font-size: 0.8rem; color: var(--text-muted); }

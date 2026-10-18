@@ -19,8 +19,9 @@ const thumb = (c) => c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.norm
 
 // Ricerca avanzata: filtri → query Scryfall (sempre giocabile nel formato del mazzo), risultati con
 // immagine. Click sull'immagine = ingrandisci; + (o Invio sulla carta) aggiunge, con gli stessi
-// modificatori della ricerca per nome (useAddCard, che controlla anche la legalità).
-export default function AdvancedSearch({ format, onAdd, notify }) {
+// modificatori della ricerca per nome (useAddCard, che controlla anche la legalità). identity = colori del
+// comandante (searchIdentity): fuori le carte che non ci stanno.
+export default function AdvancedSearch({ format, identity, onAdd, notify }) {
   const { add: onPick } = useAddCard(format, onAdd, notify);
   const [f, setF] = useState(EMPTY);
   const [order, setOrder] = useState('name');
@@ -42,7 +43,7 @@ export default function AdvancedSearch({ format, onAdd, notify }) {
     setBusy(true);
     setError(null);
     try {
-      const r = await searchCards(withLegal(q, format), undefined, pageUrl, order);
+      const r = await searchCards(withLegal(q, format, identity), undefined, pageUrl, order);
       setResults((prev) => (pageUrl && prev ? { ...r, cards: [...prev.cards, ...r.cards] } : r));
     } catch (err) {
       setError(err.message || 'Search failed.');

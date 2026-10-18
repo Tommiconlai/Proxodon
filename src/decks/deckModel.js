@@ -163,6 +163,8 @@ export function snapshotFromCard(c) {
     limit: copyLimitFromText(text || ''),
     // Può guidare un mazzo Commander: creatura leggendaria o "can be your commander".
     cmdr: (/\bLegendary\b/.test(type) && /\bCreature\b/.test(type)) || /can be your commander/i.test(text || ''),
+    // Game changer (lista ufficiale dei Commander bracket, campo Scryfall): segnato nei mazzi Commander.
+    gc: !!c.game_changer,
     // Prezzi Scryfall (eur = Cardmarket, usd = TCGplayer), aggiornati dal riallineamento all'apertura.
     eur: Number(c.prices?.eur) || null,
     usd: Number(c.prices?.usd) || null,
@@ -474,6 +476,8 @@ export function deckIdentity(deck) {
   const set = new Set(src.flatMap((r) => r.card.ci));
   return WUBRG.filter((c) => set.has(c));
 }
+// Identità che la ricerca carte rispetta: solo Commander con almeno un comandante; null = nessun filtro.
+export const searchIdentity = (deck) => (deck.format === 'commander' && commanderRows(deck).length ? deckIdentity(deck) : null);
 
 // Firma del contenuto del mazzo, per "Updated": carte per oracle id (un cambio di edizione o d'arte
 // non conta), quantità sommate per zona, sezione e comandante (dividere o unire righe non conta). Cambia

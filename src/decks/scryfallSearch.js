@@ -12,8 +12,11 @@ export const namedUrl = (name) => `${API}/cards/named?exact=${encodeURIComponent
 // Sempre game:paper: niente carte solo digitali. order: name, cmc, edhrec (popolarità), released.
 export const searchUrl = (q, order = 'name') => `${API}/cards/search?q=${encodeURIComponent(`${q} game:paper`)}&unique=cards&order=${order}`;
 
-// Solo carte giocabili nel formato del mazzo (fuori bandite e non legali); Casual senza filtro.
-export const withLegal = (q, format) => (format === 'casual' ? q : `${q} legal:${format}`.trim());
+// Solo carte giocabili nel formato del mazzo (fuori bandite e non legali); Casual senza filtro. identity
+// (searchIdentity) = i colori del comandante: solo carte con l'identità dentro quella (comandante incolore: id:c).
+const idQuery = (ci) => (ci.length ? `id<=${ci.join('').toLowerCase()}` : 'id:c');
+export const withLegal = (q, format, identity) =>
+  `${format === 'casual' ? q : `${q} legal:${format}`} ${identity ? idQuery(identity) : ''}`.trim();
 
 // Filtri della ricerca avanzata → sintassi Scryfall. Campi vuoti ignorati; le virgolette dentro i
 // testi si tolgono (Scryfall non ha escape). Incolore vince sui colori; identity usa id: invece di c:.

@@ -338,7 +338,16 @@ export function IconLifebuoy(props) {
   );
 }
 
-// Chiave inglese: mazzo con una help request aperta (riquadri del profilo).
+// Fulmine: game changer (lista Scryfall dei Commander bracket), sulle carte dei mazzi Commander.
+export function IconZap(props) {
+  return (
+    <Svg {...props}>
+      <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
+    </Svg>
+  );
+}
+
+// Chiave inglese: mazzo con una help request aperta (riquadri dei mazzi).
 export function IconWrench(props) {
   return (
     <Svg {...props}>

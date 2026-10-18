@@ -373,6 +373,8 @@ eq(advancedQuery({ colors: ['U', 'B'], colorMode: '<=', identity: true, mv: '', 
 eq(advancedQuery({}), '', 'nessun filtro');
 eq([advancedQuery({ name: 'Fire/Ice' }), advancedQuery({ name: 'Delver of Secrets / Insectile' })], ['"Fire // Ice"', '"Delver of Secrets // Insectile"'], 'nome con barra singola → separatore // di Scryfall');
 eq([withLegal('t:elf', 'modern'), withLegal('t:elf', 'casual'), withLegal('', 'pauper')], ['t:elf legal:modern', 't:elf', 'legal:pauper'], 'legalità del formato');
+eq([withLegal('t:elf', 'commander', ['U', 'G']), withLegal('', 'commander', [])], ['t:elf legal:commander id<=ug', 'legal:commander id:c'], 'identità del comandante');
+eq([snapshotFromCard({ ...sc({ id: 'gc1', name: 'Rhystic Study' }), game_changer: true }).gc, snap({ id: 'gc0', name: 'Sol Ring' }).gc], [true, false], 'game changer');
 
 // Stack: colonne alte al massimo quanto la pila più alta, ogni pila nella prima colonna dove ci sta.
 eq(packPiles([300, 500, 150, 400, 100], 20), [[0, 2], [1], [3], [4]], 'pile: la 3a sotto la 1a, le altre non ci stanno');
