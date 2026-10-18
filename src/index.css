@@ -2711,6 +2711,9 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
   background: center / cover no-repeat; opacity: 0.5; box-shadow: inset 0 0 20px #000;
 }
 .deck-tile-frame { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+/* Bordo al 30%; pieno solo sui mazzi con una help request aperta (richiesta dell'utente) e sul + tratteggiato. */
+.deck-tile-frame path { stroke-opacity: 0.3; transition: stroke-opacity var(--transition); }
+.deck-tile.helping .deck-tile-frame path, .deck-add .deck-tile-frame path { stroke-opacity: 1; }
 /* Identità nell'incavo: simboli da 13.5 px (il design +50%) a 5 di distanza, 2 px sotto il bordo; in cqi del
    riquadro (209 px = 100cqi), così su telefono restano dentro l'incavo, che scala con la sagoma. */
 .deck-tile { container-type: inline-size; }

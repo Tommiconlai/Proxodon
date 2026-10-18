@@ -99,8 +99,9 @@ function TileFrame({ n = 0, dashed, children }) {
 // Riquadro di un mazzo (lista, Community, profilo), sagoma del Figma 52:275: l'arte al 50% con l'ombra interna, i
 // simboli dell'identità nell'incavo in alto; in alto a sinistra nome (accanto il globo se è pubblico, fuori dalla
 // Community, e la chiave inglese magenta se ha una help request aperta, anche nella Community) e formato; in basso
-// like ricevuti e tag, poi autore (by, nella Community) e ultima modifica. Il prezzo sta solo in Stats. props
-// vanno sul pulsante. stats = { likes, help } già noti (demo del tutorial): niente letture dal server.
+// like ricevuti e tag, poi autore (by, nella Community) e ultima modifica. Il prezzo sta solo in Stats. Il bordo
+// sfumato è pieno solo se il mazzo ha una help request aperta (.helping), altrimenti al 30%. props vanno sul
+// pulsante. stats = { likes, help } già noti (demo del tutorial): niente letture dal server.
 export function DeckTile({ deck: d, by, stats, ...props }) {
   const cover = scryfallImg(deckCover(d));
   const updated = changedMs(d); // ultimo cambio di carte (changedAt), non l'ultima scrittura
@@ -112,7 +113,7 @@ export function DeckTile({ deck: d, by, stats, ...props }) {
   const tags = deckTags(d).join(' · ');
   const identity = deckIdentity(d);
   return (
-    <button type="button" className="deck-tile" {...props}>
+    <button type="button" className={`deck-tile${helping ? ' helping' : ''}`} {...props}>
       <TileFrame n={Math.max(1, identity.length)}>
         {cover && <span className="deck-tile-art" style={{ backgroundImage: `url("${cover}")` }} />}
       </TileFrame>

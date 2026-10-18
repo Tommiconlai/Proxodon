@@ -225,6 +225,10 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
     notch is now parametric: 17.5 deep with two quarter circles of radius 8.75 per side (the design's curves, scaled
     from radius 6.5), inner half-width 9.25n - 4 for n symbols; name at 23 from the top (19 in the frame) to clear
     the deeper notch, Export still at 21 (even with 5 colours the notch ends at x 164).
+  - **Then (user: "il contorno lascia al 100% solo i mazzi che hanno help attivi, gli altri mettili al 30% di
+    opacità"):** the gradient border is at 30% (`stroke-opacity`), full only on decks with an open help request
+    (`.deck-tile.helping`, the same flag as the wrench); folders follow the decks (30%), the dashed + / See all stay
+    full.
   - Verified at 1440x900 (band at 105, search 776 at 177, filters 68 px on one line, cards 209x208 with name at +19,
     format +38, export +21, symbols +1) and in the ~1000 px pane: My decks (folder, decks, +), filters with W and G
     on, Community (notches of 1-5 colours, by / tags / likes / wrench), Dilemmas (format + Play), Help, profile (cards,
