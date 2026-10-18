@@ -3985,12 +3985,17 @@ span.deck-hero-art { cursor: default; }
 .tut-card-img.tut-art { width: 132px; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--radius-sm); }
 /* Trascinando carte nell'editor (desktop): le zone dove spostarle, in basso a sinistra sopra il conteggio, raggiungibili da
    qualunque punto del mazzo senza scorrere. Tratteggio ciano; sotto la carta trascinata si accende in magenta. */
+/* Zone del trascinamento: in basso, al centro dell'area del mazzo (left = il suo centro, da DeckSections), in fila e a
+   capo se non ci stanno. La zona da cui vengono tutte le carte è spenta (.from, niente rilascio); Remove in rosso. */
 .deck-drop-zones {
-  position: absolute; left: 18px; z-index: 8; display: flex; flex-direction: column; gap: 6px;
-  min-width: 168px; max-height: 60vh; overflow-y: auto; animation: fade-up 0.15s ease both;
+  position: absolute; bottom: 24px; z-index: 8; translate: -50% 0;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: max-content; max-width: min(760px, calc(100% - 32px)); animation: fade-up 0.15s ease both;
 }
+.deck-drop-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .deck-drop-title { padding-left: 2px; font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); text-shadow: 0 1px 3px #000; }
 .deck-drop-zone {
+  min-width: 130px;
   display: flex; align-items: baseline; justify-content: space-between; gap: 14px; padding: 11px 12px;
   border: 1px dashed rgba(0, 229, 255, 0.55); border-radius: var(--radius-sm);
   background: rgba(8, 7, 15, 0.9); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
@@ -3999,6 +4004,10 @@ span.deck-hero-art { cursor: default; }
 }
 .deck-drop-zone .n { font-family: var(--font-mono); font-size: 0.82rem; letter-spacing: 0; color: var(--cyan); }
 .deck-drop-zone.drop-target { border-style: solid; border-color: var(--accent); color: #fff; background: rgba(255, 45, 149, 0.18); box-shadow: 0 0 18px var(--accent-glow); }
+.deck-drop-zone.from { border-style: solid; border-color: rgba(255, 255, 255, 0.12); color: rgba(255, 255, 255, 0.3); cursor: not-allowed; } /* fondo pieno: le carte sotto non traspaiono */
+.deck-drop-zone.from .n { color: rgba(0, 229, 255, 0.35); }
+.deck-drop-zone.remove { align-items: center; justify-content: center; gap: 8px; border-color: rgba(255, 77, 109, 0.6); color: var(--danger); }
+.deck-drop-zone.remove.drop-target { border-color: var(--danger); color: #fff; background: rgba(255, 77, 109, 0.22); box-shadow: 0 0 18px rgba(255, 77, 109, 0.45); }
 
 /* ============================================================
    RESTYLE dal Figma "Proxodon" (M8c1qKltd3Wxh3Ii42zn0v, nodo 47:108). Misure 1:1 dal frame (1920x1080),

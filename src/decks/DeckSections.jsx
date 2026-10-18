@@ -89,8 +89,9 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   const [edition, setEdition] = useState(null); // { ids, name, current } righe a cui cambiare edizione
   const [viewing, setViewing] = useState(null); // carta aperta con View card
   const [dropKey, setDropKey] = useState(null);
-  // Trascinamento in corso nell'editor: { ids, host, bottom }. Il maybeboard vuoto accetta il rilascio e in basso a sinistra,
-  // sopra il conteggio (host = .deck-editor, bottom = la sua distanza dal fondo), compaiono le zone dove spostare le carte.
+  // Trascinamento in corso nell'editor: { ids, host, x }. Il maybeboard vuoto accetta il rilascio e in basso, al centro
+  // dell'area del mazzo (x = il centro di .deck-sections dentro host = .deck-editor), compaiono le zone dove spostare
+  // le carte e quella che le toglie.
   const [dragging, setDragging] = useState(null);
   const dragIds = useRef(null); // { ids, one } durante un trascinamento; one = Alt, una copia sola
   const [marquee, setMarquee] = useState(null); // rettangolo della selezione ad area, relativo al contenitore
@@ -346,25 +347,27 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
         setTimeout(() => g.remove(), 0);
       }
       setHover(null);
-      if (!readOnly) { // zone di rilascio: solo nell'editor
+      if (!readOnly) { // zone di rilascio: solo nell'editor, centrate sull'area del mazzo (quella della selezione)
         const host = e.currentTarget.closest('.deck-editor');
-        const count = host?.querySelector('.deck-count');
-        const bottom = count ? host.getBoundingClientRect().bottom - count.getBoundingClientRect().top + 10 : 18;
-        setDragging({ ids, host, bottom });
+        const area = rootRef.current?.getBoundingClientRect();
+        const x = host && area ? area.left - host.getBoundingClientRect().left + area.width / 2 : 0;
+        setDragging({ ids, host, x });
       }
     },
     onDragEnd: endDrag,
   });
-  // Rilascio su un gruppo del main (con la sua sezione in custom), sul sideboard o sul maybeboard.
-  // endDrag anche qui: la riga spostata può smontarsi prima del suo dragend.
-  const dropProps = (key, board, section) => (touch || readOnly ? {} : {
+  // Rilascio su un gruppo del main (con la sua sezione in custom), sul sideboard o sul maybeboard; act = cosa fare
+  // al posto dello spostamento (la zona Remove). endDrag anche qui: la riga spostata può smontarsi prima del suo dragend.
+  const dropProps = (key, board, section, act) => (touch || readOnly ? {} : {
     onDragOver: (e) => { if (!dragIds.current) return; e.preventDefault(); setDropKey(key); },
     onDragLeave: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropKey((k) => (k === key ? null : k)); },
     onDrop: (e) => {
       e.preventDefault();
       const drag = dragIds.current;
       endDrag();
-      if (drag) update((d) => placeRows(d, drag.ids, board, section, { one: drag.one }));
+      if (!drag) return;
+      if (act) act(drag);
+      else update((d) => placeRows(d, drag.ids, board, section, { one: drag.one }));
     },
   });
 
@@ -458,16 +461,20 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     </section>
   );
 
-  // Zone del trascinamento: Main sempre (in custom poi le sezioni), Sideboard dove c'è, Maybeboard; le altre zone non se ci
-  // stanno già tutte le carte trascinate. section undefined = la riga tiene la sua sezione (come il rilascio sui gruppi per tipo).
+  // Zone del trascinamento: Main (in custom le sue sezioni), Sideboard dove c'è, Maybeboard; spenta (from) quella da
+  // cui vengono tutte le carte trascinate, dove il rilascio non cambierebbe nulla (il comandante sul Main invece
+  // smette di esserlo, quindi lì resta attiva). section undefined = la riga tiene la sua sezione.
   const dragRows = dragging ? deck.cards.filter((r) => dragging.ids.includes(r.id)) : [];
   const zones = !dragging ? [] : [
     ...(custom
-      ? blocks.groups.map((g) => ({ key: `zone-${g.key}`, label: g.section ? g.label : 'Main', main: !g.section, board: 'main', section: g.section, n: g.count }))
-      : [{ key: 'zone-main', label: 'Main', main: true, board: 'main', section: undefined, n: sum(deck.cards.filter((r) => r.board === 'main')) }]),
+      ? blocks.groups.map((g) => ({ key: `zone-${g.key}`, label: g.section ? g.label : 'Main', board: 'main', section: g.section, n: g.count }))
+      : [{ key: 'zone-main', label: 'Main', board: 'main', section: undefined, n: sum(deck.cards.filter((r) => r.board === 'main')) }]),
     ...(blocks.side ? [{ key: 'zone-side', label: 'Sideboard', board: 'side', section: undefined, n: sum(blocks.side.rows) }] : []),
     { key: 'zone-maybe', label: 'Maybeboard', board: 'maybe', section: undefined, n: sum(blocks.maybe.rows) },
-  ].filter((z) => z.main || !dragRows.every((r) => r.board === z.board && (z.section === undefined || (r.section ?? null) === z.section)));
+  ].map((z) => ({
+    ...z,
+    from: dragRows.length > 0 && dragRows.every((r) => r.board === z.board && !r.commander && (z.section === undefined || (r.section ?? null) === z.section)),
+  }));
 
   if (!deck.cards.length) {
     return <p className="deck-empty deck-empty-big">No cards yet.</p>;
@@ -555,14 +562,22 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
         </section>
       </div>}
       {/* Solo per il trascinamento col mouse (da tastiera e telefono si sposta dal menu): fuori dagli screen reader. */}
+      {/* Remove toglie le righe trascinate (tutte le copie, anche con Alt), con Undo nel toast come dal menu. */}
       {dragging?.host && zones.length > 0 && createPortal(
-        <div className="deck-drop-zones" style={{ bottom: dragging.bottom }} aria-hidden="true">
+        <div className="deck-drop-zones" style={{ left: dragging.x }} aria-hidden="true">
           <span className="deck-drop-title">Move to</span>
-          {zones.map((z) => (
-            <div key={z.key} data-zone={z.key} className={`deck-drop-zone${dropKey === z.key ? ' drop-target' : ''}`} {...dropProps(z.key, z.board, z.section)}>
-              {z.label} <span className="n">{z.n}</span>
+          <div className="deck-drop-row">
+            {zones.map((z) => (
+              <div key={z.key} data-zone={z.key} className={`deck-drop-zone${z.from ? ' from' : dropKey === z.key ? ' drop-target' : ''}`}
+                {...(z.from ? {} : dropProps(z.key, z.board, z.section))}>
+                {z.label} <span className="n">{z.n}</span>
+              </div>
+            ))}
+            <div data-zone="zone-remove" className={`deck-drop-zone remove${dropKey === 'zone-remove' ? ' drop-target' : ''}`}
+              {...dropProps('zone-remove', null, undefined, (drag) => removeWithUndo(deck.cards.filter((r) => drag.ids.includes(r.id))))}>
+              <IconTrash size={14} /> Remove
             </div>
-          ))}
+          </div>
         </div>,
         dragging.host,
       )}
