@@ -47,7 +47,8 @@ const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 // Selezione come le carte in stampa (click = aggiungi/togli, Shift = intervallo, Esc = svuota);
 // menu su click destro, Shift+F10 o pressione lunga, sulla selezione se la riga ne fa parte.
 // Click sul vuoto = deseleziona; trascinando sul vuoto col mouse = selezione ad area.
-// Desktop: le carte si trascinano tra gruppi del main, sezioni, sideboard e maybeboard. Creare una
+// Desktop: le carte si trascinano tra gruppi del main, sezioni, sideboard e maybeboard, o sulle zone che durante il
+// trascinamento compaiono in basso a sinistra sopra il conteggio (senza scorrere fino al gruppo). Creare una
 // sezione porta il mazzo in raggruppamento custom; da telefono si sposta tutto dal menu.
 // readOnly (Community): niente menu (solo View card), trascinamento, +/- e sezioni nuove; update cambia solo la vista.
 // onCut(rows) (help request, anche in sola lettura): Suggest cut nel menu e carte trascinabili verso la zona Cuts.
@@ -79,7 +80,9 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   const [edition, setEdition] = useState(null); // { ids, name, current } righe a cui cambiare edizione
   const [viewing, setViewing] = useState(null); // carta aperta con View card
   const [dropKey, setDropKey] = useState(null);
-  const [dragging, setDragging] = useState(false); // durante il trascinamento il maybeboard vuoto accetta il rilascio
+  // Trascinamento in corso nell'editor: { ids, host, bottom }. Il maybeboard vuoto accetta il rilascio e in basso a sinistra,
+  // sopra il conteggio (host = .deck-editor, bottom = la sua distanza dal fondo), compaiono le zone dove spostare le carte.
+  const [dragging, setDragging] = useState(null);
   const dragIds = useRef(null); // { ids, one } durante un trascinamento; one = Alt, una copia sola
   const [marquee, setMarquee] = useState(null); // rettangolo della selezione ad area, relativo al contenitore
   const marqueeRef = useRef(null); // { x0, y0, base: Set, active }
@@ -316,7 +319,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   };
 
   // Trascinamento (desktop): la riga, o tutta la selezione se ne fa parte; con Alt una copia per riga.
-  const endDrag = () => { dragIds.current = null; setDropKey(null); setDragging(false); };
+  const endDrag = () => { dragIds.current = null; setDropKey(null); setDragging(null); };
   // Sola lettura con onCut: si trascina solo verso fuori (DRAG_ROWS, la zona Cuts delle help request), qui niente rilascio.
   const dragProps = (r) => (touch || (readOnly && !onCut) ? {} : {
     draggable: true,
@@ -341,7 +344,12 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
         setTimeout(() => g.remove(), 0);
       }
       setHover(null);
-      if (!readOnly) setDragging(true); // il maybeboard vuoto come zona di rilascio: solo nell'editor
+      if (!readOnly) { // zone di rilascio: solo nell'editor
+        const host = e.currentTarget.closest('.deck-editor');
+        const count = host?.querySelector('.deck-count');
+        const bottom = count ? host.getBoundingClientRect().bottom - count.getBoundingClientRect().top + 10 : 18;
+        setDragging({ ids, host, bottom });
+      }
     },
     onDragEnd: endDrag,
   });
@@ -448,6 +456,17 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     </section>
   );
 
+  // Zone del trascinamento: Main (in custom anche le sezioni), Sideboard dove c'è, Maybeboard; non quella dove stanno
+  // già tutte le carte trascinate. section undefined = la riga tiene la sua sezione (come il rilascio sui gruppi per tipo).
+  const dragRows = dragging ? deck.cards.filter((r) => dragging.ids.includes(r.id)) : [];
+  const zones = !dragging ? [] : [
+    ...(custom
+      ? blocks.groups.map((g) => ({ key: `zone-${g.key}`, label: g.section ? g.label : 'Main', board: 'main', section: g.section, n: g.count }))
+      : [{ key: 'zone-main', label: 'Main', board: 'main', section: undefined, n: sum(deck.cards.filter((r) => r.board === 'main')) }]),
+    ...(blocks.side ? [{ key: 'zone-side', label: 'Sideboard', board: 'side', section: undefined, n: sum(blocks.side.rows) }] : []),
+    { key: 'zone-maybe', label: 'Maybeboard', board: 'maybe', section: undefined, n: sum(blocks.maybe.rows) },
+  ].filter((z) => !dragRows.every((r) => r.board === z.board && (z.section === undefined || (r.section ?? null) === z.section)));
+
   if (!deck.cards.length) {
     return <p className="deck-empty deck-empty-big">No cards yet.</p>;
   }
@@ -544,6 +563,18 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
           <SampleHand deck={deck} />
         </section>
       </div>}
+      {/* Solo per il trascinamento col mouse (da tastiera e telefono si sposta dal menu): fuori dagli screen reader. */}
+      {dragging?.host && zones.length > 0 && createPortal(
+        <div className="deck-drop-zones" style={{ bottom: dragging.bottom }} aria-hidden="true">
+          <span className="deck-drop-title">Move to</span>
+          {zones.map((z) => (
+            <div key={z.key} data-zone={z.key} className={`deck-drop-zone${dropKey === z.key ? ' drop-target' : ''}`} {...dropProps(z.key, z.board, z.section)}>
+              {z.label} <span className="n">{z.n}</span>
+            </div>
+          ))}
+        </div>,
+        dragging.host,
+      )}
       {menu && items.length > 0 && (
         <CardMenu x={menu.x} y={menu.y} title={menuRows.length === 1 ? menuRows[0].card.name : `${menuRows.length} cards selected`} items={items} onClose={closeMenu} />
       )}

@@ -1,19 +1,19 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import Tutorial from './Tutorial';
 import { touches } from './control';
-import { C, demoDeck, myDecks, communityDecks, LIKES, dilemmas, DILEMMA_VOTES, helps, HELP_REPLIES, demoUser } from './demo';
+import { Shell, ProfileStage, SettingsStage } from './AccountStages';
+import { C, demoDeck, myDecks, communityDecks, LIKES, dilemmas, DILEMMA_VOTES, helps, HELP_REPLIES } from './demo';
 import DeckSections from '../decks/DeckSections';
 import { DeckTabs, DeckCount, DeckBottomBar, DeckTagList, TabLabel } from '../decks/DeckTabs';
 import { DeckTile, GhostTile, FolderTile } from '../decks/DeckList';
 import { DilemmaTile } from '../decks/Dilemmas';
 import { HelpItem, HelpQuestion, CardChips } from '../decks/HelpRequests';
-import { Avatar } from '../decks/AccountMenu';
 import { CardFrame, CardFrameDefs } from '../components/CardFrame';
 import { useBracketSlide } from '../hooks/useBracketSlide';
-import { FORMATS, formatLabel, coverRow, placeRows, moveToSection, searchTerms, deckMatches, MAX_HELP_CARDS } from '../decks/deckModel';
+import { FORMATS, formatLabel, coverRow, searchTerms, deckMatches, MAX_HELP_CARDS } from '../decks/deckModel';
 import {
   IconPlus, IconMinus, IconCopy, IconTrash, IconPencil, IconExport, IconGlobe, IconSearch, IconFilter, IconPlay, IconFolder, IconArrowLeft,
-  IconArrowRight, IconHeart, IconTag, IconPrinter, IconEye, IconScale, IconLifebuoy, IconImage, IconList, IconCheck, IconDownload, IconUpload,
+  IconHeart, IconTag, IconPrinter, IconEye, IconScale, IconLifebuoy, IconImage, IconList, IconCheck,
 } from '../components/icons';
 
 // Tutorial delle pagine mazzi: per ogni pagina una copia demo (stesse classi e, dove si può, gli stessi componenti:
@@ -23,18 +23,16 @@ const noop = () => {};
 const NO_FILTERS = { format: '', colors: [], card: '' };
 const LIST_TABS = [['community', 'Community'], ['dilemmas', 'Dilemmas'], ['help', 'Help'], ['mine', 'My decks']];
 const OWNERS = Object.fromEntries(communityDecks().map((d) => [d.id, d]));
-// Su telefono le pagine mazzi stanno in .mobile-body.mobile-decks.
-const Shell = ({ mobile, children }) => (mobile ? <main className="mobile-body mobile-decks">{children}</main> : children);
 
 // Ricerca carte finta (stesso markup di CardSearch): la tendina appare da 2 lettere, la prima voce è attiva.
-const NAMES = ['Rhystic Study', 'Rhystic Circle', 'Rhystic Cave'];
-function FakeSearch({ q, adv = true }) {
+const NAMES = ['Rhystic Study', 'Rhystic Circle', 'Rhystic Cave', 'Forest', 'Forest Bear', 'Forerunner of the Empire'];
+function FakeSearch({ q, active = 0, adv = true }) {
   const list = q.length >= 2 ? NAMES.filter((n) => n.toLowerCase().startsWith(q.toLowerCase())) : [];
   return (
     <div className="card-search">
       <div className="search-wrap">
         <div className="search-box"><IconSearch size={16} /><input value={q} readOnly placeholder="Search a card name" aria-label="Search cards" /></div>
-        {list.length > 0 && <ul className="search-suggest">{list.map((n, i) => <li key={n} className={i === 0 ? 'active' : undefined}>{n}</li>)}</ul>}
+        {list.length > 0 && <ul className="search-suggest">{list.map((n, i) => <li key={n} className={i === active ? 'active' : undefined}>{n}</li>)}</ul>}
       </div>
       {adv && <div className="search-foot"><button type="button" className="search-adv-toggle">Advanced search</button></div>}
     </div>
@@ -49,6 +47,7 @@ function DeckStage({ apiRef, mobile, mode }) {
   const [deck, setDeck] = useState(() => deckFor(mode));
   const [tab, setTab] = useState('deck');
   const [q, setQ] = useState('');
+  const [active, setActive] = useState(0); // voce evidenziata nella tendina della ricerca
   const [liked, setLiked] = useState(false);
   const [cut, setCut] = useState([]);
   const [add, setAdd] = useState([]);
@@ -60,7 +59,7 @@ function DeckStage({ apiRef, mobile, mode }) {
   useLayoutEffect(() => {
     const once = (set) => (card) => set((l) => (l.some((c) => c.oid === card.oid) ? l : [...l, card]));
     apiRef.current = {
-      update: (fn) => setDeck((d) => fn(d)), tab: setTab, query: setQ, like: () => setLiked((v) => !v),
+      update: (fn) => setDeck((d) => fn(d)), tab: setTab, query: setQ, active: setActive, like: () => setLiked((v) => !v),
       cut: once(setCut), suggest: once(setAdd), why: setWhy, over: setOver,
     };
   }, [apiRef]);
@@ -90,7 +89,7 @@ function DeckStage({ apiRef, mobile, mode }) {
               <div className={`deck-sticky-bar has-tabs${stuck ? ' stuck' : ''}`}>
                 {editor ? name : <span />}
                 <DeckTabs tab={tab} onTab={setTab} bar />
-                {editor ? <div className="deck-hero-search"><FakeSearch q={q} /></div> : <span />}
+                {editor ? <div className="deck-hero-search"><FakeSearch q={q} active={active} /></div> : <span />}
               </div>
             </div>
           )}
@@ -124,7 +123,9 @@ function DeckStage({ apiRef, mobile, mode }) {
           {mobile && !help && <DeckTabs tab={tab} onTab={setTab} />}
           <div className="deck-body">
             <section className="deck-main">
-              {help ? <HelpReplyDemo deck={deck} update={update} mobile={mobile} cut={cut} add={add} q={q} why={why} over={over} /> : (
+              {help ? <HelpReplyDemo deck={deck} update={update} mobile={mobile} cut={cut} add={add} q={q} why={why} over={over} />
+                : tab === 'dilemmas' ? <TabDilemmas deck={deck} mine={editor} />
+                : tab === 'help' ? <TabHelps deck={deck} mine={editor} /> : (
                 <DeckSections deck={deck} update={update} touch={mobile} readOnly={!editor} tab={tab} onTab={setTab} notify={noop}
                   onPrint={editor ? noop : undefined} onDilemma={editor ? noop : undefined} onHelp={editor ? noop : undefined} />
               )}
@@ -135,6 +136,35 @@ function DeckStage({ apiRef, mobile, mode }) {
           : tab === 'deck' && !help && <DeckCount deck={deck} />}
       </div>
     </Shell>
+  );
+}
+
+// Schede Dilemmas e Help del mazzo (copie di DeckDilemmas e DeckHelps): i dilemmi e la richiesta della demo, con il +
+// del nuovo dilemma sul proprio mazzo (la nuova richiesta no: ce n'è già una aperta).
+function TabDilemmas({ deck, mine }) {
+  return (
+    <div className="deck-sections">
+      <div className="dilemma-head"><h3 className="deck-analysis-head">Dilemmas</h3></div>
+      <ul className="dilemma-list">
+        {dilemmas().slice(0, 2).map((d) => <DilemmaTile key={d.id} deckId={deck.id} d={d} uid="tutorial" solved={false} votes={d.votes} onClick={noop} />)}
+        {mine && (
+          <li>
+            <button type="button" className="dilemma-tile dilemma-add" aria-label="New dilemma" title="New dilemma"><span className="dilemma-split"><IconPlus size={44} /></span></button>
+          </li>
+        )}
+      </ul>
+    </div>
+  );
+}
+function TabHelps({ deck, mine }) {
+  const h = helps()[0];
+  return (
+    <div className="deck-sections">
+      <div className="dilemma-head"><h3 className="deck-analysis-head">Help requests</h3></div>
+      <ul className="help-list">
+        <HelpItem deckId={deck.id} info={deck} h={h} mine={mine} onClick={noop} counts={{ replies: HELP_REPLIES[h.id], fresh: mine ? 2 : 0 }} />
+      </ul>
+    </div>
   );
 }
 
@@ -177,14 +207,14 @@ function HelpReplyDemo({ deck, update, mobile, cut, add, q, why, over }) {
 }
 
 // ── Lista mazzi: My decks, Community, Dilemmas (con il dilemma aperto) e Help ──
-function ListStage({ apiRef, mobile, tab }) {
+function ListStage({ apiRef, step, mobile, tab }) {
   const tabsRef = useRef(null);
   useBracketSlide(tabsRef, LIST_TABS.findIndex(([t]) => t === tab));
   const [q, setQ] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [decks, setDecks] = useState(() => (tab === 'community' ? communityDecks() : myDecks()));
   const [dropOn, setDropOn] = useState(null);
-  const [open, setOpen] = useState(null); // dilemma aperto
+  const [open, setOpen] = useState(step.open ?? null); // dilemma aperto (il passo Vote parte già aperto)
   const [pick, setPick] = useState(null);
   const [voted, setVoted] = useState(false);
   useLayoutEffect(() => {
@@ -318,113 +348,6 @@ function DilemmaDemo({ d, pick, voted }) {
   );
 }
 
-// ── Profilo ──
-function ProfileStage({ mobile }) {
-  const decks = myDecks();
-  const stats = [['Member since', '14 Mar 2026'], ['Last sign-in', 'Today'], ['Decks', decks.length], ['Dilemmas answered', 9], ['Followers', 0], ['Following', 0]];
-  return (
-    <Shell mobile={mobile}>
-      <div className="decks-root profile-page">
-        <section className="profile-hero" aria-label="Profile">
-          <button type="button" className="profile-banner art" style={{ backgroundImage: `url("${C.tatyova.art}")` }} aria-label="Change background">
-            <span className="profile-banner-hint" aria-hidden="true"><IconImage size={14} /> Change background</span>
-          </button>
-          <div className="profile-hero-body">
-            <button type="button" className="profile-avatar" aria-label="Change photo" title="Change photo">
-              <Avatar user={demoUser} photo={null} />
-              <span className="profile-avatar-hover" aria-hidden="true"><IconImage size={22} /></span>
-            </button>
-            <div className="profile-who profile-name-row">
-              <h2 className="profile-name">{demoUser.displayName}</h2>
-              <button type="button" className="profile-icon-btn" aria-label="Edit nickname" title="Edit nickname"><IconPencil size={15} /></button>
-            </div>
-            <dl className="profile-stats">{stats.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
-          </div>
-        </section>
-        <header className="decks-head"><h2 className="decks-title">Decks</h2></header>
-        <ul className="deck-grid tut-profile-decks">
-          {decks.slice(0, 4).map((d) => <li key={d.id} className="deck-tile-wrap"><DeckTile deck={d} stats={{ likes: d.public ? 12 : 0, help: d.id === 'tut-deck' }} /></li>)}
-          <GhostTile label={`See all ${decks.length} decks`} onClick={noop}>
-            <span className="deck-all" aria-hidden="true"><IconArrowRight size={34} />See all<span className="deck-all-n">{decks.length} decks</span></span>
-          </GhostTile>
-        </ul>
-        <header className="decks-head profile-next"><h2 className="decks-title">Dilemmas</h2></header>
-        <ul className="dilemma-list">
-          {dilemmas().map((d) => <DilemmaTile key={d.id} deckId={d.deckId} d={d} uid="tutorial" solved={false} votes={d.votes} onClick={noop} meta={<b>{OWNERS[d.deckId].name}</b>} />)}
-        </ul>
-      </div>
-    </Shell>
-  );
-}
-
-// ── Impostazioni (copia di SettingsPage con i valori di default) ──
-const Field = ({ label, value, hint }) => (
-  <div className="settings-field">
-    <label>{label}</label>
-    <select value={value} onChange={noop} aria-label={label}><option value={value}>{value}</option></select>
-    {hint && <p className="settings-hint">{hint}</p>}
-  </div>
-);
-const Check = ({ label, on }) => (
-  <label className="checkbox-row">
-    <input type="checkbox" checked={on} readOnly />
-    <span className="anim-check" aria-hidden="true">
-      <svg width="18" height="18" viewBox="0 0 18 18">
-        <path d="M 1 9 L 1 9 c 0 -5 3 -8 8 -8 L 9 1 C 14 1 17 5 17 9 L 17 9 c 0 4 -4 8 -8 8 L 9 17 C 5 17 1 14 1 9 L 1 9 Z" />
-        <polyline points="1 9 7 14 15 4" />
-      </svg>
-    </span>
-    {label}
-  </label>
-);
-const Card = ({ id, title, children }) => (
-  <section className="profile-card" id={id} aria-labelledby={`${id}-h`}><h3 id={`${id}-h`} className="profile-h">{title}</h3>{children}</section>
-);
-function SettingsStage({ mobile }) {
-  return (
-    <Shell mobile={mobile}>
-      <div className="decks-root profile-page">
-        <header className="decks-head"><h2 className="decks-title">Settings</h2></header>
-        <p className="settings-note">Preferences are saved on this device.</p>
-        <div className="profile-grid">
-          <Card id="tut-set-account" title="Account">
-            <dl className="profile-data">
-              <dt>Email</dt><dd>{demoUser.email}<span className="profile-badge ok">verified</span></dd>
-              <dt>Sign-in</dt><dd>Email and password</dd>
-            </dl>
-          </Card>
-          <Card id="tut-set-decks" title="Decks">
-            <Field label="Format of new decks" value="Commander" />
-            <Field label="Group new decks by" value="Type" />
-            <Field label="View" value="Stacks" />
-            <Field label="Sort by" value="Name" hint="View and sort apply to every deck, and change when you pick them in a deck." />
-          </Card>
-          <Card id="tut-set-print" title="Print deck">
-            <Field label="Print queue" value="Replace the cards in it" />
-            <Check label="Include the sideboard" on={false} />
-          </Card>
-          <Card id="tut-set-lang" title="Card language">
-            <Field label="Card images" value="English" hint="Printings in this language when Scryfall has them (same set and number), English otherwise. Card names and search stay in English." />
-          </Card>
-          <Card id="tut-set-look" title="Appearance">
-            <Field label="Card preview on hover" value="Medium" />
-            <Field label="List view" value="Comfortable" />
-            <Check label="Reduce motion" on={false} />
-          </Card>
-          <Card id="tut-set-backup" title="Backup">
-            <p className="profile-note">Download all your decks as one JSON file, to keep a copy or move them to another account.</p>
-            <button type="button" className="btn-secondary settings-btn"><IconDownload size={15} /> Download backup</button>
-          </Card>
-          <Card id="tut-set-restore" title="Restore">
-            <p className="profile-note">Add the decks of a backup file. The decks you already have stay as they are.</p>
-            <button type="button" className="btn-secondary settings-btn"><IconUpload size={15} /> Restore from file</button>
-          </Card>
-        </div>
-      </div>
-    </Shell>
-  );
-}
-
 // ── Gesti e passi ──
 const rowSel = (id) => `.deck-row[data-row-id="${id}"] .deck-row-main`;
 const select = (el) => el.click();
@@ -463,6 +386,21 @@ async function pointAt(g, list) {
   }
 }
 
+// Trascinamento vero nella demo: dragstart sulla riga (DeckSections apre le zone in basso a sinistra), dragover e drop
+// sulla zona, dragend; il cursore finto fa vedere il gesto. alt = una copia sola (Alt+drag).
+function realDrag(g, rowId, zone, { alt, text = alt ? 'Alt+drag' : 'Drag' } = {}) {
+  const dt = new DataTransfer();
+  const src = g.el(`.deck-row[data-row-id="${rowId}"]`);
+  const fire = (el, type) => el?.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt, altKey: !!alt }));
+  return g.drag(rowSel(rowId), `[data-zone="${zone}"]`, {
+    text, ghost: clone(g, rowId),
+    over: (on) => { if (on) fire(src, 'dragstart'); },
+    arrive: (el) => fire(el, 'dragover'),
+    effect: () => { fire(g.el(`[data-zone="${zone}"]`), 'drop'); fire(src, 'dragend'); },
+  });
+}
+const addRow = (g, id, card, qty = 1) => g.api.update((d) => ({ ...d, cards: [...d.cards, { id, qty, board: 'main', commander: false, section: null, card }] }));
+
 function editorSteps(mobile) {
   const tap = mobile ? 'Tap' : 'Click';
   const hero = {
@@ -470,27 +408,57 @@ function editorSteps(mobile) {
     text: `A demo deck: name, format and tags. Print sends it to the print sheet, Export copies the list, the globe shares it in Community. ${tap} the art to pick the cover card.`,
     play: (g) => pointAt(g, [['Tags', 'Tags'], ['Print deck', 'Print deck'], ['Export', 'Export'], ['Share in Community', 'Public']].map(([l, t]) => [`.deck-hero-actions [aria-label="${l}"]`, t])),
   };
-  const add = mobile ? {
+  const search = mobile ? [{
     target: '.deck-bottom-bar .btn-add', title: 'Add cards',
     text: 'Tap the lens to search a card by name and tap a result to add it. Advanced search has filters.',
     play: (g) => g.click('.deck-bottom-bar .btn-add', 'Tap'),
-  } : {
-    target: '.deck-hero-search', side: 'left', title: 'Add cards',
-    text: 'Type a name and pick it with ↑↓: Enter adds 1, Shift+Enter 4, Alt+Enter goes to the sideboard (maybeboard in Commander). Advanced search has filters.',
+  }] : [{
+    target: '.deck-hero-search', side: 'left', title: 'Search a card',
+    text: 'Type at least two letters of a name: the suggestions show only cards you can play in this format and, in Commander, in your commander’s colors. ↑ and ↓ move through them.',
     play: async (g) => {
       await g.type('.deck-hero-search input', 'Rhys', g.api.query);
       await g.wait(500);
+      g.say('↓');
+      g.api.active(1);
+      await g.wait(700);
+      g.say('↑');
+      g.api.active(0);
+      await g.wait(900);
+    },
+  }, {
+    target: '.deck-hero-search', side: 'left', title: 'Add it',
+    text: 'Enter adds one copy of the highlighted card: it lands in its group, here Enchantments.',
+    play: async (g) => {
+      await g.move('.deck-hero-search input');
+      g.api.query('Rhys');
+      await g.wait(700);
       g.say('Enter');
       await g.wait(700);
       g.api.query('');
-      g.api.update((d) => ({ ...d, cards: [...d.cards, { id: 'r20', qty: 1, board: 'main', commander: false, section: null, card: C.rhysticStudy }] }));
+      addRow(g, 'r20', C.rhysticStudy);
       g.spot('.deck-sections');
       await g.wait(300);
       await g.move(rowSel('r20'));
       g.say('Added');
-      await g.wait(1200);
+      await g.wait(1300);
     },
-  };
+  }, {
+    target: '.deck-hero-search', side: 'left', title: 'More copies, other boards',
+    text: 'Shift+Enter adds 4 copies. Alt+Enter sends the card to the sideboard, or to the maybeboard in Commander. Advanced search, under the bar, has filters.',
+    play: async (g) => {
+      await g.type('.deck-hero-search input', 'Fore', g.api.query);
+      await g.wait(500);
+      g.say('Shift+Enter');
+      await g.wait(800);
+      g.api.query('');
+      g.api.update((d) => ({ ...d, cards: d.cards.map((r) => (r.id === 'r18' ? { ...r, qty: r.qty + 4 } : r)) }));
+      g.spot('.deck-sections');
+      await g.wait(300);
+      await g.move(rowSel('r18'));
+      g.say('+4');
+      await g.wait(1300);
+    },
+  }];
   const choose = {
     target: '.deck-sections', title: 'Select cards',
     text: mobile ? 'Tap a card to select or deselect it. With one card selected, − and + appear above the bottom bar.'
@@ -509,40 +477,66 @@ function editorSteps(mobile) {
   };
   const organize = {
     target: '.deck-toolbar', title: 'Group, sort and view',
-    text: 'Group by type, mana value or your own sections. Sort and View apply to every deck. New section (+) makes your own groups.',
+    text: 'Group by type, mana value or your own sections. Sort and View apply to every deck.',
     play: (g) => g.click('.deck-toolbar .deck-tool:nth-of-type(3) select', mobile ? 'Tap' : 'Group by', () => g.api.update((d) => ({ ...d, groupBy: 'mv' }))),
   };
-  const tabs = {
-    target: '.deck-tabs', title: 'Stats, Dilemmas, Help',
-    text: 'Stats: mana curve, colors, prices and a sample hand. Dilemmas: ask the community to choose between cards. Help: ask for suggestions on the whole deck.',
+  const tabStep = (n, title, text) => ({
+    target: '.deck-tabs', title, text,
     play: async (g) => {
-      await g.click('.deck-tabs .decks-tab:nth-child(2)', tap, () => g.api.tab('stats'));
+      await g.click(`.deck-tabs .decks-tab:nth-child(${n})`, tap, () => g.api.tab(['deck', 'stats', 'dilemmas', 'help'][n - 1]));
       g.spot('.deck-main');
       await g.wait(1600);
     },
-  };
-  if (mobile) return [hero, add, choose, menu, organize, tabs];
-  return [hero, add, choose, {
+  });
+  const tabs = [
+    tabStep(2, 'Stats', 'Mana curve, colors, card types, prices and the cards that need attention. A bar selects its cards in the deck.'),
+    {
+      target: '.deck-tabs', side: 'above', title: 'Sample hand',
+      text: 'Under the stats: draw a sample hand, mulligan, draw a card, play a card to see what you could cast.',
+      play: async (g) => {
+        g.api.tab('stats');
+        await g.wait(400);
+        g.spot('.sample-hand');
+        await g.click('.sample-hand-bar .btn-secondary', mobile ? 'Tap' : 'New hand', select);
+        await g.click('.sample-hand-cards li:first-child .sample-card', mobile ? 'Tap' : 'Play', select);
+        await g.wait(1200);
+      },
+    },
+    tabStep(3, 'Dilemmas', 'Ask the community which card fits better: pick 2 to 4 cards (also from the card menu, Dilemma) and write the question. The deck must be public.'),
+    tabStep(4, 'Help', 'Ask for help on the whole deck (cuts, upgrades, budget, mana base): players suggest cards to cut and to add, you apply them in one click.'),
+  ];
+  if (mobile) return [hero, ...search, choose, menu, organize, ...tabs];
+  return [hero, ...search, choose, {
     target: '.deck-sections', title: 'Select an area',
     text: 'Press on an empty spot and drag: every card the box touches joins the selection.',
     play: async (g) => { await area(g); await g.wait(1000); },
   }, {
-    target: '.deck-sections', title: 'Move cards',
-    text: 'Drag cards between groups, your sections, sideboard and maybeboard. Drag a selected card to move the whole selection; Alt+drag moves one copy.',
-    play: (g) => g.drag(rowSel('r2'), '.deck-maybe', {
-      ghost: clone(g, 'r2'), effect: () => g.api.update((d) => placeRows(d, ['r2'], 'maybe', null)),
-    }),
+    target: '.deck-sections', title: 'Drag a card',
+    text: 'Pick up a card: on the left, above the count, the zones where it can go appear (Main, Sideboard, Maybeboard, your sections). Drop it there from anywhere in the deck, no scrolling. Dropping on a group works too.',
+    play: async (g) => { await realDrag(g, 'r2', 'zone-maybe'); await g.wait(800); },
+  }, {
+    target: '.deck-sections', title: 'Move a selection',
+    text: 'Drag a selected card and the whole selection moves with it.',
+    play: async (g) => {
+      await g.click(rowSel('r3'), tap, select);
+      await g.click(rowSel('r4'), tap, select);
+      await realDrag(g, 'r3', 'zone-maybe');
+      await g.wait(800);
+    },
+  }, {
+    target: '.deck-sections', title: 'One copy',
+    text: 'Alt+drag moves one copy: one Forest goes to the maybeboard, the others stay in the deck.',
+    play: async (g) => { await realDrag(g, 'r18', 'zone-maybe', { alt: true }); await g.wait(800); },
   }, {
     target: '.deck-sections', title: 'Your sections',
-    text: 'New section makes your own group (the deck switches to Custom sections): drag cards in, or use Move to in the menu. Rename or delete it from its title.',
+    text: 'New section (+) makes your own group and the deck switches to Custom sections. Your sections join the zones while you drag; rename or delete them from their title.',
     play: async (g) => {
       await g.click('.deck-new-section', 'New section', () => g.api.update((d) => ({ ...d, groupBy: 'custom', sections: [...d.sections, { id: 'tut-ramp', name: 'Ramp' }] })));
       await g.wait(500);
-      await g.drag(rowSel('r7'), '.deck-group[aria-label="Ramp"]', {
-        ghost: clone(g, 'r7'), effect: () => g.api.update((d) => moveToSection(d, ['r7'], 'tut-ramp')),
-      });
+      await realDrag(g, 'r7', 'zone-tut-ramp');
+      await g.wait(800);
     },
-  }, menu, organize, tabs];
+  }, menu, organize, ...tabs];
 }
 
 function communitySteps(mobile) {
@@ -626,13 +620,19 @@ function listSteps(tab, mobile) {
       text: 'Play shows the dilemmas you have not answered, one after another: pick with ← → or 1 to 4, Enter for the next.',
       play: async (g) => { await g.move('.decks-actions .btn-add'); g.say('Play'); await g.wait(1200); },
     }, {
-      target: '.dilemma-list', title: 'Vote',
-      text: 'Open a dilemma, choose the card you would play and confirm: then you see how the others chose and why.',
+      target: '.dilemma-list', title: 'Open a dilemma',
+      text: 'Each tile shows the cards, the votes so far and New on the latest ones. Open one to answer.',
       play: async (g) => {
         await g.click('.dilemma-list li:first-child .dilemma-tile', tap, () => g.api.open('tut-d1'));
         g.spot('.dilemma-view');
-        await g.wait(500);
+        await g.wait(1400);
+      },
+    }, {
+      target: '.dilemma-view', open: 'tut-d1', title: 'Vote',
+      text: 'Choose the card you would play, change it if you like, then confirm: you see how the others chose, and you can say why.',
+      play: async (g) => {
         await g.click('.dilemma-card:first-child', tap, () => g.api.pick(0));
+        await g.wait(500);
         await g.click('.tut-confirm', tap, () => g.api.vote());
         await g.wait(1600);
       },
@@ -648,20 +648,25 @@ function listSteps(tab, mobile) {
       play: (g) => g.click('.help-list li:nth-child(2) .help-card', tap),
     }];
   }
-  const search = {
-    target: '.decks-search', title: 'Search and filter',
-    text: 'Search by name or tag. Filters narrow by format, colors and a card in the deck.',
+  const search = [{
+    target: '.decks-search', title: 'Search',
+    text: 'Search by name or tag: the list narrows while you type.',
     play: async (g) => {
       await g.type('.decks-search input', tab === 'mine' ? 'grave' : 'mob', g.api.query);
       g.spot('.decks-root');
-      await g.wait(1300);
-      g.api.query('');
-      await g.click('.decks-filter-btn', tap, () => g.api.filters(true));
-      await g.wait(1300);
+      await g.wait(1500);
     },
-  };
+  }, {
+    target: '.decks-search', title: 'Filters',
+    text: 'Filters narrow by format, colors and a card the deck must contain. The number on the button says how many are on.',
+    play: async (g) => {
+      await g.click('.decks-filter-btn', tap, () => g.api.filters(true));
+      g.spot('.decks-filters');
+      await g.wait(1500);
+    },
+  }];
   if (tab === 'community') {
-    return [tabsStep, search, {
+    return [tabsStep, ...search, {
       target: '.deck-grid', title: 'Open a deck',
       text: `Each tile shows format, likes, colors and author. ${tap} it to open the deck, like it or copy it to your decks.`,
       play: (g) => g.click(tile('tut-c1'), tap),
@@ -670,7 +675,7 @@ function listSteps(tab, mobile) {
       text: 'To share one of your decks: Share in Community in its menu, or the globe in the deck page.',
     }];
   }
-  return [tabsStep, search, {
+  return [tabsStep, ...search, {
     target: '.deck-grid', title: 'Open a deck',
     text: `${tap} a deck to open it. The wrench marks an open help request, the icon on the corner exports the list.`,
     play: (g) => g.click(tile('tut-deck'), tap),

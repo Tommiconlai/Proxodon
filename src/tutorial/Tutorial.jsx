@@ -26,6 +26,7 @@ export default function Tutorial({ tour, mobile, onClose }) {
   const nextRef = useRef(null);
   const fx = useRef({}); // nodi del cursore e degli effetti
   const focus = useRef(null); // zona del buco spostata dal gesto (g.spot), al posto di step.target
+  const hold = useRef(false); // scheda ferma: si posiziona all'inizio del passo, poi si muove solo se cambia la finestra
   const pos = useRef({ x: window.innerWidth * 0.7, y: window.innerHeight * 0.85 }); // il cursore riparte da dov'era
   const titleId = useId();
   const textId = useId();
@@ -82,13 +83,16 @@ export default function Tutorial({ tour, mobile, onClose }) {
     const reset = () => {
       setMenu(null);
       focus.current = null;
+      hold.current = false;
       const f = fx.current;
       [f.ghost, f.box, f.drop, f.label].forEach((n) => { if (n) n.hidden = true; });
       f.cursor?.classList.remove('down');
       if (f.cursor) f.cursor.hidden = !step.play;
     };
     reset();
-    const t = step.play && setTimeout(() => {
+    const t = setTimeout(() => {
+      hold.current = true; // da qui la scheda non segue più la demo che si muove sotto il gesto
+      if (!step.play) return;
       fx.current.cursor.style.transform = `translate(${pos.current.x}px, ${pos.current.y}px)`;
       step.play(makeKit({ stage: stageRef.current, fx: fx.current, pos: pos.current, api, setMenu, focus, signal: ctrl.signal }))
         .catch((e) => { if (e?.name !== 'AbortError') console.error(e); })
@@ -97,20 +101,28 @@ export default function Tutorial({ tour, mobile, onClose }) {
     return () => { clearTimeout(t); ctrl.abort(); reset(); };
   }, [step, run]);
 
-  // Buco sulla zona del passo e scheda accanto, ricalcolati a ogni frame (la demo carica immagini e si
-  // ridimensiona): stile scritto sui nodi, niente render.
+  // Buco sulla zona (quella del passo o quella spostata dal gesto) ricalcolato a ogni frame: la demo carica immagini e
+  // scorre. La scheda segue la zona del passo solo prima del gesto (hold), poi resta ferma salvo finestra o testo
+  // cambiati. Stile scritto sui nodi, niente render.
   useLayoutEffect(() => {
     let raf = 0;
-    let prev = '';
+    let prevSpot = '';
+    let prevCard = '';
+    const rectOf = (sel) => (sel && (stageRef.current?.querySelector(sel) || document.querySelector(sel)))?.getBoundingClientRect();
+    const keyOf = (r) => (r ? [r.left, r.top, r.width, r.height].map(Math.round).join() : '-');
     const tick = () => {
-      const sel = focus.current || step.target;
-      const el = sel && (stageRef.current?.querySelector(sel) || document.querySelector(sel));
-      const r = el?.getBoundingClientRect();
+      const r = rectOf(focus.current || step.target);
+      const spotKey = keyOf(r);
+      if (spotKey !== prevSpot) {
+        prevSpot = spotKey;
+        placeSpot(spotRef.current, r);
+      }
       const card = cardRef.current;
-      const key = `${r ? [r.left, r.top, r.width, r.height].map(Math.round) : '-'}|${card.offsetHeight}|${window.innerWidth}x${window.innerHeight}`;
-      if (key !== prev) {
-        prev = key;
-        place(spotRef.current, card, r, mobile, step.side);
+      const own = focus.current ? rectOf(step.target) : r;
+      const cardKey = `${hold.current ? 'held' : keyOf(own)}|${card.offsetHeight}|${window.innerWidth}x${window.innerHeight}`;
+      if (cardKey !== prevCard) {
+        prevCard = cardKey;
+        placeCard(card, own, mobile, step.side);
       }
       raf = requestAnimationFrame(tick);
     };
@@ -168,29 +180,33 @@ const headerBottom = () => Math.round(document.querySelector('.app-header, .mobi
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.classList.contains('reduce-motion');
 const abort = () => new DOMException('Tutorial step changed', 'AbortError');
 
-// Buco (spot) sulla zona, ritagliata allo schermo, e scheda del passo dove c'è posto: accanto se la zona è alta,
-// sotto o sopra se è larga, altrimenti nell'angolo in basso a destra (side = lato preferito, es. 'left' quando sotto
-// la zona si apre una tendina). Telefono: in basso, o in alto se la zona sta giù.
-function place(spot, card, r, mobile, side) {
+// Buco (spot) sulla zona, ritagliata allo schermo; senza zona tutto oscurato.
+function placeSpot(spot, r) {
+  if (!r) { spot.classList.add('none'); return; }
+  const pad = 6;
+  const left = Math.max(2, r.left - pad);
+  const top = Math.max(2, r.top - pad);
+  const right = Math.min(window.innerWidth - 2, r.right + pad);
+  const bottom = Math.min(window.innerHeight - 2, r.bottom + pad);
+  Object.assign(spot.style, { left: `${left}px`, top: `${top}px`, width: `${Math.max(0, right - left)}px`, height: `${Math.max(0, bottom - top)}px` });
+  spot.classList.remove('none');
+}
+
+// Scheda del passo dove c'è posto: accanto se la zona è alta, sotto o sopra se è larga, altrimenti nell'angolo in basso
+// a destra (side = lato preferito, es. 'left' quando sotto la zona si apre una tendina). Telefono: in basso, o in alto
+// se la zona sta giù (side 'above' / 'below' lo decide il passo, quando il gesto avviene lontano dalla zona).
+function placeCard(card, r, mobile, side) {
   const W = window.innerWidth;
   const H = window.innerHeight;
   const m = 16;
-  if (r) {
-    const pad = 6;
-    const left = Math.max(2, r.left - pad);
-    const top = Math.max(2, r.top - pad);
-    const right = Math.min(W - 2, r.right + pad);
-    const bottom = Math.min(H - 2, r.bottom + pad);
-    Object.assign(spot.style, { left: `${left}px`, top: `${top}px`, width: `${Math.max(0, right - left)}px`, height: `${Math.max(0, bottom - top)}px` });
-    spot.classList.remove('none');
-  } else spot.classList.add('none');
   const cw = card.offsetWidth;
   const ch = card.offsetHeight;
   let x = W - cw - m;
   let y = H - ch - m;
   if (mobile || W < 640) {
     x = (W - cw) / 2;
-    y = r && r.top + r.height / 2 > H * 0.55 ? Math.max(m, headerBottom() + 8) : H - ch - m;
+    const top = side === 'above' || (side !== 'below' && r && r.top + r.height / 2 > H * 0.55);
+    y = top ? Math.max(m, headerBottom() + 8) : H - ch - m;
   } else if (!r) {
     x = (W - cw) / 2;
     y = (H - ch) / 2;
@@ -308,7 +324,9 @@ function makeKit({ stage, fx, pos, api, setMenu, focus, signal }) {
       await wait(1800);
     },
     // Trascina: ghost = nodo da clonare sotto il cursore; da = punto di partenza (anche fuori dalla demo, i file).
-    async drag(from, to, { text = 'Drag', ghost, effect, over } = {}) {
+    // over(true) alla presa (la demo può aprire le sue zone: si aspetta un frame), arrive(zona) all'arrivo,
+    // over(false) ed effect al rilascio.
+    async drag(from, to, { text = 'Drag', ghost, effect, over, arrive } = {}) {
       say(text);
       await move(from);
       fx.cursor.classList.add('down');
@@ -319,9 +337,10 @@ function makeKit({ stage, fx, pos, api, setMenu, focus, signal }) {
       const follow = () => { g.style.transform = `translate(${pos.x}px, ${pos.y}px)`; };
       follow();
       over?.(true);
+      await new Promise((r) => { requestAnimationFrame(r); });
       await move(to, 1150, follow);
       const target = !isPoint(to) && find(to);
-      if (target) glow(target);
+      if (target) { glow(target); arrive?.(target); }
       await wait(380);
       fx.cursor.classList.remove('down');
       ripple();

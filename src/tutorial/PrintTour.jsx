@@ -128,15 +128,18 @@ const SHEET = { target: '.preview-page-wrap', title: 'Your print sheet', text: '
 const DESKTOP = [
   SHEET,
   {
-    target: '.main-content', cards: 3, title: 'Add cards',
-    text: 'Drag images from your computer onto the sheet. Add cards opens the same upload, plus import from Scryfall (a card list or a deck link) and from an MPCFill XML.',
+    target: '.main-content', cards: 3, title: 'Drop images',
+    text: 'Drag card images from your computer anywhere on the sheet: they take the next free cells.',
+    play: (g) => g.drag({ x: window.innerWidth - 30, y: window.innerHeight * 0.45 }, '.preview-page-wrap', {
+      text: 'Drop images', ghost: files(), over: g.api.dragOver, effect: () => g.api.add(3),
+    }),
+  },
+  {
+    target: '.sidebar-export', side: 'right', title: 'Add cards',
+    text: 'Add cards opens the same upload, plus import from Scryfall (a card list or a deck link) and from an MPCFill XML.',
     play: async (g) => {
-      await g.drag({ x: window.innerWidth - 30, y: window.innerHeight * 0.45 }, '.preview-page-wrap', {
-        text: 'Drop images', ghost: files(), over: g.api.dragOver, effect: () => g.api.add(3),
-      });
-      g.spot('.sidebar');
-      await g.wait(400);
       await g.click('.btn-add', 'Click', () => g.api.addMenu(true));
+      g.spot('.sidebar');
       await g.wait(1800);
     },
   },
