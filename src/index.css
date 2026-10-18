@@ -2391,7 +2391,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .header-slot .help { margin-left: 0; position: relative; }
 
 /* Lista mazzi, profilo e Settings: contenuto in una colonna centrata (vince su .deck-grid e .decks-empty). */
-.decks-root:is(.profile-page, .decks-page) > * { max-width: 1240px; margin-inline: auto; }
+.decks-root:is(.profile-page, .decks-page) > :not(.modal-overlay) { max-width: 1240px; margin-inline: auto; } /* gli sfondi dei dialoghi restano a tutto schermo */
 /* Schede di Settings; una colonna su telefono. */
 .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; align-items: start; }
 .profile-card {

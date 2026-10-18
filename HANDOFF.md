@@ -199,7 +199,12 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Card highlight flush inside (most recent, 2026-10-19):** user: "il bordo dell'highlight mettilo a filo interno con la
+- **Dialog backdrops full screen again (most recent, 2026-10-19):** bug from the user: the dark backdrop of New deck
+  (and every dialog rendered inside the deck list, profile and settings pages) stopped at the 1240 px column, because
+  the column rule `.decks-root:is(.profile-page, .decks-page) > *` (max-width + auto margins) also hit the fixed
+  `.modal-overlay`. The rule now skips it (`> :not(.modal-overlay)`); the list band and the 776 px search / filters
+  still win (same specificity, later in the file). Checked: New deck backdrop 1440x900 and 375x812.
+- **Card highlight flush inside (2026-10-19):** user: "il bordo dell'highlight mettilo a filo interno con la
   carta e in caso di view by grid o stack farlo terminare dove si incontra la carta che sta sopra". On deck cards
   (grid, stacks, split) and dilemma cards the `CardFrame` contour is now inside the card (2 px stroke from the edge
   inward, the card's corner radius 4.75% minus 1 px) instead of 3 px outside; a covered card keeps its full height but
