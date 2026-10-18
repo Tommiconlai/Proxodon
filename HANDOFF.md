@@ -232,6 +232,16 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
     is refused) or make decks private (the placeholder is refused); publish the rules right after the deploy. Verified
     with the old rules: Community 10 decks, a public deck 100 cards with Scryfall images, the dilemma decklist 97
     names, dilemma and help feeds load, no console errors; self-check covers the cleaners and the backup limits.
+    Then, with the new rules published (2026-10-18): 47 rules tests on the Firestore emulator all pass (a throwaway
+    harness in the session scratchpad: `@firebase/rules-unit-testing` + `firebase emulators:exec`, demo project;
+    likes with and without marker, retired copies, bad public copies, list limits, dilemma dates, vote and reply
+    markers, rev 1 on create, nickname claim / change / squat, the account-deletion steps). Live: Like on another
+    player's deck from the UI writes like + marker, Unlike removes both (back to 0); a temporary public deck with a
+    dilemma: Make private left `{ uid }`, deleted the dilemma, `getPublicDeck` = null; re-publish restored the full
+    copy; delete left the placeholder (then removed by hand); a second nickname without the profile is refused;
+    nickname round trip blazedfoot → blazedfoot-zz → blazedfoot frees and retakes the keys and re-signs the public
+    decks; a vote + marker on another player's dilemma written and removed. The full `deleteUserData` run was not done
+    live (it would wipe the account): every read and delete it uses was checked on the emulator, the reads also live.
 - **Deck cards on tablets (2026-10-18):** the user sent an iPad Air (2025) screenshot: "Da tablet la
   visualizzazione delle carte non è ottimale". A tablet in portrait uses the phone layout (`useIsMobile`: up to
   1024 px portrait), where stacks were always two columns of half the width and the grid two columns, so cards
