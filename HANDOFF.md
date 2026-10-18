@@ -216,8 +216,12 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
   `#/decks/:id/help`, phone 375x812; the reply form (rendered for the owner by a temporary local change, then
   reverted): Add from search, Cut from the deck, and sending is rejected by the rules on one's own request, with the
   error toast and the draft kept (`ReplyForm` keyed on `formKey`, bumped only when one's own reply is deleted, not on
-  the reply's presence, which a rejected write rolls back). Still to verify: the feed (needs the `helps.createdAt`
-  collection group index), a real reply from another account, Apply / Undo on it.
+  the reply's presence, which a rejected write rolls back). Feed verified 2026-10-18 after the user enabled the
+  exemption `helps.createdAt` (collection group, Descending; the first try had left the collection group scope
+  disabled, the error kept saying "You can create it here"): the request shows as Yours, search (text, kind, card,
+  deck, author) and format filter work, the tile opens the deck on its Help tab, back returns to the feed,
+  `#/help/:deck/:id` shows deck, author and decklist, phone 375x812. Still to verify: a real reply from another
+  account, Apply / Undo on it.
 - **Android app, milestone 4: polish (2026-10-17):** back button: `@capacitor/app` alone only
   calls `goBack` and does nothing at the root, so `main.jsx` adds a `backButton` listener (app only):
   `history.back()` while there is history (overlays via `useBackClose`, hash routes), else `minimizeApp()`
