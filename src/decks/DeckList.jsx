@@ -57,15 +57,20 @@ const LIST_TABS = [['community', 'Community'], ['dilemmas', 'Dilemmas'], ['help'
 const listHref = (t) => (t === 'mine' ? '#/decks' : `#/${t}`);
 
 // Sagoma dei riquadri (Figma "Proxodon" 52:275): 209x208, angoli 10, in alto al centro un incavo per i simboli
-// dell'identità, largo quanto loro (n simboli da 9 px a passi di 14: mezzo fondo a = 6n - 2, come i due
-// riquadri del design, 2 e 3 colori), con le curve copiate dal design. n = 0: senza incavo.
+// dell'identità, largo quanto loro. Simboli da 18 px (il doppio del design, su richiesta) a passi di 23: n simboli
+// = 23n - 5 px, mezzo fondo a = 11.5n - 4. Incavo profondo 22 (2 sopra e sotto i simboli), fatto come nel design
+// con due quarti di cerchio per lato (là raggio 6.5 per 9 px, qui 11). n = 0: senza incavo.
 const TILE_BOX = 'H199C204.523 0 209 4.477 209 10V198C209 203.523 204.523 208 199 208H10C4.477 208 0 203.523 0 198V10C0 4.477 4.477 0 10 0Z';
+const NOTCH_R = 11;
+const K = 0.552 * NOTCH_R; // maniglia della curva (quarto di cerchio), come nel design
+const f = (v) => +v.toFixed(3);
 function tileShape(n) {
   if (!n) return `M10 0${TILE_BOX}`;
-  const l = 104.5 - (6 * n - 2);
-  const r = 104.5 + (6 * n - 2);
-  return `M${l - 13} 0C${l - 9.41} 0 ${l - 6.5} 2.91 ${l - 6.5} 6.5C${l - 6.5} 10.09 ${l - 3.59} 13 ${l} 13H${r}`
-    + `C${r + 3.478} 13 ${r + 6.317} 10.269 ${r + 6.491} 6.835L${r + 6.509} 6.165C${r + 6.683} 2.731 ${r + 9.522} 0 ${r + 13} 0${TILE_BOX}`;
+  const R = NOTCH_R;
+  const l = 104.5 - (11.5 * n - 4);
+  const r = 104.5 + (11.5 * n - 4);
+  return `M${f(l - 2 * R)} 0C${f(l - 2 * R + K)} 0 ${f(l - R)} ${f(R - K)} ${f(l - R)} ${R}C${f(l - R)} ${f(R + K)} ${f(l - K)} ${2 * R} ${f(l)} ${2 * R}H${f(r)}`
+    + `C${f(r + K)} ${2 * R} ${f(r + R)} ${f(R + K)} ${f(r + R)} ${R}C${f(r + R)} ${f(R - K)} ${f(r + 2 * R - K)} 0 ${f(r + 2 * R)} 0${TILE_BOX}`;
 }
 const masks = {};
 const tileMask = (n) => (masks[n] ??= `url("data:image/svg+xml,${encodeURIComponent(

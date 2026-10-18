@@ -220,6 +220,10 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
     then "by" and "Updated …"; the globe and the wrench after the name. Folders and the + / See all tiles use the
     same shape (no notch; dashed cyan for +).
   - **Dilemma and help tiles:** the same gradient border and radius 10 on their art.
+  - **Then (user: "ingrandisci i simboli di mana nelle card mazzo del 100%"):** identity symbols 18 px instead of 9
+    (5 apart, in `cqi` of the tile so they shrink with it on phones); the notch is now parametric: 22 deep with two
+    quarter circles of radius 11 per side (the design's curves, scaled from radius 6.5), inner half-width 11.5n - 4
+    for n symbols; name at 28 and Export at 26 from the top (19 / 21 in the frame) so they clear the deeper notch.
   - Verified at 1440x900 (band at 105, search 776 at 177, filters 68 px on one line, cards 209x208 with name at +19,
     format +38, export +21, symbols +1) and in the ~1000 px pane: My decks (folder, decks, +), filters with W and G
     on, Community (notches of 1-5 colours, by / tags / likes / wrench), Dilemmas (format + Play), Help, profile (cards,
