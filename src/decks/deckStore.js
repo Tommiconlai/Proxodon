@@ -5,10 +5,10 @@
  */
 import {
   collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, getDoc, getDocs, writeBatch, runTransaction,
-  query, where, orderBy, limit, getCountFromServer, collectionGroup, arrayUnion, arrayRemove, Timestamp,
+  query, where, orderBy, limit, getCountFromServer, collectionGroup, arrayUnion, arrayRemove, Timestamp, increment,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { searchTerms, contentSig, deckTags } from './deckModel';
+import { searchTerms, contentSig, deckTags, deckCover, cleanCards, cleanHelp, cleanReply } from './deckModel';
 
 const decksCol = (uid) => collection(db, 'users', uid, 'decks');
 // serverTimestamps 'estimate': un mazzo appena scritto ha già una data (stimata) per l'ordinamento.
@@ -37,14 +37,18 @@ export const changedMs = (d) => ms(d.changedAt ?? d.updatedAt);
 // Community. La copia pubblica porta uid, la firma (owner: nickname del profilo, o null) e words: i
 // prefissi delle parole del nome e dei tag (max 200, come le regole), fino a 20 lettere, per cercare con un array-contains senza indici.
 const publicCol = collection(db, 'publicDecks');
-// ponytail: nickname del profilo aperto (lo aggiorna listenProfile, attivo finché si è nell'area mazzi).
-// undefined finché il profilo non è arrivato (o dopo una ricarica del modulo, in sviluppo).
+// ponytail: nickname del profilo aperto (lo aggiorna listenProfile, attivo finché si è nell'area mazzi), di ownerUid
+// (cambiando account si rilegge). undefined finché il profilo non è arrivato (o dopo una ricarica del modulo, in sviluppo).
 let ownerName;
+let ownerUid;
 // Firma della copia: se ownerName non c'è ancora la legge dal profilo (prima la copia nasceva senza firma,
 // "anonymous", per esempio pubblicando dal pannello New deck appena aperta la pagina). Profilo illeggibile
 // (offline senza cache): undefined, e la copia tiene la firma che ha.
 const ownerOf = async (uid) => {
-  if (ownerName === undefined) ownerName = await getDoc(profileDoc(uid)).then((s) => s.data()?.nickname || null, () => undefined);
+  if (ownerName === undefined || ownerUid !== uid) {
+    ownerUid = uid;
+    ownerName = await getDoc(profileDoc(uid)).then((s) => s.data()?.nickname || null, () => undefined);
+  }
   return ownerName;
 };
 const searchWords = (name) => [...new Set(searchTerms(name)
@@ -58,7 +62,11 @@ const publish = async (uid, d, f) => {
     uid, ...(owner !== undefined && { owner }), words: searchWords([d.name, ...deckTags(d)].join(' ')).slice(0, 200), createdAt: d.createdAt ?? serverTimestamp(),
   }, { merge: true });
 };
-export const unpublishDeck = (id) => deleteDoc(doc(publicCol, id));
+// Fuori dalla Community: via la copia pubblica e con lei dilemmi e help request (con voti e risposte), che le regole
+// lasciano leggere a chiunque abbia un account finché esistono. La pulizia non blocca: se fallisce la copia è tolta.
+export const unpublishDeck = (id) => Promise.all([
+  deleteDoc(doc(publicCol, id)), deleteDilemmasOf(id).catch(() => {}), deleteHelpsOf(id).catch(() => {}),
+]);
 
 // ponytail: ordinamento lato client (niente indice); legge i documenti interi, va bene per
 // decine di mazzi. Se la lista rallenta: una collezione di riepiloghi.
@@ -66,9 +74,10 @@ export function listenDecks(uid, onChange, onError) {
   return onSnapshot(decksCol(uid), (qs) => onChange(qs.docs.map(fromDoc).sort((a, b) => changedMs(b) - changedMs(a))), onError);
 }
 
+// fromCache: lo snapshot viene dalla cache locale e non è ancora confermato dal server (può essere vecchio).
 export function listenDeck(uid, id, onChange, onError) {
   return onSnapshot(doc(decksCol(uid), id), { includeMetadataChanges: true },
-    (s) => onChange(s.exists() ? fromDoc(s) : null, s.metadata.hasPendingWrites), onError);
+    (s) => onChange(s.exists() ? fromDoc(s) : null, s.metadata.hasPendingWrites, s.metadata.fromCache), onError);
 }
 
 // Nuovo mazzo; public (dal pannello New deck) scrive subito anche la copia in Community. folder = la
@@ -76,33 +85,32 @@ export function listenDeck(uid, id, onChange, onError) {
 export function createDeck(uid, deck) {
   const ref = doc(decksCol(uid));
   const f = changes(deck);
-  const done = setDoc(ref, { ...payload(deck), ...f, folder: deck.folder ?? null, createdAt: serverTimestamp() });
+  const done = setDoc(ref, { ...payload(deck), ...f, rev: 1, folder: deck.folder ?? null, createdAt: serverTimestamp() });
   return { id: ref.id, done: deck.public ? Promise.all([done, publish(uid, { ...deck, id: ref.id }, f)]) : done };
 }
 // Cartelle di My decks: folder = { id, name } sul mazzo (solo quello privato), null = fuori. Una cartella
 // esiste finché ha un mazzo; spostare o rinominare = riscrivere folder su quei mazzi, in un solo batch.
 export function setDeckFolder(uid, ids, folder) {
   const batch = writeBatch(db);
-  ids.forEach((id) => batch.update(doc(decksCol(uid), id), { folder }));
+  ids.forEach((id) => batch.update(doc(decksCol(uid), id), { folder, rev: increment(1) })); // la cartella non è un conflitto
   return batch.commit();
 }
 
-// merge: createdAt resta; gli array (cards, sections) vengono sostituiti interi. Pubblico: riscrive anche
-// la copia, con una scrittura a parte (se le regole la rifiutano il mazzo resta salvato).
+// merge: createdAt resta; gli array (cards, sections) vengono sostituiti interi. rev = revisione del mazzo letto + 1:
+// le regole accettano solo la revisione successiva a quella salvata, così una copia vecchia (altro dispositivo,
+// cache non aggiornata) non sovrascrive quella nuova: la scrittura è rifiutata e la cache torna alla versione
+// del server. Pubblico: la copia si riscrive dopo, solo se il mazzo è stato accettato.
 export const saveDeck = (uid, deck) => {
   const f = changes(deck);
-  const done = setDoc(doc(decksCol(uid), deck.id), { ...payload(deck), ...f }, { merge: true });
-  return deck.public ? Promise.all([done, publish(uid, deck, f)]) : done;
+  const done = setDoc(doc(decksCol(uid), deck.id), { ...payload(deck), ...f, rev: (deck.rev || 0) + 1 }, { merge: true });
+  return deck.public ? done.then(() => publish(uid, deck, f)) : done;
 };
 export const setDeckPublic = (uid, deck, on) => Promise.all([
   saveDeck(uid, { ...deck, public: on }), !on && unpublishDeck(deck.id),
 ]);
 
-export const deleteDeck = (uid, deck) => Promise.all([
-  deleteDoc(doc(decksCol(uid), deck.id)), deck.public && unpublishDeck(deck.id),
-  deck.public && deleteDilemmasOf(deck.id).catch(() => {}), // pulizia: se fallisce il mazzo resta comunque eliminato
-  deck.public && deleteHelpsOf(deck.id).catch(() => {}),
-]);
+// Pulizia anche per un mazzo già privato: dilemmi o richieste rimasti da prima (unpublishDeck non fallisce per una copia che non c'è).
+export const deleteDeck = (uid, deck) => Promise.all([deleteDoc(doc(decksCol(uid), deck.id)), unpublishDeck(deck.id)]);
 
 // Gli ultimi creati, o quelli con una parola che inizia per word; i più recenti prima.
 // ponytail: niente indici composti, quindi filtri e altre parole li applica la lista su questi 60.
@@ -131,15 +139,20 @@ const dilemmasCol = (deckId) => collection(publicCol, deckId, 'dilemmas');
 const votesCol = (deckId, dId) => collection(dilemmasCol(deckId), dId, 'votes');
 const answeredCol = (uid) => collection(db, 'users', uid, 'answered');
 const dilemmaCard = (c) => ({ name: c.name, img: c.img || '', back: c.back || '', sid: c.sid, oid: c.oid, set: c.set || '', cn: c.cn || '' });
+// Carte dei dilemmi ripulite come quelle delle help request (cleanCards); un dilemma con meno di 2 carte valide non si vede.
+const cleanDilemma = (d) => ({ ...d, question: typeof d.question === 'string' ? d.question.slice(0, 280) : '', cards: cleanCards(d.cards, 4) });
+const okDilemma = (d) => d.cards.length >= 2;
 export const listenDilemmas = (deckId, onChange, onError) =>
-  onSnapshot(query(dilemmasCol(deckId), orderBy('createdAt', 'desc')), (qs) => onChange(qs.docs.map(plainDoc)), onError);
+  onSnapshot(query(dilemmasCol(deckId), orderBy('createdAt', 'desc')), (qs) => onChange(qs.docs.map((s) => cleanDilemma(plainDoc(s))).filter(okDilemma)), onError);
 // Feed della scheda Dilemmas: gli ultimi 40 di tutti i mazzi pubblici (collection group, serve l'indice
 // collection group su createdAt). deckId = il mazzo pubblico genitore.
 export const listenDilemmaFeed = (onChange, onError) =>
   onSnapshot(query(collectionGroup(db, 'dilemmas'), orderBy('createdAt', 'desc'), limit(40)),
-    (qs) => onChange(qs.docs.map((s) => ({ ...plainDoc(s), deckId: s.ref.parent.parent.id }))), onError);
-export const listenDilemma = (deckId, dId, onChange, onError) =>
-  onSnapshot(doc(dilemmasCol(deckId), dId), (s) => onChange(s.exists() ? plainDoc(s) : null), onError);
+    (qs) => onChange(qs.docs.map((s) => ({ ...cleanDilemma(plainDoc(s)), deckId: s.ref.parent.parent.id })).filter(okDilemma)), onError);
+export const listenDilemma = (deckId, dId, onChange, onError) => onSnapshot(doc(dilemmasCol(deckId), dId), (s) => {
+  const d = s.exists() && cleanDilemma(plainDoc(s));
+  onChange(d && okDilemma(d) ? d : null);
+}, onError);
 export const getPublicDeck = (id) => getDoc(doc(publicCol, id)).then((s) => (s.exists() ? fromDoc(s) : null));
 // Nome, formato e autore del mazzo pubblico per i feed (dilemmi, help request), letto una volta per mazzo. ponytail: cache
 // per la sessione, un nome cambiato si vede ricaricando. null = mazzo non più pubblico; errore = undefined, resta "…".
@@ -183,18 +196,25 @@ export const countAnswered = (uid) => getCountFromServer(answeredCol(uid)).then(
 const helpsCol = (deckId) => collection(publicCol, deckId, 'helps');
 const repliesCol = (deckId, hId) => collection(helpsCol(deckId), hId, 'replies');
 const repliedCol = (uid) => collection(db, 'users', uid, 'replied');
+const helpOf = (s) => cleanHelp(plainDoc(s)); // dati ripuliti (cleanHelp, cleanReply): li scrive chiunque abbia un account
 export const listenHelps = (deckId, onChange, onError) =>
-  onSnapshot(query(helpsCol(deckId), orderBy('createdAt', 'desc')), (qs) => onChange(qs.docs.map(plainDoc)), onError);
+  onSnapshot(query(helpsCol(deckId), orderBy('createdAt', 'desc')), (qs) => onChange(qs.docs.map(helpOf)), onError);
 // Feed della scheda Help: le ultime 60 di tutti i mazzi pubblici (serve l'indice collection group su
 // helps.createdAt, come per i dilemmi). ponytail: aperte / risolte le separa la lista.
 export const listenHelpFeed = (onChange, onError) =>
   onSnapshot(query(collectionGroup(db, 'helps'), orderBy('createdAt', 'desc'), limit(60)),
-    (qs) => onChange(qs.docs.map((s) => ({ ...plainDoc(s), deckId: s.ref.parent.parent.id }))), onError);
+    (qs) => onChange(qs.docs.map((s) => ({ ...helpOf(s), deckId: s.ref.parent.parent.id }))), onError);
 export const listenHelp = (deckId, id, onChange, onError) =>
-  onSnapshot(doc(helpsCol(deckId), id), (s) => onChange(s.exists() ? plainDoc(s) : null), onError);
-export const createHelp = (uid, deckId, kind, text, cards) => addDoc(helpsCol(deckId), {
-  uid, kind, text, cards: cards.map(dilemmaCard), status: 'open', applied: [], seenAt: serverTimestamp(), createdAt: serverTimestamp(),
-});
+  onSnapshot(doc(helpsCol(deckId), id), (s) => onChange(s.exists() ? helpOf(s) : null), onError);
+// deck = il mazzo com'è adesso: nome, firma, formato e copertina restano sulla richiesta per il feed (ponytail: un
+// nome cambiato dopo non si aggiorna lì; la pagina della richiesta legge il mazzo vero).
+export async function createHelp(uid, deck, kind, text, cards) {
+  const owner = await ownerOf(uid);
+  return addDoc(helpsCol(deck.id), {
+    uid, kind, text, cards: cards.map(dilemmaCard), status: 'open', applied: [], seenAt: serverTimestamp(), createdAt: serverTimestamp(),
+    deck: { name: deck.name.slice(0, 80), owner: owner || null, format: deck.format, cover: deckCover(deck) },
+  });
+}
 // Solo il proprietario: aperta / risolta, l'ha appena aperta (le risposte "new" ripartono da qui), la risposta di
 // rUid applicata al mazzo o no (Undo).
 const helpDoc = (deckId, id) => doc(helpsCol(deckId), id);
@@ -204,19 +224,22 @@ export const setApplied = (deckId, id, rUid, on) => updateDoc(helpDoc(deckId, id
 // Id {deck}_{help} delle richieste a cui l'account ha risposto.
 export const listenReplied = (uid, onChange, onError) =>
   onSnapshot(repliedCol(uid), (qs) => onChange(new Set(qs.docs.map((d) => d.id))), onError);
+// Prima le risposte (a gruppi: un batch arriva a 500 scritture), poi la richiesta.
 export async function deleteHelp(deckId, id) {
-  const replies = await getDocs(repliesCol(deckId, id));
-  const batch = writeBatch(db);
-  replies.docs.forEach((r) => batch.delete(r.ref));
-  batch.delete(doc(helpsCol(deckId), id));
-  await batch.commit();
+  const replies = (await getDocs(repliesCol(deckId, id))).docs;
+  for (let i = 0; i < replies.length; i += 400) {
+    const batch = writeBatch(db);
+    replies.slice(i, i + 400).forEach((r) => batch.delete(r.ref));
+    await batch.commit();
+  }
+  await deleteDoc(doc(helpsCol(deckId), id));
 }
 async function deleteHelpsOf(deckId) {
   const list = await getDocs(helpsCol(deckId));
   await Promise.all(list.docs.map((h) => deleteHelp(deckId, h.id)));
 }
 export const listenReplies = (deckId, hId, onChange, onError) =>
-  onSnapshot(query(repliesCol(deckId, hId), orderBy('at', 'desc')), (qs) => onChange(qs.docs.map(plainDoc)), onError);
+  onSnapshot(query(repliesCol(deckId, hId), orderBy('at', 'desc')), (qs) => onChange(qs.docs.map((s) => cleanReply(plainDoc(s)))), onError);
 export const countReplies = (deckId, hId) => getCountFromServer(repliesCol(deckId, hId)).then((s) => s.data().count);
 // Risposte arrivate dopo since (ms): le "new" del proprietario.
 export const countRepliesSince = (deckId, hId, since) =>
@@ -245,6 +268,7 @@ const profileDoc = (uid) => doc(db, 'users', uid);
 export const listenProfile = (uid, onChange, onError) => onSnapshot(profileDoc(uid), (s) => {
   const p = s.exists() ? s.data() : null;
   ownerName = p?.nickname || null;
+  ownerUid = uid;
   onChange(p);
 }, onError);
 // fields: { photo } o { banner }; null = rimuovi.
@@ -271,13 +295,14 @@ export async function claimNickname(uid, name, old) {
   // Firma nuova sui mazzi pubblici (il vecchio nome ora è libero). Non blocca il nickname: se fallisce,
   // ogni mazzo si rifirma al prossimo salvataggio.
   ownerName = name || null;
+  ownerUid = uid;
   getDocs(query(publicCol, where('uid', '==', uid)))
     .then((mine) => Promise.all(mine.docs.map((d) => updateDoc(d.ref, { owner: ownerName }))))
     .catch(() => {});
 }
 
 // Elimina account: i propri voti ai dilemmi e le risposte alle help request (con le loro tracce), dilemmi e help
-// request dei propri mazzi pubblici, tutti i mazzi con le copie pubbliche, il nickname, poi il profilo.
+// request dei propri mazzi (anche di quelli tornati privati), tutti i mazzi con le copie pubbliche, il nickname, poi il profilo.
 export async function deleteUserData(uid) {
   const answered = await getDocs(answeredCol(uid));
   await Promise.all(answered.docs.map((a) => {
@@ -290,12 +315,12 @@ export async function deleteUserData(uid) {
   const replied = await getDocs(repliedCol(uid));
   await Promise.all(replied.docs.map((r) => deleteReply(uid, r.data().deck, r.data().help, uid)));
   const snap = await getDocs(decksCol(uid));
-  await Promise.all(snap.docs.filter((d) => d.data().public).flatMap((d) => [deleteDilemmasOf(d.id), deleteHelpsOf(d.id)]));
+  await Promise.all(snap.docs.flatMap((d) => [deleteDilemmasOf(d.id), deleteHelpsOf(d.id)]));
   for (let i = 0; i < snap.docs.length; i += 200) {
     const batch = writeBatch(db);
     snap.docs.slice(i, i + 200).forEach((d) => {
       batch.delete(d.ref);
-      if (d.data().public) batch.delete(doc(publicCol, d.id));
+      batch.delete(doc(publicCol, d.id)); // anche se non c'è (le regole lo permettono): copie rimaste da prima
     });
     await batch.commit();
   }

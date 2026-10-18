@@ -192,8 +192,8 @@ function CommunityGrid({ uid, terms, filters }) {
 // Lista mazzi: schede Community, Dilemmas, Help e My decks (rotte #/community, #/dilemmas, #/help e #/decks, stesso
 // componente: ricerca e filtri restano passando dall'una all'altra), ricerca per nome e Filters (formato,
 // colori, carta); in Dilemmas e Help la ricerca (domanda, carte, mazzo, autore) e accanto solo il formato.
-// open = il dilemma o la help request aperti dal feed (#/dilemmas/:mazzo/:dilemma, #/help/:mazzo/:richiesta), play =
-// il gioco (#/dilemmas/play, dal Play al posto del +): niente ricerca. folder = la cartella aperta in My decks (#/decks/folder/:id).
+// open = il dilemma aperto dal feed (#/dilemmas/:mazzo/:dilemma; una help request si apre invece in CommunityDeck),
+// play = il gioco (#/dilemmas/play, dal Play al posto del +): niente ricerca. folder = la cartella aperta in My decks (#/decks/folder/:id).
 export default function DeckList({ uid, notify, tab = 'mine', open, play, folder: folderId }) {
   const community = tab === 'community';
   const dilemmas = tab === 'dilemmas';
@@ -272,7 +272,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
       key: 'pub', Icon: IconGlobe, label: menu.deck.public ? 'Make private' : 'Share in Community',
       run: () => {
         setDeckPublic(uid, menu.deck, !menu.deck.public).catch(writeError);
-        notify(menu.deck.public ? 'Removed from Community' : 'Shared in Community');
+        notify(menu.deck.public ? 'Removed from Community, with its dilemmas and help requests' : 'Shared in Community');
       },
     },
     { key: 'dup', Icon: IconCopy, label: 'Duplicate', run: () => { create({ ...duplicateDeck(menu.deck), folder: menu.deck.folder ?? null }); notify('Deck duplicated'); } },

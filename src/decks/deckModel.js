@@ -70,23 +70,52 @@ export const MAX_HELP_CARDS = 10;
 export const DRAG_ROWS = 'application/x-proxodon-rows';
 export const helpKindLabel = (id) => HELP_KINDS.find(([k]) => k === id)?.[1] || 'Other';
 // Apply di una risposta: prima i tagli (cut = oracle id, una copia dal main, mai il comandante), poi le aggiunte
-// (add = snapshot, una copia in main, saltate quelle già al limite del formato). → { deck, added, cut } applicate.
+// (add = snapshot, una copia in main, saltate quelle già al limite del formato). → { deck, added: [snapshot],
+// cut: [riga com'era prima del taglio] }, quello che è cambiato davvero (serve all'Undo, revertSuggestion).
 export function applySuggestion(deck, add, cut) {
   let d = deck;
-  let removed = 0;
+  const removed = [];
   for (const oid of cut) {
     const row = d.cards.find((r) => r.board === 'main' && !r.commander && r.card.oid === oid);
-    if (row) { d = bumpQty(d, row.id, -1); removed += 1; }
+    if (row) { d = bumpQty(d, row.id, -1); removed.push(row); }
   }
-  let added = 0;
+  const added = [];
   for (const card of add) {
     const have = d.cards.filter((r) => r.board === 'main' && r.card.oid === card.oid).reduce((n, r) => n + r.qty, 0);
     if (have >= maxCopies(d.format, card)) continue;
     const r = addCard(d, card);
-    if (r.added) { d = r.deck; added += 1; }
+    if (r.added) { d = r.deck; added.push(card); }
   }
   return { deck: d, added, cut: removed };
 }
+// Undo di un Apply: toglie solo le copie aggiunte e rimette solo quelle tagliate (la riga com'era, se era sparita);
+// le altre modifiche fatte nel frattempo restano.
+export function revertSuggestion(deck, { added, cut }) {
+  let d = deck;
+  for (const card of added) {
+    const row = d.cards.find((r) => r.board === 'main' && r.card.sid === card.sid);
+    if (row) d = bumpQty(d, row.id, -1);
+  }
+  for (const row of cut) {
+    d = d.cards.some((r) => r.id === row.id) ? bumpQty(d, row.id, 1) : { ...d, cards: [...d.cards, { ...row, qty: 1 }] };
+  }
+  return d;
+}
+// Dati delle help request e dei dilemmi letti da Firestore: li scrive chiunque abbia un account (le regole contano
+// solo le carte, non le guardano), quindi prima di mostrarli si tengono solo le carte ben fatte, con stringhe corte.
+const str = (v, n) => (typeof v === 'string' ? v.slice(0, n) : '');
+export const cleanCards = (list, max = MAX_HELP_CARDS) => (Array.isArray(list) ? list : [])
+  .filter((c) => c && typeof c === 'object' && typeof c.name === 'string' && typeof c.oid === 'string' && typeof c.sid === 'string')
+  .slice(0, max)
+  .map((c) => ({ name: str(c.name, 200), img: str(c.img, 500), back: str(c.back, 500), sid: str(c.sid, 64), oid: str(c.oid, 64), set: str(c.set, 12), cn: str(c.cn, 12) }));
+// Il mazzo copiato sulla richiesta quando nasce (nome, autore, formato, copertina): il feed non deve leggere i mazzi.
+const cleanDeckInfo = (d) => (d && typeof d === 'object' && typeof d.name === 'string'
+  ? { name: str(d.name, 80), owner: str(d.owner, 24) || null, format: str(d.format, 20), cover: str(d.cover, 500) } : null);
+export const cleanHelp = (h) => ({
+  ...h, kind: str(h.kind, 20), text: str(h.text, 500), status: h.status === 'solved' ? 'solved' : 'open',
+  cards: cleanCards(h.cards), applied: Array.isArray(h.applied) ? h.applied.filter((x) => typeof x === 'string') : [], deck: cleanDeckInfo(h.deck),
+});
+export const cleanReply = (r) => ({ ...r, text: str(r.text, 1000), owner: str(r.owner, 24) || null, add: cleanCards(r.add), cut: cleanCards(r.cut) });
 
 export const MAX_ROWS = 500;
 export const MAX_QTY = 99;
@@ -493,7 +522,7 @@ export function scryfallImg(url) {
   }
 }
 // Arte della carta (art_crop) da un'immagine Scryfall della carta: stessa immagine, altra versione nel percorso.
-export const artCrop = (c) => scryfallImg((c.img || '').replace(/\/(small|normal|large|png|border_crop)\//, '/art_crop/').replace(/\.png(?=\?|$)/, '.jpg'));
+export const artCrop = (c) => scryfallImg((typeof c?.img === 'string' ? c.img : '').replace(/\/(small|normal|large|png|border_crop)\//, '/art_crop/').replace(/\.png(?=\?|$)/, '.jpg'));
 // Mazzo di un altro account (Community): snapshot con le sole immagini ammesse.
 export const withScryfallImgs = (deck) => ({
   ...deck,

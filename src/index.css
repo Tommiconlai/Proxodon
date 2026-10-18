@@ -3098,8 +3098,10 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 .help-card:hover .help-card-art, .help-card:focus-visible .help-card-art { border-color: var(--cyan); box-shadow: 0 0 16px rgba(0, 229, 255, 0.25); }
-.help-card-img { position: absolute; inset: 0; background-size: cover; background-position: center 30%; filter: brightness(0.8); transition: filter 0.25s ease; }
-.help-card-img::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(8, 7, 15, 0.9), rgba(8, 7, 15, 0) 65%); }
+.help-card-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 30%; filter: brightness(0.8); transition: filter 0.25s ease; }
+/* Velo scuro dal basso sopra l'arte (img lazy, niente ::after su un img); tipo, segnali e conteggio stanno sopra. */
+.help-card-art::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to top, rgba(8, 7, 15, 0.9), rgba(8, 7, 15, 0) 65%); }
+.help-card-art > span { z-index: 1; }
 .help-card:hover .help-card-img { filter: brightness(1); }
 .help-card.solved .help-card-img { filter: grayscale(0.8) brightness(0.55); }
 .help-kind {
@@ -3165,6 +3167,10 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .help-chips.cut .help-sign { color: var(--accent); }
 .help-chip-rm { display: inline-flex; margin-left: 2px; padding: 3px; background: none; border: 0; border-radius: 2px; color: var(--text-muted); cursor: pointer; }
 .help-chip-rm:hover, .help-chip-rm:focus-visible { color: var(--text-primary); background: rgba(255, 255, 255, 0.08); }
+.help-chip-rm:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+/* Carta che non torna (non nel mazzo, non su Scryfall): tratteggiata e barrata, il motivo nel title. */
+.help-chip.off { opacity: 0.6; border-style: dashed; }
+.help-chip.off .help-chip-name { text-decoration: line-through; }
 /* Pagina di chi aiuta (HelpReply, sotto la testata): stessi margini di .deck-sections, che segue con la lista del
    mazzo. Due zone affiancate, tratteggiate: Cuts magenta (si accende sotto una carta trascinata) e Suggestions
    ciano con la ricerca; sotto la spiegazione e l'invio, poi le altre risposte in un details. */
@@ -3183,6 +3189,7 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .help-zone.cut { border-color: rgba(255, 45, 149, 0.45); background: rgba(255, 45, 149, 0.04); }
 .help-zone.cut.over { border-style: solid; border-color: var(--accent); background: rgba(255, 45, 149, 0.12); box-shadow: 0 0 18px rgba(255, 45, 149, 0.3); }
 .help-zone.add { border-color: rgba(0, 229, 255, 0.4); background: rgba(0, 229, 255, 0.03); }
+.help-zone:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 /* Desktop: le zone restano ferme in alto (sticky in .deck-scroll; il genitore .help-reply-body contiene anche la
    lista del mazzo, così restano fino in fondo) su una fascia scura come la barra delle schede; zone più basse e le
    carte scelte scorrono dentro la loro zona. Telefono: al loro posto, niente trascinamento (Suggest cut + toast). */
@@ -3207,6 +3214,14 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 }
 .help-others summary .n { font-family: var(--font-mono); letter-spacing: 0; color: var(--text-muted); }
 .help-others summary:hover { color: var(--text-primary); }
+/* Freccia del details (display: flex toglie quella del browser): verso destra chiuso, in giù aperto. */
+.help-others summary::-webkit-details-marker { display: none; }
+.help-others summary::before {
+  content: ''; align-self: center; width: 0; height: 0;
+  border-left: 6px solid currentColor; border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  transition: transform var(--transition);
+}
+.help-others[open] > summary::before { transform: rotate(90deg); }
 .help-others > ul { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .help-replies { margin-top: 28px; }
 .help-replies > ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
@@ -3225,7 +3240,8 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 }
 .help-kind-opt input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
 .help-kind-opt:hover { border-color: rgba(255, 45, 149, 0.6); color: var(--text-primary); }
-.help-kind-opt.on { border-color: var(--accent); background: rgba(255, 45, 149, 0.12); color: var(--accent); }
+.help-kind-opt.on { border-color: var(--accent); background: rgba(255, 45, 149, 0.12); color: var(--accent); font-weight: 600; }
+.help-kind-opt.on::before { content: '\2713'; margin-right: 6px; } /* non solo il colore: anche la spunta */
 .help-kind-opt:has(input:focus-visible) { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .help-new .help-chips { margin-top: 4px; }
 .dilemma-slots { display: flex; justify-content: center; align-items: flex-start; gap: 12px; margin: 4px 0 8px; }

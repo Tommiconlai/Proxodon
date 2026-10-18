@@ -10,7 +10,7 @@ import {
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
   splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies, packPiles,
   libraryCards, shuffle, mulliganBottom, hyperAtLeast, deckPrice, addEntries, searchTerms, deckMatches, contentSig,
-  scryfallImg, withScryfallImgs, deckTags, MAX_TAGS, splitSlices, applySuggestion,
+  scryfallImg, withScryfallImgs, deckTags, MAX_TAGS, splitSlices, applySuggestion, revertSuggestion, cleanCards, cleanHelp, cleanReply,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
 
@@ -460,9 +460,26 @@ eq([clean.img, clean.back, clean.art, clean.name, foreign.cards[0].card.back], [
   let d = addCard(addCard(newDeck({ name: 'H' }), cmdr).deck, ring).deck;
   d = setCommander(d, [d.cards[0].id], true);
   const r = applySuggestion(d, [ring, signet], ['o-cmd', 'o-zzz']);
-  eq([r.added, r.cut, r.deck.cards.map((x) => [x.card.name, x.qty])], [1, 0, [['Cmd', 1], ['Sol Ring', 1], ['Arcane Signet', 1]]], 'help: limite e comandante');
+  eq([r.added.length, r.cut.length, r.deck.cards.map((x) => [x.card.name, x.qty])], [1, 0, [['Cmd', 1], ['Sol Ring', 1], ['Arcane Signet', 1]]], 'help: limite e comandante');
   const s = applySuggestion(d, [ring], ['o-ring']);
-  eq([s.added, s.cut, s.deck.cards.map((x) => x.card.name)], [1, 1, ['Cmd', 'Sol Ring']], 'help: taglio poi aggiunta');
+  eq([s.added.length, s.cut.length, s.deck.cards.map((x) => x.card.name)], [1, 1, ['Cmd', 'Sol Ring']], 'help: taglio poi aggiunta');
+  // Undo mirato: torna il mazzo di prima, e una modifica fatta nel frattempo (Island) resta.
+  const t = applySuggestion(d, [signet], ['o-ring']);
+  const isl = snap({ id: 'isl', name: 'Island', type: 'Basic Land' });
+  const back = revertSuggestion(addCard(t.deck, isl).deck, t);
+  eq(back.cards.map((x) => [x.card.name, x.qty]).sort(), [['Cmd', 1], ['Island', 1], ['Sol Ring', 1]], 'help: undo solo di tagli e aggiunte');
+  eq(back.cards.find((x) => x.card.name === 'Sol Ring').id, d.cards[1].id, 'help: undo rimette la riga tagliata');
+}
+
+// help request da Firestore: carte malformate scartate, stringhe accorciate, campi mancanti con valori sicuri
+{
+  const ok = { name: 'A', oid: 'o', sid: 's', img: 'i' };
+  eq(cleanCards([null, 5, { name: 1, oid: 'x', sid: 'y' }, { ...ok, img: { x: 1 } }, ok]).map((c) => c.img), ['', 'i'], 'clean: carte valide');
+  eq(cleanCards('nope'), [], 'clean: non lista');
+  const h = cleanHelp({ id: 'h', text: 7, cards: [null], applied: [1, 'u'], status: 'weird', deck: { name: 'D', owner: 3 } });
+  eq([h.text, h.cards, h.applied, h.status, h.deck], ['', [], ['u'], 'open', { name: 'D', owner: null, format: '', cover: '' }], 'clean: richiesta');
+  const rep = cleanReply({ id: 'u', add: [{ ...ok }], cut: {}, owner: 'nick' });
+  eq([rep.text, rep.add.length, rep.cut, rep.owner], ['', 1, [], 'nick'], 'clean: risposta');
 }
 
 console.log('deckModel selfcheck: ok');

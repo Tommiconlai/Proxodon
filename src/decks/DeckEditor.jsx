@@ -28,7 +28,7 @@ const STUCK_AT = 72; // px: padding della barra + casella di ricerca, circa
 // Export / Public in alto a destra; in basso la barra (DeckBottomBar) con il conteggio, Back to top e la
 // lente che apre la ricerca a tutto schermo.
 export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDeck, initialTab }) {
-  const { deck, update, saving, error } = useDeck(uid, id);
+  const { deck, update, saving, synced, error } = useDeck(uid, id);
   const mobile = useIsMobile();
   const settings = useSettings(); // stampa (aggiungi o sostituisci, sideboard), valuta dei prezzi
   const [online, setOnline] = useState(() => navigator.onLine);
@@ -69,7 +69,9 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
     if (!error) return;
     notify(error.code === 'resource-exhausted'
       ? 'Daily sync limit reached. Your changes stay on this device and sync after the reset.'
-      : `Sync error: ${error.message}`, 'error');
+      // Revisione rifiutata dalle regole (useDeck): il mazzo è cambiato altrove, qui torna la versione salvata.
+      : error.code === 'permission-denied' ? 'This deck changed on another device or tab: your last change was not saved. You now see the saved version.'
+        : `Sync error: ${error.message}`, 'error');
   }, [error, notify]);
 
   // Eliminato da un altro dispositivo mentre era aperto.
@@ -81,11 +83,12 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
 
   // Riallinea una volta gli snapshot con Scryfall (ban, immagini). Scryfall giù = restano quelli salvati.
   useEffect(() => {
-    if (!deck || refreshed.current) return;
+    // Solo da una versione confermata dal server (synced): da una cache vecchia salverebbe la copia vecchia.
+    if (!deck || !synced || refreshed.current) return;
     refreshed.current = true;
     const ids = deck.cards.map((r) => r.card.sid);
     if (ids.length) cardsByIds(ids).then((map) => update((d) => refreshSnapshots(d, map).deck)).catch(() => {});
-  }, [deck, update]);
+  }, [deck, synced, update]);
 
   const add = (card, opts) => update((d) => {
     const r = addCard(d, card, opts);
@@ -152,12 +155,12 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
             {/* Pubblico = copia in Community, riscritta a ogni salvataggio (deckStore); acceso = ciano. */}
             <button type="button" className={`btn-secondary deck-icon-btn${deck.public ? ' is-public' : ''}`} aria-pressed={!!deck.public}
               aria-label="Share in Community"
-              title={deck.public ? 'Public, in Community. Click to make it private' : 'Private. Click to share it in Community'}
+              title={deck.public ? 'Public, in Community. Click to make it private (its dilemmas and help requests are deleted)' : 'Private. Click to share it in Community'}
               onClick={() => {
                 const on = !deck.public;
                 update((d) => ({ ...d, public: on }));
                 if (!on) unpublishDeck(id).catch((e) => notify(`Sync error: ${e.message}`, 'error'));
-                notify(on ? 'Shared in Community' : 'Removed from Community');
+                notify(on ? 'Shared in Community' : 'Removed from Community, with its dilemmas and help requests');
               }}><IconGlobe size={17} /></button>
             </span>
             <span className={`deck-sync${online ? '' : ' offline'}`} role="status">{sync}</span>

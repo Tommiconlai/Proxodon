@@ -40,9 +40,15 @@ service cloud.firestore {
         && id == request.resource.data.deck + '_' + request.resource.data.help
         && existsAfter(/databases/$(db)/documents/publicDecks/$(request.resource.data.deck)/helps/$(request.resource.data.help)/replies/$(uid));
     }
+    // Mazzi: rev = revisione, +1 a ogni scrittura. Si accetta solo la revisione che segue quella salvata: un
+    // dispositivo con una copia vecchia (cache non aggiornata) non sovrascrive quella nuova, la sua scrittura è
+    // rifiutata e lui torna alla versione salvata. I mazzi di prima, senza rev, valgono 0.
     match /users/{uid}/decks/{deckId} {
       allow read, delete: if owner(uid);
-      allow create, update: if owner(uid) && request.resource.data.cards.size() <= 500;
+      allow create: if owner(uid) && request.resource.data.cards.size() <= 500
+        && request.resource.data.get('rev', 0) is int;
+      allow update: if owner(uid) && request.resource.data.cards.size() <= 500
+        && request.resource.data.get('rev', 0) == resource.data.get('rev', 0) + 1;
     }
     // Community: copia pubblica di un mazzo (stesso id), la legge chi ha un account. La firma (owner) è
     // il nickname dell'autore in usernames/, o nessuna. Si può cancellare una copia che non c'è.
@@ -65,8 +71,19 @@ service cloud.firestore {
         && (d.get('owner', null) == null || (d.owner is string
           && get(/databases/$(db)/documents/usernames/$(d.owner.lower())).data.uid == request.auth.uid));
     }
+    // Il mazzo copiato sulla richiesta quando nasce (per il feed): nome, firma, formato, copertina. La firma deve
+    // essere il nickname di chi scrive, come nella copia pubblica. Solo alla creazione: dopo non cambia (update).
+    function validHelpDeck(d) {
+      return d.get('deck', null) == null || (d.deck is map
+        && d.deck.keys().hasOnly(['name', 'owner', 'format', 'cover'])
+        && d.deck.name is string && d.deck.name.size() <= 80
+        && d.deck.format is string && d.deck.format.size() <= 20
+        && d.deck.cover is string && d.deck.cover.size() <= 500
+        && (d.deck.get('owner', null) == null || (d.deck.owner is string
+          && get(/databases/$(db)/documents/usernames/$(d.deck.owner.lower())).data.uid == request.auth.uid)));
+    }
     function validHelp(d) {
-      return d.keys().hasOnly(['uid', 'kind', 'text', 'cards', 'status', 'applied', 'seenAt', 'createdAt'])
+      return d.keys().hasOnly(['uid', 'kind', 'text', 'cards', 'status', 'applied', 'seenAt', 'createdAt', 'deck'])
         && d.kind in ['cuts', 'upgrades', 'budget', 'mana', 'synergy', 'other']
         && d.text is string && d.text.size() > 0 && d.text.size() <= 500
         && d.cards is list && d.cards.size() <= 10
@@ -124,17 +141,21 @@ service cloud.firestore {
       // o il proprietario della richiesta.
       match /helps/{hId} {
         allow read: if verified();
+        // Date del server (createdAt, seenAt): una data futura terrebbe la richiesta in cima al feed.
         allow create: if verified() && request.resource.data.uid == request.auth.uid
           && get(/databases/$(db)/documents/publicDecks/$(deckId)).data.uid == request.auth.uid
           && request.resource.data.status == 'open' && request.resource.data.applied.size() == 0
-          && validHelp(request.resource.data);
+          && request.resource.data.createdAt == request.time && request.resource.data.seenAt == request.time
+          && validHelp(request.resource.data) && validHelpDeck(request.resource.data);
         allow update: if verified() && resource.data.uid == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'applied', 'seenAt'])
+          && (!('seenAt' in request.resource.data.diff(resource.data).affectedKeys()) || request.resource.data.seenAt == request.time)
           && validHelp(request.resource.data);
         allow delete: if verified() && resource.data.uid == request.auth.uid;
         match /replies/{uid} {
           allow read: if verified();
-          allow create, update: if owner(uid) && validReply(request.resource.data)
+          // at = ora del server: senza data la risposta sparirebbe dall'elenco (ordinato per at), con una futura resterebbe sempre "new".
+          allow create, update: if owner(uid) && validReply(request.resource.data) && request.resource.data.at == request.time
             && get(/databases/$(db)/documents/publicDecks/$(deckId)/helps/$(hId)).data.uid != uid
             && get(/databases/$(db)/documents/publicDecks/$(deckId)/helps/$(hId)).data.status == 'open';
           allow delete: if owner(uid) || (verified()

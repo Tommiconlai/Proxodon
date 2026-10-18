@@ -85,7 +85,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
           <div className="deck-sticky">
             <div className={`deck-sticky-bar has-tabs${stuck ? ' stuck' : ''}`}>
               <span />
-              {helpId ? <span /> : <DeckTabs tab={tab} onTab={setTab} bar />}
+              <DeckTabs tab={tab} onTab={setTab} bar />
               <span />
             </div>
           </div>
@@ -125,7 +125,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
         <div className="deck-body">
           <section className="deck-main">
             {helpId ? (
-              help === undefined ? <div className="help-page"><span className="import-spinner" aria-label="Loading" /></div>
+              help === undefined ? <div className="help-page"><span className="import-spinner" role="status" aria-label="Loading" /></div>
                 : help === null ? <div className="help-page"><p className="field-hint">This help request is no longer available. <a href="#/help">All help requests</a></p></div>
                   : <HelpReply deck={deck} help={help} uid={uid} notify={notify} update={update} touch={mobile} />
             ) : tab === 'dilemmas' ? <DeckDilemmas deck={deck} uid={uid} mine={false} notify={notify} />
