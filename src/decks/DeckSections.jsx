@@ -129,7 +129,8 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   }, [hasCards]);
 
   // Cornice (CardFrame) solo sulla parte scoperta: negli stack e nella griglia sovrapposta la carta dopo,
-  // nella stessa colonna, copre il resto. --frame-h = altezza scoperta, ricalcolata dopo ogni render.
+  // nella stessa colonna, copre il resto. --frame-h = altezza scoperta, ricalcolata dopo ogni render: il CSS
+  // taglia lì il contorno, che finisce dove comincia la carta sopra (niente lato in basso).
   // ponytail: confronto a coppie (O(n²), n ≤ 500 righe); una mappa per colonna se mai rallenta.
   useLayoutEffect(() => {
     const root = rootRef.current;

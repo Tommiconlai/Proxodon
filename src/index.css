@@ -1740,8 +1740,8 @@ input[type="range"]::-webkit-slider-thumb:hover {
   outline-offset: -1px;
 }
 
-/* Cornice carta (CardFrame): contorno 3px fuori dal taglio col gradiente dei riquadri dei mazzi
-   (#px-frame-grad), invisibile a riposo. Hover = 60%, solo dove l'hover esiste (su touch resterebbe
+/* Cornice carta (CardFrame): contorno 3px fuori dal taglio (stampa; carte dei mazzi e dei dilemmi: a filo dentro,
+   sotto) col gradiente dei riquadri dei mazzi (#px-frame-grad), invisibile a riposo. Hover = 60%, solo dove l'hover esiste (su touch resterebbe
    "appiccicato" dopo il tap); selezionata = 100% con alone sfocato dello stesso gradiente (#px-frame-glow).
    Hover su una selezionata = resta piena: al click che la deseleziona scende al 60% e l'alone sparisce.
    Carte dei mazzi coperte da altre (stack, griglia sovrapposta): --frame-h = la sola parte scoperta. */
@@ -1759,6 +1759,14 @@ input[type="range"]::-webkit-slider-thumb:hover {
   transition: opacity 0.14s ease;
 }
 .preview-card-hotspot .card-frame rect { rx: 3px; } /* stampa: carte ad angoli vivi, contorno concentrico a 3px */
+/* Carte dei mazzi e dei dilemmi: contorno a filo, dentro la carta (tratto 2 px da 0 a 2), con gli angoli della carta
+   (raggio 4.75% della larghezza, meno 1 px). Carta coperta (stack, griglia sovrapposta): tutta alta, ma tagliata
+   dove comincia la carta sopra (--frame-h), così finisce lì senza un lato in basso; sopra e ai lati resta l'alone. */
+:is(.deck-row, .dilemma-card) .card-frame {
+  inset: 0; width: 100%; height: 100%;
+  clip-path: inset(-12px -12px calc(100% - var(--frame-h, 100%)) -12px);
+}
+:is(.deck-row, .dilemma-card) .card-frame rect { x: 1px; y: 1px; width: calc(100% - 2px); height: calc(100% - 2px); rx: calc(4.75% - 1px); }
 @media (hover: hover) {
   .preview-card-hotspot:hover .card-frame, .deck-row:hover .card-frame, .dilemma-card:hover .card-frame { opacity: 0.6; }
 }

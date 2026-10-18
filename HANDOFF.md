@@ -199,7 +199,15 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **List pages restyled from the Figma frame "Proxodon" 52:275 (most recent, 2026-10-19):** user request "questa è la
+- **Card highlight flush inside (most recent, 2026-10-19):** user: "il bordo dell'highlight mettilo a filo interno con la
+  carta e in caso di view by grid o stack farlo terminare dove si incontra la carta che sta sopra". On deck cards
+  (grid, stacks, split) and dilemma cards the `CardFrame` contour is now inside the card (2 px stroke from the edge
+  inward, the card's corner radius 4.75% minus 1 px) instead of 3 px outside; a covered card keeps its full height but
+  is clipped at `--frame-h` (`clip-path: inset(-12px -12px calc(100% - var(--frame-h)) -12px)`), so the sides stop
+  where the card on top begins and there is no bottom line any more, while the glow still shows above and at the
+  sides. The print sheet keeps the 3 px outside contour. Checked at 3x zoom in stacks and grid (selected Counterspell
+  ends at Crop Rotation), the user's view (split) restored, selection cleared.
+- **List pages restyled from the Figma frame "Proxodon" 52:275 (2026-10-19):** user request "questa è la
   pagina decks adatta questo stile anche alle altre. Le card dei mazzi sono diverse, ma mantieni tutte le informazioni
   messe finora". Done:
   - **Tabs (desktop):** `ListBand` in `DeckTabs.jsx`: the same trapezoid tabs as the deck page (`TabStrip`, now shared

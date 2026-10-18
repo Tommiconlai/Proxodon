@@ -1,8 +1,8 @@
 // ── Cornice carta (hover / selezione) ──
-// Usata dalla stampa (PagePreview), dalle carte dei mazzi (griglia, stack) e dei dilemmi: un contorno 3px
-// fuori dal taglio col gradiente dei riquadri dei mazzi (.deck-tile: #FF2E96 → #AB61ED → #00E5FF da
-// sinistra a destra). Hover = 60%; selezionata = 100% con un alone sfocato dello stesso gradiente. Opacità
-// e alone li decide il CSS (.card-frame).
+// Usata dalla stampa (PagePreview), dalle carte dei mazzi (griglia, stack) e dei dilemmi, col gradiente
+// #FF2E96 → #AB61ED → #00E5FF da sinistra a destra: nella stampa un contorno 3px fuori dal taglio, sulle carte
+// dei mazzi e dei dilemmi a filo dentro la carta (CSS). Hover = 60%; selezionata = 100% con un alone sfocato
+// dello stesso gradiente. Opacità, posizione e alone li decide il CSS (.card-frame).
 export function CardFrame() {
   return (
     <svg className="card-frame" aria-hidden="true" focusable="false">
