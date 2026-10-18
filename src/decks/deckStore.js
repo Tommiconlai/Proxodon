@@ -204,6 +204,9 @@ export const listenHelps = (deckId, onChange, onError) =>
 export const listenHelpFeed = (onChange, onError) =>
   onSnapshot(query(collectionGroup(db, 'helps'), orderBy('createdAt', 'desc'), limit(60)),
     (qs) => onChange(qs.docs.map((s) => ({ ...helpOf(s), deckId: s.ref.parent.parent.id }))), onError);
+// Richieste aperte del mazzo (chiave inglese sui riquadri dei mazzi), un conteggio sul server per riquadro come i like.
+export const countOpenHelps = (deckId) =>
+  getCountFromServer(query(helpsCol(deckId), where('status', '==', 'open'))).then((s) => s.data().count);
 export const listenHelp = (deckId, id, onChange, onError) =>
   onSnapshot(doc(helpsCol(deckId), id), (s) => onChange(s.exists() ? helpOf(s) : null), onError);
 // deck = il mazzo com'è adesso: nome, firma, formato e copertina restano sulla richiesta per il feed (ponytail: un

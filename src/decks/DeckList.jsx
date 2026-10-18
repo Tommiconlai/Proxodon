@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { listenDecks, listenCommunity, createDeck, saveDeck, deleteDeck, setDeckPublic, setDeckFolder, changedMs, countLikes } from './deckStore';
+import { listenDecks, listenCommunity, createDeck, saveDeck, deleteDeck, setDeckPublic, setDeckFolder, changedMs, countLikes, countOpenHelps } from './deckStore';
 import {
   FORMATS, duplicateDeck, deckIdentity, deckCover, deckTags, scryfallImg, formatLabel, searchTerms, deckMatches, rid,
 } from './deckModel';
@@ -55,14 +55,15 @@ function useScrollMemory(ref, key) {
 const LIST_TABS = [['community', 'Community'], ['dilemmas', 'Dilemmas'], ['help', 'Help'], ['mine', 'My decks']];
 
 // Riquadro di un mazzo (lista, Community, profilo): sull'arte, in alto a sinistra sotto una sfumatura
-// nera, nome (accanto il globo se è pubblico, fuori dalla Community), formato e like ricevuti; sotto
+// nera, nome (accanto il globo se è pubblico, fuori dalla Community, e la chiave inglese magenta se ha una
+// help request aperta, anche nella Community), formato e like ricevuti; sotto
 // identità di colore, poi autore (by, nella Community) e ultima modifica; il prezzo sta solo in Stats.
 // Testi in cqi: il riquadro è largo una percentuale della griglia e tutto scala con lui. props vanno sul pulsante.
-// helping = il mazzo ha una help request aperta (chiave inglese accanto al nome; per ora solo nel profilo).
-export function DeckTile({ deck: d, by, helping, ...props }) {
+export function DeckTile({ deck: d, by, ...props }) {
   const cover = scryfallImg(deckCover(d));
   const updated = changedMs(d); // ultimo cambio di carte (changedAt), non l'ultima scrittura
   const likes = useCount(countLikes, d.id, undefined, !!d.public);
+  const helping = useCount(countOpenHelps, d.id, undefined, !!d.public) > 0; // chiave inglese: help request aperta
   const tags = deckTags(d).join(' · ');
   return (
     <button type="button" className="deck-tile" {...props}>

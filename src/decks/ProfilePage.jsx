@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { listenDecks, saveProfile, claimNickname, countAnswered, listenDilemmas, listenHelps } from './deckStore';
+import { listenDecks, saveProfile, claimNickname, countAnswered, listenDilemmas } from './deckStore';
 import { updateNickname, authMessage } from './firebase';
 import { deckCover } from './deckModel';
 import { navigate } from '../hooks/useHashRoute';
@@ -17,7 +17,7 @@ const SHOWN_DECKS = 4;
 const SHOWN_DILEMMAS = 5;
 const at = (d) => d.createdAt?.toMillis?.() ?? 0;
 
-// Un ascolto per mazzo pubblico (dilemmi, help request): id -> lista; errore = lista vuota.
+// Un ascolto per mazzo pubblico (dilemmi): id -> lista; errore = lista vuota.
 // ponytail: un ascolto per mazzo; con molti mazzi pubblici, una query collection group per uid (con il suo indice).
 function usePerDeck(ids, listen) {
   const [map, setMap] = useState({});
@@ -36,7 +36,7 @@ function usePerDeck(ids, listen) {
 
 // Profilo: testata (sfondo personalizzato o l'arte del mazzo modificato per ultimo; foto e sfondo si
 // cambiano cliccandoli), nickname, iscrizione, ultimo accesso, mazzi, followers e following (per ora
-// sempre 0, arriveranno con i profili pubblici); sotto, i mazzi (chiave inglese = help request aperta) e i
+// sempre 0, arriveranno con i profili pubblici); sotto, i mazzi e i
 // dilemmi dei mazzi pubblici, ognuno con il suo See all. Email, accesso e password: Settings.
 export default function ProfilePage({ user, profile, notify, onChange }) {
   const [decks, setDecks] = useState(null); // null = caricamento
@@ -45,7 +45,6 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
   const pub = (decks || []).filter((d) => d.public);
   const ids = pub.map((d) => d.id);
   const dilemmas = usePerDeck(ids, listenDilemmas);
-  const helps = usePerDeck(ids, listenHelps);
   // Sui propri mazzi i dilemmi li crea solo il proprietario: sono tutti suoi.
   const myDilemmas = pub.flatMap((d) => (dilemmas[d.id] || []).map((x) => ({ ...x, deck: d }))).sort((a, b) => at(b) - at(a));
   const dilemmasReady = decks && ids.every((id) => dilemmas[id]);
@@ -108,7 +107,7 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
         <ul className="deck-grid">
           {decks.slice(0, SHOWN_DECKS).map((d) => (
             <li key={d.id} className="deck-tile-wrap">
-              <DeckTile deck={d} helping={!!helps[d.id]?.some((h) => h.status === 'open')} onClick={() => navigate(`/decks/${d.id}`)} />
+              <DeckTile deck={d} onClick={() => navigate(`/decks/${d.id}`)} />
             </li>
           ))}
           {decks.length > SHOWN_DECKS && (
