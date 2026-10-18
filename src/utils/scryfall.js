@@ -50,17 +50,22 @@ function sanitizeName(name) {
   return name.replace(/[\\/:*?"<>|]+/g, '-').trim() || 'carta';
 }
 
+// Righe per import: oltre, migliaia di richieste a Scryfall da un solo incolla.
+export const MAX_LINES = 1000;
+export const TOO_MANY_LINES = `Import at most ${MAX_LINES} lines at a time.`;
+
 /**
  * Parsa il testo incollato. Una carta per riga.
  * Accetta "1x Nome", "1 Nome", "Nome". Quantità limitata a 3 cifre per non
  * confondere carte che iniziano con un numero (es. "1996 World Champion").
  * Coda opzionale "(SET) [collector]" (es. "(C21) 263 *F*") → pinna la stampa.
+ * Righe tagliate a 200 caratteri (il nome più lungo ne ha 141): una riga ostile non blocca la regex.
  * @returns {{qty:number, name:string, set:string, collector:string}[]}
  */
 export function parseCardList(text) {
   const out = [];
   for (const raw of (text || '').split('\n')) {
-    const line = raw.trim();
+    const line = raw.trim().slice(0, 200);
     if (!line) continue;
     let qty = 1;
     let name = line;

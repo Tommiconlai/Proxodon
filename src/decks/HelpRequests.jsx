@@ -142,7 +142,7 @@ export function HelpItem({ deckId, info, h, mine, flags = [], inFeed, href, onCl
   const solved = h.status === 'solved';
   const Tag = href ? 'a' : 'button';
   const status = [...flags, fresh && `${fresh} new`, solved && 'solved'].filter(Boolean).join(', ');
-  const by = inFeed && info ? `${info.name} by ${info.owner || 'anonymous'}` : ''; // solo nel feed: nella scheda del mazzo è ovvio
+  const by = inFeed && info ? `${info.name} by ${info.owner || 'a player'}` : ''; // solo nel feed: nella scheda del mazzo è ovvio
   const cards = h.cards.map((c) => c.name).join(', ');
   const stop = /[.?!]$/.test(h.text) ? '' : '.'; // niente "?." dopo una domanda
   return (
@@ -161,7 +161,7 @@ export function HelpItem({ deckId, info, h, mine, flags = [], inFeed, href, onCl
         </span>
         <span className="help-card-text">{h.text}</span>
         {cards && <span className="help-card-cards">{h.cards.map((c) => c.name).join(' · ')}</span>}
-        <span className="dilemma-tile-meta">{by && info && <><b>{info.name}</b> by {info.owner || 'anonymous'}, </>}{timeAgo(ms(h.createdAt))}</span>
+        <span className="dilemma-tile-meta">{by && info && <><b>{info.name}</b> by {info.owner || 'a player'}, </>}{timeAgo(ms(h.createdAt))}</span>
       </Tag>
     </li>
   );
@@ -569,7 +569,7 @@ function ReplyCard({ r, mine, fresh, applied, busy, onApply, onDelete }) {
   return (
     <li className={`help-reply${fresh ? ' fresh' : ''}`}>
       <div className="help-reply-head">
-        <span className="dilemma-reason-who">{mine ? 'You' : r.owner || 'anonymous'}</span>
+        <span className="dilemma-reason-who">{mine ? 'You' : r.owner || 'a player'}</span>
         <span className="help-when">{timeAgo(ms(r.at))}</span>
         {fresh && <span className="dilemma-flag">New</span>}
         {applied && <span className="dilemma-flag voted">Applied</span>}

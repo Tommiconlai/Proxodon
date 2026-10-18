@@ -1,15 +1,14 @@
 /**
  * Upscale AI 2× nel browser: UpscalerJS + TensorFlow.js (WebGL), modello ESRGAN.
  * Tutto lazy (import dinamico al primo uso): niente peso nel bundle iniziale. I pesi del
- * modello arrivano dal CDN jsDelivr (fallback unpkg) la prima volta e poi dalla cache HTTP.
- * ponytail: un solo modello, nessun self-hosting dei pesi; copiarli in public/ e passare
- * `path` al model se serve funzionare offline o senza CDN.
+ * modello (2.7 MB) sono nel sito, in public/models (copiati da @upscalerjs/esrgan-medium/models/x2):
+ * niente CDN esterno senza controllo d'integrità. Aggiornando il pacchetto vanno ricopiati.
  */
 let upscalerP = null;
 const getUpscaler = () => (upscalerP ??= Promise.all([
     import('upscaler'),
     import('@upscalerjs/esrgan-medium/2x'),
-]).then(([{ default: Upscaler }, { default: model }]) => new Upscaler({ model })));
+]).then(([{ default: Upscaler }, { default: model }]) => new Upscaler({ model: { ...model, path: 'models/esrgan-medium-x2/model.json' } })));
 
 // Ha senso solo su raster RGB sotto il DPI scelto (i JPEG CMYK nativi perderebbero gli
 // inchiostri esatti). DPI effettivi arrotondati: una PNG Scryfall 744px raddoppiata fa

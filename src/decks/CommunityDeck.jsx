@@ -117,7 +117,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
                 <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setExportOpen(true)} disabled={!deck.cards.length}
                   aria-label="Export" title="Export"><IconExport size={17} /></button>
               </span>
-              <span className="deck-sync">by {deck.owner || 'anonymous'}</span>
+              <span className="deck-sync">by {deck.owner || 'a player'}</span>
             </div>
           </div>
         </header>

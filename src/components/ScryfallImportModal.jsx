@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { parseCardList, fetchScryfallImages } from '../utils/scryfall';
+import { parseCardList, fetchScryfallImages, MAX_LINES, TOO_MANY_LINES } from '../utils/scryfall';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 import { IconX } from './icons';
 
@@ -19,6 +19,7 @@ export default function ScryfallImportModal({ open, onClose, onImport }) {
     const handleImport = async () => {
         const entries = parseCardList(text);
         if (!entries.length) { setError('Enter at least one card.'); return; }
+        if (entries.length > MAX_LINES) { setError(TOO_MANY_LINES); return; }
         setError(null);
         setResult(null);
         setBusy(true);
@@ -62,7 +63,7 @@ export default function ScryfallImportModal({ open, onClose, onImport }) {
                 <textarea
                     className="import-textarea"
                     value={text}
-                    onChange={(e) => { setText(e.target.value); localStorage.setItem('ip:cardlist', e.target.value); if (result) setResult(null); }}
+                    onChange={(e) => { setText(e.target.value); try { localStorage.setItem('ip:cardlist', e.target.value); } catch { /* spazio finito: la bozza non sopravvive al reload */ } if (result) setResult(null); }}
                     placeholder={'1x Sol Ring\n2x Brainstorm\n1x Fable of the Mirror-Breaker'}
                     rows={10}
                     disabled={busy}

@@ -88,7 +88,7 @@ Verify each one on a device or emulator; do not assume.
 9. **Network and heavy work.** These hosts must stay reachable:
    - Scryfall: `api.scryfall.com`, `cards.scryfall.io`, `svgs.scryfall.io`;
    - Drive images: `lh3.googleusercontent.com`; keep that host, `uc` and `thumbnail` give 403;
-   - the upscaler weights: jsDelivr, unpkg as fallback;
+   - the upscaler weights: now served by the app itself (`public/models`);
    - Firebase.
 
    Firestore uses `persistentLocalCache` (IndexedDB): check offline edits and the sync when back online.

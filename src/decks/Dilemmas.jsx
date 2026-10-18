@@ -189,7 +189,7 @@ export function DilemmaFeed({ uid, notify, open, play, terms = [], format = '' }
         const deck = decks[d.deckId];
         return (
           <DilemmaTile key={`${d.deckId}/${d.id}`} deckId={d.deckId} d={d} uid={uid} solved={!!answered?.has(`${d.deckId}_${d.id}`)}
-            href={`#/dilemmas/${d.deckId}/${d.id}`} meta={deck ? <><b>{deck.name}</b> by {deck.owner || 'anonymous'}</> : '…'} />
+            href={`#/dilemmas/${d.deckId}/${d.id}`} meta={deck ? <><b>{deck.name}</b> by {deck.owner || 'a player'}</> : '…'} />
         );
       })}
     </ul>
@@ -370,7 +370,7 @@ function DilemmaView({ deck, dilemma, uid, mine, notify, onBack, deckHref, onNex
           <ul>
             {reasons.map((v) => (
               <li key={v.id}>
-                <span className="dilemma-reason-who">{v.owner || 'anonymous'}</span> chose <b>{dilemma.cards[v.pick]?.name}</b>
+                <span className="dilemma-reason-who">{v.owner || 'a player'}</span> chose <b>{dilemma.cards[v.pick]?.name}</b>
                 <p>{v.why}</p>
               </li>
             ))}

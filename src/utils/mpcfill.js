@@ -24,16 +24,17 @@ export function parseMpcXml(xmlText) {
     Array.from(doc.querySelectorAll(`${section} > card`)).map((c) => {
       const id = c.querySelector('id')?.textContent?.trim();
       const slots = c.querySelector('slots')?.textContent?.trim() || '';
-      // slot multipli ("0,1,2") = copie della stessa carta
-      const count = slots ? slots.split(',').filter((s) => s.trim() !== '').length : 1;
+      // slot multipli ("0,1,2") = copie della stessa carta, al massimo 99
+      const count = slots ? slots.split(',', 100).filter((s) => s.trim() !== '').length : 1;
       // il nome carta è <query>; fallback al filename senza estensione
       const name = (c.querySelector('query')?.textContent?.trim())
         || stripExt(c.querySelector('name')?.textContent) || 'card';
-      return { id, name, count: Math.max(1, count) };
-    }).filter((c) => c.id);
+      return { id, name: name.slice(0, 200), count: Math.min(99, Math.max(1, count)) };
+    }).filter((c) => /^[\w-]{10,100}$/.test(c.id ?? '')); // id di un file Drive
 
   const cards = [...read('fronts'), ...read('backs')];
   if (!cards.length) throw new Error('No cards found in the file.');
+  if (cards.length > 1000) throw new Error('This file has more than 1000 cards: split it.');
   return { cards };
 }
 

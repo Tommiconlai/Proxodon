@@ -5,7 +5,7 @@
  * Le funzioni non mutano: ritornano sempre un mazzo nuovo.
  */
 
-import { parseCardList, deckLine } from '../utils/scryfall.js';
+import { parseCardList, deckLine, MAX_LINES, TOO_MANY_LINES } from '../utils/scryfall.js';
 
 export const FORMATS = [
   { id: 'commander', label: 'Commander' },
@@ -575,6 +575,7 @@ export function parseDeckText(text) {
       out.push({ ...e, board: target === 'commander' ? 'main' : target, commander: target === 'commander' });
     }
   }
+  if (out.length > MAX_LINES) throw new Error(TOO_MANY_LINES);
   return out;
 }
 

@@ -155,7 +155,7 @@ const CREDITS = [
     ['Little CMS', 'https://www.littlecms.com', 'color conversion, through lcms-wasm (MIT).'],
     ['jsPDF and pdf-lib', 'https://github.com/parallax/jsPDF', 'PDF export (MIT).'],
     ['jpeg-js', 'https://github.com/jpeg-js/jpeg-js', 'CMYK JPEG decoding (Apache-2.0).'],
-    ['UpscalerJS', 'https://upscalerjs.com', 'AI upscale with the ESRGAN medium model on TensorFlow.js (MIT, Apache-2.0), loaded from jsDelivr.'],
+    ['UpscalerJS', 'https://upscalerjs.com', 'AI upscale with the ESRGAN medium model on TensorFlow.js (MIT, Apache-2.0), bundled with the app.'],
   ]],
   ['Look', [
     ['Fontsource', 'https://fontsource.org', 'Chakra Petch (Cadson Demak), Space Grotesk (Florian Karsten) and JetBrains Mono (JetBrains), SIL Open Font License, bundled with the app.'],

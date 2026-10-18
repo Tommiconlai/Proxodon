@@ -9,16 +9,32 @@ import {
   signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification,
   updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider,
 } from 'firebase/auth';
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, clearIndexedDbPersistence } from 'firebase/firestore';
 import { Capacitor } from '@capacitor/core';
-import { firebaseConfig, googleWebClientId } from './firebaseConfig';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
+import { firebaseConfig, googleWebClientId, appCheckSiteKey } from './firebaseConfig';
 
 const app = initializeApp(firebaseConfig);
+// App Check: ogni richiesta a Firestore porta un token reCAPTCHA che dice "viene da questo sito", non da uno
+// script che usa la config pubblica (quota consumata da account finti). Senza chiave resta spento; renderlo
+// obbligatorio è un interruttore della console (App Check > Firestore > Enforce), dopo averlo visto in Monitor.
+if (appCheckSiteKey) {
+  initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(appCheckSiteKey), isTokenAutoRefreshEnabled: true });
+}
 export const auth = getAuth(app);
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
   ignoreUndefinedProperties: true, // rete di sicurezza: un campo undefined non fa fallire il salvataggio
 });
+
+// Uscendo (o cancellando l'account) la cache locale dei mazzi si svuota al prossimo avvio, prima di ogni lettura:
+// Firestore la cancella solo da chiuso, e chiuderlo subito vorrebbe dire ricaricare la pagina (e perdere
+// un'impaginazione in corso). Con altre schede aperte non si può: ci riprova all'avvio dopo.
+const CLEAR = 'ip:clearCache';
+const clearLater = () => { try { localStorage.setItem(CLEAR, '1'); } catch { /* niente storage: niente pulizia */ } };
+try {
+  if (localStorage.getItem(CLEAR)) { await clearIndexedDbPersistence(db); localStorage.removeItem(CLEAR); }
+} catch { /* altre schede aperte */ }
 
 const provider = new GoogleAuthProvider();
 
@@ -110,6 +126,7 @@ export async function changePassword(current, next) {
 
 // Nell'app si azzera anche la scelta dell'account Google, così il prossimo accesso può cambiarlo.
 export async function signOut() {
+  clearLater();
   await fbSignOut(auth);
   if (isApp) await getSocialLogin().then((s) => s.logout({ provider: 'google' })).catch(() => {});
 }
@@ -121,6 +138,7 @@ export async function deleteAccount(deleteData) {
   const user = auth.currentUser;
   if (!user) return;
   await deleteData(user.uid);
+  clearLater();
   try {
     await deleteUser(user);
   } catch (e) {

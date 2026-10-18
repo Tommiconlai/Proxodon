@@ -5,7 +5,7 @@
  */
 import {
   collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, getDoc, getDocs, writeBatch, runTransaction,
-  query, where, orderBy, limit, getCountFromServer, collectionGroup, arrayUnion, arrayRemove, Timestamp, increment,
+  query, where, orderBy, limit, startAfter, getCountFromServer, collectionGroup, arrayUnion, arrayRemove, Timestamp, increment,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { searchTerms, contentSig, deckTags, deckCover, cleanCards, cleanHelp, cleanReply, cleanPublicDeck } from './deckModel';
@@ -341,6 +341,14 @@ export async function deleteUserData(uid) {
   await settle((await docsOf(answeredCol(uid))).map((a) => pair(doc(votesCol(a.data().deck, a.data().dilemma), uid), a.ref)));
   await settle((await docsOf(repliedCol(uid))).map((r) => deleteReply(uid, r.data().deck, r.data().help, uid)));
   await settle((await docsOf(likedCol(uid))).map((l) => pair(likeDoc(l.id, uid), l.ref)));
+  // Like di prima delle tracce (senza users/{uid}/liked): si tolgono a tappeto da ogni copia pubblica, 60 alla volta.
+  // ponytail: una scrittura per copia pubblica, va bene finché la Community è piccola.
+  for (let page = await docsOf(query(publicCol, orderBy('createdAt'), limit(60))); page.length;) {
+    const batch = writeBatch(db);
+    page.forEach((p) => batch.delete(likeDoc(p.id, uid)));
+    await settle([batch.commit()]);
+    page = page.length < 60 ? [] : await docsOf(query(publicCol, orderBy('createdAt'), startAfter(page.at(-1)), limit(60)));
+  }
   const [mine, decks] = await Promise.all([docsOf(query(publicCol, where('uid', '==', uid))), docsOf(decksCol(uid))]);
   // Copie proprie: prima dilemmi, richieste e like, poi la copia (se la pulizia fallisce resta, e si ritrova riprovando).
   await settle(mine.map((p) => Promise.all([deleteDilemmasOf(p.id), deleteHelpsOf(p.id), deleteLikesOf(p.id)]).then(() => deleteDoc(p.ref))));

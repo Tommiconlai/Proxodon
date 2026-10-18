@@ -191,7 +191,7 @@ function CommunityGrid({ uid, terms, filters }) {
     <ul className="deck-grid">
       {shown.map((d) => (
         <li key={d.id} className="deck-tile-wrap">
-          <DeckTile deck={d} by={d.owner || 'anonymous'} onClick={() => navigate(`/community/${d.id}`)} />
+          <DeckTile deck={d} by={d.owner || 'a player'} onClick={() => navigate(`/community/${d.id}`)} />
         </li>
       ))}
     </ul>

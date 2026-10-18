@@ -11,13 +11,16 @@ service cloud.firestore {
     function owner(uid) {
       return verified() && request.auth.uid == uid;
     }
-    // Profilo: foto (JPEG 256 px) e sfondo (JPEG fino a 1500 px) come data URL, nickname. Il nickname
-    // deve essere suo in usernames/ a fine scrittura (getAfter: stessa transazione di claimNickname).
+    // Profilo: foto (JPEG 256 px) e sfondo (JPEG fino a 1500 px) come data URL di un'immagine, nickname. Il
+    // nickname deve essere suo in usernames/ a fine scrittura (getAfter: stessa transazione di claimNickname).
     // followers / following non li scrive il client.
+    function image(s, max) {
+      return s is string && s.size() <= max && s.matches('data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+');
+    }
     function validProfile(uid, d) {
       return d.keys().hasOnly(['photo', 'banner', 'nickname', 'updatedAt'])
-        && (d.get('photo', null) == null || (d.photo is string && d.photo.size() <= 200000))
-        && (d.get('banner', null) == null || (d.banner is string && d.banner.size() <= 600000))
+        && (d.get('photo', null) == null || image(d.photo, 200000))
+        && (d.get('banner', null) == null || image(d.banner, 600000))
         && (d.get('nickname', null) == null || (d.nickname is string
           && getAfter(/databases/$(db)/documents/usernames/$(d.nickname.lower())).data.uid == uid));
     }
@@ -33,11 +36,13 @@ service cloud.firestore {
       allow create: if owner(uid) && validProfile(uid, request.resource.data);
       allow update: if owner(uid) && validProfile(uid, request.resource.data) && nickFreed(request.resource.data);
     }
+    // Le date "at" (tracce, like, voti, risposte) sono sempre l'ora del server: nessuno le sceglie.
     // Dilemmi a cui l'account ha risposto (contatore del profilo): solo suoi.
     match /users/{uid}/answered/{id} {
       allow read, delete: if owner(uid);
       // Solo insieme al voto (stesso batch) e con l'id {deck}_{dilemma}: il contatore non si gonfia.
       allow create: if owner(uid) && request.resource.data.keys().hasOnly(['deck', 'dilemma', 'at'])
+        && request.resource.data.at == request.time
         && id == request.resource.data.deck + '_' + request.resource.data.dilemma
         && existsAfter(/databases/$(db)/documents/publicDecks/$(request.resource.data.deck)/dilemmas/$(request.resource.data.dilemma)/votes/$(uid));
     }
@@ -45,6 +50,7 @@ service cloud.firestore {
     match /users/{uid}/replied/{id} {
       allow read, delete: if owner(uid);
       allow create, update: if owner(uid) && request.resource.data.keys().hasOnly(['deck', 'help', 'at'])
+        && request.resource.data.at == request.time
         && id == request.resource.data.deck + '_' + request.resource.data.help
         && existsAfter(/databases/$(db)/documents/publicDecks/$(request.resource.data.deck)/helps/$(request.resource.data.help)/replies/$(uid));
     }
@@ -52,6 +58,7 @@ service cloud.firestore {
     match /users/{uid}/liked/{deckId} {
       allow read, delete: if owner(uid);
       allow create: if owner(uid) && request.resource.data.keys().hasOnly(['at'])
+        && request.resource.data.at == request.time
         && existsAfter(/databases/$(db)/documents/publicDecks/$(deckId)/likes/$(uid));
     }
     // Mazzi: rev = revisione, +1 a ogni scrittura. Si accetta solo la revisione che segue quella salvata: un
@@ -60,9 +67,9 @@ service cloud.firestore {
     // il salvataggio di una copia vecchia di un mazzo cancellato altrove non lo fa rinascere.
     match /users/{uid}/decks/{deckId} {
       allow read, delete: if owner(uid);
-      allow create: if owner(uid) && request.resource.data.cards.size() <= 500
+      allow create: if owner(uid) && request.resource.data.cards is list && request.resource.data.cards.size() <= 500
         && request.resource.data.get('rev', 0) == 1;
-      allow update: if owner(uid) && request.resource.data.cards.size() <= 500
+      allow update: if owner(uid) && request.resource.data.cards is list && request.resource.data.cards.size() <= 500
         && request.resource.data.get('rev', 0) == resource.data.get('rev', 0) + 1;
     }
     // Community: copia pubblica di un mazzo (stesso id), la legge chi ha un account. Solo i campi che scrive il client,
@@ -143,6 +150,7 @@ service cloud.firestore {
       match /likes/{uid} {
         allow read: if verified();
         allow create: if owner(uid) && request.resource.data.keys().hasOnly(['at'])
+          && request.resource.data.at == request.time
           && get(/databases/$(db)/documents/publicDecks/$(deckId)).data.uid != uid
           && 'cards' in get(/databases/$(db)/documents/publicDecks/$(deckId)).data
           && existsAfter(/databases/$(db)/documents/users/$(uid)/liked/$(deckId));
@@ -164,7 +172,7 @@ service cloud.firestore {
         match /votes/{uid} {
           allow read: if verified();
           // pick = una delle carte del dilemma (stesso get: Firestore lo legge una volta sola).
-          allow create: if owner(uid) && validVote(request.resource.data)
+          allow create: if owner(uid) && validVote(request.resource.data) && request.resource.data.at == request.time
             && get(/databases/$(db)/documents/publicDecks/$(deckId)/dilemmas/$(dId)).data.uid != uid
             && request.resource.data.pick < get(/databases/$(db)/documents/publicDecks/$(deckId)/dilemmas/$(dId)).data.cards.size()
             && existsAfter(/databases/$(db)/documents/users/$(uid)/answered/$(deckId + '_' + dId));

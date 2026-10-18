@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Solo le cartelle che l'app condivide: gli export (download.js, cache/exports) e le foto scattate da un
+     campo file (Capacitor, Pictures nei file esterni dell'app). -->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <external-path name="my_images" path="." />
-    <cache-path name="my_cache_images" path="." />
+    <cache-path name="exports" path="exports/" />
+    <external-files-path name="camera" path="Pictures/" />
 </paths>
