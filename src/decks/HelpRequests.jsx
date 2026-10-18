@@ -20,6 +20,10 @@ import { navigate } from '../hooks/useHashRoute';
 const ms = (t) => t?.toMillis?.() ?? 0;
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const noop = () => {};
+// Risposta applicata: uid di chi ha risposto @ ora della risposta. Se la risposta cambia (o è nuova, della stessa
+// persona) il segno Applied sparisce: quello applicato era un'altra versione. ponytail: le chiavi delle versioni
+// vecchie restano in applied (le regole ne tengono 200 per richiesta); se mai servisse, toglierle all'Apply.
+const appliedKey = (r) => `${r.id}@${ms(r.at)}`;
 const Spinner = () => <span className="import-spinner" role="status" aria-label="Loading" />;
 // Carte del main, una per oracle id, per nome (le carte in focus della nuova richiesta).
 const deckCards = (deck) => [...new Map(deck.cards.filter((r) => r.board === 'main').map((r) => [r.card.oid, r.card])).values()]
@@ -463,11 +467,11 @@ function HelpView({ deck, help, uid, notify, update, onBack, canReopen }) {
       if (!res) return; // editor chiuso nel frattempo
       const names = [...res.cut.map((x) => `−${x.card.name}`), ...res.added.map((c) => `+${c.name}`)];
       if (!names.length) { notify('Nothing to apply: these cards are already in or out of the deck'); return; }
-      setApplied(deck.id, help.id, r.id, true).catch(writeError);
+      setApplied(deck.id, help.id, appliedKey(r), true).catch(writeError);
       const skipped = r.add.length + r.cut.length - names.length;
       notify(`Applied: ${names.slice(0, 4).join(', ')}${names.length > 4 ? ` and ${names.length - 4} more` : ''}${skipped ? `; ${skipped} skipped` : ''}`, 'success', {
         label: 'Undo',
-        onClick: () => { update((d) => revertSuggestion(d, res)); setApplied(deck.id, help.id, r.id, false).catch(writeError); },
+        onClick: () => { update((d) => revertSuggestion(d, res)); setApplied(deck.id, help.id, appliedKey(r), false).catch(writeError); },
       });
     } catch (e) {
       notify(`Could not apply the suggestion: ${e.message}`, 'error');
@@ -515,7 +519,7 @@ function HelpView({ deck, help, uid, notify, update, onBack, canReopen }) {
         {replies?.length > 0 && (
           <ul>
             {replies.map((r) => (
-              <ReplyCard key={r.id} r={view(r)} fresh={!solved && ms(r.at) > seen} applied={help.applied.includes(r.id)}
+              <ReplyCard key={r.id} r={view(r)} fresh={!solved && ms(r.at) > seen} applied={help.applied.includes(appliedKey(r))}
                 busy={busy.has(r.id)} onApply={update ? () => apply(r) : null} onDelete={() => setConfirm(r.id)} />
             ))}
           </ul>

@@ -215,12 +215,12 @@ export async function createHelp(uid, deck, kind, text, cards) {
     deck: { name: deck.name.slice(0, 80), owner: owner || null, format: deck.format, cover: deckCover(deck) },
   });
 }
-// Solo il proprietario: aperta / risolta, l'ha appena aperta (le risposte "new" ripartono da qui), la risposta di
-// rUid applicata al mazzo o no (Undo).
+// Solo il proprietario: aperta / risolta, l'ha appena aperta (le risposte "new" ripartono da qui), una risposta
+// applicata al mazzo o no (Undo); key = uid@ora della risposta (appliedKey in HelpRequests), così vale per quella versione.
 const helpDoc = (deckId, id) => doc(helpsCol(deckId), id);
 export const setHelpStatus = (deckId, id, status) => updateDoc(helpDoc(deckId, id), { status });
 export const seeHelp = (deckId, id) => updateDoc(helpDoc(deckId, id), { seenAt: serverTimestamp() });
-export const setApplied = (deckId, id, rUid, on) => updateDoc(helpDoc(deckId, id), { applied: on ? arrayUnion(rUid) : arrayRemove(rUid) });
+export const setApplied = (deckId, id, key, on) => updateDoc(helpDoc(deckId, id), { applied: on ? arrayUnion(key) : arrayRemove(key) });
 // Id {deck}_{help} delle richieste a cui l'account ha risposto.
 export const listenReplied = (uid, onChange, onError) =>
   onSnapshot(repliedCol(uid), (qs) => onChange(new Set(qs.docs.map((d) => d.id))), onError);

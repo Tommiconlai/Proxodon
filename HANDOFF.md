@@ -241,7 +241,13 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
     version; later editor saves and a folder write keep going (Aesi at rev 10, 100 cards); a new request on Jetmir
     is accepted with `deck` {name, owner, format, cover}, shows "Jetmir by blazedfoot" in the feed without reading
     the deck, opening it (seenAt), Solved and Reopen are accepted, then it was deleted; Make private on a temporary
-    public deck deleted its request and public copy (deck then deleted). Not live yet: Apply / Undo on a real reply.
+    public deck deleted its request and public copy (deck then deleted). Apply / Undo live on a new reply from the other account (cut Haywire Mite, Hullbreaker
+    Horror, Chord of Calling): the reply came up marked Applied from the first test, because `applied` held only the
+    replier's uid, so the key is now `uid@reply time` (`appliedKey`; a new or edited reply from the same person is
+    no longer shown as applied; old plain-uid entries are ignored). Then: chips named from the deck rows; Apply saved
+    rev 12 with 97 main cards and the toast "Applied: −Haywire Mite, −Hullbreaker Horror, −Chord of Calling"; Undo
+    saved rev 13, back to 100, Applied cleared; with a rename between Apply and Undo the rename stayed and only the
+    cards came back. Aesi restored (name, 100 cards, rev 14).
 - **Help request page: zones always in reach, no filters (2026-10-18):** user request: "le due zone
   rendile sempre disponibili, così quando uno scorre la pagina può sempre trascinare dentro le carte / la ricerca con
   i filtri non funziona visivamente, toglila". Desktop: the Cuts / Suggestions zones sit in `.help-zones-bar`, sticky at
