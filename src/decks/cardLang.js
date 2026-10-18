@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { localizedCard } from '../utils/scryfall';
 import { useSettings, getSettings } from '../utils/settings';
+import { scryfallImg } from './deckModel';
 
 // Immagini delle carte nella lingua scelta (Settings → Card language): l'URL della stampa
 // localizzata (stesso set e numero) se Scryfall ce l'ha, sennò l'immagine inglese dello snapshot.
@@ -19,7 +20,8 @@ const remember = (k, url) => {
 const keyOf = (card, lang, side) => (lang !== 'en' && card.set && card.cn ? `${card.set}/${card.cn}/${lang}${side ? '/b' : ''}` : null);
 const normal = (c) => c?.image_uris?.normal || c?.card_faces?.[0]?.image_uris?.normal || '';
 const backOf = (c) => (!c?.image_uris && c?.card_faces?.[1]?.image_uris?.normal) || '';
-const english = (card, side) => (side ? card.back : card.img);
+// Solo immagini Scryfall anche qui: le usano anteprime e carta a tutto schermo, pure per mazzi di altri.
+const english = (card, side) => scryfallImg(side ? card.back : card.img);
 
 // Senza hook (anteprima al passaggio): quella già trovata, sennò l'inglese.
 export const cachedImg = (card, side = 0) => cache[keyOf(card, getSettings().cardLang, side)] || english(card, side);

@@ -196,7 +196,43 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Deck cards on tablets (most recent, 2026-10-18):** the user sent an iPad Air (2025) screenshot: "Da tablet la
+- **Security fixes from the ecc audit (most recent, 2026-10-18):** the user had two `ecc:security-reviewer` agents
+  audit the code (rules + data layer, client), then said "Sì, correggi il problema alto e i medi. Poi mandami le regole
+  intere da incollare". No XSS and no privilege escalation were found; fixed:
+  - **HIGH, malformed public decks crashed Community for everyone:** `cleanPublicDeck` (deckModel, self-checked) rebuilds
+    every public copy read from Firestore (`publicOf` in deckStore: `listenCommunity`, `listenPublicDeck`,
+    `getPublicDeck`, so also `deckOnce`, the dilemma pages and the help page) like `snapshotFromCard` writes it: rows
+    with a valid card only, right types, short strings, images only from Scryfall; a doc without a `name` string or a
+    `cards` list is dropped (null). It replaces `withScryfallImgs` (removed). Rules: `validPublic` now has a key
+    whitelist and type / size checks on name, format, cards, words, tags, sections, createdAt.
+  - **Forged timestamps pinning feeds:** dilemmas need `createdAt == request.time`; public copies need a real
+    `createdAt` not in the future (5 minutes of slack for device clocks).
+  - **Squatting a public id** (create someone's freed id, block their re-publish, make their account deletion fail):
+    `unpublishDeck(uid, id)` (Make private, deleteDeck) now leaves a placeholder `{ uid }` (rules `retired`) instead of
+    deleting the doc, so the id stays the owner's; readers treat it as gone (cleanPublicDeck = null, and it has no
+    `createdAt` / `words`, so the Community queries skip it). Cleanup errors now reach the caller's toast.
+  - **Nickname squatting:** a `usernames/{name}` can only be created together with the profile `nickname` (getAfter),
+    and changing the nickname must free the old key in the same write (`nickFreed`): one name per account.
+  - **Foreign images on dilemma pages** (the decklist preview / full screen used unfiltered URLs): fixed by the
+    cleaned public reads, and `cardLang` now passes its English fallback through `scryfallImg` too.
+  - **Backup restore trusted the file:** `fromBackup` rebuilds rows with the same cleaner (`cleanRow`), caps names,
+    sections and covers, and refuses more than 500 decks.
+  - **Data left behind / account deletion:** likes now have a marker `users/{uid}/liked/{deck}` (same batch, required by
+    the rules) and the deck owner can delete likes, so retiring a deck removes them (`deleteLikesOf`) and deleting the
+    account removes the likes given; votes and replies now require their marker in the same batch, so account deletion
+    always finds them. `deleteUserData` finds public copies by `uid` (also placeholders and copies without a private
+    deck), keeps going when a step fails and throws the first error at the end (so the Auth account is not deleted and
+    a retry works), and deletes nickname and profile in one batch. A stale save can no longer resurrect a deleted
+    deck (private decks must be created with `rev` 1).
+  - **Unbounded lists:** `publicDecks` lists need `limit <= 60` or a `uid == me` filter; the collection-group feeds of
+    dilemmas and helps need `limit <= 60`.
+  - Not done here: App Check (needs a reCAPTCHA key from the console; the user can set it up), the LOW findings (vote
+    linkability, import size limits, Android backup flags, CSP, CI permissions, clearing the local cache on sign-out,
+    old likes without markers). **Deployment order:** with the old rules the new client cannot like (the `liked` marker
+    is refused) or make decks private (the placeholder is refused); publish the rules right after the deploy. Verified
+    with the old rules: Community 10 decks, a public deck 100 cards with Scryfall images, the dilemma decklist 97
+    names, dilemma and help feeds load, no console errors; self-check covers the cleaners and the backup limits.
+- **Deck cards on tablets (2026-10-18):** the user sent an iPad Air (2025) screenshot: "Da tablet la
   visualizzazione delle carte non è ottimale". A tablet in portrait uses the phone layout (`useIsMobile`: up to
   1024 px portrait), where stacks were always two columns of half the width and the grid two columns, so cards
   were about 390 px wide. Now, with `touch`, stacks use as many columns as fit at `TOUCH_MIN` 170 px (at least 2):

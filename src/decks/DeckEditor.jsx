@@ -159,7 +159,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
               onClick={() => {
                 const on = !deck.public;
                 update((d) => ({ ...d, public: on }));
-                if (!on) unpublishDeck(id).catch((e) => notify(`Sync error: ${e.message}`, 'error'));
+                if (!on) unpublishDeck(uid, id).catch((e) => notify(`Sync error: ${e.message}`, 'error'));
                 notify(on ? 'Shared in Community' : 'Removed from Community, with its dilemmas and help requests');
               }}><IconGlobe size={17} /></button>
             </span>

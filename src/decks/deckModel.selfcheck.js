@@ -10,7 +10,7 @@ import {
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
   splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies, packPiles, splitPiles,
   libraryCards, shuffle, mulliganBottom, hyperAtLeast, deckPrice, addEntries, searchTerms, deckMatches, contentSig,
-  scryfallImg, withScryfallImgs, deckTags, MAX_TAGS, splitSlices, applySuggestion, revertSuggestion, cleanCards, cleanHelp, cleanReply,
+  scryfallImg, cleanPublicDeck, deckTags, MAX_TAGS, splitSlices, applySuggestion, revertSuggestion, cleanCards, cleanHelp, cleanReply,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
 
@@ -417,9 +417,24 @@ eq(['http://cards.scryfall.io/a.jpg', 'https://evil.test/a.jpg', 'https://cards.
 eq(scryfallImg('https://cards.scryfall.io/a.jpg"),url("https://evil.test/t.png').includes('"'), false,
   'immagini: niente virgolette, non si esce da url("...")');
 const foreign = { ...sd, cards: [{ ...sd.cards[0], card: { ...sd.cards[0].card, img: sfImg, back: 'https://evil.test/b.jpg', art: 'x' } }] };
-const clean = withScryfallImgs(foreign).cards[0].card;
-eq([clean.img, clean.back, clean.art, clean.name, foreign.cards[0].card.back], [sfImg, '', '', 'Lightning Bolt', 'https://evil.test/b.jpg'],
+const clean = cleanPublicDeck(foreign).cards[0].card;
+eq([clean.img, clean.back, clean.art, clean.name, clean.oid, clean.legal.modern, foreign.cards[0].card.back],
+  [sfImg, '', '', 'Lightning Bolt', sd.cards[0].card.oid, 'legal', 'https://evil.test/b.jpg'],
   'mazzo pubblico: immagini estranee tolte, resto e originale invariati');
+// Copie pubbliche scritte a mano (le regole non guardano dentro le righe): mai un'eccezione, solo righe valide.
+eq([cleanPublicDeck({ uid: 'u' }), cleanPublicDeck({ name: 'x', cards: {} }), cleanPublicDeck({ name: {}, cards: [] }), cleanPublicDeck(null)],
+  [null, null, null, null], 'pubblico: ritirato o malformato = null');
+const bad = cleanPublicDeck({ id: 'p', name: 'Bad', format: 'nope', tags: 'x', sections: 'y', createdAt: {}, cards: [{}, { board: 'main', card: null },
+  { board: 'main', qty: 'x', commander: 'yes', card: { name: 'N', sid: 's', set: 3, mana: {}, img: 'https://evil.test/a.jpg', ci: 'WU', mv: '3' } }] });
+eq([bad.format, bad.tags, bad.sections, bad.createdAt, bad.cards.length, bad.cards[0].qty, bad.cards[0].commander,
+  bad.cards[0].card.set, bad.cards[0].card.mana, bad.cards[0].card.img, bad.cards[0].card.ci, bad.cards[0].card.mv, deckIdentity(bad), typeof contentSig(bad.cards)],
+['casual', [], [], null, 1, 1, false, '', '', '', [], 0, [], 'string'], 'pubblico: righe rotte via, campi del tipo giusto, immagini estranee tolte');
+let tooMany = '';
+try { fromBackup({ app: 'proxodon', kind: 'decks', v: 1, decks: Array.from({ length: 501 }, () => ({ name: 'x', cards: [] })) }); } catch (e) { tooMany = e.message; }
+eq(tooMany.startsWith('This backup has 501 decks'), true, 'backup: al massimo 500 mazzi');
+eq(fromBackup({ app: 'proxodon', kind: 'decks', v: 1, decks: [{ name: { a: 1 }, sections: [{ id: 1, name: 'x' }, { id: 's', name: 'S' }], cards: [
+  { board: 'main', qty: 1, card: { sid: 's', name: 'N', art: 'https://evil.test/a.jpg', set: 7 } }] }] })
+  .map((x) => [x.name, x.sections.length, x.cards[0].card.art, x.cards[0].card.set]), [['Untitled deck', 1, '', '']], 'backup: carte e sezioni ripulite');
 
 // "Updated": la firma cambia con carte, quantità, zona, sezione, comandante; non con edizione o righe divise.
 {

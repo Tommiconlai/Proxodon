@@ -21,9 +21,17 @@ service cloud.firestore {
         && (d.get('nickname', null) == null || (d.nickname is string
           && getAfter(/databases/$(db)/documents/usernames/$(d.nickname.lower())).data.uid == uid));
     }
+    // Cambiando nickname il vecchio si libera nella stessa scrittura (claimNickname): un account ne tiene uno solo.
+    function nickFreed(d) {
+      let old = resource.data.get('nickname', null);
+      return old == null
+        || (d.get('nickname', null) is string && d.nickname.lower() == old.lower())
+        || !existsAfter(/databases/$(db)/documents/usernames/$(old.lower()));
+    }
     match /users/{uid} {
       allow read, delete: if owner(uid);
-      allow create, update: if owner(uid) && validProfile(uid, request.resource.data);
+      allow create: if owner(uid) && validProfile(uid, request.resource.data);
+      allow update: if owner(uid) && validProfile(uid, request.resource.data) && nickFreed(request.resource.data);
     }
     // Dilemmi a cui l'account ha risposto (contatore del profilo): solo suoi.
     match /users/{uid}/answered/{id} {
@@ -40,24 +48,44 @@ service cloud.firestore {
         && id == request.resource.data.deck + '_' + request.resource.data.help
         && existsAfter(/databases/$(db)/documents/publicDecks/$(request.resource.data.deck)/helps/$(request.resource.data.help)/replies/$(uid));
     }
+    // Like dati dall'account: la traccia per toglierli cancellando l'account, solo insieme al like (stesso batch).
+    match /users/{uid}/liked/{deckId} {
+      allow read, delete: if owner(uid);
+      allow create: if owner(uid) && request.resource.data.keys().hasOnly(['at'])
+        && existsAfter(/databases/$(db)/documents/publicDecks/$(deckId)/likes/$(uid));
+    }
     // Mazzi: rev = revisione, +1 a ogni scrittura. Si accetta solo la revisione che segue quella salvata: un
     // dispositivo con una copia vecchia (cache non aggiornata) non sovrascrive quella nuova, la sua scrittura è
-    // rifiutata e lui torna alla versione salvata. I mazzi di prima, senza rev, valgono 0.
+    // rifiutata e lui torna alla versione salvata. I mazzi di prima, senza rev, valgono 0. Un mazzo nasce con rev 1:
+    // il salvataggio di una copia vecchia di un mazzo cancellato altrove non lo fa rinascere.
     match /users/{uid}/decks/{deckId} {
       allow read, delete: if owner(uid);
       allow create: if owner(uid) && request.resource.data.cards.size() <= 500
-        && request.resource.data.get('rev', 0) is int;
+        && request.resource.data.get('rev', 0) == 1;
       allow update: if owner(uid) && request.resource.data.cards.size() <= 500
         && request.resource.data.get('rev', 0) == resource.data.get('rev', 0) + 1;
     }
-    // Community: copia pubblica di un mazzo (stesso id), la legge chi ha un account. La firma (owner) è
-    // il nickname dell'autore in usernames/, o nessuna. Si può cancellare una copia che non c'è.
+    // Community: copia pubblica di un mazzo (stesso id), la legge chi ha un account. Solo i campi che scrive il client,
+    // del tipo giusto (le righe le ripulisce chi legge: cleanPublicDeck); createdAt una data vera e non futura (5 minuti
+    // di margine per l'orologio del dispositivo), così nessuno resta in cima alla lista. La firma (owner) è il nickname
+    // dell'autore in usernames/, o nessuna.
     function validPublic(d) {
       return d.uid == request.auth.uid
-        && d.cards.size() <= 500
-        && d.words.size() <= 200
+        && d.keys().hasOnly(['v', 'name', 'format', 'groupBy', 'sections', 'cover', 'cards', 'tags', 'public',
+          'updatedAt', 'sig', 'changedAt', 'uid', 'owner', 'words', 'createdAt'])
+        && d.name is string && d.name.size() <= 200
+        && d.format is string && d.format.size() <= 20
+        && d.cards is list && d.cards.size() <= 500
+        && d.words is list && d.words.size() <= 200
+        && d.get('tags', []) is list && d.get('tags', []).size() <= 10
+        && d.get('sections', []) is list && d.get('sections', []).size() <= 100
+        && d.createdAt is timestamp && d.createdAt <= request.time + duration.value(5, 'm')
         && (d.get('owner', null) == null || (d.owner is string
           && get(/databases/$(db)/documents/usernames/$(d.owner.lower())).data.uid == request.auth.uid));
+    }
+    // Copia ritirata (Make private, mazzo cancellato): resta solo { uid }, così l'id non lo prende nessun altro.
+    function retired(d) {
+      return d.keys().hasOnly(['uid']) && d.uid == request.auth.uid;
     }
     function validDilemma(d) {
       return d.keys().hasOnly(['uid', 'question', 'cards', 'createdAt'])
@@ -101,25 +129,36 @@ service cloud.firestore {
           && get(/databases/$(db)/documents/usernames/$(d.owner.lower())).data.uid == request.auth.uid));
     }
     match /publicDecks/{deckId} {
-      allow read: if verified();
-      allow create: if verified() && validPublic(request.resource.data);
-      allow update: if verified() && resource.data.uid == request.auth.uid && validPublic(request.resource.data);
+      allow get: if verified();
+      // Elenchi: al massimo 60 alla volta (la Community), oppure solo le proprie copie (firma nuova, cancellazione dell'account).
+      allow list: if verified() && ((request.query.limit != null && request.query.limit <= 60)
+        || resource.data.uid == request.auth.uid);
+      allow create: if verified() && (validPublic(request.resource.data) || retired(request.resource.data));
+      allow update: if verified() && resource.data.uid == request.auth.uid
+        && (validPublic(request.resource.data) || retired(request.resource.data));
       allow delete: if verified() && (resource == null || resource.data.uid == request.auth.uid);
-      // Like: uno per account (id = uid), non al proprio mazzo; il conteggio è una query (list).
+      // Like: uno per account (id = uid), non al proprio mazzo né a una copia ritirata, con la sua traccia in
+      // users/{uid}/liked (stesso batch); il conteggio è una query (list). Li toglie chi li ha dati o il proprietario
+      // del mazzo quando lo ritira.
       match /likes/{uid} {
         allow read: if verified();
         allow create: if owner(uid) && request.resource.data.keys().hasOnly(['at'])
-          && get(/databases/$(db)/documents/publicDecks/$(deckId)).data.uid != uid;
-        allow delete: if owner(uid);
+          && get(/databases/$(db)/documents/publicDecks/$(deckId)).data.uid != uid
+          && 'cards' in get(/databases/$(db)/documents/publicDecks/$(deckId)).data
+          && existsAfter(/databases/$(db)/documents/users/$(uid)/liked/$(deckId));
+        allow delete: if owner(uid) || (verified()
+          && get(/databases/$(db)/documents/publicDecks/$(deckId)).data.uid == request.auth.uid);
       }
-      // Dilemmi: li crea e cancella il proprietario del mazzo pubblico (domanda 1-280 caratteri, da 2 a 4 carte),
-      // li legge chi ha un account. Voti: uno per account (id = uid), mai sul proprio dilemma; dopo il voto
-      // cambia solo la spiegazione (why, max 500); la firma (owner) è il nickname di chi vota o nessuna; li
-      // cancella chi ha votato o il proprietario del dilemma (quando lo cancella).
+      // Dilemmi: li crea e cancella il proprietario del mazzo pubblico (domanda 1-280 caratteri, da 2 a 4 carte, data del
+      // server: una data futura lo terrebbe in cima al feed), li legge chi ha un account. Voti: uno per account (id = uid),
+      // mai sul proprio dilemma, con la traccia in users/{uid}/answered (stesso batch); dopo il voto cambia solo la
+      // spiegazione (why, max 500); la firma (owner) è il nickname di chi vota o nessuna; li cancella chi ha votato o il
+      // proprietario del dilemma (quando lo cancella).
       match /dilemmas/{dId} {
         allow read: if verified();
         allow create: if verified() && request.resource.data.uid == request.auth.uid
           && get(/databases/$(db)/documents/publicDecks/$(deckId)).data.uid == request.auth.uid
+          && request.resource.data.createdAt == request.time
           && validDilemma(request.resource.data);
         allow delete: if verified() && resource.data.uid == request.auth.uid;
         match /votes/{uid} {
@@ -127,7 +166,8 @@ service cloud.firestore {
           // pick = una delle carte del dilemma (stesso get: Firestore lo legge una volta sola).
           allow create: if owner(uid) && validVote(request.resource.data)
             && get(/databases/$(db)/documents/publicDecks/$(deckId)/dilemmas/$(dId)).data.uid != uid
-            && request.resource.data.pick < get(/databases/$(db)/documents/publicDecks/$(deckId)/dilemmas/$(dId)).data.cards.size();
+            && request.resource.data.pick < get(/databases/$(db)/documents/publicDecks/$(deckId)/dilemmas/$(dId)).data.cards.size()
+            && existsAfter(/databases/$(db)/documents/users/$(uid)/answered/$(deckId + '_' + dId));
           // Solo why: la firma salvata non si ricontrolla (chi ha cambiato nickname può ancora spiegare).
           allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['why'])
             && request.resource.data.why is string && request.resource.data.why.size() <= 500;
@@ -137,8 +177,8 @@ service cloud.firestore {
       }
       // Help request: le crea il proprietario del mazzo pubblico, le legge chi ha un account; dopo cambiano solo
       // status (open / solved), applied e seenAt, sempre del proprietario, che può cancellarle. Risposte: una
-      // per account (id = uid), mai sulla propria richiesta, solo finché è aperta; le cancella chi ha risposto
-      // o il proprietario della richiesta.
+      // per account (id = uid), mai sulla propria richiesta, solo finché è aperta, con la traccia in
+      // users/{uid}/replied (stesso batch); le cancella chi ha risposto o il proprietario della richiesta.
       match /helps/{hId} {
         allow read: if verified();
         // Date del server (createdAt, seenAt): una data futura terrebbe la richiesta in cima al feed.
@@ -157,28 +197,31 @@ service cloud.firestore {
           // at = ora del server: senza data la risposta sparirebbe dall'elenco (ordinato per at), con una futura resterebbe sempre "new".
           allow create, update: if owner(uid) && validReply(request.resource.data) && request.resource.data.at == request.time
             && get(/databases/$(db)/documents/publicDecks/$(deckId)/helps/$(hId)).data.uid != uid
-            && get(/databases/$(db)/documents/publicDecks/$(deckId)/helps/$(hId)).data.status == 'open';
+            && get(/databases/$(db)/documents/publicDecks/$(deckId)/helps/$(hId)).data.status == 'open'
+            && existsAfter(/databases/$(db)/documents/users/$(uid)/replied/$(deckId + '_' + hId));
           allow delete: if owner(uid) || (verified()
             && get(/databases/$(db)/documents/publicDecks/$(deckId)/helps/$(hId)).data.uid == request.auth.uid);
         }
       }
     }
-    // Feed della scheda Dilemmas: query collection group sui dilemmi di tutti i mazzi, solo lettura
-    // (le scritture restano quelle di publicDecks/{deckId}/dilemmas sopra).
+    // Feed della scheda Dilemmas: query collection group sui dilemmi di tutti i mazzi, solo lettura e al massimo 60
+    // alla volta (le scritture e le letture di un mazzo restano quelle di publicDecks/{deckId}/dilemmas sopra).
     match /{path=**}/dilemmas/{dId} {
-      allow read: if verified();
+      allow read: if verified() && request.query.limit != null && request.query.limit <= 60;
     }
     // Feed della scheda Help, come quello dei dilemmi.
     match /{path=**}/helps/{hId} {
-      allow read: if verified();
+      allow read: if verified() && request.query.limit != null && request.query.limit <= 60;
     }
     // Nickname unici: usernames/{nome in minuscolo} = { uid }. Lo legge chi ha un account (per sapere
-    // se è libero, mai l'elenco), lo prende chi lo trova libero, lo libera solo il proprietario.
+    // se è libero, mai l'elenco), lo prende chi lo trova libero e lo mette nel proprio profilo nella stessa
+    // scrittura (uno per account, vedi nickFreed), lo libera solo il proprietario.
     match /usernames/{name} {
       allow get: if verified();
       allow create: if owner(request.resource.data.uid)
         && name.matches('^[a-z0-9._-]{3,24}$')
-        && request.resource.data.keys().hasOnly(['uid']);
+        && request.resource.data.keys().hasOnly(['uid'])
+        && getAfter(/databases/$(db)/documents/users/$(request.auth.uid)).data.get('nickname', '').lower() == name;
       allow delete: if owner(resource.data.uid);
     }
   }

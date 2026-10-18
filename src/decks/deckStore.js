@@ -8,7 +8,7 @@ import {
   query, where, orderBy, limit, getCountFromServer, collectionGroup, arrayUnion, arrayRemove, Timestamp, increment,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { searchTerms, contentSig, deckTags, deckCover, cleanCards, cleanHelp, cleanReply } from './deckModel';
+import { searchTerms, contentSig, deckTags, deckCover, cleanCards, cleanHelp, cleanReply, cleanPublicDeck } from './deckModel';
 
 const decksCol = (uid) => collection(db, 'users', uid, 'decks');
 // serverTimestamps 'estimate': un mazzo appena scritto ha già una data (stimata) per l'ordinamento.
@@ -37,6 +37,8 @@ export const changedMs = (d) => ms(d.changedAt ?? d.updatedAt);
 // Community. La copia pubblica porta uid, la firma (owner: nickname del profilo, o null) e words: i
 // prefissi delle parole del nome e dei tag (max 200, come le regole), fino a 20 lettere, per cercare con un array-contains senza indici.
 const publicCol = collection(db, 'publicDecks');
+// Copia pubblica letta: la scrive chiunque abbia un account, quindi ripulita (cleanPublicDeck); null = ritirata o rotta.
+const publicOf = (s) => cleanPublicDeck({ id: s.id, ...s.data({ serverTimestamps: 'estimate' }) });
 // ponytail: nickname del profilo aperto (lo aggiorna listenProfile, attivo finché si è nell'area mazzi), di ownerUid
 // (cambiando account si rilegge). undefined finché il profilo non è arrivato (o dopo una ricarica del modulo, in sviluppo).
 let ownerName;
@@ -62,10 +64,12 @@ const publish = async (uid, d, f) => {
     uid, ...(owner !== undefined && { owner }), words: searchWords([d.name, ...deckTags(d)].join(' ')).slice(0, 200), createdAt: d.createdAt ?? serverTimestamp(),
   }, { merge: true });
 };
-// Fuori dalla Community: via la copia pubblica e con lei dilemmi e help request (con voti e risposte), che le regole
-// lasciano leggere a chiunque abbia un account finché esistono. La pulizia non blocca: se fallisce la copia è tolta.
-export const unpublishDeck = (id) => Promise.all([
-  deleteDoc(doc(publicCol, id)), deleteDilemmasOf(id).catch(() => {}), deleteHelpsOf(id).catch(() => {}),
+// Fuori dalla Community: la copia diventa un segnaposto { uid } invece di sparire, così l'id resta di chi l'ha
+// pubblicato (nessun altro può prenderlo, far vedere altro sotto il vecchio link o bloccare la cancellazione
+// dell'account); via dilemmi e help request (con voti e risposte) e like. Un errore nella pulizia arriva al
+// chiamante (toast); il segnaposto è scritto comunque.
+export const unpublishDeck = (uid, id) => Promise.all([
+  setDoc(doc(publicCol, id), { uid }), deleteDilemmasOf(id), deleteHelpsOf(id), deleteLikesOf(id),
 ]);
 
 // ponytail: ordinamento lato client (niente indice); legge i documenti interi, va bene per
@@ -106,11 +110,11 @@ export const saveDeck = (uid, deck) => {
   return deck.public ? done.then(() => publish(uid, deck, f)) : done;
 };
 export const setDeckPublic = (uid, deck, on) => Promise.all([
-  saveDeck(uid, { ...deck, public: on }), !on && unpublishDeck(deck.id),
+  saveDeck(uid, { ...deck, public: on }), !on && unpublishDeck(uid, deck.id),
 ]);
 
 // Pulizia anche per un mazzo già privato: dilemmi o richieste rimasti da prima (unpublishDeck non fallisce per una copia che non c'è).
-export const deleteDeck = (uid, deck) => Promise.all([deleteDoc(doc(decksCol(uid), deck.id)), unpublishDeck(deck.id)]);
+export const deleteDeck = (uid, deck) => Promise.all([deleteDoc(doc(decksCol(uid), deck.id)), unpublishDeck(uid, deck.id)]);
 
 // Gli ultimi creati, o quelli con una parola che inizia per word; i più recenti prima.
 // ponytail: niente indici composti, quindi filtri e altre parole li applica la lista su questi 60.
@@ -118,17 +122,38 @@ export const deleteDeck = (uid, deck) => Promise.all([deleteDoc(doc(decksCol(uid
 export function listenCommunity(word, onChange, onError) {
   const q = word ? query(publicCol, where('words', 'array-contains', word), limit(60))
     : query(publicCol, orderBy('createdAt', 'desc'), limit(60));
-  return onSnapshot(q, (qs) => onChange(qs.docs.map(fromDoc).sort((a, b) => ms(b.createdAt) - ms(a.createdAt))), onError);
+  return onSnapshot(q, (qs) => onChange(qs.docs.map(publicOf).filter(Boolean).sort((a, b) => ms(b.createdAt) - ms(a.createdAt))), onError);
 }
 export const listenPublicDeck = (id, onChange, onError) =>
-  onSnapshot(doc(publicCol, id), (s) => onChange(s.exists() ? fromDoc(s) : null), onError);
+  onSnapshot(doc(publicCol, id), (s) => onChange(s.exists() ? publicOf(s) : null), onError);
 
 // Like: publicDecks/{id}/likes/{uid} = { at }. Niente contatore nel mazzo (lo riscriverebbe ogni
-// salvataggio dell'autore): il numero è un conteggio sul server, una lettura per mazzo.
+// salvataggio dell'autore): il numero è un conteggio sul server, una lettura per mazzo. Ogni like ha la sua traccia
+// users/{uid}/liked/{deck} = { at } (stesso batch), per toglierlo con l'account; il proprietario del mazzo li toglie
+// quando lo ritira (deleteLikesOf).
 const likeDoc = (id, uid) => doc(publicCol, id, 'likes', uid);
+const likedCol = (uid) => collection(db, 'users', uid, 'liked');
+async function deleteLikesOf(deckId) {
+  const list = (await getDocs(collection(publicCol, deckId, 'likes'))).docs;
+  for (let i = 0; i < list.length; i += 400) {
+    const batch = writeBatch(db);
+    list.slice(i, i + 400).forEach((l) => batch.delete(l.ref));
+    await batch.commit();
+  }
+}
 export const countLikes = (id) => getCountFromServer(collection(publicCol, id, 'likes')).then((s) => s.data().count);
 export const hasLiked = (id, uid) => getDoc(likeDoc(id, uid)).then((s) => s.exists());
-export const setLiked = (id, uid, on) => (on ? setDoc(likeDoc(id, uid), { at: serverTimestamp() }) : deleteDoc(likeDoc(id, uid)));
+export function setLiked(id, uid, on) {
+  const batch = writeBatch(db);
+  if (on) {
+    batch.set(likeDoc(id, uid), { at: serverTimestamp() });
+    batch.set(doc(likedCol(uid), id), { at: serverTimestamp() });
+  } else {
+    batch.delete(likeDoc(id, uid));
+    batch.delete(doc(likedCol(uid), id));
+  }
+  return batch.commit();
+}
 
 // Dilemmi (solo mazzi pubblici): publicDecks/{deck}/dilemmas/{id} = { uid, question, cards: [2-4 carte], createdAt };
 // voti in .../votes/{uid} = { pick: indice della carta (0-3), why, owner (nickname di chi vota), at }, uno per account, mai del
@@ -153,7 +178,7 @@ export const listenDilemma = (deckId, dId, onChange, onError) => onSnapshot(doc(
   const d = s.exists() && cleanDilemma(plainDoc(s));
   onChange(d && okDilemma(d) ? d : null);
 }, onError);
-export const getPublicDeck = (id) => getDoc(doc(publicCol, id)).then((s) => (s.exists() ? fromDoc(s) : null));
+export const getPublicDeck = (id) => getDoc(doc(publicCol, id)).then((s) => (s.exists() ? publicOf(s) : null));
 // Nome, formato e autore del mazzo pubblico per i feed (dilemmi, help request), letto una volta per mazzo. ponytail: cache
 // per la sessione, un nome cambiato si vede ricaricando. null = mazzo non più pubblico; errore = undefined, resta "…".
 const publicDecks = new Map();
@@ -300,34 +325,41 @@ export async function claimNickname(uid, name, old) {
   ownerName = name || null;
   ownerUid = uid;
   getDocs(query(publicCol, where('uid', '==', uid)))
-    .then((mine) => Promise.all(mine.docs.map((d) => updateDoc(d.ref, { owner: ownerName }))))
+    .then((mine) => Promise.all(mine.docs.filter((d) => Array.isArray(d.data().cards)).map((d) => updateDoc(d.ref, { owner: ownerName }))))
     .catch(() => {});
 }
 
-// Elimina account: i propri voti ai dilemmi e le risposte alle help request (con le loro tracce), dilemmi e help
-// request dei propri mazzi (anche di quelli tornati privati), tutti i mazzi con le copie pubbliche, il nickname, poi il profilo.
+// Elimina account: i propri voti ai dilemmi, le risposte alle help request e i like (con le loro tracce), le copie
+// pubbliche (anche ritirate o senza più il mazzo privato: le trova la query per uid) con i loro dilemmi, richieste e
+// like, i mazzi, il nickname, poi il profilo. Un passo che fallisce non ferma gli altri; alla fine il primo errore,
+// così chi chiama non cancella l'account Auth e si può riprovare (i passi si ripetono senza danni).
 export async function deleteUserData(uid) {
-  const answered = await getDocs(answeredCol(uid));
-  await Promise.all(answered.docs.map((a) => {
-    const { deck, dilemma } = a.data();
+  const errors = [];
+  const settle = async (list) => (await Promise.allSettled(list)).forEach((r) => r.status === 'rejected' && errors.push(r.reason));
+  const docsOf = (ref) => getDocs(ref).then((qs) => qs.docs, (e) => { errors.push(e); return []; });
+  const pair = (a, b) => { const batch = writeBatch(db); batch.delete(a); batch.delete(b); return batch.commit(); };
+  await settle((await docsOf(answeredCol(uid))).map((a) => pair(doc(votesCol(a.data().deck, a.data().dilemma), uid), a.ref)));
+  await settle((await docsOf(repliedCol(uid))).map((r) => deleteReply(uid, r.data().deck, r.data().help, uid)));
+  await settle((await docsOf(likedCol(uid))).map((l) => pair(likeDoc(l.id, uid), l.ref)));
+  const [mine, decks] = await Promise.all([docsOf(query(publicCol, where('uid', '==', uid))), docsOf(decksCol(uid))]);
+  // Copie proprie: prima dilemmi, richieste e like, poi la copia (se la pulizia fallisce resta, e si ritrova riprovando).
+  await settle(mine.map((p) => Promise.all([deleteDilemmasOf(p.id), deleteHelpsOf(p.id), deleteLikesOf(p.id)]).then(() => deleteDoc(p.ref))));
+  // Mazzi privati senza copia: dilemmi o richieste rimasti da prima dei segnaposto, al meglio.
+  const pub = new Set(mine.map((p) => p.id));
+  await Promise.allSettled(decks.filter((d) => !pub.has(d.id)).flatMap((d) => [deleteDilemmasOf(d.id), deleteHelpsOf(d.id)]));
+  const batches = [];
+  for (let i = 0; i < decks.length; i += 400) {
     const batch = writeBatch(db);
-    batch.delete(doc(votesCol(deck, dilemma), uid));
-    batch.delete(a.ref);
-    return batch.commit();
-  }));
-  const replied = await getDocs(repliedCol(uid));
-  await Promise.all(replied.docs.map((r) => deleteReply(uid, r.data().deck, r.data().help, uid)));
-  const snap = await getDocs(decksCol(uid));
-  await Promise.all(snap.docs.flatMap((d) => [deleteDilemmasOf(d.id), deleteHelpsOf(d.id)]));
-  for (let i = 0; i < snap.docs.length; i += 200) {
-    const batch = writeBatch(db);
-    snap.docs.slice(i, i + 200).forEach((d) => {
-      batch.delete(d.ref);
-      batch.delete(doc(publicCol, d.id)); // anche se non c'è (le regole lo permettono): copie rimaste da prima
-    });
-    await batch.commit();
+    decks.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
+    batches.push(batch.commit());
   }
-  const nick = (await getDoc(profileDoc(uid))).data()?.nickname;
-  if (nick) await deleteDoc(doc(db, 'usernames', nicknameKey(nick)));
-  await deleteDoc(profileDoc(uid));
+  await settle(batches);
+  await settle([getDoc(profileDoc(uid)).then((s) => {
+    const nick = s.data()?.nickname;
+    const batch = writeBatch(db);
+    if (nick) batch.delete(doc(db, 'usernames', nicknameKey(nick)));
+    batch.delete(profileDoc(uid));
+    return batch.commit();
+  })]);
+  if (errors.length) throw errors[0];
 }

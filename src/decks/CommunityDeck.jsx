@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { listenPublicDeck, listenHelp, createDeck, countLikes, hasLiked, setLiked } from './deckStore';
-import { duplicateDeck, coverRow, formatLabel, refreshSnapshots, withScryfallImgs } from './deckModel';
+import { duplicateDeck, coverRow, formatLabel, refreshSnapshots } from './deckModel';
 import { cardsByIds } from './scryfallSearch';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { navigate } from '../hooks/useHashRoute';
@@ -30,7 +30,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
   const [stuck, setStuck] = useState(false); // la testata è uscita: la barra delle schede ha lo sfondo
   const mobile = useIsMobile();
   // Immagini solo da Scryfall: vale per testata, carte, anteprima e per la copia in Copy to my decks.
-  useEffect(() => listenPublicDeck(id, (d) => setDeck(d && withScryfallImgs(d)), (e) => { setDeck(null); notify(`Could not load this deck: ${e.message}`, 'error'); }), [id, notify]);
+  useEffect(() => listenPublicDeck(id, setDeck, (e) => { setDeck(null); notify(`Could not load this deck: ${e.message}`, 'error'); }), [id, notify]);
   const update = useCallback((fn) => setDeck((d) => d && fn(d)), []);
   // Like: il mio (cuore pieno) e il totale; il click li aggiorna subito, li riporta indietro se fallisce.
   const [liked, setLikedNow] = useState(false);

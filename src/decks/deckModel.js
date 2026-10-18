@@ -527,13 +527,6 @@ export function scryfallImg(url) {
 }
 // Arte della carta (art_crop) da un'immagine Scryfall della carta: stessa immagine, altra versione nel percorso.
 export const artCrop = (c) => scryfallImg((typeof c?.img === 'string' ? c.img : '').replace(/\/(small|normal|large|png|border_crop)\//, '/art_crop/').replace(/\.png(?=\?|$)/, '.jpg'));
-// Mazzo di un altro account (Community): snapshot con le sole immagini ammesse.
-export const withScryfallImgs = (deck) => ({
-  ...deck,
-  cards: deck.cards.map((r) => ({
-    ...r, card: { ...r.card, img: scryfallImg(r.card.img), back: scryfallImg(r.card.back), art: scryfallImg(r.card.art) },
-  })),
-});
 
 // ── Verso la stampa ──────────────────────────────────────────
 
@@ -606,22 +599,68 @@ const BOARDS = ['main', 'side', 'maybe'];
 const validRow = (r) => r && BOARDS.includes(r.board) && Number.isInteger(r.qty) && r.qty > 0
   && r.card && typeof r.card.sid === 'string' && typeof r.card.name === 'string';
 
-// Backup → mazzi nuovi (id riga nuovi). Righe rotte scartate, formato ignoto = Casual. 'proxoteca' = backup
+// Mazzi scritti da altri o arrivati da fuori (copie pubbliche in Community, file di backup): le regole guardano solo i
+// tipi di primo livello, il file nessuno. Righe e carte rifatte come le scrive snapshotFromCard (tipi giusti, testi
+// corti, immagini solo Scryfall), così un documento scritto a mano non manda in errore chi lo apre; una riga senza
+// carta valida si scarta.
+const strs = (v, n, len) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string').slice(0, n).map((x) => x.slice(0, len)) : []);
+const num = (v) => (Number.isFinite(v) ? v : null);
+function cleanSnap(c) {
+  if (!c || typeof c !== 'object' || typeof c.name !== 'string' || typeof c.sid !== 'string') return null;
+  const type = str(c.type, 200);
+  return {
+    sid: str(c.sid, 64), oid: str(c.oid, 64) || str(c.sid, 64), name: str(c.name, 200), mana: str(c.mana, 100), mv: num(c.mv) ?? 0,
+    type, colors: strs(c.colors, 6, 1), ci: strs(c.ci, 6, 1), produced: strs(c.produced, 7, 1),
+    legal: Object.fromEntries(LEGAL_FORMATS.map((f) => [f, str(c.legal?.[f], 20) || 'not_legal'])),
+    set: str(c.set, 12), cn: str(c.cn, 12), img: scryfallImg(c.img), back: scryfallImg(c.back), art: scryfallImg(c.art),
+    limit: Number.isInteger(c.limit) && c.limit >= 0 ? c.limit : null,
+    cmdr: typeof c.cmdr === 'boolean' ? c.cmdr : /\bLegendary\b/.test(type) && /\bCreature\b/.test(type),
+    gc: c.gc === true, eur: num(c.eur), usd: num(c.usd),
+  };
+}
+const cleanRow = (r) => {
+  const card = r && typeof r === 'object' && BOARDS.includes(r.board) ? cleanSnap(r.card) : null;
+  return card && {
+    id: str(r.id, 64) || rid(), qty: clampQty(r.qty), board: r.board, commander: r.board === 'main' && r.commander === true,
+    section: typeof r.section === 'string' ? r.section.slice(0, 64) : null, card,
+  };
+};
+const cleanSections = (list) => (Array.isArray(list) ? list : [])
+  .filter((s) => s && typeof s.id === 'string' && typeof s.name === 'string').slice(0, 50)
+  .map((s) => ({ id: s.id.slice(0, 64), name: s.name.slice(0, 40) }));
+const stamp = (t) => (typeof t?.toMillis === 'function' ? t : null);
+// Copia pubblica letta da Firestore. null = da non mostrare: ritirata (resta solo { uid }, vedi unpublishDeck) o malformata.
+export function cleanPublicDeck(d) {
+  if (!d || typeof d.name !== 'string' || !Array.isArray(d.cards)) return null;
+  return {
+    id: d.id, v: 1, uid: str(d.uid, 128), owner: str(d.owner, 24) || null, public: true, name: d.name.slice(0, 80),
+    format: FORMATS.some((f) => f.id === d.format) ? d.format : 'casual',
+    groupBy: GROUP_MODES.some((m) => m.id === d.groupBy) ? d.groupBy : 'type',
+    cover: typeof d.cover === 'string' ? d.cover.slice(0, 64) : null, tags: deckTags(d), sections: cleanSections(d.sections),
+    cards: d.cards.slice(0, MAX_ROWS).map(cleanRow).filter(Boolean),
+    sig: str(d.sig, 32), createdAt: stamp(d.createdAt), changedAt: stamp(d.changedAt), updatedAt: stamp(d.updatedAt),
+  };
+}
+
+// Backup → mazzi nuovi (id riga nuovi). Righe rotte scartate, carte ripulite (cleanRow: il file può venire da
+// chiunque), formato ignoto = Casual; al massimo MAX_RESTORE mazzi (ognuno è una scrittura). 'proxoteca' = backup
 // fatti prima del cambio di nome.
 const BACKUP_APPS = ['proxodon', 'proxoteca'];
+const MAX_RESTORE = 500;
 export function fromBackup(json) {
   if (!json || !BACKUP_APPS.includes(json.app) || json.kind !== 'decks' || !Array.isArray(json.decks)) {
     throw new Error('This file is not a Proxodon deck backup.');
   }
   if (json.v !== 1) throw new Error(`Unsupported backup version (${json.v}).`);
+  if (json.decks.length > MAX_RESTORE) throw new Error(`This backup has ${json.decks.length} decks: restore at most ${MAX_RESTORE} at a time.`);
   return json.decks.map((d) => ({
-    ...newDeck({ name: d?.name, format: FORMATS.some((f) => f.id === d?.format) ? d.format : 'casual' }),
+    ...newDeck({ name: str(d?.name, 80), format: FORMATS.some((f) => f.id === d?.format) ? d.format : 'casual' }),
     groupBy: GROUP_MODES.some((m) => m.id === d?.groupBy) ? d.groupBy : 'type',
-    cover: typeof d?.cover === 'string' ? d.cover : null,
+    cover: typeof d?.cover === 'string' ? d.cover.slice(0, 64) : null,
     tags: deckTags(d),
-    sections: Array.isArray(d?.sections) ? d.sections.filter((s) => s && s.id && s.name) : [],
-    cards: (Array.isArray(d?.cards) ? d.cards : []).filter(validRow).slice(0, MAX_ROWS)
-      .map((r) => ({ id: rid(), qty: clampQty(r.qty), board: r.board, commander: r.board === 'main' && !!r.commander, section: r.section ?? null, card: r.card })),
+    sections: cleanSections(d?.sections),
+    cards: (Array.isArray(d?.cards) ? d.cards : []).filter(validRow).slice(0, MAX_ROWS).map(cleanRow).filter(Boolean)
+      .map((r) => ({ ...r, id: rid(), commander: r.board === 'main' && !!r.commander })),
   }));
 }
 
