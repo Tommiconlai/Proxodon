@@ -220,8 +220,13 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
   exemption `helps.createdAt` (collection group, Descending; the first try had left the collection group scope
   disabled, the error kept saying "You can create it here"): the request shows as Yours, search (text, kind, card,
   deck, author) and format filter work, the tile opens the deck on its Help tab, back returns to the feed,
-  `#/help/:deck/:id` shows deck, author and decklist, phone 375x812. Still to verify: a real reply from another
-  account, Apply / Undo on it.
+  `#/help/:deck/:id` shows deck, author and decklist, phone 375x812. Reply, Apply and Undo verified 2026-10-18 with a real
+  reply from the user's other account (tommiconlai: cut Castle Garenbrig): "1 new" on the deck tile and in the feed,
+  the reply marked New, Apply removed the card from the saved deck (toast "Applied: 0 in, 1 out" with Undo, reply
+  flag Applied), Undo restored the same card list and cleared Applied, reopening cleared "new". The Undo window is
+  the app's toast (a few seconds): the first try missed it and the card was put back by hand (same printing, no
+  sections in the deck). Apply now uses `IconMerge` (two branches joining), so it no longer shares the check icon
+  with Solved. The test request stays open on Aesi until the user says to delete it.
 - **Android app, milestone 4: polish (2026-10-17):** back button: `@capacitor/app` alone only
   calls `goBack` and does nothing at the root, so `main.jsx` adds a `backButton` listener (app only):
   `history.back()` while there is history (overlays via `useBackClose`, hash routes), else `minimizeApp()`

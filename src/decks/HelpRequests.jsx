@@ -15,7 +15,7 @@ import {
   HELP_KINDS, MAX_HELP_CARDS, helpKindLabel, applySuggestion, snapshotFromCard, scryfallImg, artCrop, deckCover,
 } from './deckModel';
 import { timeAgo } from '../utils/timeAgo';
-import { IconPlus, IconArrowLeft, IconTrash, IconCheck, IconX, IconLifebuoy } from '../components/icons';
+import { IconPlus, IconArrowLeft, IconTrash, IconCheck, IconX, IconLifebuoy, IconMerge } from '../components/icons';
 
 const ms = (t) => t?.toMillis?.() ?? 0;
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
@@ -369,7 +369,7 @@ function ReplyCard({ r, mine, fresh, applied, busy, onApply, onDelete }) {
         <span className="help-reply-actions">
           {onApply && (r.add.length > 0 || r.cut.length > 0) && (
             <button type="button" className={`${applied ? 'btn-secondary' : 'btn-add'} deck-icon-btn`} onClick={onApply} disabled={busy}
-              aria-label="Apply to deck" title={applied ? 'Applied. Apply it again' : 'Apply to deck: add and cut these cards'}><IconCheck size={16} /></button>
+              aria-label="Apply to deck" title={applied ? 'Applied. Apply it again' : 'Apply to deck: add and cut these cards'}><IconMerge size={16} /></button>
           )}
           {onDelete && <button type="button" className="btn-secondary deck-icon-btn" onClick={onDelete} aria-label="Delete suggestion" title="Delete suggestion"><IconTrash size={16} /></button>}
         </span>
