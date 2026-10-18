@@ -34,19 +34,68 @@ export function DeckTabs({ tab, onTab }) {
   );
 }
 
-// Fascia delle schede da desktop (Figma "Proxodon" 47:108): la linea sfumata con l'incavo a sinistra (format =
-// il formato) e al centro le schede a trapezio, larghe 168 a passi di 132.67 (si sovrappongono: la sinistra
-// sopra la destra, quella aperta sopra tutte; aperta = piena del gradiente, le altre scure col bordo al 50%).
-// Ogni scheda ha il suo gradiente spostato del suo passo: i colori sono quelli del design (il gradiente della
-// pagina preso nel punto della scheda) a ogni larghezza. Sticky sotto la barra del nome, col fondo quando è
-// attaccata (.solid). Pulsanti ritagliati a trapezio: dove due schede si toccano vince quella che si vede.
+// Schede a trapezio da desktop (Figma "Proxodon" 47:108 e 52:275): larghe 168 a passi di 132.67, si
+// sovrappongono e più una scheda è vicina a quella aperta più sta sopra (aperta = piena del gradiente, in cima;
+// le altre scure col bordo al 50%). Ogni scheda ha il suo gradiente spostato del suo passo: i colori sono quelli
+// del design (il gradiente della pagina preso nel punto della scheda) a ogni larghezza. Pulsanti (o link, href)
+// ritagliati a trapezio: dove due schede si toccano vince quella che si vede. items = [[chiave, etichetta, href?]].
 const SLOT = 132.667;
 const TAB_PATH = 'M35.0711 12.9289L10 38H178L152.929 12.9289C151.054 11.0536 148.51 10 145.858 10H42.1421C39.49 10 36.9464 11.0536 35.0711 12.9289Z';
 const STOPS = [['0.1', '#FF2E96'], ['0.5', '#AB61ED'], ['0.9', '#00E5FF']];
-let bands = 0; // id dei gradienti per istanza: con il tutorial aperto le fasce sono due, e un id ripetuto
+let strips = 0; // id dei gradienti per istanza: con il tutorial aperto le fasce sono due, e un id ripetuto
 // punterebbe ai defs dell'altra (nascosta = forme senza colore)
+function TabStrip({ items, current, onTab, label }) {
+  const [k] = useState(() => `tab-strip${++strips}`);
+  const open = items.findIndex(([t]) => t === current);
+  const near = (i) => items.length - Math.abs(i - open); // più vicina alla scheda aperta = più in alto
+  const order = items.map((_, i) => i).sort((a, b) => near(a) - near(b));
+  return (
+    <nav className="deck-tabs in-band" aria-label={label}>
+      {items.map(([t, text, href], i) => {
+        const props = { className: 'decks-tab', style: { left: i * SLOT, zIndex: near(i) } };
+        return href
+          ? <a key={t} href={href} aria-current={t === current ? 'page' : undefined} {...props}>{text}</a>
+          : <button key={t} type="button" aria-current={t === current ? 'true' : undefined} onClick={() => onTab(t)} {...props}>{text}</button>;
+      })}
+      {/* Forme sotto i pulsanti (z-index nel CSS); dopo nel DOM, così .decks-tab:nth-child(n) resta la scheda n. */}
+      <svg className="deck-tab-shapes" width={items.length * SLOT + 55.33} height="48" fill="none" aria-hidden="true" focusable="false">
+        <defs>
+          {items.map((_, i) => (
+            <linearGradient key={i} id={`${k}-g${i}`} gradientUnits="userSpaceOnUse" x1={-667.5 - i * SLOT} y1="11.6471" x2={1249.5 - i * SLOT} y2="11.6471">
+              {STOPS.map(([o, c]) => <stop key={o} offset={o} stopColor={c} />)}
+            </linearGradient>
+          ))}
+          <filter id={`${k}-shadow`} x="0" y="0" width="188" height="48" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+            <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+            <feOffset />
+            <feGaussianBlur stdDeviation="5" />
+            <feComposite in2="hardAlpha" operator="out" />
+            <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.75 0" />
+            <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow" />
+            <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
+          </filter>
+          <mask id={`${k}-inner`} fill="white"><path d={TAB_PATH} /></mask>
+        </defs>
+        {order.map((i) => (
+          <g key={i} transform={`translate(${i * SLOT} 0)`} filter={`url(#${k}-shadow)`}>
+            {i === open ? <path d={TAB_PATH} fill={`url(#${k}-g${i})`} /> : (
+              <>
+                <path d={TAB_PATH} fill="#0B0B14" />
+                <path d={TAB_PATH} stroke={`url(#${k}-g${i})`} strokeWidth="4" strokeOpacity="0.5" mask={`url(#${k}-inner)`} />
+              </>
+            )}
+          </g>
+        ))}
+      </svg>
+    </nav>
+  );
+}
+
+// Fascia del mazzo da desktop (Figma 47:108): la linea sfumata con l'incavo a sinistra (format = il formato) e
+// al centro le schede Deck / Stats / Dilemmas / Help. Sticky sotto la barra del nome, col fondo quando è
+// attaccata (.solid).
 export function DeckBand({ tab, onTab, format }) {
-  const [k] = useState(() => `deck-tab${++bands}`);
   const ref = useRef(null);
   const [solid, setSolid] = useState(false);
   useEffect(() => {
@@ -58,50 +107,18 @@ export function DeckBand({ tab, onTab, format }) {
     box.addEventListener('scroll', check, { passive: true });
     return () => box.removeEventListener('scroll', check);
   }, []);
-  const open = TABS.findIndex(([t]) => t === tab);
-  const order = [3, 2, 1, 0].filter((i) => i !== open).concat(open);
   return (
     <div ref={ref} className={`deck-band${solid ? ' solid' : ''}`}>
       {format && <div className="deck-band-format">{format}</div>}
-      <nav className="deck-tabs in-band" aria-label="Deck view">
-        {TABS.map(([t, label], i) => (
-          <button key={t} type="button" aria-current={tab === t ? 'true' : undefined} className="decks-tab"
-            style={{ left: i * SLOT, zIndex: i === open ? 5 : 4 - i }} onClick={() => onTab(t)}>{label}</button>
-        ))}
-        {/* Forme sotto i pulsanti (z-index nel CSS); dopo nel DOM, così .decks-tab:nth-child(n) resta la scheda n. */}
-        <svg className="deck-tab-shapes" width="586" height="48" viewBox="0 0 586 48" fill="none" aria-hidden="true" focusable="false">
-          <defs>
-            {TABS.map((_, i) => (
-              <linearGradient key={i} id={`${k}-g${i}`} gradientUnits="userSpaceOnUse" x1={-667.5 - i * SLOT} y1="11.6471" x2={1249.5 - i * SLOT} y2="11.6471">
-                {STOPS.map(([o, c]) => <stop key={o} offset={o} stopColor={c} />)}
-              </linearGradient>
-            ))}
-            <filter id={`${k}-shadow`} x="0" y="0" width="188" height="48" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-              <feFlood floodOpacity="0" result="BackgroundImageFix" />
-              <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
-              <feOffset />
-              <feGaussianBlur stdDeviation="5" />
-              <feComposite in2="hardAlpha" operator="out" />
-              <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.75 0" />
-              <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow" />
-              <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
-            </filter>
-            <mask id={`${k}-inner`} fill="white"><path d={TAB_PATH} /></mask>
-          </defs>
-          {order.map((i) => (
-            <g key={i} transform={`translate(${i * SLOT} 0)`} filter={`url(#${k}-shadow)`}>
-              {i === open ? <path d={TAB_PATH} fill={`url(#${k}-g${i})`} /> : (
-                <>
-                  <path d={TAB_PATH} fill="#0B0B14" />
-                  <path d={TAB_PATH} stroke={`url(#${k}-g${i})`} strokeWidth="4" strokeOpacity="0.5" mask={`url(#${k}-inner)`} />
-                </>
-              )}
-            </g>
-          ))}
-        </svg>
-      </nav>
+      <TabStrip items={TABS} current={tab} onTab={onTab} label="Deck view" />
     </div>
   );
+}
+
+// Fascia delle liste da desktop (Figma 52:275): Community / Dilemmas / Help / My decks come link, sulla linea
+// sfumata che a destra sale con uno scalino verso il bordo.
+export function ListBand({ items, current }) {
+  return <div className="list-band"><TabStrip items={items} current={current} label="Decks" /></div>;
 }
 
 // Nome del mazzo da desktop (barra in alto): nome e cuore sulla stessa riga, sotto "by" l'autore (se c'è).

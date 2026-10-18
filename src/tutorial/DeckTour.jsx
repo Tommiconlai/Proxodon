@@ -4,7 +4,7 @@ import { touches } from './control';
 import { Shell, ProfileStage, SettingsStage } from './AccountStages';
 import { C, demoDeck, myDecks, communityDecks, LIKES, dilemmas, DILEMMA_VOTES, helps, HELP_REPLIES } from './demo';
 import DeckSections from '../decks/DeckSections';
-import { DeckTabs, DeckBand, DeckTitle, DeckCount, DeckBottomBar, DeckTagList, TabLabel } from '../decks/DeckTabs';
+import { DeckTabs, DeckBand, DeckTitle, DeckCount, DeckBottomBar, DeckTagList, TabLabel, ListBand } from '../decks/DeckTabs';
 import { DeckTile, GhostTile, FolderTile } from '../decks/DeckList';
 import { DilemmaTile } from '../decks/Dilemmas';
 import { HelpItem, HelpQuestion, CardChips } from '../decks/HelpRequests';
@@ -12,9 +12,9 @@ import { CardFrame, CardFrameDefs } from '../components/CardFrame';
 import { useBracketSlide } from '../hooks/useBracketSlide';
 import { FORMATS, formatLabel, coverRow, searchTerms, deckMatches, MAX_HELP_CARDS } from '../decks/deckModel';
 import {
-  IconPlus, IconMinus, IconCopy, IconTrash, IconPencil, IconExport, IconGlobe, IconSearch, IconFilter, IconPlay, IconFolder, IconArrowLeft,
+  IconPlus, IconMinus, IconCopy, IconTrash, IconPencil, IconExport, IconGlobe, IconPlay, IconFolder, IconArrowLeft,
   IconPrinter, IconEye, IconScale, IconLifebuoy, IconImage, IconList, IconCheck,
-  IconDeckTag, IconDeckPrint, IconDeckExport, IconDeckPublic, IconDeckSearch, IconDeckHeart,
+  IconDeckTag, IconDeckPrint, IconDeckExport, IconDeckPublic, IconDeckSearch, IconDeckHeart, IconDeckFilter,
 } from '../components/icons';
 
 // Tutorial delle pagine mazzi: per ogni pagina una copia demo (stesse classi e, dove si può, gli stessi componenti:
@@ -245,7 +245,7 @@ function ListStage({ apiRef, step, mobile, tab }) {
         {(searching ? shown : decks.filter((d) => !d.folder?.id)).map((d) => (
           <li key={d.id} className={`deck-tile-wrap${dropOn === d.id ? ' drop' : ''}`} data-deck={d.id}>
             <DeckTile deck={d} stats={{ likes: d.public ? 12 : 0, help: d.id === 'tut-deck' }} />
-            <button type="button" className="deck-tile-export" aria-label={`Export ${d.name}`} title="Export"><IconExport size={16} /></button>
+            <button type="button" className="deck-tile-export" aria-label={`Export ${d.name}`} title="Export"><IconDeckExport /></button>
           </li>
         ))}
         {!searching && <GhostTile label="New deck" onClick={noop}><IconPlus size={44} /></GhostTile>}
@@ -282,26 +282,29 @@ function ListStage({ apiRef, step, mobile, tab }) {
   return (
     <Shell mobile={mobile}>
       <div className="decks-root decks-page">
-        <header className="decks-head">
-          <nav className="decks-tabs" aria-label="Decks" ref={tabsRef}>
-            {LIST_TABS.map(([t, text]) => <a key={t} className="decks-title decks-tab" aria-current={tab === t ? 'page' : undefined}><TabLabel>{text}</TabLabel></a>)}
-          </nav>
-          {tab === 'dilemmas' && !open && (
-            <div className="decks-actions">
-              <button type="button" className="btn-add deck-new deck-icon-btn" aria-label="Play dilemmas" title="Play dilemmas"><IconPlay size={18} /></button>
-            </div>
-          )}
-        </header>
+        {/* Come DeckList: da desktop la fascia a trapezi, da telefono le schede tra [ ]. */}
+        {mobile ? (
+          <header className="decks-head">
+            <nav className="decks-tabs" aria-label="Decks" ref={tabsRef}>
+              {LIST_TABS.map(([t, text]) => <a key={t} className="decks-title decks-tab" aria-current={tab === t ? 'page' : undefined}><TabLabel>{text}</TabLabel></a>)}
+            </nav>
+          </header>
+        ) : <ListBand items={LIST_TABS} current={tab} />}
         {!open && (
           <div className="decks-search" role="search">
             <label className="decks-search-box">
-              <IconSearch size={16} />
+              <IconDeckSearch />
               <input type="search" className="import-link-input" value={q} readOnly placeholder={label} aria-label={label} />
             </label>
             {feed ? (
               <select className="decks-format" value="" aria-label="Format" title="Format" onChange={noop}><option value="">Any format</option></select>
             ) : (
-              <button type="button" className="btn-secondary decks-filter-btn" aria-expanded={filtersOpen}><IconFilter size={16} /> Filters</button>
+              <button type="button" className="decks-filter-btn" aria-expanded={filtersOpen} aria-label="Filters" title="Filters"><IconDeckFilter /></button>
+            )}
+            {tab === 'dilemmas' && (
+              <div className="decks-actions">
+                <button type="button" className="btn-add deck-new deck-icon-btn" aria-label="Play dilemmas" title="Play dilemmas"><IconPlay size={18} /></button>
+              </div>
             )}
           </div>
         )}
@@ -606,7 +609,7 @@ function helpReplySteps(mobile) {
 function listSteps(tab, mobile) {
   const tap = mobile ? 'Tap' : 'Click';
   const tabsStep = {
-    target: '.decks-tabs', title: { mine: 'Your decks', community: 'Community', dilemmas: 'Dilemmas', help: 'Help requests' }[tab],
+    target: '.decks-tabs, .list-band', title: { mine: 'Your decks', community: 'Community', dilemmas: 'Dilemmas', help: 'Help requests' }[tab],
     text: {
       mine: 'These are demo decks, not yours. Four tabs share one search: Community, Dilemmas, Help and My decks.',
       community: 'The latest public decks of other players, here with demo decks.',

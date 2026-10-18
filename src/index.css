@@ -2621,12 +2621,32 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointer; }
 .decks-tab:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 4px; }
 /* Ricerca per nome + Filters (formato, colori) sopra la griglia. */
-.decks-search { display: flex; gap: 8px; margin-bottom: 16px; }
+/* Ricerca (Figma 52:275): casella alta 38, fondo nero al 25%, bordo ciano al 10%, angoli 10, lente ciano; accanto
+   Filters solo icona (72x38) o il formato (Dilemmas, Help), separati dalle due barre ciano (gruppi 95 / 96).
+   Colonna di 776 px centrata; 20 px sopra i filtri aperti, 34 sopra i riquadri. */
+.decks-search { display: flex; gap: 12px; max-width: 776px; margin: 0 auto 34px; }
+.decks-search:has(+ .decks-filters) { margin-bottom: 20px; }
 .decks-search-box { flex: 1; min-width: 0; position: relative; display: flex; margin: 0; }
-.decks-search-box svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
-.decks-search-box .import-link-input { height: 40px; padding-left: 36px; font-size: 0.9rem; }
-.decks-filter-btn { flex: none; height: 40px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; }
-.decks-filter-btn.on, .decks-filter-btn[aria-expanded='true'] { border-color: var(--cyan); color: var(--cyan-soft); }
+.decks-search-box svg { position: absolute; left: 17px; top: 50%; transform: translateY(-50%); color: var(--cyan); pointer-events: none; }
+.decks-search-box .import-link-input {
+  height: 38px; padding-left: 41px; font-size: 0.85rem;
+  background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(0, 229, 255, 0.1); border-radius: 10px;
+}
+.decks-search-box .import-link-input:focus { border-color: rgba(0, 229, 255, 0.55); box-shadow: none; }
+.decks-search-box::after {
+  content: ''; position: absolute; left: calc(100% - 3px); top: -17px; width: 18px; height: 72px; pointer-events: none;
+  background: url('./assets/figma/glow-cyan-left.svg') 0 0 / 13px 72px no-repeat, url('./assets/figma/glow-cyan-right.svg') 5px 0 / 13px 72px no-repeat;
+}
+.decks-filter-btn {
+  position: relative; flex: none; width: 72px; height: 38px; padding: 0; display: grid; place-items: center; cursor: pointer;
+  background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(0, 229, 255, 0.1); border-radius: 10px; color: var(--cyan);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.decks-filter-btn:hover, .decks-filter-btn:focus-visible { border-color: rgba(0, 229, 255, 0.55); outline: none; }
+.decks-filter-btn.on, .decks-filter-btn[aria-expanded='true'] { border-color: rgba(0, 229, 255, 0.45); box-shadow: 0 0 12px rgba(0, 229, 255, 0.2); }
+.decks-filter-btn .decks-filter-n { position: absolute; top: -7px; right: -7px; }
+.decks-search .decks-actions { margin: 0; }
+.decks-search .decks-actions .deck-icon-btn { width: 38px; height: 38px; border-radius: 10px; } /* Play (Dilemmas), alto come la riga */
 .decks-filter-n {
   display: grid; place-items: center;
   min-width: 18px; height: 18px; padding: 0 5px;
@@ -2634,120 +2654,113 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
   background: var(--accent); color: #fff;
   font-family: var(--font-mono); font-size: 0.7rem;
 }
+/* Filtri (Figma 52:275): riquadro come la ricerca, largo 776; etichette Chakra Petch 12 bianche; formato (98) e
+   carta (223) alti 32, fondo #020b0c, bordo ciano al 25%, angoli 5; i colori da 21 px, al 30% se spenti. */
 .decks-filters {
-  display: flex; align-items: center; gap: 12px 24px; flex-wrap: wrap;
-  margin-top: -6px; margin-bottom: 18px;
-  padding: 14px 16px;
-  background: linear-gradient(180deg, var(--bg-elevated), var(--bg-surface));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap;
+  max-width: 776px; margin: 0 auto 34px; padding: 17px;
+  background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(0, 229, 255, 0.1); border-radius: 10px;
 }
-.decks-filter { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 0.8rem; color: var(--text-secondary); }
-.decks-filter select { width: auto; }
-/* Formato accanto alla ricerca (scheda Dilemmas): alto come il pulsante Filters. */
-.decks-format { flex: none; width: auto; height: 40px; }
+.decks-filter { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--font-display); font-size: 12px; color: #fff; }
+.decks-filter :is(select, input) {
+  height: 32px; padding: 0 8px; background-color: #020b0c; border: 1px solid rgba(0, 229, 255, 0.25); border-radius: 5px;
+  font-family: var(--font-display); font-size: 12px; color: #fff;
+}
+.decks-filter select { width: 98px; padding-right: 24px; }
+.decks-filter :is(select, input):focus { border-color: var(--cyan); box-shadow: none; }
+/* Formato accanto alla ricerca (Dilemmas, Help): alto e scuro come Filters. */
+.decks-format { flex: none; width: auto; height: 38px; background-color: rgba(0, 0, 0, 0.25); border-color: rgba(0, 229, 255, 0.1); border-radius: 10px; }
 .decks-format.on { border-color: var(--cyan); color: var(--cyan-soft); }
-.decks-card-filter { flex: none; width: 200px; }
-.decks-colors { display: flex; gap: 6px; flex-wrap: wrap; }
+.decks-card-filter { flex: none; width: 200px; } /* 223 nel design, che non ha C né Clear: così stanno su una riga */
+.decks-colors { display: flex; gap: 10px; flex-wrap: wrap; }
 .decks-color {
-  display: grid; place-items: center;
-  width: 34px; height: 34px; padding: 0;
-  background: var(--bg-base);
-  border: 1px solid var(--border); border-radius: 50%;
-  opacity: 0.5;
-  cursor: pointer;
-  transition: opacity var(--transition), border-color var(--transition), box-shadow var(--transition);
+  display: grid; place-items: center; width: 21px; height: 21px; padding: 0;
+  background: none; border: 0; border-radius: 50%; opacity: 0.3; cursor: pointer;
+  transition: opacity var(--transition), box-shadow var(--transition);
 }
-.decks-color img { width: 20px; height: 20px; }
-.decks-color:hover, .decks-color:focus-visible { opacity: 1; outline: none; border-color: var(--cyan-soft); }
-.decks-color[aria-pressed='true'] { opacity: 1; border-color: var(--cyan); box-shadow: 0 0 10px var(--cyan-glow); }
-/* Griglia mazzi: riquadri larghi una percentuale della riga (5, 4, 3 o 2 per riga secondo lo schermo),
-   righe centrate, anche l'ultima. Dentro il riquadro i testi sono in cqi e scalano con lui. */
-.deck-grid { --cols: 5; --gap: 16px; list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gap); }
-.deck-grid > li { width: calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols)); }
-@media (max-width: 1100px) { .deck-grid { --cols: 4; } }
-@media (max-width: 820px) { .deck-grid { --cols: 3; } }
-@media (max-width: 560px) { .deck-grid { --cols: 2; --gap: 12px; } }
+.decks-color img { width: 21px; height: 21px; }
+.decks-color:hover { opacity: 0.65; }
+.decks-color:focus-visible { opacity: 1; outline: none; box-shadow: var(--focus-ring); }
+.decks-color[aria-pressed='true'] { opacity: 1; box-shadow: 0 0 10px var(--cyan-glow); }
+.decks-clear {
+  flex: none; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; cursor: pointer;
+  background: #020b0c; border: 1px solid rgba(0, 229, 255, 0.25); border-radius: 5px; color: var(--cyan);
+}
+.decks-clear:hover, .decks-clear:focus-visible { border-color: var(--cyan); outline: none; box-shadow: 0 0 10px rgba(0, 229, 255, 0.25); }
+.mobile .decks-clear { width: 44px; height: 44px; }
+/* Griglia mazzi (Figma "Proxodon" 52:275): riquadri 209x208 a passi di 229 (spazio 20), righe centrate, anche
+   l'ultima. Telefono stretto: due per riga, larghi metà riga, stessa proporzione. */
+.deck-grid { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+.deck-grid > li { width: 209px; }
+@media (max-width: 560px) { .deck-grid { gap: 12px; } .deck-grid > li { width: calc((100% - 12px) / 2); } }
 .deck-tile {
-  container-type: inline-size;
-  width: 100%;
-  display: flex; flex-direction: column;
-  padding: 0;
-  text-align: left;
-  font: inherit;
-  color: inherit;
-  /* Bordo sfumato del frame Figma: lineare #FF2E96 → #AB61ED → #00E5FF al 50%, da sinistra a destra.
-     Il fondo resta --bg-surface (padding-box), il gradiente si vede solo nel bordo trasparente. */
-  background:
-    linear-gradient(var(--bg-surface), var(--bg-surface)) padding-box,
-    linear-gradient(90deg, rgba(255, 46, 150, 0.5), rgba(171, 97, 237, 0.5) 50%, rgba(0, 229, 255, 0.5)) border-box;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  overflow: hidden;
-  cursor: pointer;
-  -webkit-touch-callout: none;
-  user-select: none;
-  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+  position: relative; display: block; width: 100%; aspect-ratio: 209 / 208; padding: 0;
+  background: none; border: 0; text-align: left; font: inherit; color: #fff;
+  cursor: pointer; -webkit-touch-callout: none; user-select: none;
+  transition: filter var(--transition), transform var(--transition);
 }
-.deck-tile-wrap:hover .deck-tile, .deck-tile:focus-visible { box-shadow: 0 0 18px rgba(255, 45, 149, 0.35); transform: translateY(-2px); outline: none; }
-.deck-tile-art { position: relative; display: block; aspect-ratio: 626 / 457; background: var(--bg-elevated) center 22% / cover no-repeat; }
-/* Nero dall'alto sotto nome e formato; in basso l'arte sfuma nel corpo. */
-.deck-tile-art::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.55) 32%, transparent 64%); }
-.deck-tile-art::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 76%, var(--bg-surface)); }
-/* Testi come il frame Figma 35:208: JetBrains Mono bold, bianchi a opacità diverse. */
+.deck-tile-wrap:hover .deck-tile, .deck-tile:focus-visible { filter: drop-shadow(0 0 10px rgba(255, 45, 149, 0.45)); transform: translateY(-2px); outline: none; }
+/* Arte ritagliata dalla sagoma (maschera, TileFrame): 290x212 a (-40, -2) come nel design, al 50%, ombra interna
+   nera di 20 px; il bordo sfumato è l'SVG sopra. */
+.deck-tile-shape {
+  position: absolute; inset: 0; overflow: hidden; background: rgba(0, 0, 0, 0.25);
+  -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+}
+.deck-tile-art {
+  position: absolute; left: -19.14%; top: -0.96%; width: 138.76%; height: 101.92%;
+  background: center / cover no-repeat; opacity: 0.5; box-shadow: inset 0 0 20px #000;
+}
+.deck-tile-frame { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+/* Identità nell'incavo: simboli da 9 px a 5 di distanza, 1 px sotto il bordo. */
+.deck-tile-pips { position: absolute; z-index: 1; top: 1px; left: 0; right: 0; display: flex; justify-content: center; pointer-events: none; }
+.deck-tile-pips .mana { gap: 5px; }
+.deck-tile-pips .mana img { width: 9px; height: 9px; }
+/* Nome (Chakra Petch 15 bold) a 12 / 19 px, formato (10, al 70%) sotto; Export 23x23 a 12 / 21 dall'angolo. */
 .deck-tile-head {
-  position: absolute; z-index: 1; inset: 0 0 auto 0;
-  display: flex; flex-direction: column; gap: 1.5cqi;
-  padding: 5cqi 6cqi 0;
-  font-family: var(--font-mono); font-weight: 700; line-height: 1.2; color: var(--text-primary);
+  position: absolute; z-index: 1; left: 12px; right: 12px; top: 19px;
+  display: flex; flex-direction: column; font-family: var(--font-display); line-height: normal;
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
 }
-/* Spazio per Export, sull'angolo in alto a destra (solo nei miei mazzi). */
-.deck-tile-wrap:has(.deck-tile-export) .deck-tile-head { padding-right: 46px; }
+.deck-tile-wrap:has(.deck-tile-export) .deck-tile-head { right: 47px; }
 .deck-tile-title { display: flex; align-items: flex-start; gap: 6px; min-width: 0; }
 .deck-tile-name {
-  min-width: 0;
-  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
-  font-size: clamp(13px, 6.4cqi, 20px); overflow-wrap: anywhere;
+  min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+  overflow-wrap: anywhere; font-size: 15px; font-weight: 700; line-height: 19px;
 }
-.deck-tile-format { display: flex; align-items: center; gap: 6px; font-size: clamp(12px, 4.6cqi, 14px); opacity: 0.75; }
-.deck-tile-public { flex: none; display: inline-flex; margin-top: 0.15em; color: var(--cyan); }
-.deck-tile-public svg { width: 0.85em; height: 0.85em; }
-.deck-tile-title .deck-tile-public { font-size: clamp(13px, 6.4cqi, 20px); }
+.deck-tile-format { font-size: 10px; font-weight: 400; opacity: 0.7; }
+.deck-tile-public { flex: none; display: inline-flex; margin-top: 3px; color: var(--cyan); }
+.deck-tile-public svg { width: 12px; height: 12px; }
 .deck-tile-public.help { color: var(--accent); filter: drop-shadow(0 0 4px rgba(255, 45, 149, 0.6)); } /* chiave inglese: help request aperta */
-/* Like ricevuti, sotto il formato: cuore magenta e numero. */
-.deck-tile-likes { display: flex; align-items: center; gap: 5px; font-size: clamp(12px, 4.6cqi, 14px); opacity: 0.85; }
-.deck-tile-likes svg { width: 1em; height: 1em; color: var(--accent); }
+/* In basso le informazioni che il design non mostra: like e tag, poi autore e ultima modifica. */
 .deck-tile-body {
-  display: flex; flex-direction: column; gap: 3cqi;
-  padding: 1cqi 6cqi 6cqi;
-  font-family: var(--font-mono); font-weight: 700; line-height: normal; color: var(--text-primary);
+  position: absolute; z-index: 1; left: 12px; right: 12px; bottom: 11px;
+  display: flex; flex-direction: column; gap: 3px;
+  font-family: var(--font-display); font-size: 10px; line-height: 13px; color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
 }
-.deck-tile-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.deck-tile-foot .mana { gap: 4px; }
-.deck-tile-foot .mana img { width: clamp(14px, 7cqi, 20px); height: clamp(14px, 7cqi, 20px); }
-.deck-tile-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; font-size: clamp(12px, 4.6cqi, 13px); color: rgba(255, 255, 255, 0.5); }
+.deck-tile-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.deck-tile-likes { flex: none; display: inline-flex; align-items: center; gap: 4px; color: #fff; }
+.deck-tile-likes svg { width: 11px; height: 11px; color: var(--accent); }
+.deck-tile-tags { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent-light); }
+.deck-tile-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; }
 .deck-tile-by { color: var(--cyan-soft); }
-.deck-tile-tags { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; font-size: clamp(12px, 4.6cqi, 13px); color: var(--accent-light); }
-/* Export sull'angolo dell'arte: fratello del riquadro (niente pulsanti annidati), sempre visibile. */
+/* Export: fratello del riquadro (niente pulsanti annidati), posato sull'angolo in alto a destra. */
 .deck-tile-wrap { position: relative; }
 .deck-tile-export {
-  position: absolute; top: 8px; right: 8px; z-index: 1;
-  display: grid; place-items: center;
-  width: 32px; height: 32px; padding: 0;
-  background: rgba(8, 7, 18, 0.72); backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.16); border-radius: var(--radius-sm);
-  color: #d6d2ef;
-  cursor: pointer;
+  position: absolute; top: 21px; right: 12px; z-index: 2;
+  display: grid; place-items: center; width: 23px; height: 23px; padding: 0; cursor: pointer;
+  background: rgba(0, 17, 18, 0.75); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 5px; color: rgba(255, 255, 255, 0.75);
   transition: border-color var(--transition), color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
+.deck-tile-export svg { width: 12.733px; height: 12.817px; } /* lo stesso simbolo del design, a questa misura */
 .deck-tile-export:hover, .deck-tile-export:focus-visible { color: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 12px rgba(0, 229, 255, 0.3); outline: none; }
-/* In hover (sul riquadro o sull'export) si alzano insieme. */
 .deck-tile-wrap:hover .deck-tile-export { transform: translateY(-2px); }
-/* + in fondo a My decks: stessa sagoma di un riquadro (arte e corpo nascosti), tratteggio e + ciano del logo. */
-.deck-tile.deck-add { position: relative; background: rgba(0, 229, 255, 0.04); border: 1px dashed rgba(0, 229, 255, 0.5); color: var(--cyan); }
-.deck-add .deck-tile-art, .deck-add .deck-tile-body { visibility: hidden; }
-.deck-add > svg { position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
+/* + in fondo a My decks e See all del profilo: la sagoma tratteggiata ciano, il contenuto al centro. */
+.deck-tile.deck-add { color: var(--cyan); }
+.deck-add .deck-tile-shape { background: rgba(0, 229, 255, 0.04); transition: background var(--transition); }
+.deck-add > svg:not(.deck-tile-frame) { position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
+.deck-tile-wrap:hover .deck-tile.deck-add, .deck-tile.deck-add:focus-visible { filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.4)); }
+.deck-tile-wrap:hover .deck-add .deck-tile-shape, .deck-tile.deck-add:focus-visible .deck-tile-shape { background: rgba(0, 229, 255, 0.1); }
 /* See all in fondo ai mazzi e ai dilemmi del profilo: freccia, scritta e quanti sono, al centro del riquadro. */
 .deck-all { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
   font-family: var(--font-display); font-size: 0.95rem; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; }
@@ -2755,22 +2768,21 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .deck-all-n { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--text-secondary); }
 a.deck-tile.deck-add { text-decoration: none; }
 .decks-head.profile-next { margin-top: 44px; }
-.deck-tile-wrap:hover .deck-tile.deck-add, .deck-tile.deck-add:focus-visible { border-color: var(--cyan); background: rgba(0, 229, 255, 0.1); box-shadow: 0 0 18px rgba(0, 229, 255, 0.3); }
-/* Cartelle: le copertine dei primi 4 mazzi a mosaico (1 = intera, 2 = due metà, 3 = la prima alta), il
-   nome sopra (pulsante: click = rinomina sul posto), sotto quanti mazzi. */
-.folder-art { display: grid; grid-template: 1fr 1fr / 1fr 1fr; gap: 2px; }
+/* Cartelle: la sagoma senza incavo, le copertine dei primi 4 mazzi a mosaico (1 = intera, 2 = due metà, 3 = la
+   prima alta) al 55%, il nome in alto (pulsante: click = rinomina sul posto), in basso quanti mazzi. */
+.folder-art { position: absolute; inset: 0; display: grid; grid-template: 1fr 1fr / 1fr 1fr; gap: 2px; opacity: 0.55; }
 .folder-art > span { background: var(--bg-elevated) center 22% / cover no-repeat; }
 .folder-art[data-n='1'] > span { grid-area: 1 / 1 / 3 / 3; }
 .folder-art[data-n='2'] > span { grid-row: span 2; }
 .folder-art[data-n='3'] > span:first-child { grid-row: span 2; }
-.folder-count { display: inline-flex; align-items: center; gap: 6px; min-height: clamp(14px, 7cqi, 20px); font-size: clamp(12px, 4.6cqi, 14px); line-height: 1; color: var(--cyan); }
+.folder-count { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; line-height: 1; color: var(--cyan); }
 .folder-name, .folder-name-input { padding: 2px 4px; background: none; border: 1px solid transparent; border-radius: 6px; font: inherit; color: var(--text-primary); text-align: left; }
 .folder-name { cursor: text; }
 .folder-name:hover, .folder-name:focus-visible { border-color: rgba(0, 229, 255, 0.45); outline: none; }
 .folder-name-input { border-color: var(--cyan); background: rgba(8, 7, 15, 0.9); outline: none; }
 .folder-name.on-tile, .folder-name-input.on-tile {
-  position: absolute; z-index: 2; top: 8px; left: 10px; max-width: calc(100% - 20px);
-  font-family: var(--font-mono); font-weight: 700; font-size: clamp(13px, 1.1vw, 18px); line-height: 1.2;
+  position: absolute; z-index: 2; top: 16px; left: 7px; max-width: calc(100% - 14px);
+  font-family: var(--font-display); font-weight: 700; font-size: 15px; line-height: 19px; color: #fff;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
 }
 .folder-head { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; color: var(--cyan); }
@@ -2779,7 +2791,7 @@ a.deck-tile.deck-add { text-decoration: none; }
 .mobile .folder-head .deck-icon-btn, .mobile .folder-name.in-head, .mobile .folder-name-input.in-head { min-height: 44px; }
 .mobile .folder-head .deck-icon-btn { width: 44px; }
 /* Trascinamento: il riquadro (mazzo o cartella) o il pulsante su cui si lascia si accende di ciano. */
-.deck-tile-wrap.drop .deck-tile { box-shadow: 0 0 0 2px var(--cyan), 0 0 22px rgba(0, 229, 255, 0.45); transform: scale(1.03); }
+.deck-tile-wrap.drop .deck-tile { filter: drop-shadow(0 0 2px var(--cyan)) drop-shadow(0 0 14px rgba(0, 229, 255, 0.6)); transform: scale(1.03); }
 .deck-icon-btn.drop { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 14px rgba(0, 229, 255, 0.4); }
 .deck-tile-wrap[draggable='true'] { cursor: grab; }
 .mana { display: inline-flex; align-items: center; gap: 2px; }
@@ -2964,10 +2976,12 @@ a.deck-tile.deck-add { text-decoration: none; }
 .dilemma-tile:focus-visible { outline: none; }
 .dilemma-split {
   position: relative; display: block; aspect-ratio: 626 / 457; overflow: hidden;
-  background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-md);
-  transition: border-color var(--transition), box-shadow var(--transition);
+  /* Bordo sfumato ciano → viola → magenta e angoli 10 come i riquadri dei mazzi (Figma 52:275). */
+  background: linear-gradient(var(--bg-base), var(--bg-base)) padding-box, linear-gradient(90deg, #00e5ff 10%, #ab61ed 50%, #ff2e96 90%) border-box;
+  border: 1px solid transparent; border-radius: 10px; box-shadow: var(--shadow-md);
+  transition: box-shadow var(--transition);
 }
-.dilemma-tile:hover .dilemma-split, .dilemma-tile:focus-visible .dilemma-split { border-color: var(--cyan); box-shadow: 0 0 16px rgba(0, 229, 255, 0.25); }
+.dilemma-tile:hover .dilemma-split, .dilemma-tile:focus-visible .dilemma-split { box-shadow: 0 0 16px rgba(255, 45, 149, 0.35); }
 /* Fette (una per carta): left / width / clip-path inline da splitSlices. */
 .dilemma-split .slice { position: absolute; top: 0; height: 100%; object-fit: cover; transition: filter 0.25s ease; }
 .dilemma-split-ph { display: flex; align-items: center; justify-content: center; padding: 0 18%; font-size: 0.75rem; color: var(--text-muted); text-align: center; }
@@ -3082,10 +3096,11 @@ button.dilemma-list-name:focus-visible { outline: 2px solid var(--cyan); outline
 .help-card:focus-visible { outline: none; }
 .help-card-art {
   position: relative; display: block; aspect-ratio: 16 / 7; overflow: hidden;
-  background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-md);
-  transition: border-color var(--transition), box-shadow var(--transition);
+  background: linear-gradient(var(--bg-base), var(--bg-base)) padding-box, linear-gradient(90deg, #00e5ff 10%, #ab61ed 50%, #ff2e96 90%) border-box;
+  border: 1px solid transparent; border-radius: 10px; box-shadow: var(--shadow-md);
+  transition: box-shadow var(--transition);
 }
-.help-card:hover .help-card-art, .help-card:focus-visible .help-card-art { border-color: var(--cyan); box-shadow: 0 0 16px rgba(0, 229, 255, 0.25); }
+.help-card:hover .help-card-art, .help-card:focus-visible .help-card-art { box-shadow: 0 0 16px rgba(255, 45, 149, 0.35); }
 .help-card-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 30%; filter: brightness(0.8); transition: filter 0.25s ease; }
 /* Velo scuro dal basso sopra l'arte (img lazy, niente ::after su un img); tipo, segnali e conteggio stanno sopra. */
 .help-card-art::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to top, rgba(8, 7, 15, 0.9), rgba(8, 7, 15, 0) 65%); }
@@ -3678,7 +3693,8 @@ span.deck-hero-art { cursor: default; }
 .mobile-header .nav-tab { min-height: 44px; display: inline-flex; align-items: center; font-size: 0.8rem; }
 .mobile-header .account-btn { width: 44px; height: 44px; }
 .mobile-header .help-btn, .mobile .profile-icon-btn { position: relative; }
-.mobile-header .help-btn::after, .mobile .deck-tile-export::after, .mobile .profile-icon-btn::after { content: ''; position: absolute; inset: -6px; }
+.mobile-header .help-btn::after, .mobile .profile-icon-btn::after { content: ''; position: absolute; inset: -6px; }
+.mobile .deck-tile-export::after { content: ''; position: absolute; inset: -11px; } /* 23 px + 11 per lato = 45 */
 .deck-editor.is-mobile .deck-hero-meta .deck-icon-btn, .deck-editor.is-mobile .deck-format { height: 44px; }
 .deck-editor.is-mobile .deck-hero-meta .deck-icon-btn { width: 44px; }
 .deck-editor.is-mobile .deck-hero .deck-name { min-height: 44px; }
@@ -4123,8 +4139,18 @@ span.deck-hero-art { cursor: default; }
 .deck-tabs.in-band .decks-tab[aria-current] { color: #fff; }
 .deck-tabs.in-band .decks-tab:focus-visible { box-shadow: none; color: var(--cyan); text-decoration: underline; text-underline-offset: 3px; }
 /* Sotto 980 px centrate coprirebbero il formato: partono dopo l'incavo (x 210); sotto 800 un po' più piccole. */
-@media (max-width: 980px) { .deck-tabs.in-band { left: 210px; margin-left: 0; } }
-@media (max-width: 800px) { .deck-tabs.in-band { transform: scale(0.92); transform-origin: 0 0; } }
+@media (max-width: 980px) { .deck-band .deck-tabs.in-band { left: 210px; margin-left: 0; } }
+@media (max-width: 800px) { .deck-band .deck-tabs.in-band { transform: scale(0.92); transform-origin: 0 0; } }
+/* Fascia delle liste (Figma 52:275, ListBand): da bordo a bordo, 63 px sotto la linea dell'header, le schede al
+   centro appoggiate sulla linea (a 29 px), che a destra sale a 12 con lo scalino del design (linea 992 ruotata):
+   un pezzo fisso a destra (204 px) e la linea che si allunga, sopra le schede come nel design. */
+.decks-root.decks-page > .list-band { max-width: none; margin: 38px -28px 43px; }
+.decks-root.decks-page > :is(.decks-search, .decks-filters) { max-width: 776px; } /* vince sulla colonna da 1240 */
+.list-band { position: relative; height: 30px; }
+.list-band::after { content: ''; position: absolute; inset: 0; z-index: 6; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='204' height='30' viewBox='0 0 204 30'%3E%3Cdefs%3E%3ClinearGradient id='g' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='204' y2='0'%3E%3Cstop stop-color='%2300E5FF'/%3E%3Cstop offset='.06' stop-color='%2300E5FF'/%3E%3Cstop offset='1' stop-color='%2300E5FF' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 29H.716C6.02 29 11.107 26.893 14.858 23.142L20.142 17.858C23.893 14.107 28.98 12 34.284 12H204' fill='none' stroke='url(%23g)' stroke-width='2'/%3E%3C/svg%3E") right 0 / 204px 30px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='30'%3E%3Cdefs%3E%3ClinearGradient id='g' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='100%25' y2='0'%3E%3Cstop stop-color='%23FF2E96' stop-opacity='0'/%3E%3Cstop offset='.11' stop-color='%23FF2E96'/%3E%3Cstop offset='.56' stop-color='%23AB61ED'/%3E%3Cstop offset='1' stop-color='%2300E5FF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cline x1='0' y1='29' x2='100%25' y2='29' stroke='url(%23g)' stroke-width='2'/%3E%3C/svg%3E") 0 0 / calc(100% - 203px) 30px no-repeat; }
+.list-band .deck-tabs.in-band { top: 1px; }
+
 
 /* Contatori Main / Side: 58x40 a 8 px dal bordo, numero (Mono 20 bold) sopra l'etichetta, barra magenta sul
    bordo sinistro (gruppi 93 / 94). Ambra se il mazzo non torna col formato. */

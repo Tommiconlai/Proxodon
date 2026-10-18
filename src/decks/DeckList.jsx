@@ -13,12 +13,13 @@ import { NameFormatDialog, ExportDeckDialog } from './dialogs';
 import { timeAgo } from '../utils/timeAgo';
 import NewDeckDialog from './NewDeckDialog';
 import { useCount } from './useCount';
-import { TabLabel } from './DeckTabs';
+import { TabLabel, ListBand } from './DeckTabs';
 import { DilemmaFeed } from './Dilemmas';
 import { HelpFeed } from './HelpRequests';
 import { useBracketSlide } from '../hooks/useBracketSlide';
 import {
-  IconPlus, IconCopy, IconTrash, IconPencil, IconExport, IconGlobe, IconSearch, IconFilter, IconHeart, IconPlay, IconFolder, IconArrowLeft, IconWrench,
+  IconPlus, IconCopy, IconTrash, IconPencil, IconExport, IconGlobe, IconHeart, IconPlay, IconFolder, IconArrowLeft, IconWrench,
+  IconDeckSearch, IconDeckFilter, IconDeckExport, IconX,
 } from '../components/icons';
 
 const COLORS = [['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green'], ['C', 'Colorless']];
@@ -53,13 +54,48 @@ function useScrollMemory(ref, key) {
   }, [ref, key]);
 }
 const LIST_TABS = [['community', 'Community'], ['dilemmas', 'Dilemmas'], ['help', 'Help'], ['mine', 'My decks']];
+const listHref = (t) => (t === 'mine' ? '#/decks' : `#/${t}`);
 
-// Riquadro di un mazzo (lista, Community, profilo): sull'arte, in alto a sinistra sotto una sfumatura
-// nera, nome (accanto il globo se è pubblico, fuori dalla Community, e la chiave inglese magenta se ha una
-// help request aperta, anche nella Community), formato e like ricevuti; sotto
-// identità di colore, poi autore (by, nella Community) e ultima modifica; il prezzo sta solo in Stats.
-// Testi in cqi: il riquadro è largo una percentuale della griglia e tutto scala con lui. props vanno sul pulsante.
-// stats = { likes, help } già noti (demo del tutorial): niente letture dal server.
+// Sagoma dei riquadri (Figma "Proxodon" 52:275): 209x208, angoli 10, in alto al centro un incavo per i simboli
+// dell'identità, largo quanto loro (n simboli da 9 px a passi di 14: mezzo fondo a = 6n - 2, come i due
+// riquadri del design, 2 e 3 colori), con le curve copiate dal design. n = 0: senza incavo.
+const TILE_BOX = 'H199C204.523 0 209 4.477 209 10V198C209 203.523 204.523 208 199 208H10C4.477 208 0 203.523 0 198V10C0 4.477 4.477 0 10 0Z';
+function tileShape(n) {
+  if (!n) return `M10 0${TILE_BOX}`;
+  const l = 104.5 - (6 * n - 2);
+  const r = 104.5 + (6 * n - 2);
+  return `M${l - 13} 0C${l - 9.41} 0 ${l - 6.5} 2.91 ${l - 6.5} 6.5C${l - 6.5} 10.09 ${l - 3.59} 13 ${l} 13H${r}`
+    + `C${r + 3.478} 13 ${r + 6.317} 10.269 ${r + 6.491} 6.835L${r + 6.509} 6.165C${r + 6.683} 2.731 ${r + 9.522} 0 ${r + 13} 0${TILE_BOX}`;
+}
+const masks = {};
+const tileMask = (n) => (masks[n] ??= `url("data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 209 208' preserveAspectRatio='none'><path d='${tileShape(n)}' fill='white'/></svg>`)}")`);
+let frames = 0; // id del gradiente del bordo, uno per riquadro
+// Arte ritagliata dalla sagoma (children) e bordo sfumato ciano → viola → magenta (dashed = tratteggio ciano, il +).
+function TileFrame({ n = 0, dashed, children }) {
+  const [k] = useState(() => `tile-g${++frames}`);
+  const mask = tileMask(n);
+  return (
+    <>
+      <span className="deck-tile-shape" style={{ maskImage: mask, WebkitMaskImage: mask }}>{children}</span>
+      <svg className="deck-tile-frame" viewBox="0 0 209 208" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        {!dashed && (
+          <linearGradient id={k} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0.1" stopColor="#00E5FF" /><stop offset="0.5" stopColor="#AB61ED" /><stop offset="0.9" stopColor="#FF2E96" />
+          </linearGradient>
+        )}
+        <path d={tileShape(n)} fill="none" vectorEffect="non-scaling-stroke" strokeWidth={dashed ? 1.5 : 1}
+          stroke={dashed ? 'rgba(0, 229, 255, 0.55)' : `url(#${k})`} strokeDasharray={dashed ? '6 5' : undefined} />
+      </svg>
+    </>
+  );
+}
+
+// Riquadro di un mazzo (lista, Community, profilo), sagoma del Figma 52:275: l'arte al 50% con l'ombra interna, i
+// simboli dell'identità nell'incavo in alto; in alto a sinistra nome (accanto il globo se è pubblico, fuori dalla
+// Community, e la chiave inglese magenta se ha una help request aperta, anche nella Community) e formato; in basso
+// like ricevuti e tag, poi autore (by, nella Community) e ultima modifica. Il prezzo sta solo in Stats. props
+// vanno sul pulsante. stats = { likes, help } già noti (demo del tutorial): niente letture dal server.
 export function DeckTile({ deck: d, by, stats, ...props }) {
   const cover = scryfallImg(deckCover(d));
   const updated = changedMs(d); // ultimo cambio di carte (changedAt), non l'ultima scrittura
@@ -69,22 +105,24 @@ export function DeckTile({ deck: d, by, stats, ...props }) {
   const likes = stats ? stats.likes : likesNow;
   const helping = stats ? stats.help : helpsNow > 0; // chiave inglese: help request aperta
   const tags = deckTags(d).join(' · ');
+  const identity = deckIdentity(d);
   return (
     <button type="button" className="deck-tile" {...props}>
-      <span className="deck-tile-art" style={cover ? { backgroundImage: `url("${cover}")` } : undefined}>
-        <span className="deck-tile-head">
-          <span className="deck-tile-title">
-            <span className="deck-tile-name">{d.name}</span>
-            {d.public && !by && <span className="deck-tile-public" title="Public, in Community"><IconGlobe size={12} /><span className="sr-only">, public</span></span>}
-            {helping && <span className="deck-tile-public help" title="Open help request"><IconWrench size={12} /><span className="sr-only">, open help request</span></span>}
-          </span>
-          <span className="deck-tile-format">{formatLabel(d.format)}</span>
-          <span className="deck-tile-likes"><IconHeart size={12} /> {likes}<span className="sr-only"> likes</span></span>
+      <TileFrame n={Math.max(1, identity.length)}>
+        {cover && <span className="deck-tile-art" style={{ backgroundImage: `url("${cover}")` }} />}
+      </TileFrame>
+      <span className="deck-tile-pips"><ManaPips colors={identity} /></span>
+      <span className="deck-tile-head">
+        <span className="deck-tile-title">
+          <span className="deck-tile-name">{d.name}</span>
+          {d.public && !by && <span className="deck-tile-public" title="Public, in Community"><IconGlobe size={12} /><span className="sr-only">, public</span></span>}
+          {helping && <span className="deck-tile-public help" title="Open help request"><IconWrench size={12} /><span className="sr-only">, open help request</span></span>}
         </span>
+        <span className="deck-tile-format">{formatLabel(d.format)}</span>
       </span>
       <span className="deck-tile-body">
         <span className="deck-tile-foot">
-          <ManaPips colors={deckIdentity(d)} />
+          <span className="deck-tile-likes"><IconHeart size={12} /> {likes}<span className="sr-only"> likes</span></span>
           {tags && <span className="deck-tile-tags" title={tags}>{tags}</span>}
         </span>
         <span className="deck-tile-meta">
@@ -96,18 +134,14 @@ export function DeckTile({ deck: d, by, stats, ...props }) {
   );
 }
 
-// Riquadro tratteggiato grande quanto un mazzo (stessa arte e stesso corpo, invisibili), il contenuto al centro:
-// + in fondo a My decks, See all in fondo ai mazzi del profilo (href = link).
+// Riquadro tratteggiato con la sagoma di un mazzo, il contenuto al centro: + in fondo a My decks, See all in fondo
+// ai mazzi del profilo (href = link).
 export function GhostTile({ label, href, onClick, children }) {
   const Tag = href ? 'a' : 'button';
   return (
     <li className="deck-tile-wrap">
       <Tag className="deck-tile deck-add" {...(href ? { href } : { type: 'button', onClick })} aria-label={label} title={label}>
-        <span className="deck-tile-art" />
-        <span className="deck-tile-body" aria-hidden="true">
-          <span className="deck-tile-foot"><ManaPips colors={[]} /></span>
-          <span className="deck-tile-meta"><span>&nbsp;</span></span>
-        </span>
+        <TileFrame dashed />
         {children}
       </Tag>
     </li>
@@ -137,17 +171,19 @@ function FolderName({ name, onRename, className = '' }) {
   return <button type="button" className={`folder-name ${className}`} onClick={() => { open.current = true; setEditing(true); }} title="Rename folder">{name}</button>;
 }
 
-// Cartella in My decks: le copertine dei primi 4 mazzi a mosaico, il nome (rinominabile) sopra, sotto quanti
-// mazzi. Click sul riquadro = la apre. drop = props del trascinamento (un mazzo lasciato qui ci entra).
+// Cartella in My decks: stessa sagoma (senza incavo), le copertine dei primi 4 mazzi a mosaico, il nome
+// (rinominabile) in alto, in basso quanti mazzi. Click sul riquadro = la apre. drop = props del trascinamento.
 export function FolderTile({ folder, onOpen, onRename, drop, active }) {
   const covers = folder.decks.map((d) => scryfallImg(deckCover(d))).filter(Boolean).slice(0, 4);
   const n = folder.decks.length;
   return (
     <li className={`deck-tile-wrap folder-wrap${active ? ' drop' : ''}`} {...drop}>
       <button type="button" className="deck-tile folder-tile" onClick={onOpen} aria-label={`Open folder ${folder.name}, ${n} ${n === 1 ? 'deck' : 'decks'}`}>
-        <span className="deck-tile-art folder-art" data-n={covers.length}>
-          {covers.map((c, i) => <span key={i} style={{ backgroundImage: `url("${c}")` }} />)}
-        </span>
+        <TileFrame>
+          <span className="folder-art" data-n={covers.length}>
+            {covers.map((c, i) => <span key={i} style={{ backgroundImage: `url("${c}")` }} />)}
+          </span>
+        </TileFrame>
         <span className="deck-tile-body">
           <span className="deck-tile-foot"><span className="folder-count"><IconFolder size={14} /> {n} {n === 1 ? 'deck' : 'decks'}</span></span>
           <span className="deck-tile-meta"><span>Folder</span></span>
@@ -297,23 +333,21 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
 
   return (
     <div className="decks-root decks-page" ref={rootRef}>
-      <header className="decks-head">
-        <nav className="decks-tabs" aria-label="Decks" ref={tabsRef}>
-          {LIST_TABS.map(([t, label]) => (
-            <a key={t} href={t === 'mine' ? '#/decks' : `#/${t}`} className="decks-title decks-tab" aria-current={tab === t ? 'page' : undefined}><TabLabel>{label}</TabLabel></a>
-          ))}
-        </nav>
-        {dilemmas && !open && !play && (
-          <div className="decks-actions">
-            <button type="button" className="btn-add deck-new deck-icon-btn" onClick={() => navigate('/dilemmas/play')} aria-label="Play dilemmas" title="Play dilemmas"><IconPlay size={18} /></button>
-          </div>
-        )}
-      </header>
+      {/* Desktop: la fascia a trapezi del Figma 52:275; telefono: le schede tra [ ]. */}
+      {mobile ? (
+        <header className="decks-head">
+          <nav className="decks-tabs" aria-label="Decks" ref={tabsRef}>
+            {LIST_TABS.map(([t, label]) => (
+              <a key={t} href={listHref(t)} className="decks-title decks-tab" aria-current={tab === t ? 'page' : undefined}><TabLabel>{label}</TabLabel></a>
+            ))}
+          </nav>
+        </header>
+      ) : <ListBand items={LIST_TABS.map(([t, label]) => [t, label, listHref(t)])} current={tab} />}
 
       {!open && !play && <>
       <div className="decks-search" role="search">
         <label className="decks-search-box">
-          <IconSearch size={16} />
+          <IconDeckSearch />
           <input type="search" className="import-link-input" value={q} onChange={(e) => setQ(e.target.value)}
             placeholder={searchLabel} aria-label={searchLabel} spellCheck={false} />
         </label>
@@ -325,10 +359,16 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
             {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
           </select>
         ) : (
-          <button type="button" className={`btn-secondary decks-filter-btn${nFilters ? ' on' : ''}`} aria-expanded={filtersOpen}
-            aria-controls="deck-filters" onClick={() => setFiltersOpen((v) => !v)}>
-            <IconFilter size={16} /> Filters{nFilters > 0 && <span className="decks-filter-n">{nFilters}</span>}
+          <button type="button" className={`decks-filter-btn${nFilters ? ' on' : ''}`} aria-expanded={filtersOpen}
+            aria-controls="deck-filters" onClick={() => setFiltersOpen((v) => !v)}
+            aria-label={nFilters ? `Filters, ${nFilters} on` : 'Filters'} title="Filters">
+            <IconDeckFilter />{nFilters > 0 && <span className="decks-filter-n" aria-hidden="true">{nFilters}</span>}
           </button>
+        )}
+        {dilemmas && (
+          <div className="decks-actions">
+            <button type="button" className="btn-add deck-new deck-icon-btn" onClick={() => navigate('/dilemmas/play')} aria-label="Play dilemmas" title="Play dilemmas"><IconPlay size={18} /></button>
+          </div>
         )}
       </div>
       {filtersOpen && !feed && (
@@ -356,7 +396,9 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
               ))}
             </span>
           </div>
-          {nFilters > 0 && <button type="button" className="signin-link" onClick={() => setFilters(NO_FILTERS)}>Clear filters</button>}
+          {nFilters > 0 && (
+            <button type="button" className="decks-clear" onClick={() => setFilters(NO_FILTERS)} aria-label="Clear filters" title="Clear filters"><IconX size={14} /></button>
+          )}
         </div>
       )}
       </>}
@@ -393,7 +435,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
                   {...press.bind((x, y) => setMenu({ deck: d, x, y }))} />
                 {/* Fuori dal riquadro (niente pulsanti annidati), posato sull'angolo dell'arte. */}
                 <button type="button" className="deck-tile-export" aria-label={`Export ${d.name}`} title="Export"
-                  onClick={() => setDialog({ exp: d })}><IconExport size={16} /></button>
+                  onClick={() => setDialog({ exp: d })}><IconDeckExport /></button>
               </li>
             ))}
             {!searching && <GhostTile label="New deck" onClick={() => setDialog('new')}><IconPlus size={44} /></GhostTile>}
