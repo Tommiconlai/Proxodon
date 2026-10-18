@@ -235,8 +235,13 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
     write; public copy updated after; feed tile with lazy art and full label; helper page (forced locally, reverted):
     menu cuts announced, duplicate and full toasts, focus after removing a chip. The test reply from the other
     account was gone (deleted from that account, it seems), so Apply / Undo live is still to redo; the logic is
-    covered by the self-check. After the rules are published: check that a stale write is rejected and that a new
-    request (with `deck`) is accepted.
+    covered by the self-check. Then, with the new rules published by the user (2026-10-18): a save with
+    an old `rev` is rejected (`permission-denied`) and a normal one accepted, cards unchanged; in the editor, an edit
+    pending while another client saved first shows the conflict message and the editor returns to the saved
+    version; later editor saves and a folder write keep going (Aesi at rev 10, 100 cards); a new request on Jetmir
+    is accepted with `deck` {name, owner, format, cover}, shows "Jetmir by blazedfoot" in the feed without reading
+    the deck, opening it (seenAt), Solved and Reopen are accepted, then it was deleted; Make private on a temporary
+    public deck deleted its request and public copy (deck then deleted). Not live yet: Apply / Undo on a real reply.
 - **Help request page: zones always in reach, no filters (2026-10-18):** user request: "le due zone
   rendile sempre disponibili, così quando uno scorre la pagina può sempre trascinare dentro le carte / la ricerca con
   i filtri non funziona visivamente, toglila". Desktop: the Cuts / Suggestions zones sit in `.help-zones-bar`, sticky at
