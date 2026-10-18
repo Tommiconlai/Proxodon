@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { listenPublicDeck, createDeck, countLikes, hasLiked, setLiked } from './deckStore';
+import { listenPublicDeck, listenHelp, createDeck, countLikes, hasLiked, setLiked } from './deckStore';
 import { duplicateDeck, coverRow, formatLabel, refreshSnapshots, withScryfallImgs } from './deckModel';
 import { cardsByIds } from './scryfallSearch';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -7,7 +7,7 @@ import { navigate } from '../hooks/useHashRoute';
 import DeckSections from './DeckSections';
 import { DeckTabs, DeckCount, DeckBottomBar, DeckTagList } from './DeckTabs';
 import { DeckDilemmas } from './Dilemmas';
-import { DeckHelps } from './HelpRequests';
+import { DeckHelps, HelpQuestion, HelpReply } from './HelpRequests';
 import { ExportDeckDialog } from './dialogs';
 import { IconCopy, IconExport, IconHeart } from '../components/icons';
 
@@ -17,8 +17,12 @@ const STUCK_AT = 64; // px: la barra delle schede (padding + 40 px), come STUCK_
 // dei like, formato, prezzo, autore), Copy to my decks ed Export; schede Deck / Stats / Dilemmas (DeckTabs,
 // Dilemmas vuota per ora) in alto al centro come nell'editor (telefono: sotto la testata); sotto le sezioni
 // senza comandi di modifica. Vista e raggruppamento cambiano solo la copia sullo schermo.
-export default function CommunityDeck({ uid, id, notify }) {
+// helpId = pagina di una help request (#/help/:mazzo/:richiesta): la domanda nella testata, niente schede, sotto la
+// risposta di chi aiuta (zone Cuts e Suggestions) e la lista del mazzo da cui si trascinano i tagli (HelpReply).
+export default function CommunityDeck({ uid, id, notify, helpId }) {
   const [deck, setDeck] = useState(undefined); // undefined = caricamento, null = non più pubblico o errore
+  const [help, setHelp] = useState(undefined); // la richiesta (helpId): undefined = caricamento, null = non c'è più
+  useEffect(() => (helpId ? listenHelp(id, helpId, setHelp, () => setHelp(null)) : undefined), [id, helpId]);
   const [exportOpen, setExportOpen] = useState(false);
   const [tab, setTab] = useState('deck');
   const heroRef = useRef(null);
@@ -80,12 +84,12 @@ export default function CommunityDeck({ uid, id, notify }) {
           <div className="deck-sticky">
             <div className={`deck-sticky-bar has-tabs${stuck ? ' stuck' : ''}`}>
               <span />
-              <DeckTabs tab={tab} onTab={setTab} bar />
+              {helpId ? <span /> : <DeckTabs tab={tab} onTab={setTab} bar />}
               <span />
             </div>
           </div>
         )}
-        <header className={`deck-hero${mobile ? ' has-tabs' : ''}`} ref={heroRef}>
+        <header className={`deck-hero${mobile && !helpId ? ' has-tabs' : ''}`} ref={heroRef}>
           <span className="deck-hero-art" aria-hidden="true">
             {cover?.card.art && (
               <>
@@ -102,6 +106,7 @@ export default function CommunityDeck({ uid, id, notify }) {
                 <IconHeart size={20} fill={liked ? 'currentColor' : 'none'} /> <span>{likes}</span>
               </button>
             </div>
+            {help && <HelpQuestion help={help} />}
             <DeckTagList deck={deck} />
             <div className="deck-hero-meta">
               <span className="deck-price">{formatLabel(deck.format)}</span>
@@ -115,10 +120,14 @@ export default function CommunityDeck({ uid, id, notify }) {
             </div>
           </div>
         </header>
-        {mobile && <DeckTabs tab={tab} onTab={setTab} />}
+        {mobile && !helpId && <DeckTabs tab={tab} onTab={setTab} />}
         <div className="deck-body">
           <section className="deck-main">
-            {tab === 'dilemmas' ? <DeckDilemmas deck={deck} uid={uid} mine={false} notify={notify} />
+            {helpId ? (
+              help === undefined ? <div className="help-page"><span className="import-spinner" aria-label="Loading" /></div>
+                : help === null ? <div className="help-page"><p className="field-hint">This help request is no longer available. <a href="#/help">All help requests</a></p></div>
+                  : <HelpReply deck={deck} help={help} uid={uid} notify={notify} update={update} touch={mobile} />
+            ) : tab === 'dilemmas' ? <DeckDilemmas deck={deck} uid={uid} mine={false} notify={notify} />
               : tab === 'help' ? <DeckHelps deck={deck} uid={uid} mine={deck.uid === uid} notify={notify} />
               : <DeckSections deck={deck} update={update} touch={mobile} readOnly tab={tab} onTab={setTab} />}
           </section>

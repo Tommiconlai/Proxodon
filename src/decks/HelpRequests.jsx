@@ -2,26 +2,26 @@ import { useEffect, useState } from 'react';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 import ConfirmDialog from '../components/ConfirmDialog';
 import CardSearch from './CardSearch';
+import DeckSections from './DeckSections';
 import {
-  listenHelps, listenHelpFeed, listenHelp, createHelp, setHelpStatus, seeHelp, setApplied, deleteHelp, listenReplies,
-  countReplies, countRepliesSince, replyHelp, deleteReply, listenReplied, listenPublicDeck, deckOnce,
+  listenHelps, listenHelpFeed, createHelp, setHelpStatus, seeHelp, setApplied, deleteHelp, listenReplies,
+  countReplies, countRepliesSince, replyHelp, deleteReply, listenReplied, deckOnce,
 } from './deckStore';
 import { cardsByIds } from './scryfallSearch';
 import { navigate } from '../hooks/useHashRoute';
 import { useBackClose } from '../hooks/useBackClose';
 import { useCount } from './useCount';
-import { DeckListText } from './Dilemmas';
 import {
-  HELP_KINDS, MAX_HELP_CARDS, helpKindLabel, applySuggestion, snapshotFromCard, scryfallImg, artCrop, deckCover,
+  HELP_KINDS, MAX_HELP_CARDS, DRAG_ROWS, helpKindLabel, applySuggestion, snapshotFromCard, scryfallImg, artCrop, deckCover,
 } from './deckModel';
 import { timeAgo } from '../utils/timeAgo';
 import { IconPlus, IconArrowLeft, IconTrash, IconCheck, IconX, IconLifebuoy, IconMerge } from '../components/icons';
 
 const ms = (t) => t?.toMillis?.() ?? 0;
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-// Carte del main (una per oracle id, per nome); noCmdr = senza il comandante (le carte da tagliare).
-const deckCards = (deck, noCmdr) => [...new Map(deck.cards.filter((r) => r.board === 'main' && !(noCmdr && r.commander))
-  .map((r) => [r.card.oid, r.card])).values()].sort((a, b) => a.name.localeCompare(b.name));
+// Carte del main, una per oracle id, per nome (le carte in focus della nuova richiesta).
+const deckCards = (deck) => [...new Map(deck.cards.filter((r) => r.board === 'main').map((r) => [r.card.oid, r.card])).values()]
+  .sort((a, b) => a.name.localeCompare(b.name));
 const PLACEHOLDER = {
   cuts: 'I need to cut 5 cards. Which ones pull the least weight?',
   upgrades: 'What would you upgrade first, and with what?',
@@ -32,9 +32,10 @@ const PLACEHOLDER = {
 };
 
 // Scheda Help della vista mazzo (editor: mine e update; Community). Solo mazzi pubblici. Le richieste del mazzo
-// (una aperta alla volta, le risolte restano), click = la richiesta aperta (HelpView); il proprietario ne
-// chiede una nuova (+) se non ce n'è una aperta. ask = carte dal menu delle carte (Ask for help): all'apertura
-// c'è già la nuova richiesta con quelle; con una richiesta già aperta resta un avviso finché non la risolve.
+// (una aperta alla volta, le risolte restano). Click: il proprietario la apre qui (HelpView, con Apply
+// nell'editor), gli altri vanno alla sua pagina (#/help/:mazzo/:richiesta, HelpReply). Il proprietario ne chiede
+// una nuova (+) se non ce n'è una aperta. ask = carte dal menu delle carte (Ask for help): all'apertura c'è già
+// la nuova richiesta con quelle; con una richiesta già aperta resta un avviso finché non la risolve.
 export function DeckHelps({ deck, uid, mine, notify, update, ask, onAsked }) {
   const [list, setList] = useState(null); // null = caricamento
   const [error, setError] = useState(null);
@@ -54,8 +55,8 @@ export function DeckHelps({ deck, uid, mine, notify, update, ask, onAsked }) {
   }
   const stopCreating = () => { setCreating(null); onAsked?.(); };
   const blocked = list?.some((h) => h.status === 'open');
-  const open = list?.find((h) => h.id === openId);
-  if (open) return <HelpView deck={deck} help={open} uid={uid} mine={mine} notify={notify} update={update} onBack={() => setOpenId(null)} />;
+  const open = mine && list?.find((h) => h.id === openId);
+  if (open) return <HelpView deck={deck} help={open} uid={uid} notify={notify} update={update} onBack={() => setOpenId(null)} />;
   return (
     <div className="deck-sections">
       <div className="dilemma-head">
@@ -74,7 +75,10 @@ export function DeckHelps({ deck, uid, mine, notify, update, ask, onAsked }) {
       )}
       {list && (mine || list.length > 0) && (
         <ul className="help-list">
-          {list.map((h) => <HelpItem key={h.id} deckId={deck.id} deck={deck} h={h} mine={mine} onClick={() => setOpenId(h.id)} />)}
+          {list.map((h) => (
+            <HelpItem key={h.id} deckId={deck.id} deck={deck} h={h} mine={mine}
+              onClick={() => (mine ? setOpenId(h.id) : navigate(`/help/${deck.id}/${h.id}`))} />
+          ))}
           {/* Nuova richiesta: ultimo riquadro, solo senza una richiesta aperta. */}
           {mine && !blocked && (
             <li>
@@ -153,8 +157,8 @@ function useReplied(uid) {
 
 // Scheda Help della lista mazzi (#/help): le richieste aperte di tutti i mazzi pubblici, le proprie prima (Yours,
 // portano al proprio mazzo, dove si applicano le risposte), filtrate da ricerca (domanda, tipo, carte, mazzo,
-// autore) e formato (terms e format da DeckList). open = la richiesta aperta dal feed (#/help/:mazzo/:richiesta).
-export function HelpFeed({ uid, notify, open, terms = [], format = '' }) {
+// autore) e formato (terms e format da DeckList). Le altre portano alla loro pagina (#/help/:mazzo/:richiesta).
+export function HelpFeed({ uid, terms = [], format = '' }) {
   const [list, setList] = useState(null); // null = caricamento
   const [error, setError] = useState(null);
   const [decks, setDecks] = useState({}); // deckId -> mazzo pubblico | null; manca = in arrivo
@@ -167,7 +171,6 @@ export function HelpFeed({ uid, notify, open, terms = [], format = '' }) {
     }));
     return () => { on = false; };
   }, [list]);
-  if (open) return <FeedHelp key={`${open.deckId}/${open.id}`} {...open} uid={uid} notify={notify} />;
   if (error) return <p className="field-hint">Help requests are not available: {error.message}</p>;
   if (!list) return <span className="import-spinner" aria-label="Loading" />;
   const live = list.filter((h) => h.status === 'open' && decks[h.deckId] !== null); // mazzo tornato privato: non si vede
@@ -201,46 +204,161 @@ export function HelpFeed({ uid, notify, open, terms = [], format = '' }) {
   );
 }
 
-// Richiesta aperta dal feed: richiesta e mazzo pubblico in ascolto; il nome del mazzo porta al mazzo.
-function FeedHelp({ deckId, id, uid, notify }) {
-  const [deck, setDeck] = useState(undefined); // undefined = caricamento, null = non c'è più
-  const [help, setHelp] = useState(undefined);
-  useEffect(() => listenPublicDeck(deckId, setDeck, () => setDeck(null)), [deckId]);
-  useEffect(() => listenHelp(deckId, id, setHelp, () => setHelp(null)), [deckId, id]);
-  const back = () => navigate('/help');
-  if (deck === undefined || help === undefined) return <span className="import-spinner" aria-label="Loading" />;
-  if (!deck || !help) {
-    return (
-      <div className="dilemma-head">
-        <button type="button" className="btn-secondary deck-icon-btn" onClick={back} aria-label="All help requests" title="All help requests"><IconArrowLeft size={18} /></button>
-        <p className="field-hint">This help request is no longer available.</p>
-      </div>
-    );
-  }
-  const mine = help.uid === uid;
-  return <HelpView deck={deck} help={help} uid={uid} mine={mine} notify={notify} onBack={back}
-    deckHref={mine ? `#/decks/${deckId}/help` : `#/community/${deckId}`} />;
+// La domanda nella testata del mazzo (pagina della richiesta, CommunityDeck): tipo, quando, testo, carte in focus.
+export function HelpQuestion({ help }) {
+  return (
+    <div className="deck-hero-question">
+      <p className="help-question-kind">
+        <span className="help-kind">{helpKindLabel(help.kind)}</span>
+        {help.status === 'solved' && <span className="dilemma-flag solved">Solved</span>}
+        <span className="help-when">{timeAgo(ms(help.createdAt))}</span>
+      </p>
+      <p className="help-text">{help.text}</p>
+      {help.cards.length > 0 && <CardChips cards={help.cards} label="Cards in focus" className="focus" />}
+    </div>
+  );
 }
 
-// Richiesta aperta: tipo, mazzo (nel feed con autore e link), domanda, carte in focus, poi le risposte. Chi non è
-// il proprietario scrive (o cambia) la sua finché la richiesta è aperta e legge le altre. Il proprietario: aprirla
-// azzera le "new"; per ogni risposta Apply (update, solo nell'editor: le aggiunte rilette da Scryfall, con Undo
-// nel toast) e Delete; Solved la chiude (e la riapre), Delete la cancella con le risposte. deckHref = dal feed,
-// sotto c'è anche la lista del mazzo.
-function HelpView({ deck, help, uid, mine, notify, update, onBack, deckHref }) {
+// Pagina della richiesta per chi aiuta (#/help/:mazzo/:richiesta, dentro CommunityDeck sotto la testata con la
+// domanda): la propria risposta (ReplyDraft), poi la lista del mazzo come nella Community. Il proprietario qui
+// trova solo il rimando al suo mazzo, dove legge e applica le risposte. formKey: il modulo riparte vuoto solo dopo
+// aver cancellato la propria risposta (una risposta rifiutata sparisce dal listener ma la bozza resta).
+export function HelpReply({ deck, help, uid, notify, update, touch }) {
+  const [replies, setReplies] = useState(null);
+  const [formKey, setFormKey] = useState(0);
+  useEffect(() => listenReplies(deck.id, help.id, setReplies, () => setReplies([])), [deck.id, help.id]);
+  const list = <DeckSections deck={deck} update={update} touch={touch} readOnly tab="deck" onTab={() => {}} notify={notify} />;
+  if (help.uid === uid) {
+    return (
+      <>
+        <div className="help-page">
+          <p className="field-hint">This is your request. <a href={`#/decks/${deck.id}/help`}>Open it in your deck</a> to read the suggestions and apply them.</p>
+        </div>
+        {list}
+      </>
+    );
+  }
+  if (!replies) return <div className="help-page"><span className="import-spinner" aria-label="Loading" /></div>;
+  return (
+    <ReplyDraft key={formKey} deck={deck} help={help} uid={uid} notify={notify} update={update} touch={touch}
+      reply={replies.find((r) => r.id === uid)} others={replies.filter((r) => r.id !== uid)} onDeleted={() => setFormKey((k) => k + 1)} />
+  );
+}
+
+// Due zone affiancate: Cuts (carte trascinate dalla lista del mazzo sotto, o Suggest cut dal menu della carta, che su
+// telefono sostituisce il trascinamento; solo main, mai il comandante) e Suggestions (ricerca Scryfall, carte
+// legali nel formato), fino a MAX_HELP_CARDS ciascuna; sotto la spiegazione facoltativa e l'invio. Poi le altre
+// risposte (chiuse in un details) e la lista del mazzo. Richiesta risolta: niente modulo, le risposte restano.
+function ReplyDraft({ deck, help, uid, reply, others, notify, update, touch, onDeleted }) {
+  const open = help.status === 'open';
+  const [text, setText] = useState(reply?.text || '');
+  const [add, setAdd] = useState(reply?.add || []);
+  const [cut, setCut] = useState(reply?.cut || []);
+  const [over, setOver] = useState(false); // una carta trascinata sopra la zona Cuts
+  const [confirm, setConfirm] = useState(false);
+  const sig = (t, a, c) => JSON.stringify([t, a.map((x) => x.oid), c.map((x) => x.oid)]);
+  const empty = !text.trim() && !add.length && !cut.length;
+  const changed = sig(text.trim(), add, cut) !== sig(reply?.text || '', reply?.add || [], reply?.cut || []);
+  const put = (set) => (cards) => set((list) => {
+    const next = [...list];
+    for (const c of cards) if (next.length < MAX_HELP_CARDS && !next.some((x) => x.oid === c.oid)) next.push(c);
+    return next;
+  });
+  const onCut = (rows) => {
+    const ok = rows.filter((r) => r.board === 'main' && !r.commander);
+    if (ok.length < rows.length) notify('Only cards of the main deck can be cut, not the commander', 'error');
+    put(setCut)(ok.map((r) => r.card));
+  };
+  // Successi della ricerca muti: la carta non entra nel mazzo, va solo nella risposta.
+  const quiet = (msg, kind) => { if (kind === 'error') notify(msg, kind); };
+  const drop = touch ? {} : {
+    onDragOver: (e) => { if (!e.dataTransfer.types.includes(DRAG_ROWS)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; setOver(true); },
+    onDragLeave: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOver(false); },
+    onDrop: (e) => {
+      e.preventDefault();
+      setOver(false);
+      let ids = [];
+      try { ids = JSON.parse(e.dataTransfer.getData(DRAG_ROWS) || '[]'); } catch { /* trascinamento estraneo */ }
+      onCut(deck.cards.filter((r) => ids.includes(r.id)));
+    },
+  };
+  const submit = () => {
+    if (empty || !changed) return;
+    replyHelp(uid, deck.id, help.id, { text: text.trim(), add, cut })
+      .then(() => notify(reply ? 'Suggestion updated' : 'Suggestion sent'))
+      .catch((err) => notify(`Could not send the suggestion: ${err.message}`, 'error'));
+  };
+  const drop1 = (set) => (i) => set((l) => l.filter((_, j) => j !== i));
+  const shown = open ? others : [...(reply ? [reply] : []), ...others];
+  return (
+    <>
+      <div className="help-page">
+        <div className="dilemma-head">
+          <button type="button" className="btn-secondary deck-icon-btn" onClick={() => navigate('/help')} aria-label="All help requests" title="All help requests"><IconArrowLeft size={18} /></button>
+          <h3 className="deck-analysis-head">{!open ? 'Solved' : reply ? 'Your suggestion' : 'Suggest changes'}</h3>
+        </div>
+        {/* Niente <form>: la ricerca avanzata della zona Suggestions ha il suo, e il suo invio risalirebbe fin qui. */}
+        {open ? (
+          <div>
+            <div className="help-zones">
+              <section className={`help-zone cut${over ? ' over' : ''}`} aria-label="Cuts" {...drop}>
+                <h4>Cuts <span className="n">{cut.length} of {MAX_HELP_CARDS}</span></h4>
+                {cut.length > 0
+                  ? <CardChips cards={cut} label="Cards to cut" sign="−" className="cut" onRemove={drop1(setCut)} />
+                  : <p className="help-zone-hint">{touch ? 'Long press a card in the deck below, then Suggest cut.' : 'Drag cards here from the deck below, or right click one: Suggest cut.'}</p>}
+              </section>
+              <section className="help-zone add" aria-label="Suggestions">
+                <h4>Suggestions <span className="n">{add.length} of {MAX_HELP_CARDS}</span></h4>
+                <CardSearch format={deck.format} onAdd={(card) => put(setAdd)([card])} notify={quiet} />
+                {add.length > 0 && <CardChips cards={add} label="Cards to add" sign="+" className="add" onRemove={drop1(setAdd)} />}
+              </section>
+            </div>
+            <div className="help-why">
+              <label className="field-label" htmlFor="help-why">Why? <span className="field-hint">Optional</span></label>
+              <textarea id="help-why" className="import-link-input" value={text} maxLength={1000} rows={3}
+                onChange={(e) => setText(e.target.value)} placeholder="What would these changes fix in the deck?" />
+              <div className="help-why-actions">
+                {reply && <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setConfirm(true)} aria-label="Delete your suggestion" title="Delete your suggestion"><IconTrash size={18} /></button>}
+                <button type="button" className="btn-generate deck-icon-btn" onClick={submit} disabled={empty || !changed}
+                  aria-label={reply ? 'Save suggestion' : 'Send suggestion'}
+                  title={empty ? 'Pick cards to cut or suggest, or write why' : reply ? 'Save suggestion' : 'Send suggestion'}><IconCheck size={18} /></button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="field-hint">This request is solved: no new suggestions.</p>
+        )}
+        {shown.length > 0 && (
+          <details className="help-others" open={!open}>
+            <summary>{open ? 'Other suggestions' : 'Suggestions'} <span className="n">{shown.length}</span></summary>
+            <ul>{shown.map((r) => <ReplyCard key={r.id} r={r} mine={r.id === uid} />)}</ul>
+          </details>
+        )}
+      </div>
+      <DeckSections deck={deck} update={update} touch={touch} readOnly tab="deck" onTab={() => {}} notify={notify} onCut={open ? onCut : undefined} />
+      <ConfirmDialog open={confirm} confirmLabel="Delete suggestion" message="Delete your suggestion?"
+        onCancel={() => setConfirm(false)}
+        onConfirm={() => {
+          setConfirm(false);
+          onDeleted();
+          deleteReply(uid, deck.id, help.id, uid).then(() => notify('Suggestion deleted')).catch((e) => notify(`Could not delete the suggestion: ${e.message}`, 'error'));
+        }} />
+    </>
+  );
+}
+
+// Richiesta aperta dal proprietario (scheda Help del suo mazzo): tipo, domanda, carte in focus, poi le risposte.
+// Aprirla azzera le "new"; per ogni risposta Apply (update, solo nell'editor: le aggiunte rilette da Scryfall, con
+// Undo nel toast) e Delete; Solved la chiude (e la riapre), Delete la cancella con le risposte.
+function HelpView({ deck, help, uid, notify, update, onBack }) {
   const [replies, setReplies] = useState(null);
   const [confirm, setConfirm] = useState(null); // 'help' | uid della risposta da cancellare
   const [busy, setBusy] = useState(null); // uid della risposta in Apply
-  // Il modulo della propria risposta riparte vuoto solo dopo averla cancellata: una risposta rifiutata (richiesta
-  // appena risolta) sparisce dal listener ma la bozza resta.
-  const [formKey, setFormKey] = useState(0);
   const [seen] = useState(() => ms(help.seenAt)); // le "new" restano evidenziate finché la richiesta è aperta qui
   useEffect(() => listenReplies(deck.id, help.id, setReplies, () => setReplies([])), [deck.id, help.id]);
-  useEffect(() => { if (mine) seeHelp(deck.id, help.id).catch(() => {}); }, [mine, deck.id, help.id]);
+  useEffect(() => { seeHelp(deck.id, help.id).catch(() => {}); }, [deck.id, help.id]);
   const solved = help.status === 'solved';
   const writeError = (e) => notify(`Sync error: ${e.message}`, 'error');
-  const own = replies?.find((r) => r.id === uid);
-  const shown = (replies || []).filter((r) => mine || r.id !== uid);
 
   const apply = async (r) => {
     setBusy(r.id);
@@ -273,7 +391,6 @@ function HelpView({ deck, help, uid, mine, notify, update, onBack, deckHref }) {
       onBack();
       deleteHelp(deck.id, help.id).then(() => notify('Help request deleted')).catch((e) => notify(`Could not delete the request: ${e.message}`, 'error'));
     } else {
-      if (what === uid) setFormKey((k) => k + 1);
       deleteReply(uid, deck.id, help.id, what).then(() => notify('Suggestion deleted')).catch((e) => notify(`Could not delete the suggestion: ${e.message}`, 'error'));
     }
   };
@@ -282,12 +399,10 @@ function HelpView({ deck, help, uid, mine, notify, update, onBack, deckHref }) {
       <div className="dilemma-head">
         <button type="button" className="btn-secondary deck-icon-btn" onClick={onBack} aria-label="All help requests" title="All help requests"><IconArrowLeft size={18} /></button>
         <h3 className="deck-analysis-head">Help request</h3>
-        {mine && (
-          <button type="button" className={`${solved ? 'btn-secondary' : 'btn-add'} deck-icon-btn`} aria-pressed={solved}
-            onClick={() => setHelpStatus(deck.id, help.id, solved ? 'open' : 'solved').then(() => notify(solved ? 'Request reopened' : 'Marked as solved')).catch(writeError)}
-            aria-label="Solved" title={solved ? 'Solved. Click to reopen it' : 'Mark as solved: no new suggestions'}><IconCheck size={18} /></button>
-        )}
-        {mine && <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setConfirm('help')} aria-label="Delete request" title="Delete request"><IconTrash size={18} /></button>}
+        <button type="button" className={`${solved ? 'btn-secondary' : 'btn-add'} deck-icon-btn`} aria-pressed={solved}
+          onClick={() => setHelpStatus(deck.id, help.id, solved ? 'open' : 'solved').then(() => notify(solved ? 'Request reopened' : 'Marked as solved')).catch(writeError)}
+          aria-label="Solved" title={solved ? 'Solved. Click to reopen it' : 'Mark as solved: no new suggestions'}><IconCheck size={18} /></button>
+        <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setConfirm('help')} aria-label="Delete request" title="Delete request"><IconTrash size={18} /></button>
       </div>
       <div className="help-question">
         <p className="help-question-kind">
@@ -295,37 +410,25 @@ function HelpView({ deck, help, uid, mine, notify, update, onBack, deckHref }) {
           {solved && <span className="dilemma-flag solved">Solved</span>}
           <span className="help-when">{timeAgo(ms(help.createdAt))}</span>
         </p>
-        {deckHref && <p className="dilemma-deck"><a href={deckHref}>{deck.name}</a> <span className="help-by">by {deck.owner || 'anonymous'}</span></p>}
         <p className="help-text">{help.text}</p>
         {help.cards.length > 0 && <CardChips cards={help.cards} label="Cards in focus" className="focus" />}
       </div>
-      {!mine && !solved && replies && (
-        <ReplyForm key={formKey} deck={deck} help={help} uid={uid} reply={own} notify={notify} onDelete={() => setConfirm(uid)} />
-      )}
       <section className="help-replies" aria-label="Suggestions">
-        <h4>{mine ? 'Suggestions' : 'Other suggestions'} <span className="n">{shown.length}</span></h4>
+        <h4>Suggestions <span className="n">{replies?.length ?? 0}</span></h4>
         {!replies && <span className="import-spinner" aria-label="Loading" />}
-        {replies && !shown.length && (
-          <p className="field-hint">{mine ? 'No suggestions yet. They show up here as players reply.' : solved ? 'This request is solved.' : 'None yet: be the first.'}</p>
-        )}
-        {shown.length > 0 && (
+        {replies?.length === 0 && <p className="field-hint">No suggestions yet. They show up here as players reply.</p>}
+        {replies?.length > 0 && (
           <ul>
-            {shown.map((r) => (
-              <ReplyCard key={r.id} r={r} mine={r.id === uid} fresh={mine && !solved && ms(r.at) > seen} applied={help.applied.includes(r.id)}
-                busy={busy === r.id} onApply={mine && update ? () => apply(r) : null} onDelete={mine || r.id === uid ? () => setConfirm(r.id) : null} />
+            {replies.map((r) => (
+              <ReplyCard key={r.id} r={r} fresh={!solved && ms(r.at) > seen} applied={help.applied.includes(r.id)}
+                busy={busy === r.id} onApply={update ? () => apply(r) : null} onDelete={() => setConfirm(r.id)} />
             ))}
           </ul>
         )}
-        {mine && !update && shown.length > 0 && <p className="field-hint">Open <a href={`#/decks/${deck.id}/help`}>your deck</a> to apply suggestions.</p>}
+        {!update && replies?.length > 0 && <p className="field-hint">Open <a href={`#/decks/${deck.id}/help`}>your deck</a> to apply suggestions.</p>}
       </section>
-      {deckHref && (
-        <section className="dilemma-decklist" aria-label="Decklist">
-          <h4>Decklist</h4>
-          <DeckListText deck={deck} />
-        </section>
-      )}
       <ConfirmDialog open={!!confirm} confirmLabel={confirm === 'help' ? 'Delete request' : 'Delete suggestion'}
-        message={confirm === 'help' ? 'Delete this help request and its suggestions? This can’t be undone.' : confirm === uid ? 'Delete your suggestion?' : 'Delete this suggestion?'}
+        message={confirm === 'help' ? 'Delete this help request and its suggestions? This can’t be undone.' : 'Delete this suggestion?'}
         onCancel={() => setConfirm(null)} onConfirm={remove} />
     </div>
   );
@@ -348,16 +451,8 @@ function CardChips({ cards, label, sign, className = '', onRemove }) {
   );
 }
 
-// Carte da aggiungere (In, ciano) e da togliere (Out, magenta) di una risposta.
-function CardChanges({ add, cut, onRemove }) {
-  return (add.length > 0 || cut.length > 0) && (
-    <div className="help-changes">
-      {add.length > 0 && <CardChips cards={add} label="Cards to add" sign="+" className="add" onRemove={onRemove && ((i) => onRemove('add', i))} />}
-      {cut.length > 0 && <CardChips cards={cut} label="Cards to cut" sign="−" className="cut" onRemove={onRemove && ((i) => onRemove('cut', i))} />}
-    </div>
-  );
-}
-
+// Una risposta: chi (You per la propria), quando, segnali (New, Applied), Apply e Delete per il proprietario, la
+// spiegazione, le carte da togliere (Out, magenta) e da aggiungere (In, ciano).
 function ReplyCard({ r, mine, fresh, applied, busy, onApply, onDelete }) {
   return (
     <li className={`help-reply${fresh ? ' fresh' : ''}`}>
@@ -375,60 +470,13 @@ function ReplyCard({ r, mine, fresh, applied, busy, onApply, onDelete }) {
         </span>
       </div>
       {r.text && <p className="help-reply-text">{r.text}</p>}
-      <CardChanges add={r.add} cut={r.cut} />
+      {(r.cut.length > 0 || r.add.length > 0) && (
+        <div className="help-changes">
+          {r.cut.length > 0 && <CardChips cards={r.cut} label="Cards to cut" sign="−" className="cut" />}
+          {r.add.length > 0 && <CardChips cards={r.add} label="Cards to add" sign="+" className="add" />}
+        </div>
+      )}
     </li>
-  );
-}
-
-// La risposta di chi guarda (una per account, si cambia finché la richiesta è aperta): consiglio facoltativo se ci
-// sono carte, fino a MAX_HELP_CARDS da aggiungere (ricerca Scryfall, legali nel formato) e da togliere (dal main,
-// senza il comandante). reply = quella salvata (il modulo parte da lì), onDelete la cancella.
-function ReplyForm({ deck, help, uid, reply, notify, onDelete }) {
-  const [text, setText] = useState(reply?.text || '');
-  const [add, setAdd] = useState(reply?.add || []);
-  const [cut, setCut] = useState(reply?.cut || []);
-  const own = deckCards(deck, true);
-  const sig = (t, a, c) => JSON.stringify([t, a.map((x) => x.oid), c.map((x) => x.oid)]);
-  const empty = !text.trim() && !add.length && !cut.length;
-  const changed = sig(text.trim(), add, cut) !== sig(reply?.text || '', reply?.add || [], reply?.cut || []);
-  const put = (list, set) => (card) => {
-    if (card && list.length < MAX_HELP_CARDS && !list.some((c) => c.oid === card.oid)) set([...list, card]);
-  };
-  // Successi della ricerca muti: la carta non entra nel mazzo, va solo nella risposta.
-  const quiet = (msg, kind) => { if (kind === 'error') notify(msg, kind); };
-  const submit = (e) => {
-    e.preventDefault();
-    if (empty || !changed) return;
-    replyHelp(uid, deck.id, help.id, { text: text.trim(), add, cut })
-      .then(() => notify(reply ? 'Suggestion updated' : 'Suggestion sent'))
-      .catch((err) => notify(`Could not send the suggestion: ${err.message}`, 'error'));
-  };
-  return (
-    <form className="help-form" onSubmit={submit}>
-      <h4>{reply ? 'Your suggestion' : 'Suggest changes'}</h4>
-      <label className="field-label" htmlFor="help-reply-text">Advice <span className="field-hint">Optional if you pick cards</span></label>
-      <textarea id="help-reply-text" className="import-link-input" value={text} maxLength={1000} rows={3}
-        onChange={(e) => setText(e.target.value)} placeholder="What would you change, and why?" />
-      <div className="help-form-cols">
-        <div>
-          <span className="field-label">Add <span className="field-hint">{add.length} of {MAX_HELP_CARDS}</span></span>
-          <CardSearch format={deck.format} onAdd={put(add, setAdd)} notify={quiet} />
-        </div>
-        <div>
-          <label className="field-label" htmlFor="help-cut">Cut <span className="field-hint">{cut.length} of {MAX_HELP_CARDS}</span></label>
-          <select id="help-cut" value="" disabled={cut.length >= MAX_HELP_CARDS} onChange={(e) => put(cut, setCut)(own.find((c) => c.oid === e.target.value))}>
-            <option value="">Pick a card from the deck…</option>
-            {own.filter((c) => !cut.some((x) => x.oid === c.oid)).map((c) => <option key={c.oid} value={c.oid}>{c.name}</option>)}
-          </select>
-        </div>
-      </div>
-      <CardChanges add={add} cut={cut} onRemove={(k, i) => (k === 'add' ? setAdd : setCut)((l) => l.filter((_, j) => j !== i))} />
-      <div className="help-form-actions">
-        {reply && <button type="button" className="btn-secondary deck-icon-btn" onClick={onDelete} aria-label="Delete your suggestion" title="Delete your suggestion"><IconTrash size={18} /></button>}
-        <button type="submit" className="btn-generate deck-icon-btn" disabled={empty || !changed}
-          aria-label={reply ? 'Save suggestion' : 'Send suggestion'} title={empty ? 'Write some advice or pick cards first' : reply ? 'Save suggestion' : 'Send suggestion'}><IconCheck size={18} /></button>
-      </div>
-    </form>
   );
 }
 

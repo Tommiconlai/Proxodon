@@ -35,7 +35,8 @@ export default function DecksView({ route, notify, printQueueCount, onPrintDeck,
       {route === '/profile' ? <ProfilePage user={user} profile={profile} notify={notify} onChange={rerender} />
         : route === '/settings' ? <SettingsPage user={user} notify={notify} />
         : area === 'dilemmas' ? <DeckList uid={user.uid} notify={notify} tab="dilemmas" open={id && sub ? { deckId: id, id: sub } : null} play={id === 'play'} />
-        : area === 'help' ? <DeckList uid={user.uid} notify={notify} tab="help" open={id && sub ? { deckId: id, id: sub } : null} />
+        : area === 'help' && id && sub ? <CommunityDeck key={`${id}/${sub}`} uid={user.uid} id={id} helpId={sub} notify={notify} />
+        : area === 'help' ? <DeckList uid={user.uid} notify={notify} tab="help" />
         : area === 'decks' && id === 'folder' ? <DeckList uid={user.uid} notify={notify} tab="mine" folder={sub} />
         : community && id ? <CommunityDeck key={id} uid={user.uid} id={id} notify={notify} />
         : id ? <DeckEditor key={id} uid={user.uid} id={id} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} initialTab={sub} />

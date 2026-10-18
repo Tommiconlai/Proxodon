@@ -353,7 +353,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
       </>}
 
       {dilemmas ? <DilemmaFeed uid={uid} notify={notify} open={open} play={play} terms={terms} format={filters.format} />
-        : help ? <HelpFeed uid={uid} notify={notify} open={open} terms={terms} format={filters.format} />
+        : help ? <HelpFeed uid={uid} terms={terms} format={filters.format} />
         : community ? <CommunityGrid uid={uid} terms={terms} filters={filters} /> : <>
         {decks === null && <span className="import-spinner" aria-label="Loading" />}
         {decks?.length === 0 && <Empty title="Start your first deck" hint="Create one with the + below, from scratch or from a list." />}

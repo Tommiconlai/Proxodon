@@ -402,8 +402,8 @@ function WhyBox({ initial, onSave }) {
   );
 }
 
-// Lista del mazzo in sola lettura, per ora fissa: vista lista, per nome, raggruppata per tipo (anche nelle help request).
-export function DeckListText({ deck }) {
+// Lista del mazzo in sola lettura, per ora fissa: vista lista, per nome, raggruppata per tipo.
+function DeckListText({ deck }) {
   const blocks = [
     ['Commander', commanderRows(deck)],
     ...groupMain({ ...deck, groupBy: 'type' }, 'name').map((g) => [g.label, g.rows]),

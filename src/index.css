@@ -3129,19 +3129,27 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .help-add:hover, .help-add:focus-visible { border-color: var(--cyan); background: rgba(0, 229, 255, 0.1); box-shadow: 0 0 16px rgba(0, 229, 255, 0.3); }
 .help-intro { max-width: 560px; }
 .help-blocked { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 18px; }
-/* Richiesta aperta: colonna di 760 px al centro; la domanda in un riquadro magenta sottile, sfumato dall'angolo. */
-.help-question, .help-form, .help-replies { width: min(760px, 100%); margin-inline: auto; }
-.help-question {
+/* Richiesta aperta dal proprietario: colonna di 760 px al centro; la domanda in un riquadro magenta sottile, sfumato
+   dall'angolo (nella pagina di chi aiuta lo stesso riquadro sta nella testata del mazzo, .deck-hero-question). */
+.help-question, .help-replies { width: min(760px, 100%); margin-inline: auto; }
+.help-question, .deck-hero-question {
   padding: 16px 20px 18px; border: 1px solid rgba(255, 45, 149, 0.35); border-radius: var(--radius-sm);
   background: linear-gradient(135deg, rgba(255, 45, 149, 0.1), rgba(255, 45, 149, 0) 45%), var(--bg-surface);
 }
 .help-question-kind { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; }
-.help-question .dilemma-deck { font-size: 1.15rem; margin-bottom: 6px; }
-.help-by { font-family: var(--font); font-size: 0.85rem; letter-spacing: 0; color: var(--text-muted); }
+/* Sopra l'arte: fondo più scuro e sfocato, largo quanto il nome; il testo si può selezionare. */
+.deck-hero-question {
+  width: min(620px, 100%); padding: 12px 16px 14px; pointer-events: auto;
+  background: linear-gradient(135deg, rgba(255, 45, 149, 0.14), rgba(255, 45, 149, 0) 50%), rgba(8, 7, 15, 0.78);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.deck-hero-question .help-chips { margin-top: 10px; }
+.deck-editor.is-mobile .deck-hero-question { padding: 10px 12px 12px; }
+.deck-editor.is-mobile .deck-hero-question .help-text { font-size: 0.95rem; }
 .help-text { margin: 0; font-size: 1.05rem; line-height: 1.55; color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
 .help-when { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); }
-.help-view h4 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 12px; font-family: var(--font-display); font-size: 0.95rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-primary); }
-.help-view h4 .n { font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0; color: var(--text-muted); }
+:is(.help-view, .help-page) h4 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 12px; font-family: var(--font-display); font-size: 0.95rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-primary); }
+:is(.help-view, .help-page) h4 .n { font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0; color: var(--text-muted); }
 .help-chips { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .help-changes { display: flex; flex-direction: column; gap: 0; }
 .help-chip {
@@ -3157,15 +3165,37 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .help-chips.cut .help-sign { color: var(--accent); }
 .help-chip-rm { display: inline-flex; margin-left: 2px; padding: 3px; background: none; border: 0; border-radius: 2px; color: var(--text-muted); cursor: pointer; }
 .help-chip-rm:hover, .help-chip-rm:focus-visible { color: var(--text-primary); background: rgba(255, 255, 255, 0.08); }
-/* La propria risposta: riquadro tratteggiato ciano, Add (ricerca Scryfall) e Cut (dal mazzo) affiancati. */
-.help-form { display: flex; flex-direction: column; gap: 8px; margin-top: 22px; padding: 16px 20px 18px; border: 1px dashed rgba(0, 229, 255, 0.35); border-radius: var(--radius-sm); }
-.help-form textarea { width: 100%; resize: vertical; }
-.help-form-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.help-form-cols > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.help-form-cols select { width: 100%; }
-.mobile .help-form-cols { grid-template-columns: 1fr; }
-.help-form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
-.help-form-actions .deck-icon-btn { flex: none; width: 48px; height: 42px; padding: 0; justify-content: center; }
+/* Pagina di chi aiuta (HelpReply, sotto la testata): stessi margini di .deck-sections, che segue con la lista del
+   mazzo. Due zone affiancate, tratteggiate: Cuts magenta (si accende sotto una carta trascinata) e Suggestions
+   ciano con la ricerca; sotto la spiegazione e l'invio, poi le altre risposte in un details. */
+.help-page { padding: 22px 13% 0; }
+.deck-editor.is-mobile .help-page { padding: 14px 14px 0; }
+.help-zones { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: stretch; }
+.deck-editor.is-mobile .help-zones { grid-template-columns: 1fr; gap: 12px; }
+.deck-editor.is-mobile .help-zone { min-height: 112px; }
+.help-zone {
+  min-width: 0; min-height: 168px; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 16px;
+  border: 1px dashed var(--border); border-radius: var(--radius-lg);
+  transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+}
+.help-zone h4 { margin: 0; }
+.help-zone .help-chips { margin: 0; }
+.help-zone.cut { border-color: rgba(255, 45, 149, 0.45); background: rgba(255, 45, 149, 0.04); }
+.help-zone.cut.over { border-style: solid; border-color: var(--accent); background: rgba(255, 45, 149, 0.12); box-shadow: 0 0 18px rgba(255, 45, 149, 0.3); }
+.help-zone.add { border-color: rgba(0, 229, 255, 0.4); background: rgba(0, 229, 255, 0.03); }
+.help-zone-hint { flex: 1; display: flex; align-items: center; justify-content: center; margin: 0; padding: 0 8%; text-align: center; font-size: 0.85rem; color: var(--text-muted); }
+.help-why { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+.help-why textarea { width: 100%; resize: vertical; }
+.help-why-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.help-why-actions .deck-icon-btn { flex: none; width: 48px; height: 42px; padding: 0; justify-content: center; }
+.help-others { margin-top: 18px; }
+.help-others summary {
+  display: flex; align-items: baseline; gap: 8px; width: fit-content; cursor: pointer;
+  font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-secondary);
+}
+.help-others summary .n { font-family: var(--font-mono); letter-spacing: 0; color: var(--text-muted); }
+.help-others summary:hover { color: var(--text-primary); }
+.help-others > ul { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .help-replies { margin-top: 28px; }
 .help-replies > ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .help-reply { padding: 12px 16px 14px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-sm); transition: border-color var(--transition); }

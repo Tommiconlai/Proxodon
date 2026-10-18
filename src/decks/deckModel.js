@@ -66,6 +66,8 @@ export const HELP_KINDS = [
   ['cuts', 'Cuts'], ['upgrades', 'Upgrades'], ['budget', 'Budget'], ['mana', 'Mana base'], ['synergy', 'Synergy'], ['other', 'Other'],
 ];
 export const MAX_HELP_CARDS = 10;
+// Tipo del trascinamento delle carte del mazzo verso fuori (la zona Cuts delle help request): gli id delle righe in JSON.
+export const DRAG_ROWS = 'application/x-proxodon-rows';
 export const helpKindLabel = (id) => HELP_KINDS.find(([k]) => k === id)?.[1] || 'Other';
 // Apply di una risposta: prima i tagli (cut = oracle id, una copia dal main, mai il comandante), poi le aggiunte
 // (add = snapshot, una copia in main, saltate quelle già al limite del formato). → { deck, added, cut } applicate.

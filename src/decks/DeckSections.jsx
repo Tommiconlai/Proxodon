@@ -9,7 +9,7 @@ import { cardsByIds } from './scryfallSearch';
 import {
   GROUP_MODES, SORT_MODES, VIEWS, groupMain, commanderRows, boardRows, bumpQty, removeRows, setCommander, moveToBoard,
   addSection, renameSection, deleteSection, moveToSection, placeRows, overLimit, formatLabel, illegalIn, legalityLabel,
-  splitRow, changeEdition, snapshotFromCard, validateDeck, packPiles, maxCopies, MAX_DILEMMA_CARDS, MAX_HELP_CARDS,
+  splitRow, changeEdition, snapshotFromCard, validateDeck, packPiles, maxCopies, MAX_DILEMMA_CARDS, MAX_HELP_CARDS, DRAG_ROWS,
 } from './deckModel';
 import DeckStats from './DeckStats';
 import SampleHand from './SampleHand';
@@ -49,7 +49,8 @@ const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 // Click sul vuoto = deseleziona; trascinando sul vuoto col mouse = selezione ad area.
 // Desktop: le carte si trascinano tra gruppi del main, sezioni, sideboard e maybeboard. Creare una
 // sezione porta il mazzo in raggruppamento custom; da telefono si sposta tutto dal menu.
-// readOnly (Community): niente menu, trascinamento, +/- e sezioni nuove; update cambia solo la vista.
+// readOnly (Community): niente menu (solo View card), trascinamento, +/- e sezioni nuove; update cambia solo la vista.
+// onCut(rows) (help request, anche in sola lettura): Suggest cut nel menu e carte trascinabili verso la zona Cuts.
 // tab (schede della testata, DeckTabs): 'deck' = barra e carte, 'stats' = statistiche e mano di prova.
 // onPrint(rows): Print nel menu, porta le righe scelte (anche una sola) nella stampa.
 // notify(msg, kind, action): Remove e − sull'ultima copia tolgono subito, con Undo nel toast.
@@ -57,7 +58,7 @@ const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 // onDilemma(cards): Dilemma nel menu, attivo solo con 2-4 carte diverse selezionate e il mazzo pubblico.
 // onHelp(cards): Ask for help nel menu, le carte scelte (fino a MAX_HELP_CARDS diverse) in focus nella nuova richiesta.
 // Telefono (touch): − / + della carta selezionata (una sola) in una barra sopra quella in basso, a 44 px.
-export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab, onPrint, onDilemma, onHelp, notify }) {
+export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab, onPrint, onDilemma, onHelp, onCut, notify }) {
   const [sel, setSel] = useState(() => new Set());
   const [anchor, setAnchor] = useState(null);
   const [menu, setMenu] = useState(null); // { ids, x, y }
@@ -198,6 +199,10 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   const menuRows = menu ? deck.cards.filter((r) => menu.ids.includes(r.id)) : [];
   const items = [];
   if (menuRows.length === 1) items.push({ key: 'view', Icon: IconEye, label: 'View card', run: () => setViewing(menuRows[0].card) });
+  // Help request (anche in sola lettura, e su telefono al posto del trascinamento): le carte vanno nella zona Cuts.
+  if (onCut && menuRows.length) {
+    items.push({ key: 'cut', Icon: IconMinus, label: menuRows.length > 1 ? `Suggest cutting ${menuRows.length} cards` : 'Suggest cut', run: () => onCut(menuRows) });
+  }
   if (menuRows.length && !readOnly) {
     const ids = menuRows.map((r) => r.id);
     if (onPrint) items.push({ key: 'print', Icon: IconPrinter, label: 'Print', run: () => onPrint(menuRows) });
@@ -312,13 +317,15 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
 
   // Trascinamento (desktop): la riga, o tutta la selezione se ne fa parte; con Alt una copia per riga.
   const endDrag = () => { dragIds.current = null; setDropKey(null); setDragging(false); };
-  const dragProps = (r) => (touch || readOnly ? {} : {
+  // Sola lettura con onCut: si trascina solo verso fuori (DRAG_ROWS, la zona Cuts delle help request), qui niente rilascio.
+  const dragProps = (r) => (touch || (readOnly && !onCut) ? {} : {
     draggable: true,
     onDragStart: (e) => {
       const ids = sel.has(r.id) && selected.length > 1 ? selected : [r.id];
       dragIds.current = { ids, one: e.altKey };
-      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.effectAllowed = readOnly ? 'copy' : 'move';
       e.dataTransfer.setData('text/plain', r.card.name);
+      e.dataTransfer.setData(DRAG_ROWS, JSON.stringify(ids));
       // Viste a immagini: il fantasma è solo la carta (il riquadro della riga nello stack cattura
       // anche le carte sovrapposte), con il numero di copie spostate se più di una.
       const img = view !== 'list' && e.currentTarget.querySelector('img');
@@ -334,7 +341,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
         setTimeout(() => g.remove(), 0);
       }
       setHover(null);
-      setDragging(true);
+      if (!readOnly) setDragging(true); // il maybeboard vuoto come zona di rilascio: solo nell'editor
     },
     onDragEnd: endDrag,
   });
