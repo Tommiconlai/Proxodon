@@ -239,6 +239,11 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
     to 7 documents, still signed in, decks loaded. Android emulator (APK installed): CSP meta, Capacitor bridge,
     pages render signed out, Scryfall API, card and symbol images, local weights and WebAssembly allowed, a foreign
     image blocked. Not tested: a real Google sign-in (needs the user) and the full account deletion live.
+    Then with these rules published (after fixing a wrong line in the text pasted in chat: `usernames` instead of
+    `users` in the `usernames` create rule, and a lost `allow get`): like + marker with server time, unlike removes
+    both; a vote + marker on another player's dilemma, then removed; the profile photo re-saved (banner rechecked)
+    while a non-image URL is refused; nickname blazedfoot → blazedfoot-zz → blazedfoot frees and retakes the keys
+    and re-signs the 5 public decks; a second name without the profile is refused.
 - **Security fixes from the ecc audit (2026-10-18):** the user had two `ecc:security-reviewer` agents
   audit the code (rules + data layer, client), then said "Sì, correggi il problema alto e i medi. Poi mandami le regole
   intere da incollare". No XSS and no privilege escalation were found; fixed:
