@@ -2114,22 +2114,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 /* ============================================================
-   FILM GRAIN, breaks digital flatness (subtle, non-interactive)
-   ============================================================ */
-/* Scanline sottili al posto della vecchia grana (texture "scanlines" del design) */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  pointer-events: none;
-  background: repeating-linear-gradient(0deg,
-    rgba(148, 255, 255, 0.03) 0px, rgba(148, 255, 255, 0.03) 1px,
-    transparent 1px, transparent 3px);
-  mix-blend-mode: screen;
-}
-
-/* ============================================================
    EXTRACTED INLINE STYLES → CLASSES
    ============================================================ */
 .glass-card.compact {
@@ -2437,13 +2421,11 @@ body::before {
 }
 .profile-banner.art { background-size: cover; background-position: center; }
 .profile-banner:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
-/* Scanline e velo: l'arte sfuma nel fondo della testata, dove stanno foto e nome. */
+/* Velo: l'arte sfuma nel fondo della testata, dove stanno foto e nome. Niente scanline (tolte dal sito, 2026-10-19). */
 .profile-banner::after {
   content: '';
   position: absolute; inset: 0;
-  background:
-    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px),
-    linear-gradient(180deg, rgba(8, 7, 15, 0.05) 30%, rgba(20, 17, 42, 0.75) 78%, var(--bg-elevated));
+  background: linear-gradient(180deg, rgba(8, 7, 15, 0.05) 30%, rgba(20, 17, 42, 0.75) 78%, var(--bg-elevated));
 }
 .profile-banner-hint {
   position: absolute; top: 12px; right: 12px; z-index: 1;
