@@ -3638,7 +3638,7 @@ span.deck-hero-art { cursor: default; }
   .deck-rows:is(.view-grid, .view-stacks) .deck-row:not(.selected) .deck-row-qty button { display: none; }
   .deck-rows:is(.view-grid, .view-stacks) .deck-row.selected .deck-row-qty button { opacity: 1; }
 }
-.deck-editor.is-mobile .deck-hero { min-height: 73vw; padding: 14px 12px 12px; }
+.deck-editor.is-mobile .deck-hero { min-height: min(73vw, 440px); padding: 14px 12px 12px; } /* tablet: non oltre 440 px */
 .deck-editor.is-mobile .deck-hero-art { width: 100%; }
 .deck-editor.is-mobile .deck-hero .deck-name { font-size: 1.25rem; }
 .deck-editor.is-mobile .deck-hero-meta { gap: 8px; }
@@ -3669,8 +3669,9 @@ span.deck-hero-art { cursor: default; }
 .deck-editor.is-mobile .deck-row:has(.deck-card-flip) .deck-card-flags { left: 38px; }
 .deck-editor.is-mobile .deck-rows.view-list .deck-row-qty { opacity: 1; gap: 8px; }
 .deck-editor.is-mobile .deck-rows.view-list .deck-row-qty button { min-width: 44px; min-height: 44px; justify-content: center; align-items: center; }
-/* Griglia a due colonne (gli stack li fa a due DeckSections, touch). */
-.deck-editor.is-mobile .deck-rows.view-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 10px; }
+/* Griglia: carte da 170 px in su, almeno due colonne (telefono 2, iPad in verticale 4 o 5; gli stack li conta
+   DeckSections, TOUCH_MIN). */
+.deck-editor.is-mobile .deck-rows.view-grid { grid-template-columns: repeat(auto-fill, minmax(min(170px, calc(50% - 5px)), 1fr)); gap: 0 10px; }
 /* Pressione lunga = il nostro menu, non quello del sistema (Salva immagine): l'immagine non riceve il
    tocco (lo prende il pulsante della carta) e niente callout iOS né trascinamento. */
 @media (hover: none) {

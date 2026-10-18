@@ -196,7 +196,17 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Card preview in the dilemma decklist (most recent, 2026-10-18):** the user asked "nei dilemmi fai vedere
+- **Deck cards on tablets (most recent, 2026-10-18):** the user sent an iPad Air (2025) screenshot: "Da tablet la
+  visualizzazione delle carte non è ottimale". A tablet in portrait uses the phone layout (`useIsMobile`: up to
+  1024 px portrait), where stacks were always two columns of half the width and the grid two columns, so cards
+  were about 390 px wide. Now, with `touch`, stacks use as many columns as fit at `TOUCH_MIN` 170 px (at least 2):
+  piles in group order split into contiguous columns with the tallest as low as possible (`splitPiles(heights, n)`
+  in deckModel, binary search on the max height, self-checked; it replaces the two-column `halves`). The mobile
+  grid is `repeat(auto-fill, minmax(min(170px, 50% - 5px), 1fr))`, at least two columns. The mobile deck hero is
+  capped at 440 px (`min(73vw, 440px)`, it was 600 px at 820 wide). Verified: 820x1180 (iPad Air 11") 4 columns of
+  183 px stacks / 188 px grid; 1024x1366 (13") 5 columns of 184 px; 375x812 still 2 columns of 165 px, no
+  horizontal scroll. Landscape tablets keep the desktop layout. View setting put back to Grid.
+- **Card preview in the dilemma decklist (2026-10-18):** the user asked "nei dilemmi fai vedere
   l'anteprima delle carte nella decklist, hover da descktop e tap da mobile". In `DeckListText` (Dilemmas.jsx) every
   card name is a button: with the mouse over it (`pointerType === 'mouse'`) the same floating preview as the deck
   view appears next to it (size from Settings › preview, gone on scroll); click or tap opens `CardView` (full

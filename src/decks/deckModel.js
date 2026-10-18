@@ -795,6 +795,23 @@ export function packPiles(heights, gap) {
   return cols.map((c) => c.ids);
 }
 
+// Vista stack da telefono e tablet: pile (altezze, nell'ordine dei gruppi) in n colonne contigue, la più alta il
+// più bassa possibile (ricerca binaria sull'altezza massima, riempimento in ordine). Indici delle pile per colonna.
+export function splitPiles(heights, n) {
+  const fill = (max) => heights.reduce((cols, h, i) => {
+    const c = cols[cols.length - 1];
+    if (c && c.h + h <= max) { c.h += h; c.ids.push(i); } else cols.push({ h, ids: [i] });
+    return cols;
+  }, []);
+  let lo = Math.max(0, ...heights);
+  let hi = heights.reduce((a, h) => a + h, 0);
+  for (let k = 0; k < 40 && hi - lo > 0.5; k++) {
+    const mid = (lo + hi) / 2;
+    if (fill(mid).length <= n) hi = mid; else lo = mid;
+  }
+  return fill(hi).map((c) => c.ids);
+}
+
 // ── Mano di prova ────────────────────────────────────────────
 
 // Grimorio: una voce per copia del main board, comandanti esclusi (partono dalla zona di comando).

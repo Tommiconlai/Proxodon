@@ -9,7 +9,7 @@ import { cardsByIds } from './scryfallSearch';
 import {
   GROUP_MODES, SORT_MODES, VIEWS, groupMain, commanderRows, boardRows, bumpQty, removeRows, setCommander, moveToBoard,
   addSection, renameSection, deleteSection, moveToSection, placeRows, overLimit, formatLabel, illegalIn, legalityLabel,
-  splitRow, changeEdition, snapshotFromCard, validateDeck, packPiles, maxCopies, MAX_DILEMMA_CARDS, MAX_HELP_CARDS, DRAG_ROWS,
+  splitRow, changeEdition, snapshotFromCard, validateDeck, packPiles, splitPiles, maxCopies, MAX_DILEMMA_CARDS, MAX_HELP_CARDS, DRAG_ROWS,
 } from './deckModel';
 import DeckStats from './DeckStats';
 import SampleHand from './SampleHand';
@@ -43,6 +43,8 @@ const PILE_HEAD = 34; // intestazione del gruppo con il suo margine
 // Telefono: la fascia scoperta di ogni carta è fissa a 36 px (CSS .is-mobile, margin-top calc(36px - 139.344%)),
 // così il chip − / numero / + (4 + 28 px, bersagli da dito) non finisce sulla carta dopo.
 const TOUCH_STRIP = 36;
+// Telefono e tablet: pile larghe almeno TOUCH_MIN, almeno due colonne (telefono 2, iPad in verticale 4 o 5).
+const TOUCH_MIN = 170;
 const pileHeight = (n, w, strip = w * (680 / 488 - 1.253)) => PILE_HEAD + (n ? (w * 680) / 488 + (n - 1) * strip : 26); // 0 carte = "No commander yet."
 const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 // Corpo dell'editor: barra (ordina, vista, raggruppa, + nuova sezione), comandante, gruppi, sideboard, maybeboard,
@@ -478,24 +480,13 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   const pileN = piles.map(([g]) => (split ? sum(g.rows) : g.rows.length));
   const pack = (w) => packPiles(pileN.map((n) => pileHeight(n, w)), STACK_GAP);
   // Colonne contate a 200 px, poi pile allargate fino a riempire l'area (impacchettate di nuovo).
-  // Telefono (touch): sempre due colonne larghe metà area, pile in ordine, tagliate dove la colonna più
-  // alta è la più bassa possibile.
+  // Touch (telefono, tablet in verticale): tante colonne quante ne stanno da TOUCH_MIN (almeno 2), pile in ordine
+  // divise in colonne contigue con la più alta il più bassa possibile (splitPiles).
   const n0 = pack(STACK_MIN).length || 1;
-  const stackW = touch ? Math.max(100, Math.floor((areaW - COL_GAP) / 2))
+  const touchCols = Math.max(2, Math.floor((areaW + COL_GAP) / (TOUCH_MIN + COL_GAP)));
+  const stackW = touch ? Math.max(100, Math.floor((areaW - (touchCols - 1) * COL_GAP) / touchCols))
     : Math.max(STACK_MIN, Math.min(STACK_MAX, Math.floor((areaW - (n0 - 1) * COL_GAP) / n0)));
-  const halves = () => {
-    const hs = pileN.map((n) => pileHeight(n, stackW, TOUCH_STRIP) + STACK_GAP);
-    const ids = hs.map((_, i) => i);
-    if (hs.length < 2) return [ids];
-    const total = hs.reduce((a, h) => a + h, 0);
-    let cut = 1, best = Infinity, acc = 0;
-    for (let k = 1; k < hs.length; k++) {
-      acc += hs[k - 1];
-      if (Math.max(acc, total - acc) < best) { best = Math.max(acc, total - acc); cut = k; }
-    }
-    return [ids.slice(0, cut), ids.slice(cut)];
-  };
-  const stackCols = touch ? halves() : pack(stackW);
+  const stackCols = touch ? splitPiles(pileN.map((n) => pileHeight(n, stackW, TOUCH_STRIP) + STACK_GAP), touchCols) : pack(stackW);
   return (
     <div className={`deck-sections ${tab === 'stats' ? 'tab-stats' : `view-${layout}`}${settings.density === 'compact' ? ' density-compact' : ''}`} ref={rootRef} {...marqueeHandlers}
       onKeyDown={(e) => { if (e.key === 'Escape' && sel.size) { e.stopPropagation(); setSel(new Set()); } }}>

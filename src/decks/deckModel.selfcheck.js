@@ -8,7 +8,7 @@ import {
   groupMain, commanderRows, boardRows, deckIdentity, deckCover, toPrintEntries, exportText,
   parseDeckText, toBackup, fromBackup, duplicateDeck, refreshSnapshots, primaryType,
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
-  splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies, packPiles,
+  splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies, packPiles, splitPiles,
   libraryCards, shuffle, mulliganBottom, hyperAtLeast, deckPrice, addEntries, searchTerms, deckMatches, contentSig,
   scryfallImg, withScryfallImgs, deckTags, MAX_TAGS, splitSlices, applySuggestion, revertSuggestion, cleanCards, cleanHelp, cleanReply,
 } from './deckModel.js';
@@ -380,6 +380,9 @@ eq([snapshotFromCard({ ...sc({ id: 'gc1', name: 'Rhystic Study' }), game_changer
 eq(packPiles([300, 500, 150, 400, 100], 20), [[0, 2], [1], [3], [4]], 'pile: la 3a sotto la 1a, le altre non ci stanno');
 eq(packPiles([100, 100, 100, 340], 20), [[0, 1, 2], [3]], 'pile: tre piccole in una colonna alta quanto la grande');
 eq(packPiles([], 20), [], 'pile: nessuna');
+eq(splitPiles([300, 500, 150, 400, 100], 2), [[0, 1], [2, 3, 4]], 'touch: due colonne in ordine, la più alta 800');
+eq(splitPiles([300, 500, 150, 400, 100], 4), [[0], [1], [2], [3, 4]], 'touch: quattro colonne, la più alta 500');
+eq([splitPiles([200], 4), splitPiles([], 4)], [[[0]], []], 'touch: una pila, nessuna');
 
 // Impostazioni: prezzo del mazzo, raggruppamento del nuovo mazzo, import con righe separate.
 let pd = addCard(newDeck({ name: 'p', format: 'modern' }), priced, { qty: 4 }).deck;
