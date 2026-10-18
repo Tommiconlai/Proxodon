@@ -4073,8 +4073,10 @@ span.deck-hero-art { cursor: default; }
    bordo destro, 54 px sotto l'header, con la barra ciano sul bordo. Quando la testata esce (.stuck): alta 62,
    col fondo; sotto si attacca la fascia. */
 .deck-editor:not(.is-mobile) .deck-sticky-bar { justify-content: space-between; align-items: flex-start; gap: 24px; padding: 32px 6px 0 48px; }
+/* Attaccata: nome e ricerca a metà tra la linea dell'header (42, sotto il logo 59.5) e quella della fascia (132,
+   l'incavo a 115), cioè a y 87, non al centro della barra (73): padding sopra 28, contenuto 34 px. */
 .deck-editor:not(.is-mobile) .deck-sticky-bar.stuck {
-  height: 62px; padding: 12px 6px 12px 48px; align-items: center;
+  height: 62px; padding: 28px 6px 0 48px; align-items: center;
   background: var(--bg-base); border-bottom: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
 }
 .deck-title { min-width: 0; display: flex; flex-direction: column; }

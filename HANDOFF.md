@@ -209,7 +209,9 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
   - **Deck page (editor, Community, help request page, tour copy):** top bar = name in JetBrains Mono 25 bold at 48 / 32
     with the magenta heart (editor: likes received when public; Community: the Like button) and "by <nickname>" in
     Chakra Petch 10 `#b2b2b2`; search 227x38 6 px from the right edge with the cyan glow bar on the edge
-    (`glow-cyan*.svg`, mirrored); when stuck the bar is 62 px with the page background. Hero 370 px: the cover is
+    (`glow-cyan*.svg`, mirrored); when stuck the bar is 62 px with the page background, and (user: "quando scorro la
+    pagina centra bene il nome mazzo e la barra ricerca") name and search sit at y 87, halfway between the header line
+    (42; 59.5 under the logo) and the band line (132; the notch at 115), not at the bar's own centre (73). Hero 370 px: the cover is
     the art_crop masked by the design's blurred trapezoid (`deck-art-mask.svg`, mask-position 41/-6) at 80%; tags,
     "Saved …" and the 30x30 icon buttons (tag, print, export, globe from the frame; Public on = cyan) bottom right,
     70 px from the edge (they rise above the band under 1100 px). `DeckBand` (see the file map): line + format notch
