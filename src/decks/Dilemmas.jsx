@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
+import { useSettings } from '../utils/settings';
+import { CardView, HoverCard } from './DeckSections';
+import { PREVIEW, previewAt } from './hoverPreview';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { CardFrame, CardFrameDefs } from '../components/CardFrame';
 import CardSearch from './CardSearch';
@@ -288,7 +291,8 @@ function DilemmaView({ deck, dilemma, uid, mine, notify, onBack, deckHref, onNex
   useEffect(() => {
     if (!onNext) return undefined;
     const onKey = (e) => {
-      if (e.altKey || e.ctrlKey || e.metaKey || e.target.closest?.('input, textarea, select')) return;
+      // Con una finestra aperta (la carta a tutto schermo della decklist) i tasti sono suoi.
+      if (e.altKey || e.ctrlKey || e.metaKey || e.target.closest?.('input, textarea, select') || document.querySelector('.modal-overlay')) return;
       const enter = e.key === 'Enter' && !e.target.closest?.('button, a');
       const k = /^[1-9]$/.test(e.key) && +e.key <= n ? +e.key - 1 : (n === 2 ? ['ArrowLeft', 'ArrowRight'] : []).indexOf(e.key);
       if (!results && k >= 0) {
@@ -405,7 +409,18 @@ function WhyBox({ initial, onSave }) {
 }
 
 // Lista del mazzo in sola lettura, per ora fissa: vista lista, per nome, raggruppata per tipo.
+// Ogni nome è un pulsante: col mouse sopra l'anteprima accanto (come nel mazzo, grandezza da Settings), click o tap
+// = la carta a tutto schermo (CardView). L'anteprima sparisce appena qualcosa scorre.
 function DeckListText({ deck }) {
+  const [hover, setHover] = useState(null);
+  const [viewing, setViewing] = useState(null);
+  const previewW = PREVIEW[useSettings().preview] ?? PREVIEW.medium;
+  useEffect(() => {
+    if (!hover) return undefined;
+    const off = () => setHover(null);
+    window.addEventListener('scroll', off, true);
+    return () => window.removeEventListener('scroll', off, true);
+  }, [hover]);
   const blocks = [
     ['Commander', commanderRows(deck)],
     ...groupMain({ ...deck, groupBy: 'type' }, 'name').map((g) => [g.label, g.rows]),
@@ -418,11 +433,19 @@ function DeckListText({ deck }) {
           <h5>{label} <span className="n">{sum(rows)}</span></h5>
           <ul>
             {rows.map((r) => (
-              <li key={r.id}><span className="deck-qty">{r.qty}</span> <span className="dilemma-list-name">{r.card.name}</span> <ManaCost cost={r.card.mana} /></li>
+              <li key={r.id}>
+                <span className="deck-qty">{r.qty}</span>
+                <button type="button" className="dilemma-list-name" onClick={() => { setHover(null); setViewing(r.card); }}
+                  onPointerEnter={(e) => { if (e.pointerType === 'mouse' && previewW && r.card.img) setHover(previewAt(e.currentTarget.getBoundingClientRect(), r.card, previewW)); }}
+                  onPointerLeave={() => setHover(null)}>{r.card.name}</button>
+                <ManaCost cost={r.card.mana} />
+              </li>
             ))}
           </ul>
         </section>
       ))}
+      {hover && <HoverCard hover={hover} />}
+      {viewing && <CardView card={viewing} onClose={() => setViewing(null)} />}
     </div>
   );
 }

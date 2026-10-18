@@ -15,7 +15,8 @@ import DeckStats from './DeckStats';
 import SampleHand from './SampleHand';
 import CardImg from './CardImg';
 import { CardFrame, CardFrameDefs } from '../components/CardFrame';
-import { cachedImg, useCardImg } from './cardLang';
+import { useCardImg } from './cardLang';
+import { PREVIEW, previewAt } from './hoverPreview';
 import { useSettings, setSetting } from '../utils/settings';
 import {
   IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy, IconFlip, IconPrinter, IconEye, IconX, IconScale, IconLifebuoy, IconZap,
@@ -24,7 +25,13 @@ import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 
 const BOARD_LABEL = { main: 'main deck', side: 'sideboard', maybe: 'maybeboard' };
 // Larghezza dell'anteprima al passaggio (Settings → Card preview), 0 = spenta.
-const PREVIEW = { off: 0, small: 240, medium: 320, large: 400 };
+// Anteprima fissa sullo schermo, sopra tutto (posizione e misure da previewAt): nel mazzo e nella decklist dei dilemmi.
+export const HoverCard = ({ hover }) => createPortal(hover.back ? (
+  <div className="deck-hover deck-hover-pair" style={{ left: hover.x, top: hover.y }}>
+    <img src={hover.img} alt="" style={{ width: hover.w }} />
+    <img src={hover.back} alt="" style={{ width: hover.w }} />
+  </div>
+) : <img className="deck-hover" src={hover.img} alt="" style={{ left: hover.x, top: hover.y, width: hover.w }} />, document.body);
 // Stack: le pile si allargano (da 200 a 400 px, --stack-w) per riempire l'area del mazzo; l'altezza
 // di una pila viene dal numero di carte e dalla larghezza: carta 680/488, poi la riga del nome di
 // ogni carta coperta (margin-top -125.3% della larghezza).
@@ -259,18 +266,10 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     });
   }
 
-  // Anteprima (desktop, ogni vista): accanto alla riga, a destra se c'è spazio, sennò a sinistra. Le
-  // carte a due facce mostrano fronte a sinistra e retro a destra (strette se non stanno nella finestra).
+  // Anteprima (desktop, ogni vista): accanto alla riga (previewAt).
   const showPreview = (e, r) => {
     if (touch || !previewW || !r.card.img || dragIds.current) return;
-    const back = r.card.back && cachedImg(r.card, 1);
-    const w = back ? Math.min(previewW, Math.floor((window.innerWidth - 40) / 2)) : previewW;
-    const total = back ? w * 2 + 8 : w;
-    const ph = Math.round((w * 680) / 488);
-    const rc = e.currentTarget.getBoundingClientRect();
-    const x = rc.right + 12 + total <= window.innerWidth ? rc.right + 12 : Math.max(8, rc.left - total - 12);
-    const y = Math.min(Math.max(8, rc.top + rc.height / 2 - ph / 2), window.innerHeight - ph - 8);
-    setHover({ img: cachedImg(r.card), back, w, x, y });
+    setHover(previewAt(e.currentTarget.getBoundingClientRect(), r.card, previewW));
   };
 
   // Spazio vuoto (non carte, barra, menu o dialoghi): il click deseleziona, il trascinamento col mouse
@@ -613,12 +612,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
             {canAdd(r) && <button type="button" className="btn-secondary deck-icon-btn" aria-label={`One more ${r.card.name}`} title="One more" onClick={() => update((d) => bumpQty(d, r.id, 1))}><IconPlus size={20} /></button>}
           </div>, document.body);
       })()}
-      {hover && createPortal(hover.back ? (
-        <div className="deck-hover deck-hover-pair" style={{ left: hover.x, top: hover.y }}>
-          <img src={hover.img} alt="" style={{ width: hover.w }} />
-          <img src={hover.back} alt="" style={{ width: hover.w }} />
-        </div>
-      ) : <img className="deck-hover" src={hover.img} alt="" style={{ left: hover.x, top: hover.y, width: hover.w }} />, document.body)}
+      {hover && <HoverCard hover={hover} />}
     </div>
   );
 }

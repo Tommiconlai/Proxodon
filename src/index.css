@@ -3086,6 +3086,11 @@ a.deck-tile.deck-add { text-decoration: none; }
 .dilemma-list-group ul { list-style: none; margin: 0; padding: 0; }
 .dilemma-list-group li { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-top: 1px solid rgba(124, 92, 255, 0.12); font-size: 0.85rem; }
 .dilemma-list-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Nomi = pulsanti: hover (mouse) anteprima, click / tap la carta a tutto schermo. */
+button.dilemma-list-name { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: zoom-in; }
+button.dilemma-list-name:hover { color: var(--cyan-soft); }
+button.dilemma-list-name:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; border-radius: 2px; }
+@media (pointer: coarse) { .dilemma-list-group li { min-height: 44px; } } /* tocco: righe alte quanto un dito */
 .dilemma-new { width: min(560px, 94vw); display: flex; flex-direction: column; gap: 8px; }
 .dilemma-new textarea { resize: vertical; }
 /* Conferma solo icona, quadrata e a destra (non a tutta larghezza come gli altri btn-generate). */
