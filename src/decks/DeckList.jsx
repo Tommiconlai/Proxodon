@@ -18,7 +18,7 @@ import { DilemmaFeed } from './Dilemmas';
 import { HelpFeed } from './HelpRequests';
 import { useBracketSlide } from '../hooks/useBracketSlide';
 import {
-  IconPlus, IconCopy, IconTrash, IconPencil, IconExport, IconGlobe, IconSearch, IconFilter, IconHeart, IconPlay, IconFolder, IconArrowLeft,
+  IconPlus, IconCopy, IconTrash, IconPencil, IconExport, IconGlobe, IconSearch, IconFilter, IconHeart, IconPlay, IconFolder, IconArrowLeft, IconWrench,
 } from '../components/icons';
 
 const COLORS = [['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green'], ['C', 'Colorless']];
@@ -58,7 +58,8 @@ const LIST_TABS = [['community', 'Community'], ['dilemmas', 'Dilemmas'], ['help'
 // nera, nome (accanto il globo se è pubblico, fuori dalla Community), formato e like ricevuti; sotto
 // identità di colore, poi autore (by, nella Community) e ultima modifica; il prezzo sta solo in Stats.
 // Testi in cqi: il riquadro è largo una percentuale della griglia e tutto scala con lui. props vanno sul pulsante.
-export function DeckTile({ deck: d, by, ...props }) {
+// helping = il mazzo ha una help request aperta (chiave inglese accanto al nome; per ora solo nel profilo).
+export function DeckTile({ deck: d, by, helping, ...props }) {
   const cover = scryfallImg(deckCover(d));
   const updated = changedMs(d); // ultimo cambio di carte (changedAt), non l'ultima scrittura
   const likes = useCount(countLikes, d.id, undefined, !!d.public);
@@ -70,6 +71,7 @@ export function DeckTile({ deck: d, by, ...props }) {
           <span className="deck-tile-title">
             <span className="deck-tile-name">{d.name}</span>
             {d.public && !by && <span className="deck-tile-public" title="Public, in Community"><IconGlobe size={12} /><span className="sr-only">, public</span></span>}
+            {helping && <span className="deck-tile-public help" title="Open help request"><IconWrench size={12} /><span className="sr-only">, open help request</span></span>}
           </span>
           <span className="deck-tile-format">{formatLabel(d.format)}</span>
           <span className="deck-tile-likes"><IconHeart size={12} /> {likes}<span className="sr-only"> likes</span></span>
@@ -89,18 +91,20 @@ export function DeckTile({ deck: d, by, ...props }) {
   );
 }
 
-// + in fondo a My decks: grande quanto un riquadro (stessa arte e stesso corpo, invisibili), + ciano al centro.
-function AddTile({ onClick }) {
+// Riquadro tratteggiato grande quanto un mazzo (stessa arte e stesso corpo, invisibili), il contenuto al centro:
+// + in fondo a My decks, See all in fondo ai mazzi del profilo (href = link).
+export function GhostTile({ label, href, onClick, children }) {
+  const Tag = href ? 'a' : 'button';
   return (
     <li className="deck-tile-wrap">
-      <button type="button" className="deck-tile deck-add" onClick={onClick} aria-label="New deck" title="New deck">
+      <Tag className="deck-tile deck-add" {...(href ? { href } : { type: 'button', onClick })} aria-label={label} title={label}>
         <span className="deck-tile-art" />
         <span className="deck-tile-body" aria-hidden="true">
           <span className="deck-tile-foot"><ManaPips colors={[]} /></span>
           <span className="deck-tile-meta"><span>&nbsp;</span></span>
         </span>
-        <IconPlus size={44} />
-      </button>
+        {children}
+      </Tag>
     </li>
   );
 }
@@ -387,7 +391,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
                   onClick={() => setDialog({ exp: d })}><IconExport size={16} /></button>
               </li>
             ))}
-            {!searching && <AddTile onClick={() => setDialog('new')} />}
+            {!searching && <GhostTile label="New deck" onClick={() => setDialog('new')}><IconPlus size={44} /></GhostTile>}
           </ul>
         )}
       </>}

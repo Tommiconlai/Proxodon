@@ -2732,6 +2732,7 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .deck-tile-public { flex: none; display: inline-flex; margin-top: 0.15em; color: var(--cyan); }
 .deck-tile-public svg { width: 0.85em; height: 0.85em; }
 .deck-tile-title .deck-tile-public { font-size: clamp(13px, 6.4cqi, 20px); }
+.deck-tile-public.help { color: var(--accent); filter: drop-shadow(0 0 4px rgba(255, 45, 149, 0.6)); } /* chiave inglese: help request aperta */
 /* Like ricevuti, sotto il formato: cuore magenta e numero. */
 .deck-tile-likes { display: flex; align-items: center; gap: 5px; font-size: clamp(12px, 4.6cqi, 14px); opacity: 0.85; }
 .deck-tile-likes svg { width: 1em; height: 1em; color: var(--accent); }
@@ -2765,6 +2766,13 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .deck-tile.deck-add { position: relative; background: rgba(0, 229, 255, 0.04); border: 1px dashed rgba(0, 229, 255, 0.5); color: var(--cyan); }
 .deck-add .deck-tile-art, .deck-add .deck-tile-body { visibility: hidden; }
 .deck-add > svg { position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
+/* See all in fondo ai mazzi e ai dilemmi del profilo: freccia, scritta e quanti sono, al centro del riquadro. */
+.deck-all { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  font-family: var(--font-display); font-size: 0.95rem; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; }
+.deck-add > .deck-all { position: absolute; inset: 0; }
+.deck-all-n { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--text-secondary); }
+a.deck-tile.deck-add { text-decoration: none; }
+.decks-head.profile-next { margin-top: 44px; }
 .deck-tile-wrap:hover .deck-tile.deck-add, .deck-tile.deck-add:focus-visible { border-color: var(--cyan); background: rgba(0, 229, 255, 0.1); box-shadow: 0 0 18px rgba(0, 229, 255, 0.3); }
 /* Cartelle: le copertine dei primi 4 mazzi a mosaico (1 = intera, 2 = due metà, 3 = la prima alta), il
    nome sopra (pulsante: click = rinomina sul posto), sotto quanti mazzi. */

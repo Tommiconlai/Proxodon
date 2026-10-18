@@ -93,9 +93,9 @@ function useAnswered(uid) {
 // Riquadro di un dilemma (disegno dell'utente): le arti delle carte (2-4) divise in diagonale (splitSlices), in alto a
 // sinistra le risposte, in alto a destra New (creato nelle ultime 12 ore) e Voted (hai già risposto; mai sui
 // propri, a cui non si risponde). Sotto, fuori dal bordo, la domanda e nel feed mazzo e autore (meta). Link
-// (href) nel feed, pulsante (onClick) nella scheda del mazzo.
+// (href) nel feed e nel profilo, pulsante (onClick) nella scheda del mazzo.
 const NEW_MS = 12 * 3600 * 1000;
-function DilemmaTile({ deckId, d, uid, solved, meta, href, onClick }) {
+export function DilemmaTile({ deckId, d, uid, solved, meta, href, onClick }) {
   const votes = useCount(countVotes, deckId, d.id);
   const voted = solved && d.uid !== uid;
   const [now] = useState(() => Date.now()); // all'apertura della lista: basta per una soglia di 12 ore

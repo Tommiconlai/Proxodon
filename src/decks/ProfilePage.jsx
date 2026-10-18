@@ -1,15 +1,34 @@
-import { useEffect, useId, useState } from 'react';
-import { listenDecks, saveProfile, claimNickname, countAnswered } from './deckStore';
+import { useEffect, useId, useRef, useState } from 'react';
+import { listenDecks, saveProfile, claimNickname, countAnswered, listenDilemmas, listenHelps } from './deckStore';
 import { updateNickname, authMessage } from './firebase';
 import { deckCover } from './deckModel';
 import { navigate } from '../hooks/useHashRoute';
 import { Avatar } from './AccountMenu';
-import { DeckTile } from './DeckList';
+import { DeckTile, GhostTile } from './DeckList';
+import { DilemmaTile } from './Dilemmas';
 import PhotoDialog from './PhotoDialog';
-import { IconImage, IconPencil } from '../components/icons';
+import { IconImage, IconPencil, IconArrowRight } from '../components/icons';
 
 const day = (s) => (s ? new Date(s).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 const LABEL = { photo: 'photo', banner: 'background' };
+// Quanti se ne vedono nel profilo, i più recenti; See all in fondo è il riquadro che completa la fila sul desktop
+// (mazzi: una fila da 5, See all = My decks; dilemmi: due file da 3, See all li mostra tutti qui).
+const SHOWN_DECKS = 4;
+const SHOWN_DILEMMAS = 5;
+const at = (d) => d.createdAt?.toMillis?.() ?? 0;
+
+// Un ascolto per mazzo pubblico (dilemmi, help request): id -> lista; errore = lista vuota.
+// ponytail: un ascolto per mazzo; con molti mazzi pubblici, una query collection group per uid (con il suo indice).
+function usePerDeck(ids, listen) {
+  const [map, setMap] = useState({});
+  const key = ids.join(',');
+  useEffect(() => {
+    if (!key) return undefined;
+    const offs = key.split(',').map((id) => listen(id, (l) => setMap((m) => ({ ...m, [id]: l })), () => setMap((m) => ({ ...m, [id]: [] }))));
+    return () => offs.forEach((off) => off());
+  }, [key, listen]);
+  return map;
+}
 
 // Foto profilo e sfondo: JPEG da PhotoDialog salvati come data URL nel documento users/{uid}.
 // ponytail: niente Firebase Storage (sui progetti nuovi richiede il piano a pagamento); se servono
@@ -17,11 +36,24 @@ const LABEL = { photo: 'photo', banner: 'background' };
 
 // Profilo: testata (sfondo personalizzato o l'arte del mazzo modificato per ultimo; foto e sfondo si
 // cambiano cliccandoli), nickname, iscrizione, ultimo accesso, mazzi, followers e following (per ora
-// sempre 0, arriveranno con i profili pubblici); sotto, i mazzi. Email, accesso e password: Settings.
+// sempre 0, arriveranno con i profili pubblici); sotto, i mazzi (chiave inglese = help request aperta) e i
+// dilemmi dei mazzi pubblici, ognuno con il suo See all. Email, accesso e password: Settings.
 export default function ProfilePage({ user, profile, notify, onChange }) {
   const [decks, setDecks] = useState(null); // null = caricamento
   const [dialog, setDialog] = useState(null); // 'photo' | 'banner'
   useEffect(() => listenDecks(user.uid, setDecks, () => setDecks(null)), [user.uid]);
+  const pub = (decks || []).filter((d) => d.public);
+  const ids = pub.map((d) => d.id);
+  const dilemmas = usePerDeck(ids, listenDilemmas);
+  const helps = usePerDeck(ids, listenHelps);
+  // Sui propri mazzi i dilemmi li crea solo il proprietario: sono tutti suoi.
+  const myDilemmas = pub.flatMap((d) => (dilemmas[d.id] || []).map((x) => ({ ...x, deck: d }))).sort((a, b) => at(b) - at(a));
+  const dilemmasReady = decks && ids.every((id) => dilemmas[id]);
+  const [allDilemmas, setAllDilemmas] = useState(false);
+  const moreDilemmas = !allDilemmas && myDilemmas.length > SHOWN_DILEMMAS;
+  const dilemmaList = useRef(null);
+  // See all sparisce: il focus va sul primo dilemma comparso, non si perde.
+  useEffect(() => { if (allDilemmas) dilemmaList.current?.children[SHOWN_DILEMMAS]?.querySelector('a')?.focus(); }, [allDilemmas]);
   // Dilemmi a cui ha risposto (users/{uid}/answered, conteggio sul server); senza permesso o offline: 0.
   const [answered, setAnswered] = useState(null);
   useEffect(() => { countAnswered(user.uid).then(setAnswered).catch(() => setAnswered(0)); }, [user.uid]);
@@ -74,11 +106,45 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
       )}
       {decks?.length > 0 && (
         <ul className="deck-grid">
-          {decks.map((d) => (
+          {decks.slice(0, SHOWN_DECKS).map((d) => (
             <li key={d.id} className="deck-tile-wrap">
-              <DeckTile deck={d} onClick={() => navigate(`/decks/${d.id}`)} />
+              <DeckTile deck={d} helping={!!helps[d.id]?.some((h) => h.status === 'open')} onClick={() => navigate(`/decks/${d.id}`)} />
             </li>
           ))}
+          {decks.length > SHOWN_DECKS && (
+            <GhostTile label={`See all ${decks.length} decks`} href="#/decks">
+              <span className="deck-all" aria-hidden="true"><IconArrowRight size={34} />See all<span className="deck-all-n">{decks.length} decks</span></span>
+            </GhostTile>
+          )}
+        </ul>
+      )}
+
+      <header className="decks-head profile-next">
+        <h2 className="decks-title">Dilemmas</h2>
+      </header>
+      {!dilemmasReady && <span className="import-spinner" aria-label="Loading" />}
+      {dilemmasReady && myDilemmas.length === 0 && (
+        <div className="decks-empty">
+          <p className="decks-empty-title">No dilemmas yet</p>
+          <p className="field-hint">Ask one from the Dilemmas tab of a public deck.</p>
+        </div>
+      )}
+      {dilemmasReady && myDilemmas.length > 0 && (
+        <ul className="dilemma-list" ref={dilemmaList}>
+          {(moreDilemmas ? myDilemmas.slice(0, SHOWN_DILEMMAS) : myDilemmas).map((x) => (
+            <DilemmaTile key={`${x.deck.id}/${x.id}`} deckId={x.deck.id} d={x} uid={user.uid} solved={false}
+              href={`#/dilemmas/${x.deck.id}/${x.id}`} meta={<b>{x.deck.name}</b>} />
+          ))}
+          {moreDilemmas && (
+            <li>
+              <button type="button" className="dilemma-tile dilemma-add" onClick={() => setAllDilemmas(true)}
+                aria-label={`See all ${myDilemmas.length} dilemmas`} title={`See all ${myDilemmas.length} dilemmas`}>
+                <span className="dilemma-split" aria-hidden="true">
+                  <span className="deck-all"><IconArrowRight size={34} />See all<span className="deck-all-n">{myDilemmas.length} dilemmas</span></span>
+                </span>
+              </button>
+            </li>
+          )}
         </ul>
       )}
 
