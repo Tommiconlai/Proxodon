@@ -8,7 +8,8 @@ let upscalerP = null;
 const getUpscaler = () => (upscalerP ??= Promise.all([
     import('upscaler'),
     import('@upscalerjs/esrgan-medium/2x'),
-]).then(([{ default: Upscaler }, { default: model }]) => new Upscaler({ model: { ...model, path: 'models/esrgan-medium-x2/model.json' } })));
+]).then(([{ default: Upscaler }, { default: model }]) => new Upscaler({ model: { ...model, path: 'models/esrgan-medium-x2/model.json' } }))
+    .catch((e) => { upscalerP = null; throw e; })); // caricamento fallito (rete): il prossimo Upscale riprova
 
 // Ha senso solo su raster RGB sotto il DPI scelto (i JPEG CMYK nativi perderebbero gli
 // inchiostri esatti). DPI effettivi arrotondati: una PNG Scryfall 744px raddoppiata fa

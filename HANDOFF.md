@@ -200,7 +200,10 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **PDF export frees each card's canvas at once (most recent, 2026-10-19):** review M19 ([U], cheap). Both
+- **AI upscale retries a failed model load (most recent, 2026-10-19):** review M20. `getUpscaler` memoized the
+  load promise even when it rejected (chunk or weights not reachable), so every later Upscale 2x failed until a
+  reload. A `.catch` now clears `upscalerP` and rethrows. Pattern checked in Node (second call loads again).
+- **PDF export frees each card's canvas at once (2026-10-19):** review M19 ([U], cheap). Both
   generators drew every card on a new canvas and left it to the garbage collector; iOS caps total canvas memory, so
   a 100+ card export could fail. `compressImage` (RGB) and `renderCellRGBA` (CMYK) now set `canvas.width =
   canvas.height = 0` right after `toDataURL` / `getImageData` (the data is a copy). Checked a CMYK export in the
