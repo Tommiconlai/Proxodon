@@ -161,6 +161,9 @@ eq(exportText(addCard(newDeck({ name: 'n', format: 'modern' }), bolt, { qty: 4 }
 eq(exportText(g, { specs: false }).split('\n'), ['Commander', "1 Atraxa, Praetors' Voice", '', 'Deck', '1 Lightning Bolt', '1 Forest',
   '1 Sol Ring', '1 Goblin Guide', '1 Solemn Simulacrum', '', 'Sideboard', '1 Pyroblast'], 'export testo semplice, senza set e numero');
 // input disordinato (Review Focus 2)
+// Export di Arena con Companion: il compagno va nel side, niente carta "Companion" né secondo comandante.
+eq(parseDeckText('Commander\n1 Kenrith, the Returned King\nCompanion\n1 Lurrus of the Dream-Den\nDeck\n1 Sol Ring').map((e) => [e.board, e.commander, e.name]),
+  [['main', true, 'Kenrith, the Returned King'], ['side', false, 'Lurrus of the Dream-Den'], ['main', false, 'Sol Ring']], 'Arena: Companion nel side');
 eq(parseDeckText('4x Lightning Bolt\r\n\r\nSIDEBOARD:\r\n2 Pyroblast\r\n// Maybeboard\r\n1 Sol Ring (C21) 263').map((e) => [e.board, e.qty, e.name, e.set, e.collector]),
   [['main', 4, 'Lightning Bolt', '', ''], ['side', 2, 'Pyroblast', '', ''], ['maybe', 1, 'Sol Ring', 'c21', '263']], 'import tollerante');
 

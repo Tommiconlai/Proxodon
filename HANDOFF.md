@@ -200,7 +200,11 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **CMYK export embeds each card once (most recent, 2026-10-19):** review M14. Every copy in the print queue was
+- **Arena "Companion" section imports into the sideboard (most recent, 2026-10-19):** review M15. `parseDeckText`
+  did not know the `Companion` header of MTG Arena exports: the line became a card named "Companion" (not found)
+  and, still under `Commander`, the companion became a second commander. `HEADERS` maps `companion(s)` to the side,
+  where Arena keeps it. Self-check case added (`node src/decks/deckModel.selfcheck.js`).
+- **CMYK export embeds each card once (2026-10-19):** review M14. Every copy in the print queue was
   converted with lcms and embedded again (30 Forest = 30 CMYK streams). `buildCmykPdfBytes` keeps an `embedded` map
   keyed by bleed mode + SHA-1 of the file bytes (copies are separate `File` objects over the same blob, and the
   bytes are read anyway to spot native CMYK JPEGs) and reuses the image XObject. Checked in the browser: 9 copies

@@ -558,7 +558,8 @@ export function exportText(deck, { specs = true } = {}) {
 const HEADERS = [
   [/^commanders?$/, 'commander'],
   [/^(deck|main|mainboard)$/, 'main'],
-  [/^(sideboard|side)$/, 'side'],
+  // Companion (export di Arena): nel side, come in Arena; prima diventava una carta "Companion" e un comandante.
+  [/^(sideboard|side|companions?)$/, 'side'],
   [/^(maybeboard|maybe|considering)$/, 'maybe'],
 ];
 
