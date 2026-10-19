@@ -2698,9 +2698,13 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .mobile .decks-clear { width: 44px; height: 44px; }
 /* Griglia mazzi (Figma "Proxodon" 52:275): riquadri 209x208 a passi di 229 (spazio 20), righe centrate, anche
    l'ultima. Telefono stretto: due per riga, larghi metà riga, stessa proporzione. */
-.deck-grid { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
-.deck-grid > li { width: 209px; }
-@media (max-width: 560px) { .deck-grid { gap: 12px; } .deck-grid > li { width: calc((100% - 12px) / 2); } }
+/* Anche dilemmi e richieste: stessa misura e stessa griglia in ogni pagina (richiesta dell'utente). */
+.deck-grid, .dilemma-list, .help-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+:is(.deck-grid, .dilemma-list, .help-list) > li { width: 209px; }
+@media (max-width: 560px) {
+  :is(.deck-grid, .dilemma-list, .help-list) { gap: 12px; }
+  :is(.deck-grid, .dilemma-list, .help-list) > li { width: calc((100% - 12px) / 2); }
+}
 .deck-tile {
   position: relative; display: block; width: 100%; aspect-ratio: 209 / 208; padding: 0;
   background: none; border: 0; text-align: left; font: inherit; color: #fff;
@@ -3001,16 +3005,22 @@ a.deck-tile.deck-add { text-decoration: none; }
    nera sfumata, come un'ombra (da 60% in alto a 40% in basso), risposte in alto a sinistra, New / Voted in alto a destra; la
    domanda (max 3 righe) e nel feed mazzo e autore stanno sotto, fuori dal bordo. Hover: la metà sotto il
    puntatore resta accesa, l'altra si scurisce (il clip-path limita anche l'hover alla parte visibile). */
-.dilemma-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 300px)); justify-content: center; gap: 28px 22px; }
-.dilemma-tile {
-  width: 100%; display: flex; flex-direction: column; gap: 10px; padding: 0;
-  background: none; border: 0; color: var(--text-primary); font: inherit; text-align: left; text-decoration: none; cursor: pointer;
+/* Dilemmi e richieste come i mazzi: 209x208, la sagoma con le tasche (CutFrame) a tutto riquadro, il testo in basso
+   dentro; --u = 1 px a misura piena (209). */
+.dilemma-tile, .help-card {
+  position: relative; display: block; width: 100%; aspect-ratio: 209 / 208; padding: 0; container-type: inline-size; --u: calc(100cqi / 209);
+  background: none; border: 0; color: #fff; font: inherit; text-align: left; text-decoration: none; cursor: pointer;
 }
-.dilemma-tile:focus-visible { outline: none; }
-.dilemma-split {
-  /* Sagoma con le tasche (CutFrame, 300x219) e il bordo sfumato come i mazzi; --u = 1 px a misura piena (300). */
-  position: relative; display: block; aspect-ratio: 626 / 457; container-type: inline-size; --u: calc(100cqi / 300);
-  transition: filter var(--transition);
+.dilemma-tile:focus-visible, .help-card:focus-visible { outline: none; }
+.dilemma-split, .help-card-art { position: absolute; inset: 0; display: block; transition: filter var(--transition); }
+.dilemma-tile .cut-shape::after, .help-card .cut-shape::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to top, rgba(5, 4, 10, 0.96), rgba(5, 4, 10, 0.6) 42%, rgba(5, 4, 10, 0) 70%);
+}
+/* In basso: domanda (o testo della richiesta, carte), poi mazzo e autore; a destra lascia la tasca della freccia. */
+.dilemma-tile-body {
+  position: absolute; z-index: 1; left: calc(12 * var(--u)); right: calc(12 * var(--u)); bottom: calc(9 * var(--u));
+  display: flex; flex-direction: column; gap: calc(4 * var(--u)); padding-right: calc(28 * var(--u)); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
 }
 .dilemma-tile:not(.dilemma-add):hover .dilemma-split, .dilemma-tile:not(.dilemma-add):focus-visible .dilemma-split { filter: drop-shadow(0 0 10px rgba(255, 45, 149, 0.4)); }
 /* Fette (una per carta): left / width / clip-path inline da splitSlices. */
@@ -3034,16 +3044,16 @@ a.deck-tile.deck-add { text-decoration: none; }
 .dilemma-flags { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; }
 .dilemma-flag { letter-spacing: 0.06em; text-transform: uppercase; }
 .dilemma-flag.voted { border-color: var(--accent); color: var(--accent); }
-.dilemma-tile-q {
-  padding: 0 2px; font-family: var(--font-display); font-size: 1rem; line-height: 1.35; overflow-wrap: anywhere;
-  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+.dilemma-tile-q, .help-card-text {
+  font-family: var(--font-display); font-size: calc(13 * var(--u)); font-weight: 600; line-height: 1.22; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
   transition: color var(--transition);
 }
 .dilemma-tile:hover .dilemma-tile-q, .dilemma-tile:focus-visible .dilemma-tile-q { color: var(--cyan-soft); }
 /* + della scheda Dilemmas del mazzo (ultimo della griglia): riquadro tratteggiato al posto dell'arte, ciano del logo. */
 .dilemma-add .dilemma-split { display: flex; align-items: center; justify-content: center; border-radius: 14px; border: 1px dashed rgba(0, 229, 255, 0.5); background: rgba(0, 229, 255, 0.04); box-shadow: none; color: var(--cyan); }
 .dilemma-add:hover .dilemma-split, .dilemma-add:focus-visible .dilemma-split { border-color: var(--cyan); background: rgba(0, 229, 255, 0.1); box-shadow: 0 0 16px rgba(0, 229, 255, 0.3); }
-.dilemma-tile-meta { margin-top: -6px; padding: 0 2px; font-size: 0.78rem; color: var(--text-muted); }
+.dilemma-tile-meta { font-family: var(--font-mono); font-size: calc(8.5 * var(--u)); line-height: 1.3; color: rgba(255, 255, 255, 0.6); }
 .dilemma-tile-meta b { font-family: var(--font-display); font-weight: 500; letter-spacing: 0.02em; color: var(--cyan-soft); }
 /* Gioco (#/dilemmas/play): ogni dilemma entra da destra, come la carta successiva di un mazzo. */
 .dilemma-play { animation: dilemma-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
@@ -3123,20 +3133,8 @@ button.dilemma-list-name:focus-visible { outline: 2px solid var(--cyan); outline
 /* Help request (HelpRequests.jsx): riquadri (feed e scheda del mazzo), richiesta aperta con le risposte, moduli.
    Tipo della richiesta in magenta pieno; carte da aggiungere ciano (+), da togliere magenta (−). */
 .dilemma-flag.solved { border-color: rgba(255, 255, 255, 0.25); color: var(--text-secondary); }
-.help-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 340px)); justify-content: center; align-items: start; gap: 26px 22px; }
-.help-card {
-  width: 100%; display: flex; flex-direction: column; gap: 8px; padding: 0;
-  background: none; border: 0; color: var(--text-primary); font: inherit; text-align: left; text-decoration: none; cursor: pointer;
-}
-.help-card:focus-visible { outline: none; }
-.help-card-art { /* sagoma con le tasche (CutFrame, 340x148.75), --u = 1 px a misura piena (340) */
-  position: relative; display: block; aspect-ratio: 16 / 7; container-type: inline-size; --u: calc(100cqi / 340);
-  transition: filter var(--transition);
-}
 .help-card:hover .help-card-art, .help-card:focus-visible .help-card-art { filter: drop-shadow(0 0 10px rgba(255, 45, 149, 0.4)); }
 .help-card-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 30%; filter: brightness(0.8); transition: filter 0.25s ease; }
-/* Velo scuro dal basso sopra l'arte (img lazy, niente ::after su un img); tipo, segnali e conteggio stanno sopra. */
-.help-card .cut-shape::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to top, rgba(8, 7, 15, 0.9), rgba(8, 7, 15, 0) 65%); }
 .help-card-art > span { z-index: 1; }
 .help-card:hover .help-card-img { filter: brightness(1); }
 .help-card.solved .help-card-img { filter: grayscale(0.8) brightness(0.55); }
@@ -3144,20 +3142,15 @@ button.dilemma-list-name:focus-visible { outline: 2px solid var(--cyan); outline
   display: inline-flex; align-items: center; padding: 3px 8px; border-radius: var(--radius-sm);
   background: var(--accent); color: #08070f; font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
 }
-.help-card-art .help-kind { position: absolute; left: calc(12 * var(--u)); bottom: calc(10 * var(--u)); padding: calc(4 * var(--u)) calc(10 * var(--u)); border-radius: 999px; font-size: calc(10 * var(--u)); line-height: 1; }
+.help-card-art .help-kind { position: absolute; left: calc(12 * var(--u)); top: calc(36 * var(--u)); padding: calc(4 * var(--u)) calc(10 * var(--u)); border-radius: 999px; font-size: calc(10 * var(--u)); line-height: 1; }
 .help-card.solved .help-kind { background: var(--text-muted); }
 .help-count svg { width: calc(12 * var(--u)); height: calc(12 * var(--u)); color: var(--cyan); }
-.help-card-text {
-  padding: 0 2px; font-family: var(--font-display); font-size: 1rem; line-height: 1.35; overflow-wrap: anywhere;
-  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; transition: color var(--transition);
-}
 .help-card:hover .help-card-text, .help-card:focus-visible .help-card-text { color: var(--cyan-soft); }
-.help-card-cards { padding: 0 2px; font-size: 0.78rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.help-card .dilemma-tile-meta { margin-top: -2px; }
-/* + nella scheda Help del mazzo: grande quanto l'arte di un riquadro, tratteggiato, ciano del logo. */
+.help-card-cards { font-family: var(--font-display); font-size: calc(9 * var(--u)); color: var(--accent-light); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* + nella scheda Help del mazzo: grande quanto un riquadro, tratteggiato, ciano del logo. */
 .help-add {
-  aspect-ratio: 16 / 7; align-items: center; justify-content: center;
-  border: 1px dashed rgba(0, 229, 255, 0.5); border-radius: var(--radius-lg); background: rgba(0, 229, 255, 0.04); color: var(--cyan);
+  display: flex; align-items: center; justify-content: center;
+  border: 1px dashed rgba(0, 229, 255, 0.5); border-radius: 14px; background: rgba(0, 229, 255, 0.04); color: var(--cyan);
   transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
 }
 .help-add:hover, .help-add:focus-visible { border-color: var(--cyan); background: rgba(0, 229, 255, 0.1); box-shadow: 0 0 16px rgba(0, 229, 255, 0.3); }
@@ -4228,3 +4221,5 @@ span.deck-hero-art { cursor: default; }
 .mobile .deck-tile-callout { font-size: max(10px, calc(9 * var(--u))); }
 .mobile .deck-tile-meta, .mobile .deck-tile-tags { font-size: max(10px, calc(8.5 * var(--u))); }
 .mobile .deck-tile-likes { font-size: max(10px, calc(10 * var(--u))); }
+.mobile :is(.dilemma-tile-q, .help-card-text) { font-size: max(12px, calc(13 * var(--u))); }
+.mobile :is(.dilemma-tile-meta, .help-card-cards) { font-size: max(10px, calc(8.5 * var(--u))); }

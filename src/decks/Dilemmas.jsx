@@ -96,7 +96,7 @@ function useAnswered(uid) {
 
 // Riquadro di un dilemma (disegno dell'utente): le arti delle carte (2-4) divise in diagonale (splitSlices), in alto a
 // sinistra le risposte, in alto a destra New (creato nelle ultime 12 ore) e Voted (hai già risposto; mai sui
-// propri, a cui non si risponde). Sotto, fuori dal bordo, la domanda e nel feed mazzo e autore (meta). Link
+// propri, a cui non si risponde). In basso, dentro, la domanda e nel feed mazzo e autore (meta). 209x208 come i mazzi. Link
 // (href) nel feed e nel profilo, pulsante (onClick) nella scheda del mazzo.
 const NEW_MS = 12 * 3600 * 1000;
 // votes già noti (demo del tutorial) = niente lettura dal server.
@@ -111,14 +111,14 @@ export function DilemmaTile({ deckId, d, uid, solved, meta, href, onClick, votes
   const split = splitSlices(d.cards.length); // una fetta per carta, divise in diagonale
   const label = `${votes} ${votes === 1 ? 'vote' : 'votes'}`;
   const pill = 7.2 * label.length + 18; // JetBrains Mono 12: 0.6em a carattere, 8 di margine, 1 di bordo
-  // Tasche (CutFrame, 300x219 = la proporzione dell'arte): in alto a sinistra le risposte, in basso a destra la freccia.
+  // Tasche (CutFrame, 209x208 come i mazzi): in alto a sinistra le risposte, in basso a destra la freccia.
   const cuts = { tl: [pill + 4, 26], br: [34, 34] };
   return (
     <li>
       <Tag className="dilemma-tile" {...(href ? { href } : { type: 'button', onClick })}
         aria-label={`${d.question} ${d.cards.map((c) => c.name).join(' or ')}. ${votes} ${votes === 1 ? 'vote' : 'votes'}${status ? `, ${status}` : ''}.`}>
         <span className="dilemma-split" aria-hidden="true">
-          <CutFrame w={300} h={219} cuts={cuts}>
+          <CutFrame w={209} h={208} cuts={cuts}>
             {d.cards.map((c, i) => {
               const s = split.slices[i];
               const style = { left: `${s.left}%`, width: `${s.width}%`, clipPath: s.clip };
@@ -139,8 +139,10 @@ export function DilemmaTile({ deckId, d, uid, solved, meta, href, onClick, votes
             </span>
           )}
         </span>
-        <span className="dilemma-tile-q">{d.question}</span>
-        {meta && <span className="dilemma-tile-meta">{meta}</span>}
+        <span className="dilemma-tile-body">
+          <span className="dilemma-tile-q">{d.question}</span>
+          {meta && <span className="dilemma-tile-meta">{meta}</span>}
+        </span>
       </Tag>
     </li>
   );

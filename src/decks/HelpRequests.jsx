@@ -146,7 +146,8 @@ export function HelpItem({ deckId, info, h, mine, flags = [], inFeed, href, onCl
   const by = inFeed && info ? `${info.name} by ${info.owner || 'a player'}` : ''; // solo nel feed: nella scheda del mazzo è ovvio
   const cards = h.cards.map((c) => c.name).join(', ');
   const stop = /[.?!]$/.test(h.text) ? '' : '.'; // niente "?." dopo una domanda
-  // Tasche (CutFrame, 340x148.75 = 16 / 7): in alto a sinistra i suggerimenti (icona 12, 5, cifre mono 12, margini), in basso a destra la freccia.
+  // Tasche (CutFrame, 209x208 come i mazzi): in alto a sinistra i suggerimenti (icona 12, 5, cifre mono 12, margini), in
+  // basso a destra la freccia. Testo, carte e meta in basso, dentro.
   const pill = 35 + 7.2 * String(replies).length;
   const cuts = { tl: [pill + 4, 26], br: [34, 34] };
   return (
@@ -154,7 +155,7 @@ export function HelpItem({ deckId, info, h, mine, flags = [], inFeed, href, onCl
       <Tag className={`help-card${solved ? ' solved' : ''}`} {...(href ? { href } : { type: 'button', onClick })}
         aria-label={`${helpKindLabel(h.kind)}: ${h.text}${stop}${by ? ` ${by}.` : ''}${cards ? ` Cards: ${cards}.` : ''} ${plural(replies, 'suggestion', 'suggestions')}${status ? `, ${status}` : ''}.`}>
         <span className="help-card-art" aria-hidden="true">
-          <CutFrame w={340} h={148.75} cuts={cuts}>
+          <CutFrame w={209} h={208} cuts={cuts}>
             {pic && <img className="help-card-img" src={pic} alt="" loading="lazy" decoding="async" />}
           </CutFrame>
           <span className="help-kind">{helpKindLabel(h.kind)}</span>
@@ -166,9 +167,11 @@ export function HelpItem({ deckId, info, h, mine, flags = [], inFeed, href, onCl
           <span className="help-count" style={{ width: `calc(${pill} * var(--u))` }}><IconLifebuoy size={12} /> {replies}</span>
           <span className="tile-go"><IconArrowRight size={14} /></span>
         </span>
-        <span className="help-card-text">{h.text}</span>
-        {cards && <span className="help-card-cards">{h.cards.map((c) => c.name).join(' · ')}</span>}
-        <span className="dilemma-tile-meta">{by && info && <><b>{info.name}</b> by {info.owner || 'a player'}, </>}{timeAgo(ms(h.createdAt))}</span>
+        <span className="dilemma-tile-body">
+          <span className="help-card-text">{h.text}</span>
+          {cards && <span className="help-card-cards">{h.cards.map((c) => c.name).join(' · ')}</span>}
+          <span className="dilemma-tile-meta">{by && info && <><b>{info.name}</b> by {info.owner || 'a player'}, </>}{timeAgo(ms(h.createdAt))}</span>
+        </span>
       </Tag>
     </li>
   );
