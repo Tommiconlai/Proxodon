@@ -200,7 +200,10 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Import caps: 1000 copies, MPC files up to 5 MB (most recent, 2026-10-19):** review M17. Lines were capped
+- **Downloads keep their blob URL for 60 s (most recent, 2026-10-19):** review M18 ([U] in the report, cheap).
+  `saveFile` revoked the object URL right after `a.click()`; Firefox and Safari may read the blob after the click,
+  so a big PDF could be cut. The revoke now runs after 60 s. Not reproducible here (Chromium pane).
+- **Import caps: 1000 copies, MPC files up to 5 MB (2026-10-19):** review M17. Lines were capped
   (1000) but not copies: "999 Island" on many lines, or an MPC XML with 1000 cards of 99 slots, meant tens of
   thousands of `File`s and object URLs and a frozen tab; the XML size had no cap. Now `fetchScryfallImages` throws
   "Import at most 1000 cards at a time (this list has N)." (`MAX_COPIES`; covers the Scryfall import and Print

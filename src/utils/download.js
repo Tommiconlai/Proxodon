@@ -20,7 +20,8 @@ export async function saveFile(filename, blob) {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(a.href);
+    // Non subito: Firefox e Safari possono leggere il blob dopo il click (un PDF grande si interromperebbe).
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
     return;
   }
   const [{ Filesystem, Directory }, { Share }] = await Promise.all([
