@@ -4175,9 +4175,18 @@ span.deck-hero-art { cursor: default; }
 
 /* Fondo comune dei pulsanti neutri in tutto il sito (richiesta dell'utente, "come questo": il tasto Settings di Print,
    cioè .decks-filter-btn): velo scuro al 25%, bordo ciano al 10%, raggio 10; i pulsanti solo icona hanno l'icona ciano.
-   In fondo al file così vince sulle regole di base; restano a parte quelli con un significato (accento magenta .btn-add,
-   Generate PDF, Danger, il fantasma Clear della selezione) e i tondi (menu della X, ?, avatar, profilo: solo il fondo). */
+   In fondo al file così vince sulle regole di base. Poi anche l'accento (.btn-add: Add cards, Play, Confirm) e Generate
+   PDF, su richiesta dell'utente: stesso fondo e bordo, testo ciano, niente bagliori né bordo animato (da disabilitati
+   restano grigi). Restano a parte Danger, il fantasma Clear della selezione e i tondi (menu della X, ?, avatar,
+   profilo: solo il fondo). */
 .btn-secondary, .bulk-btn, .btn-icc { background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(0, 229, 255, 0.1); border-radius: 10px; }
 .nav-btn, .profile-icon-btn, .profile-bg-btn { background: rgba(0, 0, 0, 0.25); border-color: rgba(0, 229, 255, 0.1); }
 .btn-secondary.deck-icon-btn { color: var(--cyan); }
 .bulk-btn:hover, .btn-icc:hover { border-color: rgba(0, 229, 255, 0.55); }
+.btn-add, .btn-generate {
+  background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(0, 229, 255, 0.1); border-radius: 10px;
+  color: var(--cyan); text-shadow: none; box-shadow: none; animation: none;
+}
+.btn-add.open, .btn-add:hover, .btn-generate:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.25); border-color: rgba(0, 229, 255, 0.55); color: var(--cyan-soft); box-shadow: none;
+}
