@@ -200,7 +200,13 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Back no longer loops into a deleted deck (most recent, 2026-10-19):** review M21. When the open deck was
+- **Esc closes the card menu before the selection (most recent, 2026-10-19):** review M22. With cards selected,
+  the deck area's Escape handler cleared the selection and stopped the event, so the open card menu stayed (two
+  Esc, the first one doing the wrong thing). The handler now skips while `menu` is open: the first Esc closes the
+  menu (focus back on the row), the second clears the selection. Checked by keyboard on a real deck (no data
+  touched): two rows selected, Shift+F10 menu "2 cards selected", Esc closes it with 2 still selected, Esc again
+  clears them.
+- **Back no longer loops into a deleted deck (2026-10-19):** review M21. When the open deck was
   deleted elsewhere, DeckEditor called `navigate('/decks')`, which pushes an entry: Back (also Android's) went into
   the dead deck, which bounced to `/decks` again, forever. New `replaceRoute(path)` in `useHashRoute.js`
   (`history.replaceState` keeping `idx`, then a manual `hashchange`) is used there instead. Checked: from

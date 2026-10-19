@@ -497,7 +497,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   const stackCols = touch ? splitPiles(pileN.map((n) => pileHeight(n, stackW, TOUCH_STRIP) + STACK_GAP), touchCols) : pack(stackW);
   return (
     <div className={`deck-sections ${tab === 'stats' ? 'tab-stats' : `view-${layout}`}${settings.density === 'compact' ? ' density-compact' : ''}`} ref={rootRef} {...marqueeHandlers}
-      onKeyDown={(e) => { if (e.key === 'Escape' && sel.size) { e.stopPropagation(); setSel(new Set()); } }}>
+      onKeyDown={(e) => { if (e.key === 'Escape' && sel.size && !menu) { e.stopPropagation(); setSel(new Set()); } }}>
       {marquee && <div className="marquee" style={marquee} aria-hidden="true" />}
       {tab === 'deck' && <>
       {view !== 'list' && <CardFrameDefs />}
