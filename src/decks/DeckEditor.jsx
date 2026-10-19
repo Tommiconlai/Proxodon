@@ -9,7 +9,6 @@ import { navigate, replaceRoute } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
 import { DeckBand, DeckTitle, DeckCount, DeckTopBar, DeckTagList } from './DeckTabs';
-import { setDeckNav } from '../components/deckNav';
 import { DeckDilemmas } from './Dilemmas';
 import { DeckHelps } from './HelpRequests';
 import CardSearch from './CardSearch';
@@ -26,8 +25,12 @@ const STUCK_AT = 72; // px: padding della barra + casella di ricerca, circa
 // trasparente, quando la testata è uscita prende lo sfondo); la testata con la copertina a sinistra (sfumata ai
 // bordi; click = scegli un'altra carta) e in basso a destra tag, stato sync e le icone; sotto la fascia
 // (DeckBand) col formato nell'incavo e le schede, ferma sotto la barra. Poi il corpo con le sezioni (o Stats /
-// Dilemmas / Help). Telefono: il nome sta nella testata e scorre con lei, formato e icone in alto a destra, le
-// schede nel menu della X (MobileNav); sotto la testata la barra (DeckTopBar) con la ricerca sempre aperta, il conteggio e Back to top.
+// Dilemmas / Help). Telefono: il nome sta nella testata e scorre con lei, formato e icone in alto a destra; sotto la
+// testata la barra (DeckTopBar) con la ricerca sempre aperta, il conteggio e Back to top; niente schede, tutto in una
+// pagina: carte, Stats (con la mano di prova), Dilemmas, Help.
+// Telefono: Help sta in fondo alla pagina (sotto carte, Stats e Dilemmas); la porta in vista.
+const toHelp = () => setTimeout(() => document.querySelector('.deck-part-help')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+
 export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDeck, initialTab, owner }) {
   // Errori di sync del mazzo, anche dopo la chiusura dell'editor (notify è dell'app, resta vivo).
   const syncError = useCallback((e) => notify(e.code === 'resource-exhausted'
@@ -50,12 +53,9 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const [stuck, setStuck] = useState(false); // la testata è uscita: la fascia ricerca ha lo sfondo
   // Schede della testata: deck | stats | dilemmas | help; #/decks/:id/help (le proprie richieste dal feed Help) apre Help.
   const [tab, setTab] = useState(initialTab === 'help' ? 'help' : 'deck');
-  // Telefono e tablet: le schede stanno nel menu della X (MobileNav), che le legge da qui.
-  useEffect(() => {
-    if (!mobile) return undefined;
-    setDeckNav({ tab, onTab: setTab, back: 'mine' });
-    return () => setDeckNav(null);
-  }, [mobile, tab]);
+  // #/decks/:id/help (le proprie richieste dal feed Help): da telefono, appena c'è il mazzo, scende fino a Help.
+  const loaded = !!deck;
+  useEffect(() => { if (mobile && loaded && initialTab === 'help') toHelp(); }, [mobile, loaded, initialTab]);
   const heroRef = useRef(null);
   const scrollRef = useRef(null); // .deck-scroll: Back to top della barra in cima (DeckTopBar, telefono)
   const refreshed = useRef(false);
@@ -134,6 +134,16 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
       {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
     </select>
   );
+  // Da desktop una scheda alla volta, da telefono tutto in fila. Dilemma e Ask for help dal menu delle carte: da desktop
+  // aprono la scheda, da telefono la sezione è già lì (Help la porta in vista: con una richiesta aperta c'è l'avviso).
+  const cards = (t) => (
+    <DeckSections deck={deck} update={update} touch={mobile} tab={t} onTab={mobile ? undefined : setTab} notify={notify}
+      onDilemma={(c) => { setAsk(c); setTab('dilemmas'); }}
+      onHelp={(c) => { setHelpAsk(c); setTab('help'); if (mobile) toHelp(); }}
+      onPrint={(rows) => onPrintDeck(toPrintEntries({ cards: rows.map((r) => ({ ...r, board: 'main' })) }), true)} />
+  );
+  const dilemmas = <DeckDilemmas deck={deck} uid={uid} mine notify={notify} ask={ask} onAsked={() => setAsk(null)} />;
+  const helps = <DeckHelps deck={deck} uid={uid} mine notify={notify} update={update} ask={helpAsk} onAsked={() => setHelpAsk(null)} />;
   return (
     <div className={`deck-editor${mobile ? ' is-mobile' : ''}`}>
       <div className="deck-scroll" ref={scrollRef} onScroll={mobile ? undefined : onScroll}>
@@ -192,7 +202,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
         </div>
       </header>
       {mobile ? (
-        <DeckTopBar deck={deck} showCount={tab === 'deck'} scrollRef={scrollRef}
+        <DeckTopBar deck={deck} showCount scrollRef={scrollRef}
           search={<CardSearch format={deck.format} identity={searchIdentity(deck)} onAdd={add} notify={notify} advanced={advOpen} onAdvanced={setAdvOpen} />} />
       ) : <DeckBand tab={tab} onTab={setTab} format={format} />}
       <div className="deck-body">
@@ -207,12 +217,8 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
             </section>
           )}
           {/* Print dal menu delle carte: si aggiungono alla coda di stampa (mai la sostituiscono), anche dal maybeboard. */}
-          {tab === 'dilemmas' ? <DeckDilemmas deck={deck} uid={uid} mine notify={notify} ask={ask} onAsked={() => setAsk(null)} />
-            : tab === 'help' ? <DeckHelps deck={deck} uid={uid} mine notify={notify} update={update} ask={helpAsk} onAsked={() => setHelpAsk(null)} />
-            : <DeckSections deck={deck} update={update} touch={mobile} tab={tab} onTab={setTab} notify={notify}
-            onDilemma={(cards) => { setAsk(cards); setTab('dilemmas'); }}
-            onHelp={(cards) => { setHelpAsk(cards); setTab('help'); }}
-            onPrint={(rows) => onPrintDeck(toPrintEntries({ cards: rows.map((r) => ({ ...r, board: 'main' })) }), true)} />}
+          {mobile ? <>{cards('all')}<div className="deck-part">{dilemmas}</div><div className="deck-part deck-part-help">{helps}</div></>
+            : tab === 'dilemmas' ? dilemmas : tab === 'help' ? helps : cards(tab)}
         </section>
       </div>
       </div>

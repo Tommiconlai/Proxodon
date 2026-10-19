@@ -2153,6 +2153,11 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .mobile-cards { height: 100%; position: relative; display: flex; flex-direction: column; }
 /* Override del min-height:75vh mobile su .preview-root: in colonna deve cedere spazio invece di forzare l'altezza. */
 .mobile-cards .preview-root { min-height: 0; }
+/* Print da telefono: titolo e azioni in cima; i pulsanti sono quelli della ricerca dei mazzi (.decks-filter-btn), larghi uguali. */
+.print-top { flex: none; padding: calc(16px + env(safe-area-inset-top, 0px)) 14px 0; }
+.print-top .decks-head { margin-bottom: 14px; min-height: 0; }
+.print-actions { display: flex; gap: 12px; }
+.print-actions .decks-filter-btn { flex: 1; width: auto; }
 /* z-index sopra il menu della X (.mnav, 70): il foglio copre anche la X. */
 .sheet-overlay { position: absolute; inset: 0; z-index: 75; background: rgba(8,9,12,0.5);
   display: flex; align-items: flex-end; animation: fade-in 0.15s ease both; } /* solo opacità: un translate farebbe scorrere .mobile-body */
@@ -2874,6 +2879,8 @@ a.deck-tile.deck-add { text-decoration: none; }
 .deck-like span { color: var(--text-primary); }
 .deck-name-static { overflow-wrap: anywhere; }
 .deck-sections.tab-stats .deck-analysis { width: auto; min-width: 0; margin-top: 0; }
+.deck-part { margin-top: 48px; } /* telefono: Dilemmas e Help sotto carte e Stats, staccati come Stats */
+.deck-editor.is-mobile :is(.deck-part, .deck-analysis) { scroll-margin-top: 110px; } /* portate in vista (Help, tour): sotto la barra ferma */
 /* Dilemmi (Dilemmas.jsx): elenco, dilemma aperto (due carte, nome del mazzo, domanda, voto, spiegazioni,
    lista del mazzo) e finestra New dilemma. */
 .dilemma-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }

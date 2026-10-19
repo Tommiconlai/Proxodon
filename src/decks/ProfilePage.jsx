@@ -3,6 +3,7 @@ import { listenDecks, saveProfile, claimNickname, countAnswered, listenDilemmas,
 import { updateNickname, authMessage } from './firebase';
 import { deckCover } from './deckModel';
 import { navigate } from '../hooks/useHashRoute';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { Avatar } from './AccountMenu';
 import { DeckTile, GhostTile } from './DeckList';
 import { DilemmaTile } from './Dilemmas';
@@ -44,6 +45,7 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
   const [decks, setDecks] = useState(null); // null = caricamento
   const [dialog, setDialog] = useState(null); // 'photo' | 'banner'
   const [confirmAll, setConfirmAll] = useState(false);
+  const mobile = useIsMobile(); // telefono e tablet: il titolo della pagina (non c'è testata)
   const [loadError, setLoadError] = useState(null); // listener dei mazzi fallito: messaggio invece degli spinner
   useEffect(() => listenDecks(user.uid, (d) => { setDecks(d); setLoadError(null); }, setLoadError), [user.uid]);
   const pub = (decks || []).filter((d) => d.public);
@@ -101,6 +103,7 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
 
   return (
     <div className="decks-root profile-page">
+      {mobile && <header className="decks-head"><h1 className="decks-title">Profile</h1></header>}
       <section className={`profile-hero${small ? ' small' : ''}`} aria-label="Profile" ref={heroRef}>
         <CutFrame w={hero[0]} h={hero[1]} cuts={cuts}>
           <span className={`profile-banner${banner ? ' art' : ''}`} style={banner ? { backgroundImage: `url("${banner}")` } : undefined} />

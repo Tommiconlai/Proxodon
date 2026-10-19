@@ -6,7 +6,6 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import { navigate } from '../hooks/useHashRoute';
 import DeckSections from './DeckSections';
 import { DeckBand, DeckTitle, DeckCount, DeckTopBar, DeckTagList } from './DeckTabs';
-import { setDeckNav } from '../components/deckNav';
 import { DeckDilemmas } from './Dilemmas';
 import { DeckHelps, HelpQuestion, HelpReply } from './HelpRequests';
 import { ExportDeckDialog } from './dialogs';
@@ -30,12 +29,6 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
   const scrollRef = useRef(null); // .deck-scroll: Back to top della barra in cima (DeckTopBar, telefono)
   const [stuck, setStuck] = useState(false); // la testata è uscita: la barra delle schede ha lo sfondo
   const mobile = useIsMobile();
-  // Telefono e tablet: schede nel menu della X (MobileNav), ritorno alla Community; la pagina di una richiesta non ne ha.
-  useEffect(() => {
-    if (!mobile || helpId) return undefined;
-    setDeckNav({ tab, onTab: setTab, back: 'community' });
-    return () => setDeckNav(null);
-  }, [mobile, helpId, tab]);
   // Immagini solo da Scryfall: vale per testata, carte, anteprima e per la copia in Copy to my decks.
   useEffect(() => listenPublicDeck(id, setDeck, (e) => { setDeck(null); notify(`Could not load this deck: ${e.message}`, 'error'); }), [id, notify]);
   const update = useCallback((fn) => setDeck((d) => d && fn(d)), []);
@@ -93,6 +86,10 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
   );
   // La pagina di una richiesta non ha barra né fascia: nome e formato restano nella testata anche da desktop.
   const inHero = mobile || helpId;
+  // Da desktop una scheda alla volta, da telefono tutto in fila (carte, Stats, Dilemmas, Help).
+  const cards = (t) => <DeckSections deck={deck} update={update} touch={mobile} readOnly tab={t} onTab={mobile ? undefined : setTab} />;
+  const dilemmas = <DeckDilemmas deck={deck} uid={uid} mine={false} notify={notify} />;
+  const helps = <DeckHelps deck={deck} uid={uid} mine={deck.uid === uid} notify={notify} />;
   return (
     <div className={`deck-editor${mobile ? ' is-mobile' : ''}`}>
       <div className="deck-scroll" ref={scrollRef} onScroll={mobile ? undefined : (e) => setStuck(e.currentTarget.scrollTop > (heroRef.current?.offsetHeight || 0) - STUCK_AT)}>
@@ -134,7 +131,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
             </div>
           </div>
         </header>
-        {!helpId && (mobile ? <DeckTopBar deck={deck} showCount={tab === 'deck'} scrollRef={scrollRef} />
+        {!helpId && (mobile ? <DeckTopBar deck={deck} showCount scrollRef={scrollRef} />
           : <DeckBand tab={tab} onTab={setTab} format={<span className="deck-format-static">{formatLabel(deck.format)}</span>} />)}
         <div className="deck-body">
           <section className="deck-main">
@@ -142,9 +139,8 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
               help === undefined ? <div className="help-page"><span className="import-spinner" role="status" aria-label="Loading" /></div>
                 : help === null ? <div className="help-page"><p className="field-hint">This help request is no longer available. <a href="#/help">All help requests</a></p></div>
                   : <HelpReply deck={deck} help={help} uid={uid} notify={notify} update={update} touch={mobile} />
-            ) : tab === 'dilemmas' ? <DeckDilemmas deck={deck} uid={uid} mine={false} notify={notify} />
-              : tab === 'help' ? <DeckHelps deck={deck} uid={uid} mine={deck.uid === uid} notify={notify} />
-              : <DeckSections deck={deck} update={update} touch={mobile} readOnly tab={tab} onTab={setTab} />}
+            ) : mobile ? <>{cards('all')}<div className="deck-part">{dilemmas}</div><div className="deck-part">{helps}</div></>
+              : tab === 'dilemmas' ? dilemmas : tab === 'help' ? helps : cards(tab)}
           </section>
         </div>
       </div>

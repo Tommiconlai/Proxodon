@@ -127,8 +127,8 @@ export function DeckCount({ deck, plain }) {
 }
 
 // Telefono e tablet: barra ferma in cima sotto la testata (sticky, col fondo quando è attaccata, .solid): la ricerca
-// delle carte sempre aperta (search, solo nell'editor), il conteggio senza chip (showCount, scheda Deck) e Back to
-// top dopo 600 px di scorrimento (scrollRef = .deck-scroll). Le schede sono nel menu della X (MobileNav).
+// delle carte sempre aperta (search, solo nell'editor), il conteggio senza chip (showCount) e Back to top dopo 600 px
+// di scorrimento (scrollRef = .deck-scroll). Niente schede: carte, Stats, Dilemmas e Help stanno in fila nella pagina.
 export function DeckTopBar({ deck, showCount, scrollRef, search }) {
   const ref = useRef(null);
   const [solid, setSolid] = useState(false);

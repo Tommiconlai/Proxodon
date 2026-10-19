@@ -3,10 +3,10 @@ import PageSettings from '../components/PageSettings';
 import PagePreview from '../components/PagePreview';
 import ExportProgress from '../components/ExportProgress';
 import { NavMenu } from '../components/MobileNav';
-import { navItems } from '../components/deckNav';
+import { navItems } from '../components/navItems';
 import { getGridInfo } from '../utils/pdfGenerator';
 import {
-  IconPlus, IconImage, IconDownload, IconFile, IconTrash, IconCopy, IconFrame, IconSparkles,
+  IconPlus, IconImage, IconDownload, IconFile, IconTrash, IconCopy, IconFrame, IconSparkles, IconNavAdd, IconNavSettings, IconNavExport,
 } from '../components/icons';
 import Tutorial from './Tutorial';
 import { touches } from './control';
@@ -26,14 +26,12 @@ function PrintStage({ apiRef, step, mobile }) {
   const [s, setS] = useState(SETTINGS);
   const [dragOver, setDragOver] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [navOpen, setNavOpen] = useState(false);
   useLayoutEffect(() => {
     apiRef.current = {
       add: (n) => setImages((l) => [...l, ...printImages(n, l.length)]),
       swap: (a, b) => setImages((l) => { const n = [...l]; [n[a], n[b]] = [n[b], n[a]]; return n; }),
       set: (k, v) => setS((o) => ({ ...o, [k]: v })),
       dragOver: setDragOver,
-      nav: setNavOpen,
       addMenu: setAddOpen,
     };
   }, [apiRef]);
@@ -50,8 +48,16 @@ function PrintStage({ apiRef, step, mobile }) {
   if (mobile) {
     return (
       <main className="mobile-body">
-        <NavMenu {...navItems(null, '/print')} open={navOpen} onItem={(k, h, e) => e.preventDefault()} onToggle={noop} />
+        <NavMenu {...navItems('/print')} open={false} onItem={noop} onToggle={noop} />
         <div className="mobile-cards">
+          <div className="print-top">
+            <header className="decks-head"><h1 className="decks-title">Print</h1></header>
+            <div className="print-actions">
+              <button type="button" className="decks-filter-btn" aria-label="Add cards"><IconNavAdd size={20} /></button>
+              <button type="button" className="decks-filter-btn" aria-label="Settings"><IconNavSettings size={20} /></button>
+              <button type="button" className="decks-filter-btn" aria-label="Export"><IconNavExport size={20} /></button>
+            </div>
+          </div>
           {preview}
           {addOpen && (
             <div className="sheet-overlay">
@@ -189,27 +195,13 @@ const DESKTOP = [
   },
 ];
 
-// Da telefono le azioni stanno nel menu della X: si apre e si indica la voce.
-const navStep = (title, text) => ({
-  target: '.mnav', title, text,
-  play: async (g) => {
-    await g.click('.mnav-x', 'Tap', () => g.api.nav(true));
-    await g.wait(400);
-    await g.move(`.mnav-item[aria-label="${title}"]`);
-    g.say(title);
-    await g.wait(1300);
-  },
-});
-
 const MOBILE = [
   SHEET,
   {
-    target: '.mnav', cards: 6, title: 'Add cards',
-    text: 'Open the X menu and tap + to upload images or import from Scryfall (a card list) and from an MPCFill XML.',
+    target: '.print-actions [aria-label="Add cards"]', cards: 6, title: 'Add cards',
+    text: 'Tap + at the top to upload images or import from Scryfall (a card list) and from an MPCFill XML.',
     play: async (g) => {
-      await g.click('.mnav-x', 'Tap', () => g.api.nav(true));
-      await g.wait(400);
-      await g.click('.mnav-item[aria-label="Add cards"]', 'Tap', () => { g.api.nav(false); g.api.addMenu(true); });
+      await g.click('.print-actions [aria-label="Add cards"]', 'Tap', () => g.api.addMenu(true));
       g.spot('.sheet');
       await g.move('.sheet button:nth-of-type(2)');
       await g.wait(1800);
@@ -229,8 +221,8 @@ const MOBILE = [
     text: 'Long-press a card for its options: change art, upscale, duplicate, bleed, remove. With several cards selected the menu acts on all of them.',
     play: (g) => g.menu(card(1), MENU_ONE('Counterspell'), { text: 'Long press', hold: true, effect: select }),
   },
-  navStep('Settings', 'Sheet and card size, bleed, crop marks, DPI and CMYK.'),
-  navStep('Export', 'Generate PDF makes the print-ready file.'),
+  { target: '.print-actions [aria-label="Settings"]', title: 'Settings', text: 'Sheet and card size, bleed, crop marks, DPI and CMYK.' },
+  { target: '.print-actions [aria-label="Export"]', title: 'Export', text: 'Generate PDF makes the print-ready file.' },
 ];
 
 const TOURS = {

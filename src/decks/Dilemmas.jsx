@@ -32,6 +32,12 @@ export function DeckDilemmas({ deck, uid, mine, notify, ask, onAsked }) {
   const [error, setError] = useState(null);
   const [openId, setOpenId] = useState(null);
   const [creating, setCreating] = useState(ask ?? null); // carte iniziali del nuovo dilemma, null = chiuso
+  // Da telefono la sezione è già montata (mazzo tutto in una pagina): un Dilemma nuovo dal menu delle carte apre la bozza.
+  const [lastAsk, setLastAsk] = useState(ask);
+  if (ask !== lastAsk) {
+    setLastAsk(ask);
+    if (ask) setCreating(ask);
+  }
   const answered = useAnswered(uid);
   useBackClose(!!openId, () => setOpenId(null)); // back del sistema = torna all'elenco, non lascia il mazzo
   const live = !!deck.public;

@@ -312,8 +312,9 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
 
   return (
     <div className="decks-root decks-page" ref={rootRef}>
-      {/* Desktop: la fascia a trapezi del Figma 52:275; telefono e tablet: le schede sono nel menu della X (MobileNav). */}
-      {!mobile && <ListBand items={LIST_TABS.map(([t, label]) => [t, label, listHref(t)])} current={tab} />}
+      {/* Desktop: la fascia a trapezi del Figma 52:275; telefono e tablet: il titolo, le schede sono nel menu della X (MobileNav). */}
+      {mobile ? <header className="decks-head"><h1 className="decks-title">{LIST_TABS.find(([t]) => t === tab)[1]}</h1></header>
+        : <ListBand items={LIST_TABS.map(([t, label]) => [t, label, listHref(t)])} current={tab} />}
 
       {!open && !play && <>
       <div className="decks-search" role="search">

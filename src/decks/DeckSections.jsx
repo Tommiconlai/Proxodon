@@ -83,7 +83,8 @@ const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 // sezione porta il mazzo in raggruppamento custom; da telefono si sposta tutto dal menu.
 // readOnly (Community): niente menu (solo View card), trascinamento, +/- e sezioni nuove; update cambia solo la vista.
 // onCut(rows) (help request, anche in sola lettura): Suggest cut nel menu e carte trascinabili verso la zona Cuts.
-// tab (schede: DeckBand da desktop, menu della X da telefono): 'deck' = barra e carte, 'stats' = statistiche e mano di prova.
+// tab (schede di DeckBand da desktop): 'deck' = barra e carte, 'stats' = statistiche e mano di prova; 'all' (telefono, una
+// sola pagina) = le carte e sotto le statistiche.
 // onPrint(rows): Print nel menu, porta le righe scelte (anche una sola) nella stampa.
 // notify(msg, kind, action): Remove e − sull'ultima copia tolgono subito, con Undo nel toast.
 // View card (menu, anche in sola lettura): la carta a tutto schermo, per leggerla da telefono.
@@ -516,7 +517,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     <div className={`deck-sections ${tab === 'stats' ? 'tab-stats' : `view-${layout}`}${settings.density === 'compact' ? ' density-compact' : ''}`} ref={rootRef} {...marqueeHandlers}
       onKeyDown={(e) => { if (e.key === 'Escape' && sel.size && !menu) { e.stopPropagation(); setSel(new Set()); } }}>
       {marquee && <div className="marquee" style={marquee} aria-hidden="true" />}
-      {tab === 'deck' && <>
+      {tab !== 'stats' && <>
       {view !== 'list' && <CardFrameDefs />}
       <div className="deck-toolbar">
         <label className="deck-tool">
@@ -567,8 +568,8 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
         </details>
       )}
       </>}
-      {/* Scheda Stats: statistiche e mano di prova. */}
-      {tab === 'stats' && <div className="deck-analysis">
+      {/* Scheda Stats (o sotto le carte, da telefono): statistiche e mano di prova. */}
+      {tab !== 'deck' && <div className="deck-analysis">
         <section aria-labelledby="deck-stats-head">
           <h3 className="deck-analysis-head" id="deck-stats-head">Stats</h3>
           <DeckStats deck={deck} onSelect={pick} />
@@ -627,7 +628,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
       {viewing && <CardView card={viewing} onClose={() => setViewing(null)} />}
       {/* Telefono: − / + della carta selezionata, grandi, sopra la barra in basso (sulla carta non
           stanno a 44 px nella fascia scoperta degli stack). */}
-      {touch && !readOnly && view !== 'list' && tab === 'deck' && selected.length === 1 && (() => {
+      {touch && !readOnly && view !== 'list' && tab !== 'stats' && selected.length === 1 && (() => {
         const r = deck.cards.find((x) => x.id === selected[0]);
         return r && createPortal(
           <div className="deck-sel-bar" role="group" aria-label={`${r.card.name}, ${r.qty} ${r.qty === 1 ? 'copy' : 'copies'}`}>

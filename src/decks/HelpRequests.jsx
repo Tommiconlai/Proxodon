@@ -52,6 +52,12 @@ export function DeckHelps({ deck, uid, mine, notify, update, ask, onAsked }) {
   const [error, setError] = useState(null);
   const [openId, setOpenId] = useState(null);
   const [creating, setCreating] = useState(() => (ask ? { cards: ask } : null));
+  // Da telefono la sezione è già montata (mazzo tutto in una pagina): Ask for help dal menu delle carte apre la bozza.
+  const [lastAsk, setLastAsk] = useState(ask);
+  if (ask !== lastAsk) {
+    setLastAsk(ask);
+    if (ask) setCreating({ cards: ask });
+  }
   useBackClose(!!openId, () => setOpenId(null)); // back del sistema = torna all'elenco, non lascia il mazzo
   useEffect(() => { if (ask) onAsked?.(); }, [ask, onAsked]); // tornando sulla scheda non riparte
   const live = !!deck.public;

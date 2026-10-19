@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Wordmark } from './icons';
-import { useBackClose, closingBack } from '../hooks/useBackClose';
+import { useBackClose } from '../hooks/useBackClose';
 import { navigate } from '../hooks/useHashRoute';
-import { navItems, useDeckNav } from './deckNav';
+import { navItems } from './navItems';
 
 // Posizioni sull'arco sopra la X (Figma 57:116: quattro voci da 167° a 13°, raggio 58); con più voci il raggio
 // cresce, così tra due tondi da 32 restano almeno 6 px.
@@ -24,14 +24,10 @@ export function NavMenu({ items, current, onItem, open, onToggle, children }) {
       <ul className="mnav-items" inert={!open}>
         {items.map((item, i) => {
           const [key, label, href, Icon] = item;
-          const props = {
-            className: 'mnav-item', 'aria-label': label, title: label, onClick: (e) => onItem(key, href, e),
-            style: { '--x': `${pos[i][0]}px`, '--y': `${pos[i][1]}px`, '--i': i },
-          };
           return (
             <li key={key}>
-              {href ? <a href={href} aria-current={key === current ? 'page' : undefined} {...props}><Icon /></a>
-                : <button type="button" aria-current={key === current ? 'true' : undefined} {...props}><Icon /></button>}
+              <a href={href} className="mnav-item" aria-label={label} title={label} aria-current={key === current ? 'page' : undefined}
+                onClick={(e) => onItem(href, e)} style={{ '--x': `${pos[i][0]}px`, '--y': `${pos[i][1]}px`, '--i': i }}><Icon /></a>
             </li>
           );
         })}
@@ -44,11 +40,9 @@ export function NavMenu({ items, current, onItem, open, onToggle, children }) {
   );
 }
 
-// Nell'app (MobileLayout): voci dalla rotta, o le schede del mazzo aperto (deckNav); le voci senza link sono schede del
-// mazzo (deck.onTab) o azioni della pagina (onAction: Add cards, Settings, Export in Print). Si chiude scegliendo una
-// voce, con la X, Esc, il back del sistema o toccando fuori (non nel menu dell'avatar, che è un portale).
-export default function MobileNav({ route, onAction, children }) {
-  const deck = useDeckNav();
+// Nell'app (MobileLayout): le pagine, accesa quella della rotta. Si chiude scegliendo una voce, con la X, Esc, il back
+// del sistema o toccando fuori (non nel menu dell'avatar, che è un portale).
+export default function MobileNav({ route, children }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useBackClose(open, () => setOpen(false));
@@ -61,26 +55,13 @@ export default function MobileNav({ route, onAction, children }) {
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('pointerdown', onDown); document.removeEventListener('keydown', onKey); };
   }, [open]);
-  const { items, current } = navItems(deck, route);
-  const onItem = (key, href, e) => {
+  const { items, current } = navItems(route);
+  // La pagina nuova prende il posto della voce del menu in cronologia (navigate). Col default del link la chiusura del
+  // menu farebbe history.back() dopo il cambio di hash, e si tornerebbe alla pagina di prima.
+  const onItem = (href, e) => {
+    e.preventDefault();
     setOpen(false);
-    // Link: la pagina nuova prende il posto della voce del menu in cronologia (navigate). Col default del link la
-    // chiusura del menu farebbe history.back() dopo il cambio di hash, e si tornerebbe alla pagina di prima.
-    if (href) {
-      e.preventDefault();
-      if (href !== window.location.hash) navigate(href.slice(1)); // la pagina aperta: si chiude e basta
-      return;
-    }
-    if (deck) deck.onTab(key);
-    // Le azioni aprono un overlay con la sua voce in cronologia: dopo che il menu ha tolto la sua, sennò il suo
-    // history.back() toglierebbe quella dell'overlay (e Indietro lascerebbe la pagina invece di chiuderlo).
-    else if (onAction) {
-      setTimeout(() => {
-        const run = () => onAction(key);
-        if (closingBack()) window.addEventListener('popstate', () => setTimeout(run), { once: true });
-        else run();
-      });
-    }
+    if (href !== window.location.hash) navigate(href.slice(1)); // la pagina aperta: si chiude e basta
   };
   return (
     <div className="mnav-wrap" ref={ref}>

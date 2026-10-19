@@ -31,6 +31,7 @@ export default function DeckHelp({ editor }) {
             <li><b>Options</b>. Long-press a card, or the selection: change edition, split, set as commander, move to a board or a section, remove.</li>
             <li><b>Organize</b>. <b>Group</b>, <b>Sort</b> and <b>View</b> above the cards. <b>New section</b> makes your own groups.</li>
             <li><b>Cover</b>. Tap the art behind the deck name to pick another card.</li>
+            <li><b>More</b>. <b>Stats</b>, <b>Dilemmas</b> and <b>Help</b> follow the cards, further down.</li>
           </ol>
         ) : (
           <ol>

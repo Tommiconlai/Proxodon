@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { IconFile, IconDownload, IconImage, IconX } from './icons';
+import { IconFile, IconDownload, IconImage, IconX, IconNavAdd, IconNavSettings, IconNavExport } from './icons';
 import MobileNav from './MobileNav';
 import PageSettings from './PageSettings';
 import PagePreview from './PagePreview';
@@ -8,7 +8,7 @@ import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 import { useBackClose } from '../hooks/useBackClose';
 import HelpTour from '../tutorial/HelpTour';
 
-// Pagina overlay full-screen (Settings / Export, dal menu della X): si apre dal basso, header + chiudi.
+// Pagina overlay full-screen (Settings / Export, dalla barra in cima a Print): si apre dal basso, header + chiudi.
 export function MobilePage({ title, onClose, children }) {
   const dismissRef = useOverlayDismiss(onClose); // Esc chiude + focus nella pagina
   return (
@@ -22,9 +22,9 @@ export function MobilePage({ title, onClose, children }) {
   );
 }
 
-// Telefono e tablet in verticale: niente testata né barra; in basso il menu della X (MobileNav) con le schede o, in
-// Print, le azioni della pagina (onAction), più il ? e il profilo. Area mazzi (altBody): ? e avatar arrivano da
-// DecksView nel portale headerSlot, dentro il menu.
+// Telefono e tablet in verticale: niente testata; in basso il menu della X (MobileNav) con le pagine, il ? e il profilo.
+// Print: in cima il titolo e la barra Add cards / Settings / Export (lo stile della ricerca dei mazzi), poi il foglio.
+// Area mazzi (altBody): ? e avatar arrivano da DecksView nel portale headerSlot, dentro il menu.
 export default function MobileLayout({ settingsProps, previewProps, actions, addMenu, route, altBody, headerSlot, account }) {
   const [addOpen, setAddOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -51,10 +51,10 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
         <button type="button" className="help-tooltip-close" aria-label="Close help" title="Close help" onClick={() => setHelpOpen(false)}>✕</button>
         <strong>How it works</strong>
         <ol>
-          <li><b>Add cards</b>. Open the <b>X</b> menu and tap <b>＋</b> to upload images or import from Scryfall (a card list).</li>
-          <li><b>Set up</b>. <b>Settings</b> in the X menu: sheet &amp; card size, bleed, crop marks, CMYK.</li>
+          <li><b>Add cards</b>. Tap <b>＋</b> at the top to upload images or import from Scryfall (a card list).</li>
+          <li><b>Set up</b>. <b>Settings</b> (the sliders at the top): sheet &amp; card size, bleed, crop marks, CMYK.</li>
           <li><b>Tweak</b>. Select as many cards as you like, then long-press for the menu: change art, duplicate, bleed, remove. With several selected the menu acts on all of them.</li>
-          <li><b>Export</b>. <b>Export</b> in the X menu for <b>Generate PDF</b>.</li>
+          <li><b>Export</b>. <b>Export</b> (the PDF at the top right) for <b>Generate PDF</b>.</li>
         </ol>
         <p className="help-controls"><b>Tap</b> select or deselect · <b>Long-press</b> options</p>
         <HelpTour onStart={() => setHelpOpen(false)} />
@@ -70,6 +70,14 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
         : (
           <main className="mobile-body">
             <div className="mobile-cards">
+              <div className="print-top">
+                <header className="decks-head"><h1 className="decks-title">Print</h1></header>
+                <div className="print-actions">
+                  <button type="button" className="decks-filter-btn" onClick={() => setAddOpen(true)} aria-label="Add cards" title="Add cards"><IconNavAdd size={20} /></button>
+                  <button type="button" className="decks-filter-btn" onClick={() => setPage('settings')} aria-label="Settings" title="Settings"><IconNavSettings size={20} /></button>
+                  <button type="button" className="decks-filter-btn" onClick={() => setPage('export')} aria-label="Export" title="Export"><IconNavExport size={20} /></button>
+                </div>
+              </div>
               <PagePreview {...previewProps} touch />
 
               {addOpen && (
@@ -90,7 +98,7 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
           </main>
         )}
 
-      <MobileNav route={route} onAction={(k) => (k === 'add' ? setAddOpen(true) : setPage(k))}>{altBody ? <div className="header-slot" ref={headerSlot} /> : <>{help}{account}</>}</MobileNav>
+      <MobileNav route={route}>{altBody ? <div className="header-slot" ref={headerSlot} /> : <>{help}{account}</>}</MobileNav>
 
       {page === 'settings' && (
         <MobilePage title="Settings" onClose={() => setPage(null)}>

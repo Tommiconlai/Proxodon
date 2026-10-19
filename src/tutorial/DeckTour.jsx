@@ -6,7 +6,7 @@ import { C, demoDeck, myDecks, communityDecks, LIKES, dilemmas, DILEMMA_VOTES, h
 import DeckSections from '../decks/DeckSections';
 import { DeckBand, DeckTitle, DeckCount, DeckTopBar, DeckTagList, ListBand } from '../decks/DeckTabs';
 import { NavMenu } from '../components/MobileNav';
-import { navItems } from '../components/deckNav';
+import { navItems } from '../components/navItems';
 import { DeckTile, GhostTile, FolderTile } from '../decks/DeckList';
 import { DilemmaTile } from '../decks/Dilemmas';
 import { HelpItem, HelpQuestion, CardChips } from '../decks/HelpRequests';
@@ -41,9 +41,9 @@ function FakeSearch({ q, active = 0, adv = true }) {
   );
 }
 
-// Il menu della X da telefono, come nell'app (copia con lo stato del tutorial: api.nav lo apre e lo chiude).
+// Il menu della X da telefono, come nell'app (copia: nelle liste api.nav lo apre e lo chiude, nei mazzi resta chiuso).
 const DemoNav = ({ items, current, open }) => (
-  <NavMenu items={items} current={current} open={open} onItem={(k, h, e) => e.preventDefault()} onToggle={noop}>
+  <NavMenu items={items} current={current} open={open} onItem={noop} onToggle={noop}>
     <div className="help"><button type="button" className="help-btn" aria-label="Help for this page" title="Help for this page">?</button></div>
     <span className="account-btn" aria-hidden="true"><span>D</span></span>
   </NavMenu>
@@ -63,7 +63,6 @@ function DeckStage({ apiRef, mobile, mode }) {
   const [add, setAdd] = useState([]);
   const [why, setWhy] = useState('');
   const [over, setOver] = useState(false);
-  const [navOpen, setNavOpen] = useState(false);
   const [stuck, setStuck] = useState(false); // come nell'editor: la barra in alto prende lo sfondo quando la testata esce
   const scrollRef = useRef(null);
   const heroRef = useRef(null);
@@ -71,7 +70,7 @@ function DeckStage({ apiRef, mobile, mode }) {
     const once = (set) => (card) => set((l) => (l.some((c) => c.oid === card.oid) ? l : [...l, card]));
     apiRef.current = {
       update: (fn) => setDeck((d) => fn(d)), tab: setTab, query: setQ, active: setActive, like: () => setLiked((v) => !v),
-      cut: once(setCut), suggest: once(setAdd), why: setWhy, over: setOver, nav: setNavOpen,
+      cut: once(setCut), suggest: once(setAdd), why: setWhy, over: setOver,
     };
   }, [apiRef]);
   const update = (fn) => setDeck((d) => fn(d));
@@ -98,6 +97,10 @@ function DeckStage({ apiRef, mobile, mode }) {
     </select>
   ) : <span className="deck-format-static">{formatLabel(deck.format)}</span>;
   const inHero = mobile || help; // come nell'editor e nella Community: da desktop nome in alto, formato nella fascia
+  const cards = (t) => (
+    <DeckSections deck={deck} update={update} touch={mobile} readOnly={!editor} tab={t} onTab={mobile ? undefined : setTab} notify={noop}
+      onPrint={editor ? noop : undefined} onDilemma={editor ? noop : undefined} onHelp={editor ? noop : undefined} />
+  );
   const btn = (Icon, label, extra = '') => (
     <button type="button" className={`btn-secondary deck-icon-btn${extra}`} aria-label={label} title={label}><Icon size={17} /></button>
   );
@@ -130,21 +133,19 @@ function DeckStage({ apiRef, mobile, mode }) {
               </div>
             </div>
           </header>
-          {!help && (mobile ? <DeckTopBar deck={deck} showCount={tab === 'deck'} scrollRef={scrollRef} search={editor ? <FakeSearch q={q} active={active} /> : null} />
+          {!help && (mobile ? <DeckTopBar deck={deck} showCount scrollRef={scrollRef} search={editor ? <FakeSearch q={q} active={active} /> : null} />
             : <DeckBand tab={tab} onTab={setTab} format={format} />)}
           <div className="deck-body">
             <section className="deck-main">
               {help ? <HelpReplyDemo deck={deck} update={update} mobile={mobile} cut={cut} add={add} q={q} why={why} over={over} />
+                : mobile ? <>{cards('all')}<div className="deck-part deck-part-dilemmas"><TabDilemmas deck={deck} mine={editor} /></div><div className="deck-part deck-part-help"><TabHelps deck={deck} mine={editor} /></div></>
                 : tab === 'dilemmas' ? <TabDilemmas deck={deck} mine={editor} />
-                : tab === 'help' ? <TabHelps deck={deck} mine={editor} /> : (
-                <DeckSections deck={deck} update={update} touch={mobile} readOnly={!editor} tab={tab} onTab={setTab} notify={noop}
-                  onPrint={editor ? noop : undefined} onDilemma={editor ? noop : undefined} onHelp={editor ? noop : undefined} />
-              )}
+                : tab === 'help' ? <TabHelps deck={deck} mine={editor} /> : cards(tab)}
             </section>
           </div>
         </div>
         {!mobile && tab === 'deck' && !help && <DeckCount deck={deck} />}
-        {mobile && <DemoNav {...navItems(help ? null : { tab, back: editor ? 'mine' : 'community' }, '/help')} open={navOpen} />}
+        {mobile && <DemoNav {...navItems(editor ? '/decks' : '/community')} open={false} />}
       </div>
     </Shell>
   );
@@ -291,8 +292,11 @@ function ListStage({ apiRef, step, mobile, tab }) {
   return (
     <Shell mobile={mobile}>
       <div className="decks-root decks-page">
-        {/* Come DeckList: da desktop la fascia a trapezi, da telefono e tablet le schede nel menu della X. */}
-        {mobile ? <DemoNav {...navItems(null, tab === 'mine' ? '/decks' : `/${tab}`)} open={navOpen} /> : <ListBand items={LIST_TABS} current={tab} />}
+        {/* Come DeckList: da desktop la fascia a trapezi, da telefono e tablet il titolo e le schede nel menu della X. */}
+        {mobile ? <>
+          <header className="decks-head"><h1 className="decks-title">{LIST_TABS.find(([t]) => t === tab)[1]}</h1></header>
+          <DemoNav {...navItems(tab === 'mine' ? '/decks' : `/${tab}`)} open={navOpen} />
+        </> : <ListBand items={LIST_TABS} current={tab} />}
         {!open && (
           <div className="decks-search" role="search">
             <label className="decks-search-box">
@@ -484,24 +488,27 @@ function editorSteps(mobile) {
     text: 'Group by type, mana value or your own sections. Sort and View apply to every deck.',
     play: (g) => g.click('.deck-toolbar .deck-tool:nth-of-type(3) select', mobile ? 'Tap' : 'Group by', () => g.api.update((d) => ({ ...d, groupBy: 'mv' }))),
   };
-  // Da telefono le schede sono nel menu della X: si apre, si tocca la voce, il menu si chiude.
+  // Da telefono niente schede: Stats, Dilemmas e Help stanno sotto le carte, si scende fino alla sezione.
+  const PART = ['', '.deck-analysis', '.deck-part-dilemmas', '.deck-part-help'];
   const tabStep = (n, title, text) => ({
-    target: mobile ? '.mnav' : '.deck-tabs', title, text,
+    target: mobile ? PART[n - 1] : '.deck-tabs', title, text,
     play: async (g) => {
-      const key = ['deck', 'stats', 'dilemmas', 'help'][n - 1];
       if (mobile) {
-        await g.click('.mnav-x', tap, () => g.api.nav(true));
-        await g.wait(400);
-        await g.click(`.mnav-item[aria-label="${title}"]`, tap, () => { g.api.nav(false); g.api.tab(key); });
-      } else await g.click(`.deck-tabs .decks-tab:nth-child(${n})`, tap, () => g.api.tab(key));
-      g.spot('.deck-main');
+        g.el(PART[n - 1]).scrollIntoView({ block: 'start' }); // in cima, sotto la barra ferma (uno smooth lo fermerebbe move)
+        await g.wait(300);
+        await g.move(`${PART[n - 1]} .deck-analysis-head`);
+        g.spot(PART[n - 1]);
+      } else {
+        await g.click(`.deck-tabs .decks-tab:nth-child(${n})`, tap, () => g.api.tab(['deck', 'stats', 'dilemmas', 'help'][n - 1]));
+        g.spot('.deck-main');
+      }
       await g.wait(1600);
     },
   });
   const tabs = [
     tabStep(2, 'Stats', 'Mana curve, colors, card types, prices and the cards that need attention. A bar selects its cards in the deck.'),
     {
-      target: mobile ? '.deck-main' : '.deck-tabs', side: 'above', title: 'Sample hand',
+      target: mobile ? '.sample-hand' : '.deck-tabs', side: 'above', title: 'Sample hand',
       text: 'Under the stats: draw a sample hand, mulligan, draw a card, play a card to see what you could cast.',
       play: async (g) => {
         g.api.tab('stats');
@@ -563,9 +570,9 @@ function communitySteps(mobile) {
     text: `Group, sort and view change only your screen. ${mobile ? 'Long-press' : 'Right-click'} a card to see it full screen.`,
     play: (g) => g.menu(rowSel('r13'), { title: 'Counterspell', items: [[IconEye, 'View card']] }, mobile ? { text: 'Long press', hold: true } : {}),
   }, {
-    target: mobile ? '.mnav' : '.deck-tabs', title: 'Stats, Dilemmas, Help',
-    text: `The deck’s Stats, its Dilemmas to vote on and its Help requests to answer.${mobile ? ' On the phone they are in the X menu.' : ''}`,
-    play: mobile ? (g) => g.click('.mnav-x', 'Tap', () => g.api.nav(true)) : undefined,
+    target: mobile ? '.deck-analysis' : '.deck-tabs', title: 'Stats, Dilemmas, Help',
+    text: `The deck’s Stats, its Dilemmas to vote on and its Help requests to answer.${mobile ? ' On the phone they follow the cards, further down.' : ''}`,
+    play: mobile ? (g) => g.move('.deck-analysis .deck-analysis-head') : undefined,
   }];
 }
 

@@ -165,7 +165,7 @@ const CREDITS = [
   ['Look', [
     ['Fontsource', 'https://fontsource.org', 'Chakra Petch (Cadson Demak), Space Grotesk (Florian Karsten) and JetBrains Mono (JetBrains), SIL Open Font License, bundled with the app.'],
     ['Lucide', 'https://lucide.dev', 'icons (ISC).'],
-    ['Iconify', 'https://iconify.design', 'phone menu icons: Fluent UI System Icons (Microsoft, MIT), Akar Icons (MIT), Famicons (MIT), Tabler Icons (MIT) and Basil by Craftwork (CC BY 4.0).'],
+    ['Iconify', 'https://iconify.design', 'phone menu and Print bar icons: Fluent UI System Icons (Microsoft, MIT), Akar Icons (MIT), Famicons (MIT) and Basil by Craftwork (CC BY 4.0).'],
   ]],
   ['Built with', [
     ['Firebase', 'https://firebase.google.com', 'accounts and deck sync.'],
