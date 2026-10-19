@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import CardMenu from '../components/CardMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { PrivacyPanel, CreditsPanel } from './dialogs';
-import { signOut, deleteAccount } from './firebase';
+import { signOut, deleteAccount, writesSynced } from './firebase';
 import { deleteUserData } from './deckStore';
 import { useAccount } from './useAccount';
 import { navigate } from '../hooks/useHashRoute';
@@ -36,14 +36,16 @@ export default function AccountMenu({ user, photo, notify, onDeleteData }) {
   const [privacy, setPrivacy] = useState(false);
   const [credits, setCredits] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
+  const [confirmOut, setConfirmOut] = useState(false); // modifiche non ancora sul server: uscire le perde
   const closeMenu = useCallback(() => setMenu(null), []);
+  const out = () => signOut().catch((e) => notify(e.message, 'error'));
   const label = user.displayName || user.email || 'Account';
   const items = [
     { key: 'profile', Icon: IconUser, label: 'Profile', run: () => navigate('/profile') },
     { key: 'settings', Icon: IconSettings, label: 'Settings', run: () => navigate('/settings') },
     { key: 'privacy', Icon: IconInfo, label: 'Privacy', run: () => setPrivacy(true) },
     { key: 'credits', Icon: IconSparkles, label: 'Credits', run: () => setCredits(true) },
-    { key: 'out', Icon: IconLogOut, label: 'Sign out', run: () => signOut().catch((e) => notify(e.message, 'error')) },
+    { key: 'out', Icon: IconLogOut, label: 'Sign out', run: () => writesSynced().then((ok) => (ok ? out() : setConfirmOut(true))) },
     { key: 'del', Icon: IconTrash, label: 'Delete account and data', danger: true, run: () => setConfirmDel(true) },
   ];
   return (
@@ -56,6 +58,9 @@ export default function AccountMenu({ user, photo, notify, onDeleteData }) {
       {createPortal(<>
       {privacy && <PrivacyPanel onClose={() => setPrivacy(false)} />}
       {credits && <CreditsPanel onClose={() => setCredits(false)} />}
+      <ConfirmDialog open={confirmOut} confirmLabel="Sign out"
+        message="Some changes are not synced yet (no connection?). Signing out now loses them. Sign out anyway?"
+        onCancel={() => setConfirmOut(false)} onConfirm={() => { setConfirmOut(false); out(); }} />
       <ConfirmDialog open={confirmDel} message="Delete your account and all your decks? This can’t be undone."
         confirmLabel="Delete everything" onCancel={() => setConfirmDel(false)}
         onConfirm={() => {

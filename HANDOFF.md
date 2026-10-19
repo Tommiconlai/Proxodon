@@ -200,7 +200,14 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Make private / Delete cannot be undone by a late publish (most recent, 2026-10-19):** review M2. `saveDeck` of a
+- **Sign out asks before dropping unsynced changes (most recent, 2026-10-19):** review M7. Sign out marks the
+  Firestore cache for clearing at the next start and, once signed out, the server rejects queued writes anyway:
+  deck edits made offline were lost without a word. `writesSynced(ms = 4000)` in `firebase.js` races
+  `waitForPendingWrites(db)` against a 4 s timeout; the account menu's Sign out calls it and signs out at once when
+  everything reached the server, otherwise a `ConfirmDialog` says "Some changes are not synced yet (no
+  connection?). Signing out now loses them. Sign out anyway?" (Cancel keeps the session). Checked online:
+  `writesSynced()` resolves true in 1 ms; the offline branch was not run on the real account.
+- **Make private / Delete cannot be undone by a late publish (2026-10-19):** review M2. `saveDeck` of a
   public deck writes the private deck, then (after the server accepts it) the Community copy. Make private or Delete
   in between (a save still in flight, or both queued offline) wrote the `{ uid }` placeholder first and the late
   `publish` then rewrote the full copy over it: the deck was back in the Community while private. Fixed in the

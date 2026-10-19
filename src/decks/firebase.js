@@ -9,7 +9,7 @@ import {
   signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification,
   updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider,
 } from 'firebase/auth';
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, clearIndexedDbPersistence } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, clearIndexedDbPersistence, waitForPendingWrites } from 'firebase/firestore';
 import { Capacitor } from '@capacitor/core';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 import { firebaseConfig, googleWebClientId, appCheckSiteKey } from './firebaseConfig';
@@ -123,6 +123,11 @@ export async function changePassword(current, next) {
   await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, current));
   await updatePassword(u, next);
 }
+
+// Modifiche ancora in coda (offline): uscendo si perdono (la cache si svuota, e senza account il server le rifiuta).
+// true = arrivate tutte al server entro ms; chi esce chiede conferma se no.
+export const writesSynced = (ms = 4000) =>
+  Promise.race([waitForPendingWrites(db).then(() => true, () => false), new Promise((r) => { setTimeout(r, ms, false); })]);
 
 // Nell'app si azzera anche la scelta dell'account Google, così il prossimo accesso può cambiarlo.
 export async function signOut() {
