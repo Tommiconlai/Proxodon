@@ -8,9 +8,10 @@ import { useEffect, useRef } from 'react';
 // La push aspetta un tick: lo StrictMode di sviluppo monta, smonta e rimonta l'effect subito, così la
 // prima voce non nasce nemmeno.
 const stack = [];
-let skip = 0; // popstate provocati dalle nostre history.back(), da ignorare
+let skip = 0; // popstate provocati dalle nostre history.go, da ignorare
 let seq = 0;
-export const closingBack = () => skip > 0; // un overlay appena chiuso sta ancora togliendo la sua voce
+let pending = 0; // voci di overlay chiusi nello stesso momento: tolte insieme con un solo history.go
+export const closingBack = () => skip > 0 || pending > 0; // un overlay appena chiuso sta ancora togliendo la sua voce
 if (typeof window !== 'undefined') {
   window.addEventListener('popstate', () => {
     if (skip) { skip -= 1; return; }
@@ -34,9 +35,11 @@ export function useBackClose(active, onClose) {
       clearTimeout(t);
       const i = stack.indexOf(entry);
       if (i !== -1) stack.splice(i, 1);
-      if (pushed && window.history.state?.proxodonOverlay === entry.id) {
-        skip += 1;
-        window.history.back();
+      // La sua voce è ancora sopra la pagina: in cima, o sotto quella di un overlay aperto dopo e chiuso insieme
+      // (id più alto). Due history.back() di fila ne farebbero uno solo: una voce orfana, Indietro da premere due volte.
+      if (pushed && (window.history.state?.proxodonOverlay ?? 0) >= entry.id) {
+        if (!pending) setTimeout(() => { skip += 1; window.history.go(-pending); pending = 0; });
+        pending += 1;
       }
     };
   }, [active]);

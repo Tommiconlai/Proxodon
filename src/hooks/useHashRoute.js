@@ -12,11 +12,17 @@ export function useHashRoute() {
   return useSyncExternalStore(subscribe, read, () => '/print');
 }
 
-export const navigate = (path) => { window.location.hash = path; };
+// Con un overlay aperto (voce di useBackClose in cima, es. una voce di menu che apre Profile) la pagina nuova
+// prende il posto della sua voce: sennò resterebbe orfana sotto, e Indietro andrebbe premuto due volte.
+export const navigate = (path) => {
+  if (window.history.state?.proxodonOverlay) replaceRoute(path, null);
+  else window.location.hash = path;
+};
 // Come navigate ma al posto della voce attuale, che Indietro non ritrova (il mazzo aperto è stato cancellato).
-// replaceState tiene idx (la posizione non cambia) e non manda hashchange: lo si manda a mano.
-export const replaceRoute = (path) => {
-  window.history.replaceState(window.history.state, '', `#${path}`);
+// replaceState tiene idx (la posizione non cambia; state null = pagina nuova, idx + 1 dall'hashchange) e non manda
+// hashchange: lo si manda a mano.
+export function replaceRoute(path, state = window.history.state) {
+  window.history.replaceState(state, '', `#${path}`);
   window.dispatchEvent(new HashChangeEvent('hashchange'));
 };
 

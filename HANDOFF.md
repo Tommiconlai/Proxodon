@@ -200,7 +200,18 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Esc closes the card menu before the selection (most recent, 2026-10-19):** review M22. With cards selected,
+- **No orphan history entries from menus and stacked overlays (most recent, 2026-10-19):** review M23. Each open
+  overlay pushes a history entry (`useBackClose`) and removes it on close only if it is still the current one.
+  Two leaks: (1) a menu item that navigates (account menu Profile / Settings, New deck then the editor, Print deck)
+  pushed the new page above the menu's entry, which stayed orphaned, so Back had to be pressed twice; (2) two
+  overlays closing in the same commit called `history.back()` twice in a row, which browsers can merge into one.
+  Now `navigate` replaces the overlay's entry when one is on top (`replaceRoute(path, null)`: a null state gets
+  the next `idx` from the hashchange listener), and `useBackClose` collects the entries still above the page (its
+  id or a higher one is current) and removes them with one `history.go(-n)` on the next tick (`pending`;
+  `closingBack()` also counts it, so `goBack` waits). Checked: account menu then Profile adds one entry and one
+  Back returns to `#/decks`; Esc on the menu still removes its entry. The two-overlays case was not reproduced in
+  the UI.
+- **Esc closes the card menu before the selection (2026-10-19):** review M22. With cards selected,
   the deck area's Escape handler cleared the selection and stopped the event, so the open card menu stayed (two
   Esc, the first one doing the wrong thing). The handler now skips while `menu` is open: the first Esc closes the
   menu (focus back on the row), the second clears the selection. Checked by keyboard on a real deck (no data
