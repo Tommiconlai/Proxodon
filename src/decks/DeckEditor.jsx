@@ -150,7 +150,8 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
       {!mobile && (
         <div className="deck-sticky">
           {/* Nome a sinistra, ricerca a destra. */}
-          <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`}>
+          {/* --deck-art: la copertina resta come fondo della barra attaccata, centrata. */}
+          <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`} style={cover?.card.art ? { '--deck-art': `url("${cover.card.art}")` } : undefined}>
             <DeckTitle by={owner}>
               {name}
               {deck.public && <span className="deck-likes" role="img" aria-label={`${likes} ${likes === 1 ? 'like' : 'likes'}`} title={`${likes} ${likes === 1 ? 'like' : 'likes'}`}><IconDeckHeart />{likes > 0 && <span>{likes}</span>}</span>}

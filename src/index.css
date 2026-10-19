@@ -3979,15 +3979,19 @@ span.deck-hero-art { cursor: default; }
 .deck-editor:not(.is-mobile) .deck-hero-meta .deck-icon-btn.is-public { border-color: var(--cyan); color: var(--cyan); background: rgba(0, 229, 255, 0.12); box-shadow: 0 0 10px rgba(0, 229, 255, 0.3); }
 .deck-icon-btn > svg[width="30"] { margin: -7px; } /* stampa e mondo hanno il riquadro 30x30 del design attorno al simbolo */
 
-/* Barra in alto: nome (JetBrains Mono 25 bold) e cuore a 48 / 32 px, sotto "by"; ricerca 295x38 (227 del Figma + 30%) a 6 px dal
-   bordo destro, 54 px sotto l'header, con la barra ciano sul bordo. Quando la testata esce (.stuck): alta 62,
-   col fondo; sotto si attacca la fascia. */
-.deck-editor:not(.is-mobile) .deck-sticky-bar { justify-content: space-between; align-items: flex-start; gap: 24px; padding: 32px 6px 0 48px; }
-/* Attaccata: nome e ricerca a metà tra la linea dell'header (42, sotto il logo 59.5) e quella della fascia (132,
-   l'incavo a 115), cioè a y 87, non al centro della barra (73): padding sopra 28, contenuto 34 px. */
+/* Barra in alto: nome (JetBrains Mono 25 bold) e cuore a 48 px, sotto "by"; ricerca 295x38 (227 del Figma + 30%) a 6 px
+   dal bordo destro, con la barra ciano sul bordo. Nome e ricerca sono sulla stessa riga e già dove resteranno con la
+   barra attaccata (richiesta dell'utente: niente salto all'inizio dello scroll): alta 62, padding sopra 28, contenuto
+   34 px centrato, a metà tra la linea dell'header e quella della fascia; "by" e Advanced search stanno sotto, fuori
+   dal centraggio. Quando la testata esce (.stuck) cambia solo il fondo: la copertina (--deck-art) centrata nella
+   barra, sotto un velo scuro; sotto si attacca la fascia. */
+.deck-editor:not(.is-mobile) .deck-sticky-bar { justify-content: space-between; align-items: center; gap: 24px; height: 62px; padding: 28px 6px 0 48px; }
+.deck-editor:not(.is-mobile) .deck-sticky-bar .deck-title { position: relative; }
+.deck-editor:not(.is-mobile) .deck-sticky-bar .deck-by { position: absolute; left: 0; top: 100%; white-space: nowrap; }
+.deck-editor:not(.is-mobile) .deck-hero-search .search-foot { position: absolute; right: 0; top: 100%; }
 .deck-editor:not(.is-mobile) .deck-sticky-bar.stuck {
-  height: 62px; padding: 28px 6px 0 48px; align-items: center;
-  background: var(--bg-base); border-bottom: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+  background: linear-gradient(rgba(5, 4, 10, 0.4), rgba(5, 4, 10, 0.6)), var(--deck-art, none) center / cover no-repeat, var(--bg-base);
+  border-bottom: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
 }
 .deck-title { min-width: 0; display: flex; flex-direction: column; }
 .deck-title-row { min-width: 0; display: flex; align-items: center; gap: 14px; }
@@ -4004,8 +4008,7 @@ span.deck-hero-art { cursor: default; }
 :is(.deck-sticky-bar, .deck-editor:not(.is-mobile) .deck-hero-title) .deck-like { padding: 4px; gap: 6px; background: none; border: 0; border-radius: 6px; color: var(--accent); font-size: 12px; box-shadow: none; }
 :is(.deck-sticky-bar, .deck-editor:not(.is-mobile) .deck-hero-title) .deck-like:is(:hover, :focus-visible) { box-shadow: var(--focus-ring); }
 :is(.deck-sticky-bar, .deck-editor:not(.is-mobile) .deck-hero-title) .deck-like span { color: rgba(255, 255, 255, 0.75); }
-.deck-editor:not(.is-mobile) .deck-hero-search { width: 295px; margin-top: 22px; } /* 227 del Figma + 30% (richiesta dell'utente) */
-.deck-editor:not(.is-mobile) .deck-sticky-bar.stuck .deck-hero-search { margin-top: 0; }
+.deck-editor:not(.is-mobile) .deck-hero-search { width: 295px; } /* 227 del Figma + 30% (richiesta dell'utente) */
 .deck-editor:not(.is-mobile) .deck-hero-search .search-box {
   height: 38px; gap: 9px; padding: 0 10px 0 11px; color: var(--cyan);
   background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(0, 229, 255, 0.1); border-radius: 10px;
