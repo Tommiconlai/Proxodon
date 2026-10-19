@@ -38,6 +38,7 @@ export function useCardImg(card, side = 0) {
     if (!k || known !== undefined) return undefined;
     let alive = true;
     localizedCard(card.set, card.cn, cardLang).then((c) => {
+      if (c === undefined) return; // errore momentaneo: niente cache, resta l'inglese
       remember(front, normal(c));
       if (back) remember(back, backOf(c));
       if (alive) found((n) => n + 1);

@@ -200,7 +200,14 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Deck import says what it left out (most recent, 2026-10-19):** review M8. `addEntries` drops rows past
+- **Card language cache keeps only real "not in this language" answers (most recent, 2026-10-19):** review M9.
+  `localizedCard` returned null for any error, and `useCardImg` stored null as "" in `ip:locimg:v2`: one 429 /
+  5xx / network hiccup meant English images for that print forever. Now null only for a 404 (or a print without
+  scan); other errors return `undefined`, drop the in-memory promise (`LOC.delete`) so the next call retries, and
+  `cardLang` does not cache them (English for now). The print import (`fetchScryfallImages`) already fell back to
+  English on a falsy result. Checked in Node with a fake `fetch`: 503 gives undefined then a retry finds the card,
+  404 gives null and is not fetched again.
+- **Deck import says what it left out (2026-10-19):** review M8. `addEntries` drops rows past
   `MAX_ROWS` (500) and `clampQty` cuts quantities past `MAX_QTY` (99, also after merging the same print), but the
   toast still said "Deck imported". `NewDeckDialog` now counts the copies that did not land (copies asked minus
   copies in the new deck) and passes them as `onCreate(deck, notFound, left)`; DeckList's toast becomes "Imported.

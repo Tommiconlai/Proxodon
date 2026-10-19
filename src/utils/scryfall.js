@@ -232,8 +232,10 @@ export function localizedCard(set, cn, lang) {
         const res = await scryfallFetch(`https://api.scryfall.com/cards/${encodeURIComponent(set)}/${encodeURIComponent(cn)}/${lang}`);
         const card = await res.json();
         return card.image_status === 'missing' || card.image_status === 'placeholder' ? null : card;
-      } catch {
-        return null; // 404 = non esiste in quella lingua; altri errori = inglese
+      } catch (e) {
+        if (e.status === 404) return null; // non esiste in quella lingua
+        LOC.delete(k); // errore momentaneo (429, 5xx, rete): undefined = inglese per ora, si riprova la prossima volta
+        return undefined;
       }
     })());
   }
