@@ -69,7 +69,8 @@ export function parseCardList(text) {
     if (!line) continue;
     let qty = 1;
     let name = line;
-    let m = line.match(/^(\d{1,3})\s*[xX]\s*(.+)$/);
+    // Spazio obbligatorio dopo la x: "2 Xenagos" è qty 2 + "Xenagos", non "enagos".
+    let m = line.match(/^(\d{1,3})\s*[xX]\s+(.+)$/);
     if (!m) m = line.match(/^(\d{1,3})\s+(.+)$/);
     if (m) {
       qty = parseInt(m[1], 10) || 1;

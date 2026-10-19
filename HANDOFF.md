@@ -200,7 +200,12 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **No cyan bars in the search row (most recent, 2026-10-19):** user: "togli le due barrette azzurre tra la barra di
+- **Import: card names starting with X (most recent, 2026-10-19):** review H3. `parseCardList`
+  (`src/utils/scryfall.js`) read "2 Xenagos, God of Revels" as qty 2 "enagos, God of Revels": the "2x" form took
+  the X of the name because the regex allowed zero spaces after the x. Now the x needs a space after it ("2x Sol
+  Ring", "2 x Sol Ring" still work; "2xSol Ring" no longer does, no export writes it). Fixes print import, deck import
+  (`parseDeckText`) and Print deck. Self-check: new case with Xenagos / Xathrid (`node src/utils/scryfall.selfcheck.js`).
+- **No cyan bars in the search row (2026-10-19):** user: "togli le due barrette azzurre tra la barra di
   ricerca e i filtri, in tutte le tab". The `.decks-search-box::after` with `glow-cyan-left/right.svg` is gone (the
   two SVGs deleted, nothing else used them); same row in Community, Dilemmas, Help, My decks and the tour. Checked
   the four tabs at desktop (`::after` content none) and 375x812.

@@ -21,6 +21,9 @@ eq(parseCardList('1 Fire/Ice\n2 Delver of Secrets / Insectile Aberration (ISD) 5
   [[1, 'Fire', '', ''], [2, 'Delver of Secrets', 'isd', '51'], [1, 'Fire', '', '']], 'barra singola o doppia senza spazi → faccia anteriore');
 eq(parseCardList('1 Lotus Petal (PLST) TMP-294'), [{ qty: 1, name: 'Lotus Petal', set: 'plst', collector: 'TMP-294' }], 'collector case preservato (Scryfall è case-sensitive)');
 eq(parseCardList('\n  \n'), [], 'righe vuote');
+// Nomi che iniziano per X: la x della quantità vuole uno spazio dopo.
+eq(parseCardList('2 Xenagos, God of Revels\n1 Xathrid Necromancer\n3x Xenagos, the Reveler\n1 x Xathrid Gorgon').map((e) => [e.qty, e.name]),
+  [[2, 'Xenagos, God of Revels'], [1, 'Xathrid Necromancer'], [3, 'Xenagos, the Reveler'], [1, 'Xathrid Gorgon']], 'nomi con X iniziale');
 
 // deckLine (lista salvata) deve pinnare la stampa: round-trip set+collector
 eq(deckLine(1, 'Command Tower', 'eld', '333'), '1 Command Tower (ELD) 333', 'deckLine set+cn');
