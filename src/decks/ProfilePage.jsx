@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { listenDecks, saveProfile, claimNickname, countAnswered, listenDilemmas } from './deckStore';
+import { listenDecks, saveProfile, claimNickname, countAnswered, listenDilemmas, deleteDilemma } from './deckStore';
 import { updateNickname, authMessage } from './firebase';
 import { deckCover } from './deckModel';
 import { navigate } from '../hooks/useHashRoute';
@@ -7,7 +7,8 @@ import { Avatar } from './AccountMenu';
 import { DeckTile, GhostTile } from './DeckList';
 import { DilemmaTile } from './Dilemmas';
 import PhotoDialog from './PhotoDialog';
-import { IconImage, IconPencil, IconArrowRight } from '../components/icons';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { IconImage, IconPencil, IconArrowRight, IconTrash } from '../components/icons';
 
 const day = (s) => (s ? new Date(s).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 const LABEL = { photo: 'photo', banner: 'background' };
@@ -41,6 +42,7 @@ function usePerDeck(ids, listen) {
 export default function ProfilePage({ user, profile, notify, onChange }) {
   const [decks, setDecks] = useState(null); // null = caricamento
   const [dialog, setDialog] = useState(null); // 'photo' | 'banner'
+  const [confirmAll, setConfirmAll] = useState(false);
   useEffect(() => listenDecks(user.uid, setDecks, () => setDecks(null)), [user.uid]);
   const pub = (decks || []).filter((d) => d.public);
   const ids = pub.map((d) => d.id);
@@ -67,6 +69,15 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
     ['Followers', profile?.followers ?? 0],
     ['Following', profile?.following ?? 0],
   ];
+  // Delete all: ogni dilemma con i suoi voti (deleteDilemma); gli ascolti per mazzo svuotano la lista da soli.
+  const deleteAll = () => {
+    setConfirmAll(false);
+    Promise.allSettled(myDilemmas.map((x) => deleteDilemma(x.deck.id, x.id))).then((r) => {
+      const failed = r.filter((x) => x.status === 'rejected');
+      if (failed.length) notify(`Could not delete ${failed.length} of ${r.length} dilemmas: ${failed[0].reason?.message}`, 'error');
+      else notify(r.length === 1 ? 'Dilemma deleted' : `${r.length} dilemmas deleted`);
+    });
+  };
   const save = (kind, data) => {
     setDialog(null);
     saveProfile(user.uid, { [kind]: data })
@@ -120,6 +131,10 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
 
       <header className="decks-head profile-next">
         <h2 className="decks-title">Dilemmas</h2>
+        {dilemmasReady && myDilemmas.length > 0 && (
+          <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setConfirmAll(true)}
+            aria-label="Delete all dilemmas" title="Delete all dilemmas"><IconTrash size={18} /></button>
+        )}
       </header>
       {!dilemmasReady && <span className="import-spinner" aria-label="Loading" />}
       {dilemmasReady && myDilemmas.length === 0 && (
@@ -147,6 +162,9 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
         </ul>
       )}
 
+      <ConfirmDialog open={confirmAll} confirmLabel="Delete all"
+        message={`Delete all ${myDilemmas.length} of your dilemmas and their votes? This can’t be undone.`}
+        onCancel={() => setConfirmAll(false)} onConfirm={deleteAll} />
       {dialog && (
         <PhotoDialog kind={dialog} onClose={() => setDialog(null)} onSave={(data) => save(dialog, data)}
           onRemove={custom[dialog] ? () => save(dialog, null) : undefined} />

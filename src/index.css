@@ -3714,7 +3714,7 @@ span.deck-hero-art { cursor: default; }
 .mobile .decks-search-box .import-link-input, .mobile .decks-filter-btn, .mobile .decks-format { height: 44px; }
 .mobile-page-header .modal-close, .card-zoom-close { width: 44px; height: 44px; justify-content: center; align-items: center; }
 .mobile-page-header .modal-close { margin-right: -10px; }
-.mobile .dilemma-head .deck-icon-btn { width: 44px; height: 44px; }
+.mobile .dilemma-head .deck-icon-btn, .mobile .profile-page .decks-head .deck-icon-btn { width: 44px; height: 44px; }
 .mobile .dilemma-why-row .deck-icon-btn { min-height: 44px; }
 .mobile .dilemma-deck a { display: inline-block; padding: 8px 4px; }
 .mobile .card-menu button { min-height: 44px; }
