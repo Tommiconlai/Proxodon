@@ -131,7 +131,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
             </div>
           </div>
         </header>
-        {!helpId && (mobile ? <DeckTopBar deck={deck} showCount scrollRef={scrollRef} />
+        {!helpId && (mobile ? <DeckTopBar deck={deck} scrollRef={scrollRef} />
           : <DeckBand tab={tab} onTab={setTab} format={<span className="deck-format-static">{formatLabel(deck.format)}</span>} />)}
         <div className="deck-body">
           <section className="deck-main">

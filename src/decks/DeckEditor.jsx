@@ -202,8 +202,8 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
         </div>
       </header>
       {mobile ? (
-        <DeckTopBar deck={deck} showCount scrollRef={scrollRef}
-          search={<CardSearch format={deck.format} identity={searchIdentity(deck)} onAdd={add} notify={notify} advanced={advOpen} onAdvanced={setAdvOpen} />} />
+        <DeckTopBar deck={deck} scrollRef={scrollRef} onFilters={() => setAdvOpen(true)} filtersOpen={advOpen}
+          search={<CardSearch format={deck.format} identity={searchIdentity(deck)} onAdd={add} notify={notify} noAdvanced />} />
       ) : <DeckBand tab={tab} onTab={setTab} format={format} />}
       <div className="deck-body">
         <section className="deck-main">

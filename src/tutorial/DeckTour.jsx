@@ -133,7 +133,7 @@ function DeckStage({ apiRef, mobile, mode }) {
               </div>
             </div>
           </header>
-          {!help && (mobile ? <DeckTopBar deck={deck} showCount scrollRef={scrollRef} search={editor ? <FakeSearch q={q} active={active} /> : null} />
+          {!help && (mobile ? <DeckTopBar deck={deck} scrollRef={scrollRef} search={editor ? <FakeSearch q={q} active={active} adv={false} /> : null} onFilters={editor ? noop : undefined} />
             : <DeckBand tab={tab} onTab={setTab} format={format} />)}
           <div className="deck-body">
             <section className="deck-main">

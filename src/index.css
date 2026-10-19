@@ -2880,7 +2880,7 @@ a.deck-tile.deck-add { text-decoration: none; }
 .deck-name-static { overflow-wrap: anywhere; }
 .deck-sections.tab-stats .deck-analysis { width: auto; min-width: 0; margin-top: 0; }
 .deck-part { margin-top: 48px; } /* telefono: Dilemmas e Help sotto carte e Stats, staccati come Stats */
-.deck-editor.is-mobile :is(.deck-part, .deck-analysis) { scroll-margin-top: 110px; } /* portate in vista (Help, tour): sotto la barra ferma */
+.deck-editor.is-mobile :is(.deck-part, .deck-analysis) { scroll-margin-top: 130px; } /* portate in vista (Help, tour): sotto la barra ferma */
 /* Dilemmi (Dilemmas.jsx): elenco, dilemma aperto (due carte, nome del mazzo, domanda, voto, spiegazioni,
    lista del mazzo) e finestra New dilemma. */
 .dilemma-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
@@ -3564,11 +3564,12 @@ span.deck-hero-art { cursor: default; }
 @media (hover: none) {
   .deck-rows .deck-row-main img { pointer-events: none; -webkit-touch-callout: none; -webkit-user-drag: none; user-select: none; }
 }
-/* Telefono e tablet (DeckTopBar): sotto la testata, ferma in cima: la ricerca sempre aperta, il conteggio senza chip
-   e Back to top; col fondo della barra quando è attaccata. z 5: la tendina dei suggerimenti copre le carte. */
+/* Telefono e tablet (DeckTopBar): sotto la testata, ferma in cima: la ricerca sempre aperta su tutta la riga, sotto il
+   conteggio senza chip a sinistra, Back to top e filtri a destra; col fondo della barra quando è attaccata. z 5: la
+   tendina dei suggerimenti copre le carte. */
 .deck-top-bar {
   position: sticky; top: 0; z-index: 5; flex: none;
-  display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 14px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 56px; padding: 8px 14px;
   transition: background var(--transition), box-shadow var(--transition);
 }
 .deck-top-bar:empty { display: none; }
@@ -3576,8 +3577,8 @@ span.deck-hero-art { cursor: default; }
   background: rgba(10, 9, 18, 0.94); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
   border-bottom: 1px solid rgba(124, 92, 255, 0.16); box-shadow: var(--shadow-md);
 }
-.deck-top-search { flex: 1; min-width: 0; }
-.deck-top-bar .deck-count.plain { flex: none; margin-left: auto; }
+.deck-top-search { flex: 1 1 100%; min-width: 0; }
+.deck-top-bar .deck-count.plain { flex: none; margin-right: auto; }
 .deck-top-bar .deck-icon-btn { flex: none; width: 44px; height: 44px; padding: 0; justify-content: center; background: rgba(8, 7, 15, 0.92); }
 /* Il corpo lascia libero il fondo, dove sta il menu della X. */
 .deck-editor.is-mobile .deck-body { padding-bottom: 120px; }

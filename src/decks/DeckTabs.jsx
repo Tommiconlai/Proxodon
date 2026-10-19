@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { boardCounts, countTarget, countOk, deckTags } from './deckModel';
-import { IconArrowUp } from '../components/icons';
+import { IconArrowUp, IconDeckFilter } from '../components/icons';
 
 const TABS = [['deck', 'Deck'], ['stats', 'Stats'], ['dilemmas', 'Dilemmas'], ['help', 'Help']];
 
@@ -127,9 +127,10 @@ export function DeckCount({ deck, plain }) {
 }
 
 // Telefono e tablet: barra ferma in cima sotto la testata (sticky, col fondo quando è attaccata, .solid): la ricerca
-// delle carte sempre aperta (search, solo nell'editor), il conteggio senza chip (showCount) e Back to top dopo 600 px
-// di scorrimento (scrollRef = .deck-scroll). Niente schede: carte, Stats, Dilemmas e Help stanno in fila nella pagina.
-export function DeckTopBar({ deck, showCount, scrollRef, search }) {
+// delle carte sempre aperta e larga quanto la barra (search, solo nell'editor), sotto il conteggio senza chip a sinistra
+// e a destra Back to top (dopo 600 px di scorrimento, scrollRef = .deck-scroll) e il tasto filtri, come nelle liste:
+// apre Advanced search (onFilters, filtersOpen). Niente schede: carte, Stats, Dilemmas e Help stanno in fila nella pagina.
+export function DeckTopBar({ deck, scrollRef, search, onFilters, filtersOpen }) {
   const ref = useRef(null);
   const [solid, setSolid] = useState(false);
   const [far, setFar] = useState(false);
@@ -147,10 +148,14 @@ export function DeckTopBar({ deck, showCount, scrollRef, search }) {
   return (
     <div ref={ref} className={`deck-top-bar${solid ? ' solid' : ''}`}>
       {search && <div className="deck-top-search">{search}</div>}
-      {showCount && <DeckCount deck={deck} plain />}
+      <DeckCount deck={deck} plain />
       {far && (
         <button type="button" className="btn-secondary deck-icon-btn" onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
           aria-label="Back to top" title="Back to top"><IconArrowUp size={18} /></button>
+      )}
+      {onFilters && (
+        <button type="button" className={`decks-filter-btn${filtersOpen ? ' on' : ''}`} aria-expanded={filtersOpen} onClick={onFilters}
+          aria-label="Advanced search" title="Advanced search"><IconDeckFilter /></button>
       )}
     </div>
   );

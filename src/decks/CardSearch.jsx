@@ -12,8 +12,8 @@ const front = (name) => name.split(' // ')[0];
 // (Shift = 4, Alt = sideboard). Le carte bandite o non legali nel formato non compaiono, né (identity, da
 // searchIdentity) quelle fuori dai colori del comandante.
 // "Advanced search": se il genitore passa onAdvanced (desktop, ricerca nella testata) apre il suo
-// pannello fuori da qui; altrimenti (telefono) i filtri si aprono qui sotto. noAdvanced = solo il nome (zona
-// Suggestions delle help request, dove il pannello dei filtri non ci sta).
+// pannello fuori da qui; altrimenti i filtri si aprono qui sotto. noAdvanced = solo il nome (editor da telefono,
+// dove il tasto filtri sta in DeckTopBar; zona Suggestions delle help request, dove il pannello non ci sta).
 export default function CardSearch({ format, identity, onAdd, notify, autoFocus, advanced: advancedProp, onAdvanced, noAdvanced }) {
   const [q, setQ] = useState('');
   const [sugg, setSugg] = useState([]);
