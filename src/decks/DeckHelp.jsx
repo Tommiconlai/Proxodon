@@ -26,7 +26,7 @@ export default function DeckHelp({ editor }) {
         <strong>{editor ? 'How the deck editor works' : 'This page'}</strong>
         {!editor ? null : touch ? (
           <ol>
-            <li><b>Add cards</b>. Tap <b>＋</b> and type a name, then tap a result. <b>Advanced search</b> has filters.</li>
+            <li><b>Add cards</b>. Type a name in the search bar at the top, then tap a result. <b>Advanced search</b> has filters.</li>
             <li><b>Select</b>. Tap a card to select or deselect it.</li>
             <li><b>Options</b>. Long-press a card, or the selection: change edition, split, set as commander, move to a board or a section, remove.</li>
             <li><b>Organize</b>. <b>Group</b>, <b>Sort</b> and <b>View</b> above the cards. <b>New section</b> makes your own groups.</li>

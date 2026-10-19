@@ -8,7 +8,6 @@ import MpcImportModal from './components/MpcImportModal';
 import ArtPickerModal from './components/ArtPickerModal';
 import { upscaleFile, canUpscale } from './utils/upscale';
 import CookieBanner from './components/CookieBanner';
-import ConfirmDialog from './components/ConfirmDialog';
 import ExportProgress from './components/ExportProgress';
 import Toast from './components/Toast';
 import { getSettings, lsGet, lsSet } from './utils/settings';
@@ -16,10 +15,9 @@ import MobileLayout from './components/MobileLayout';
 import { useIsMobile } from './hooks/useIsMobile';
 import { generatePDF, getGridInfo, PAPER_FORMATS, nextBleedMode } from './utils/pdfGenerator';
 import { DEFAULT_PROFILE_ID, UPLOAD_ID, getProfileMeta, loadBundledProfileBytes } from './utils/iccProfiles';
-import { buildDeckList, fetchScryfallImages } from './utils/scryfall';
-import { downloadText } from './utils/download';
+import { fetchScryfallImages } from './utils/scryfall';
 import { Capacitor } from '@capacitor/core';
-import { IconFile, IconAlert, IconTrash, IconDownload, IconList, IconImage, IconPlus, IconX, Wordmark } from './components/icons';
+import { IconFile, IconAlert, IconDownload, IconImage, IconPlus, IconX, Wordmark } from './components/icons';
 import NavTabs from './components/NavTabs';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useHashRoute, navigate } from './hooks/useHashRoute';
@@ -70,7 +68,6 @@ export default function App() {
     return v === UPLOAD_ID || getProfileMeta(v) ? v : DEFAULT_PROFILE_ID;
   });
   const [uploadedIcc, setUploadedIcc] = useState(null); // { bytes, name } profilo caricato (non persistito)
-  const [confirm, setConfirm] = useState(null); // dialog conferma azioni distruttive: { message, confirmLabel, onConfirm }
   const [loading, setLoading] = useState(false);
   const [genProgress, setGenProgress] = useState(null); // { done, total } durante l'export PDF
   const genAbortRef = useRef(null); // AbortController dell'export in corso (per Annulla)
@@ -247,16 +244,6 @@ export default function App() {
 
   const handleRemove = (id) => removeWithUndo([id]);
 
-  // Elimina tutte: passa SEMPRE dalla conferma (desktop + mobile export + mobile cards).
-  const handleClearAll = () => {
-    if (images.length === 0) return;
-    setConfirm({
-      message: 'Delete all cards? This can’t be undone.',
-      confirmLabel: 'Delete all',
-      onConfirm: () => setImages(prev => { prev.forEach(i => URL.revokeObjectURL(i.preview)); return []; }),
-    });
-  };
-
   // Abbondanza on/off per carta: none ↔ stretch. Lo stile globale può poi forzare
   // mirror/black sulle carte che hanno abbondanza. Utile sugli upload manuali.
   // Cambia il modo abbondanza per-carta dopo l'upload, ciclando i 3 stati:
@@ -304,7 +291,7 @@ export default function App() {
 
   // Cambia art: il box ha già scaricato la stampa Scryfall; sostituisce file+preview
   // (id invariato). meta: { bleedMode, set, collector }. bleedMode mirror/stretch in
-  // base a full-art/borderless; set/collector aggiornati così "Save list" segue la stampa.
+  // base a full-art/borderless; set/collector aggiornati sulla stampa scelta.
   // Con più carte (stessa carta selezionata) la stampa va su tutte; un object URL a testa
   // perché ogni carta revoca il proprio alla rimozione.
   const handleReplaceArt = (file, { bleedMode, set, collector } = {}) => {
@@ -353,23 +340,6 @@ export default function App() {
     } finally {
       setUpscaling(false);
     }
-  };
-
-  // Salva la lista delle carte Scryfall in un .txt (formato deck-list → ricaricabile
-  // incollandola in "Importa da Scryfall"). Gli upload manuali non entrano nel testo.
-  const handleSaveProject = () => {
-    const { text, cards, custom } = buildDeckList(images);
-    if (!cards) {
-      setToast({ kind: 'error', msg: custom
-        ? 'Only custom images. Save list covers Scryfall cards only.'
-        : 'No cards to save.' });
-      return;
-    }
-    downloadText('proxodon.txt', text + '\n')
-      .then(() => setToast({ kind: 'success', msg: custom
-        ? `Saved ${cards} Scryfall card${cards > 1 ? 's' : ''}. ${custom} custom image${custom > 1 ? 's' : ''} not included.`
-        : `Saved ${cards} Scryfall card${cards > 1 ? 's' : ''} to proxodon.txt.` }))
-      .catch((e) => setToast({ kind: 'error', msg: e.message || 'Could not save the list.' }));
   };
 
   // Carica + valida un profilo ICC CMYK personalizzato (.icc). Non persistito (binario).
@@ -537,13 +507,13 @@ export default function App() {
         <MobileLayout
           settingsProps={settingsProps}
           previewProps={previewProps}
-          actions={{ onGenerate: handleGenerate, onSave: handleSaveProject, onClear: handleClearAll,
+          actions={{ onGenerate: handleGenerate,
             onClearError: () => setError(null), onCancelGenerate: handleCancelGenerate, genProgress,
             loading, error, count: images.length, missing, lowResCount, dpi }}
           // onFiles: il tasto Upload mobile è un <label><input type=file> nativo (gesto
           // reale → apre il picker su mobile, dove open() di react-dropzone è inaffidabile).
           addMenu={{ onFiles: handleImagesAdded, onImport: () => setImportOpen(true), onImportMpc: () => setMpcOpen(true) }}
-          tabs={<NavTabs decks={inDecks} />}
+          route={route}
           altBody={inDecks ? decksNode : null}
           headerSlot={setHeaderSlot}
           account={accountNode}
@@ -552,8 +522,6 @@ export default function App() {
         <MpcImportModal open={mpcOpen} onClose={() => setMpcOpen(false)} onImport={addItems} />
         {editing && <ArtPickerModal key={editing.id} card={editing} count={editingIds.length} onClose={() => setEditingIds(null)} onPick={handleReplaceArt} />}
         <CookieBanner />
-        <ConfirmDialog open={!!confirm} message={confirm?.message} confirmLabel={confirm?.confirmLabel}
-          onConfirm={() => { confirm?.onConfirm?.(); setConfirm(null); }} onCancel={() => setConfirm(null)} />
         <Toast toast={toast} onClose={() => setToast(null)} />
         {tutorialNode}
       </>
@@ -577,7 +545,7 @@ export default function App() {
                 <li><b>Add cards</b>. Upload images, or import from Scryfall (paste a card list).</li>
                 <li><b>Set up</b>. Sheet &amp; card size, bleed and crop marks in the sidebar.</li>
                 <li><b>Tweak</b>. Select as many cards as you like, then use the menu: change art, duplicate, bleed, remove. With several cards selected the menu acts on all of them.</li>
-                <li><b>Export</b>. <b>Generate PDF</b> (print-ready). <b>Save list</b> exports your Scryfall cards as a reloadable deck list.</li>
+                <li><b>Export</b>. <b>Generate PDF</b> (print-ready).</li>
               </ol>
               <p className="help-controls"><b>Click</b> select or deselect · <b>Right-click</b> options · <b>Drag</b> swap</p>
               <HelpTour onStart={() => setHelpOpen(false)} />
@@ -623,14 +591,6 @@ export default function App() {
               </div>
               <ExportProgress loading={loading} progress={genProgress} disabled={images.length === 0}
                 onGenerate={handleGenerate} onCancel={handleCancelGenerate} />
-              <div className="export-row">
-                <button className="btn-secondary btn-save" onClick={handleSaveProject} disabled={images.length === 0}>
-                  <IconList size={15} /> Save list
-                </button>
-                <button className="btn-secondary" onClick={handleClearAll} disabled={images.length === 0}>
-                  <IconTrash size={15} /> Delete all
-                </button>
-              </div>
               {error && (
                 <div className="info-box info-box-error">
                   <IconAlert size={15} style={{ flexShrink: 0, marginTop: 2 }} />
@@ -670,8 +630,6 @@ export default function App() {
       )}
 
       <CookieBanner />
-      <ConfirmDialog open={!!confirm} message={confirm?.message} confirmLabel={confirm?.confirmLabel}
-        onConfirm={() => { confirm?.onConfirm?.(); setConfirm(null); }} onCancel={() => setConfirm(null)} />
       <Toast toast={toast} onClose={() => setToast(null)} />
       {tutorialNode}
     </div>

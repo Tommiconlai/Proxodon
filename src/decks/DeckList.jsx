@@ -18,10 +18,9 @@ import { NameFormatDialog, ExportDeckDialog } from './dialogs';
 import { timeAgo } from '../utils/timeAgo';
 import NewDeckDialog from './NewDeckDialog';
 import { useCount } from './useCount';
-import { TabLabel, ListBand } from './DeckTabs';
+import { ListBand } from './DeckTabs';
 import { DilemmaFeed } from './Dilemmas';
 import { HelpFeed } from './HelpRequests';
-import { useBracketSlide } from '../hooks/useBracketSlide';
 import {
   IconPlus, IconCopy, IconTrash, IconPencil, IconExport, IconGlobe, IconHeart, IconPlay, IconFolder, IconArrowLeft, IconWrench,
   IconDeckSearch, IconDeckFilter, IconX,
@@ -224,8 +223,6 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
   const help = tab === 'help';
   const feed = dilemmas || help; // ricerca nei testi e solo il formato accanto
   const searchLabel = dilemmas ? 'Search dilemmas' : help ? 'Search requests' : 'Search decks by name or tag';
-  const tabsRef = useRef(null);
-  useBracketSlide(tabsRef, LIST_TABS.findIndex(([t]) => t === tab));
   const [decks, setDecks] = useState(null); // null = caricamento
   const [dialog, setDialog] = useState(null); // 'new' | 'import' | { rename: deck } | { del: deck } | { exp: deck }
   const [menu, setMenu] = useState(null); // { deck, x, y }
@@ -315,16 +312,8 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
 
   return (
     <div className="decks-root decks-page" ref={rootRef}>
-      {/* Desktop: la fascia a trapezi del Figma 52:275; telefono: le schede tra [ ]. */}
-      {mobile ? (
-        <header className="decks-head">
-          <nav className="decks-tabs" aria-label="Decks" ref={tabsRef}>
-            {LIST_TABS.map(([t, label]) => (
-              <a key={t} href={listHref(t)} className="decks-title decks-tab" aria-current={tab === t ? 'page' : undefined}><TabLabel>{label}</TabLabel></a>
-            ))}
-          </nav>
-        </header>
-      ) : <ListBand items={LIST_TABS.map(([t, label]) => [t, label, listHref(t)])} current={tab} />}
+      {/* Desktop: la fascia a trapezi del Figma 52:275; telefono e tablet: le schede sono nel menu della X (MobileNav). */}
+      {!mobile && <ListBand items={LIST_TABS.map(([t, label]) => [t, label, listHref(t)])} current={tab} />}
 
       {!open && !play && <>
       <div className="decks-search" role="search">

@@ -4,12 +4,13 @@ import { touches } from './control';
 import { Shell, ProfileStage, SettingsStage } from './AccountStages';
 import { C, demoDeck, myDecks, communityDecks, LIKES, dilemmas, DILEMMA_VOTES, helps, HELP_REPLIES } from './demo';
 import DeckSections from '../decks/DeckSections';
-import { DeckTabs, DeckBand, DeckTitle, DeckCount, DeckBottomBar, DeckTagList, TabLabel, ListBand } from '../decks/DeckTabs';
+import { DeckBand, DeckTitle, DeckCount, DeckTopBar, DeckTagList, ListBand } from '../decks/DeckTabs';
+import { NavMenu } from '../components/MobileNav';
+import { navItems } from '../components/deckNav';
 import { DeckTile, GhostTile, FolderTile } from '../decks/DeckList';
 import { DilemmaTile } from '../decks/Dilemmas';
 import { HelpItem, HelpQuestion, CardChips } from '../decks/HelpRequests';
 import { CardFrame, CardFrameDefs } from '../components/CardFrame';
-import { useBracketSlide } from '../hooks/useBracketSlide';
 import { FORMATS, formatLabel, coverRow, searchTerms, deckMatches, MAX_HELP_CARDS } from '../decks/deckModel';
 import {
   IconPlus, IconMinus, IconCopy, IconTrash, IconPencil, IconExport, IconGlobe, IconPlay, IconFolder, IconArrowLeft,
@@ -40,6 +41,14 @@ function FakeSearch({ q, active = 0, adv = true }) {
   );
 }
 
+// Il menu della X da telefono, come nell'app (copia con lo stato del tutorial: api.nav lo apre e lo chiude).
+const DemoNav = ({ items, current, open }) => (
+  <NavMenu items={items} current={current} open={open} onItem={noop} onToggle={noop}>
+    <div className="help"><button type="button" className="help-btn" aria-label="Help for this page" title="Help for this page">?</button></div>
+    <span className="account-btn" aria-hidden="true"><span>D</span></span>
+  </NavMenu>
+);
+
 // ── Pagina di un mazzo: editor (mode 'editor'), mazzo della Community ('community') o help request ('help') ──
 const HELP = { ...helps()[0], uid: 'glitchmage' }; // la richiesta della demo è di un altro giocatore
 const deckFor = (mode) => (mode === 'editor' ? demoDeck() : { ...demoDeck(), owner: 'glitchmage', public: true });
@@ -54,6 +63,7 @@ function DeckStage({ apiRef, mobile, mode }) {
   const [add, setAdd] = useState([]);
   const [why, setWhy] = useState('');
   const [over, setOver] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const [stuck, setStuck] = useState(false); // come nell'editor: la barra in alto prende lo sfondo quando la testata esce
   const scrollRef = useRef(null);
   const heroRef = useRef(null);
@@ -61,7 +71,7 @@ function DeckStage({ apiRef, mobile, mode }) {
     const once = (set) => (card) => set((l) => (l.some((c) => c.oid === card.oid) ? l : [...l, card]));
     apiRef.current = {
       update: (fn) => setDeck((d) => fn(d)), tab: setTab, query: setQ, active: setActive, like: () => setLiked((v) => !v),
-      cut: once(setCut), suggest: once(setAdd), why: setWhy, over: setOver,
+      cut: once(setCut), suggest: once(setAdd), why: setWhy, over: setOver, nav: setNavOpen,
     };
   }, [apiRef]);
   const update = (fn) => setDeck((d) => fn(d));
@@ -104,7 +114,7 @@ function DeckStage({ apiRef, mobile, mode }) {
               </div>
             </div>
           )}
-          <header className={`deck-hero${mobile && !help ? ' has-tabs' : ''}`} ref={heroRef}>
+          <header className="deck-hero" ref={heroRef}>
             {editor ? <button type="button" className="deck-hero-art" aria-label="Deck cover">{art}</button> : <span className="deck-hero-art">{art}</span>}
             <div className="deck-hero-content">
               {inHero && <div className="deck-hero-title">{name}{!editor && like}</div>}
@@ -120,7 +130,8 @@ function DeckStage({ apiRef, mobile, mode }) {
               </div>
             </div>
           </header>
-          {!help && (mobile ? <DeckTabs tab={tab} onTab={setTab} /> : <DeckBand tab={tab} onTab={setTab} format={format} />)}
+          {!help && (mobile ? <DeckTopBar deck={deck} showCount={tab === 'deck'} scrollRef={scrollRef} search={editor ? <FakeSearch q={q} active={active} /> : null} />
+            : <DeckBand tab={tab} onTab={setTab} format={format} />)}
           <div className="deck-body">
             <section className="deck-main">
               {help ? <HelpReplyDemo deck={deck} update={update} mobile={mobile} cut={cut} add={add} q={q} why={why} over={over} />
@@ -132,8 +143,8 @@ function DeckStage({ apiRef, mobile, mode }) {
             </section>
           </div>
         </div>
-        {mobile ? <DeckBottomBar deck={deck} showCount={tab === 'deck'} scrollRef={scrollRef} onSearch={editor ? noop : undefined} />
-          : tab === 'deck' && !help && <DeckCount deck={deck} />}
+        {!mobile && tab === 'deck' && !help && <DeckCount deck={deck} />}
+        {mobile && <DemoNav {...navItems(help ? null : { tab, back: editor ? 'mine' : 'community' }, '/help')} open={navOpen} />}
       </div>
     </Shell>
   );
@@ -208,18 +219,17 @@ function HelpReplyDemo({ deck, update, mobile, cut, add, q, why, over }) {
 
 // ── Lista mazzi: My decks, Community, Dilemmas (con il dilemma aperto) e Help ──
 function ListStage({ apiRef, step, mobile, tab }) {
-  const tabsRef = useRef(null);
-  useBracketSlide(tabsRef, LIST_TABS.findIndex(([t]) => t === tab));
   const [q, setQ] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [decks, setDecks] = useState(() => (tab === 'community' ? communityDecks() : myDecks()));
   const [dropOn, setDropOn] = useState(null);
   const [open, setOpen] = useState(step.open ?? null); // dilemma aperto (il passo Vote parte già aperto)
   const [pick, setPick] = useState(null);
+  const [navOpen, setNavOpen] = useState(false);
   const [voted, setVoted] = useState(false);
   useLayoutEffect(() => {
     apiRef.current = {
-      query: setQ, filters: setFiltersOpen, drop: setDropOn, open: setOpen, pick: setPick, vote: () => setVoted(true),
+      query: setQ, filters: setFiltersOpen, drop: setDropOn, open: setOpen, pick: setPick, vote: () => setVoted(true), nav: setNavOpen,
       // Un mazzo lasciato su un altro: una cartella nuova con i due, come in DeckList.
       folder: (a, b) => setDecks((l) => l.map((d) => (d.id === a || d.id === b ? { ...d, folder: { id: 'tut-new', name: 'New folder' } } : d))),
     };
@@ -281,14 +291,8 @@ function ListStage({ apiRef, step, mobile, tab }) {
   return (
     <Shell mobile={mobile}>
       <div className="decks-root decks-page">
-        {/* Come DeckList: da desktop la fascia a trapezi, da telefono le schede tra [ ]. */}
-        {mobile ? (
-          <header className="decks-head">
-            <nav className="decks-tabs" aria-label="Decks" ref={tabsRef}>
-              {LIST_TABS.map(([t, text]) => <a key={t} className="decks-title decks-tab" aria-current={tab === t ? 'page' : undefined}><TabLabel>{text}</TabLabel></a>)}
-            </nav>
-          </header>
-        ) : <ListBand items={LIST_TABS} current={tab} />}
+        {/* Come DeckList: da desktop la fascia a trapezi, da telefono e tablet le schede nel menu della X. */}
+        {mobile ? <DemoNav {...navItems(null, tab === 'mine' ? '/decks' : `/${tab}`)} open={navOpen} /> : <ListBand items={LIST_TABS} current={tab} />}
         {!open && (
           <div className="decks-search" role="search">
             <label className="decks-search-box">
@@ -410,15 +414,13 @@ function editorSteps(mobile) {
     text: `A demo deck: name, format and tags. Print sends it to the print sheet, Export copies the list, the globe shares it in Community. ${tap} the art to pick the cover card.`,
     play: (g) => pointAt(g, [['Tags', 'Tags'], ['Print deck', 'Print deck'], ['Export', 'Export'], ['Share in Community', 'Public']].map(([l, t]) => [`.deck-hero-actions [aria-label="${l}"]`, t])),
   };
-  const search = mobile ? [{
-    target: '.deck-bottom-bar .btn-add', title: 'Add cards',
-    text: 'Tap the lens to search a card by name and tap a result to add it. Advanced search has filters.',
-    play: (g) => g.click('.deck-bottom-bar .btn-add', 'Tap'),
-  }] : [{
-    target: '.deck-hero-search', side: 'left', title: 'Search a card',
+  const sb = mobile ? '.deck-top-search' : '.deck-hero-search'; // la ricerca: in cima da telefono, nella barra da desktop
+  const side = mobile ? 'below' : 'left';
+  const search = [{
+    target: sb, side, title: 'Search a card',
     text: 'Type at least two letters of a name: the suggestions show only cards you can play in this format and, in Commander, in your commander’s colors. ↑ and ↓ move through them.',
     play: async (g) => {
-      await g.type('.deck-hero-search input', 'Rhys', g.api.query);
+      await g.type(`${sb} input`, 'Rhys', g.api.query);
       await g.wait(500);
       g.say('↓');
       g.api.active(1);
@@ -428,10 +430,10 @@ function editorSteps(mobile) {
       await g.wait(900);
     },
   }, {
-    target: '.deck-hero-search', side: 'left', title: 'Add it',
+    target: sb, side, title: 'Add it',
     text: 'Enter adds one copy of the highlighted card: it lands in its group, here Enchantments.',
     play: async (g) => {
-      await g.move('.deck-hero-search input');
+      await g.move(`${sb} input`);
       g.api.query('Rhys');
       await g.wait(700);
       g.say('Enter');
@@ -445,10 +447,10 @@ function editorSteps(mobile) {
       await g.wait(1300);
     },
   }, {
-    target: '.deck-hero-search', side: 'left', title: 'More copies, other boards',
+    target: sb, side, title: 'More copies, other boards',
     text: 'Shift+Enter adds 4 copies. Alt+Enter sends the card to the sideboard, or to the maybeboard in Commander. Advanced search, under the bar, has filters.',
     play: async (g) => {
-      await g.type('.deck-hero-search input', 'Fore', g.api.query);
+      await g.type(`${sb} input`, 'Fore', g.api.query);
       await g.wait(500);
       g.say('Shift+Enter');
       await g.wait(800);
@@ -482,10 +484,16 @@ function editorSteps(mobile) {
     text: 'Group by type, mana value or your own sections. Sort and View apply to every deck.',
     play: (g) => g.click('.deck-toolbar .deck-tool:nth-of-type(3) select', mobile ? 'Tap' : 'Group by', () => g.api.update((d) => ({ ...d, groupBy: 'mv' }))),
   };
+  // Da telefono le schede sono nel menu della X: si apre, si tocca la voce, il menu si chiude.
   const tabStep = (n, title, text) => ({
-    target: '.deck-tabs', title, text,
+    target: mobile ? '.mnav' : '.deck-tabs', title, text,
     play: async (g) => {
-      await g.click(`.deck-tabs .decks-tab:nth-child(${n})`, tap, () => g.api.tab(['deck', 'stats', 'dilemmas', 'help'][n - 1]));
+      const key = ['deck', 'stats', 'dilemmas', 'help'][n - 1];
+      if (mobile) {
+        await g.click('.mnav-x', tap, () => g.api.nav(true));
+        await g.wait(400);
+        await g.click(`.mnav-item[aria-label="${title}"]`, tap, () => { g.api.nav(false); g.api.tab(key); });
+      } else await g.click(`.deck-tabs .decks-tab:nth-child(${n})`, tap, () => g.api.tab(key));
       g.spot('.deck-main');
       await g.wait(1600);
     },
@@ -493,7 +501,7 @@ function editorSteps(mobile) {
   const tabs = [
     tabStep(2, 'Stats', 'Mana curve, colors, card types, prices and the cards that need attention. A bar selects its cards in the deck.'),
     {
-      target: '.deck-tabs', side: 'above', title: 'Sample hand',
+      target: mobile ? '.deck-main' : '.deck-tabs', side: 'above', title: 'Sample hand',
       text: 'Under the stats: draw a sample hand, mulligan, draw a card, play a card to see what you could cast.',
       play: async (g) => {
         g.api.tab('stats');
@@ -555,8 +563,9 @@ function communitySteps(mobile) {
     text: `Group, sort and view change only your screen. ${mobile ? 'Long-press' : 'Right-click'} a card to see it full screen.`,
     play: (g) => g.menu(rowSel('r13'), { title: 'Counterspell', items: [[IconEye, 'View card']] }, mobile ? { text: 'Long press', hold: true } : {}),
   }, {
-    target: '.deck-tabs', title: 'Stats, Dilemmas, Help',
-    text: 'The deck’s Stats, its Dilemmas to vote on and its Help requests to answer.',
+    target: mobile ? '.mnav' : '.deck-tabs', title: 'Stats, Dilemmas, Help',
+    text: `The deck’s Stats, its Dilemmas to vote on and its Help requests to answer.${mobile ? ' On the phone they are in the X menu.' : ''}`,
+    play: mobile ? (g) => g.click('.mnav-x', 'Tap', () => g.api.nav(true)) : undefined,
   }];
 }
 
@@ -608,9 +617,10 @@ function helpReplySteps(mobile) {
 function listSteps(tab, mobile) {
   const tap = mobile ? 'Tap' : 'Click';
   const tabsStep = {
-    target: '.decks-tabs, .list-band', title: { mine: 'Your decks', community: 'Community', dilemmas: 'Dilemmas', help: 'Help requests' }[tab],
+    target: mobile ? '.mnav' : '.list-band', title: { mine: 'Your decks', community: 'Community', dilemmas: 'Dilemmas', help: 'Help requests' }[tab],
+    play: mobile ? (g) => g.click('.mnav-x', tap, () => g.api.nav(true)) : undefined,
     text: {
-      mine: 'These are demo decks, not yours. Four tabs share one search: Community, Dilemmas, Help and My decks.',
+      mine: `These are demo decks, not yours. Four tabs share one search: Community, Dilemmas, Help and My decks.${mobile ? ' On the phone they are in the X menu, with Print, help and your profile.' : ''}`,
       community: 'The latest public decks of other players, here with demo decks.',
       dilemmas: 'Other players ask which card to play, and you vote. These are demo dilemmas.',
       help: 'Open help requests from public decks: owners ask for cuts, upgrades, mana base. These are demo requests.',

@@ -2,10 +2,11 @@ import { useLayoutEffect, useState } from 'react';
 import PageSettings from '../components/PageSettings';
 import PagePreview from '../components/PagePreview';
 import ExportProgress from '../components/ExportProgress';
-import { IconSliders } from '../components/MobileLayout';
+import { NavMenu } from '../components/MobileNav';
+import { navItems } from '../components/deckNav';
 import { getGridInfo } from '../utils/pdfGenerator';
 import {
-  IconPlus, IconImage, IconDownload, IconFile, IconList, IconTrash, IconCopy, IconFrame, IconSparkles,
+  IconPlus, IconImage, IconDownload, IconFile, IconTrash, IconCopy, IconFrame, IconSparkles,
 } from '../components/icons';
 import Tutorial from './Tutorial';
 import { touches } from './control';
@@ -25,12 +26,14 @@ function PrintStage({ apiRef, step, mobile }) {
   const [s, setS] = useState(SETTINGS);
   const [dragOver, setDragOver] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   useLayoutEffect(() => {
     apiRef.current = {
       add: (n) => setImages((l) => [...l, ...printImages(n, l.length)]),
       swap: (a, b) => setImages((l) => { const n = [...l]; [n[a], n[b]] = [n[b], n[a]]; return n; }),
       set: (k, v) => setS((o) => ({ ...o, [k]: v })),
       dragOver: setDragOver,
+      nav: setNavOpen,
       addMenu: setAddOpen,
     };
   }, [apiRef]);
@@ -47,17 +50,9 @@ function PrintStage({ apiRef, step, mobile }) {
   if (mobile) {
     return (
       <main className="mobile-body">
+        <NavMenu {...navItems(null, '/print')} open={navOpen} onItem={noop} onToggle={noop} />
         <div className="mobile-cards">
           {preview}
-          <div className="cards-toolbar">
-            <button type="button" className="ct-nav"><IconSliders /><span>Settings</span></button>
-            <div className="ct-cluster">
-              <div className="ct-item"><button type="button" className="ct-btn ct-danger"><IconTrash size={20} /></button><span className="ct-lbl">Delete</span></div>
-              <div className="ct-item"><button type="button" className="fab"><IconPlus size={26} /></button><span className="ct-lbl">Add</span></div>
-              <div className="ct-item"><button type="button" className="ct-btn ct-save"><IconList size={20} /></button><span className="ct-lbl">Save</span></div>
-            </div>
-            <button type="button" className="ct-nav"><IconFile size={22} /><span>Export</span></button>
-          </div>
           {addOpen && (
             <div className="sheet-overlay">
               <div className="sheet">
@@ -90,10 +85,6 @@ function PrintStage({ apiRef, step, mobile }) {
             <button type="button" className={`btn-add${addOpen ? ' open' : ''}`}><IconPlus size={18} /> Add cards</button>
           </div>
           <ExportProgress loading={false} progress={null} disabled={false} onGenerate={noop} onCancel={noop} />
-          <div className="export-row">
-            <button type="button" className="btn-secondary btn-save"><IconList size={15} /> Save list</button>
-            <button type="button" className="btn-secondary"><IconTrash size={15} /> Delete all</button>
-          </div>
         </div>
       </aside>
       <main className="main-content">{preview}</main>
@@ -189,25 +180,36 @@ const DESKTOP = [
   },
   {
     target: '.sidebar-export', title: 'Export',
-    text: 'Generate PDF makes the print-ready file. Save list downloads your Scryfall cards as a list you can import again.',
+    text: 'Generate PDF makes the print-ready file.',
     play: async (g) => {
       await g.move('.btn-generate');
       g.say('Generate PDF');
-      await g.wait(1300);
-      await g.move('.btn-save');
-      g.say('Save list');
       await g.wait(1300);
     },
   },
 ];
 
+// Da telefono le azioni stanno nel menu della X: si apre e si indica la voce.
+const navStep = (title, text) => ({
+  target: '.mnav', title, text,
+  play: async (g) => {
+    await g.click('.mnav-x', 'Tap', () => g.api.nav(true));
+    await g.wait(400);
+    await g.move(`.mnav-item[aria-label="${title}"]`);
+    g.say(title);
+    await g.wait(1300);
+  },
+});
+
 const MOBILE = [
   SHEET,
   {
-    target: '.fab', cards: 6, title: 'Add cards',
-    text: 'Tap + to upload images or import from Scryfall (a card list) and from an MPCFill XML.',
+    target: '.mnav', cards: 6, title: 'Add cards',
+    text: 'Open the X menu and tap + to upload images or import from Scryfall (a card list) and from an MPCFill XML.',
     play: async (g) => {
-      await g.click('.fab', 'Tap', () => g.api.addMenu(true));
+      await g.click('.mnav-x', 'Tap', () => g.api.nav(true));
+      await g.wait(400);
+      await g.click('.mnav-item[aria-label="Add cards"]', 'Tap', () => { g.api.nav(false); g.api.addMenu(true); });
       g.spot('.sheet');
       await g.move('.sheet button:nth-of-type(2)');
       await g.wait(1800);
@@ -215,7 +217,7 @@ const MOBILE = [
   },
   {
     target: '.preview-page-wrap', title: 'Select cards',
-    text: 'Tap a card to select or deselect it. The bar under the sheet acts on the selection.',
+    text: 'Tap a card to select or deselect it. Long-press the selection for its menu: remove, bleed, duplicate.',
     play: async (g) => {
       await g.click(card(0), 'Tap', select);
       await g.click(card(4), 'Tap', select);
@@ -227,8 +229,8 @@ const MOBILE = [
     text: 'Long-press a card for its options: change art, upscale, duplicate, bleed, remove. With several cards selected the menu acts on all of them.',
     play: (g) => g.menu(card(1), MENU_ONE('Counterspell'), { text: 'Long press', hold: true, effect: select }),
   },
-  { target: '.cards-toolbar .ct-nav:first-child', title: 'Settings', text: 'Sheet and card size, bleed, crop marks, DPI and CMYK.' },
-  { target: '.cards-toolbar .ct-nav:last-child', title: 'Export', text: 'Generate PDF makes the print-ready file. Save, in the middle of the bar, downloads your Scryfall cards as a list you can import again.' },
+  navStep('Settings', 'Sheet and card size, bleed, crop marks, DPI and CMYK.'),
+  navStep('Export', 'Generate PDF makes the print-ready file.'),
 ];
 
 const TOURS = {

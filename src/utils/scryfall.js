@@ -338,29 +338,3 @@ export function deckLine(qty, name, set, cn) {
   const tail = set && cn ? ` (${String(set).toUpperCase()}) ${cn}` : '';
   return `${qty || 1} ${name}${tail}`;
 }
-
-/**
- * Serializza le carte Scryfall presenti in una deck-list "qty Nome (SET) cn"
- * (stesso formato dell'import → ricaricabile incollandola). Conta solo le facce
- * primarie (front) così le DFC non raddoppiano la quantità. Gli upload manuali
- * (senza `name`) non sono salvabili nel testo: vengono contati a parte.
- * @param {{name?:string,set?:string,collector?:string,primary?:boolean}[]} items
- * @returns {{text:string, cards:number, custom:number}}
- */
-export function buildDeckList(items) {
-  const map = new Map();
-  let custom = 0;
-  for (const it of items || []) {
-    if (!it.name) { custom++; continue; }   // upload manuale: niente metadati
-    if (it.primary === false) continue;      // conta solo la faccia anteriore
-    const set = it.set || '';
-    const collector = it.collector || '';
-    const key = `${it.name}|${set}|${collector}`;
-    const e = map.get(key) || { name: it.name, set, collector, qty: 0 };
-    e.qty++;
-    map.set(key, e);
-  }
-  const text = [...map.values()].map((e) => deckLine(e.qty, e.name, e.set, e.collector)).join('\n');
-  // cards = copie (come custom): "Saved 3 Scryfall cards" per 2 Sol Ring + 1 Birgi, non le righe.
-  return { text, cards: [...map.values()].reduce((n, e) => n + e.qty, 0), custom };
-}

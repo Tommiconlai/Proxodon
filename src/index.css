@@ -448,16 +448,6 @@ h3 {
   transform: translateY(0);
 }
 
-.export-row {
-  display: flex;
-  gap: 8px;
-}
-
-.export-row .btn-secondary {
-  flex: 1;
-  justify-content: center;
-}
-
 /* Avviso bassa risoluzione (pannello laterale / export mobile). Tinta --danger, non il rosso
    Tailwind di prima: stesso colore di "Remove" e degli altri allarmi del sistema. */
 .lowres-warn {
@@ -2009,12 +1999,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
   cursor: not-allowed;
 }
 
-/* Delete all (il ghost non-Save nella riga export): hover rosso, non ciano */
-.export-row .btn-secondary:not(.btn-save):hover:not(:disabled) {
-  border-color: rgba(255, 77, 109, 0.6);
-  color: #ff8fa3;
-  box-shadow: 0 0 14px rgba(255, 77, 109, 0.2);
-}
 
 /* ============================================================
    SCROLLBAR
@@ -2154,25 +2138,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
    MOBILE (≤768px), bottom-tab shell
    ============================================================ */
 .mobile { display: flex; flex-direction: column; height: 100dvh; }
-.mobile-header {
-  position: relative;
-  z-index: 60; /* il tooltip ? sopra la testata del mazzo e il + (50), sotto le pagine e i modali (300) */
-  display: flex; align-items: center; gap: 10px;
-  padding: 12px 16px;
-  background: rgba(10, 8, 19, 0.72);
-  backdrop-filter: blur(10px);
-}
-/* Hairline sfumata come l'header desktop */
-.mobile-header::after {
-  content: '';
-  position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
-  background: linear-gradient(90deg, transparent,
-    rgba(255, 45, 149, 0.55) 16%, rgba(124, 92, 255, 0.45) 50%,
-    rgba(0, 229, 255, 0.55) 84%, transparent);
-  pointer-events: none;
-}
-/* il ? a destra; position:relative àncora il tooltip (altrimenti fugge al viewport) */
-.mobile-header .help { position: relative; margin-left: auto; }
 .mobile-body { flex: 1; min-height: 0; overflow-y: auto; position: relative; }
 /* Pagina overlay full-screen (Settings / Export), apertura dal basso. */
 .mobile-page { position: fixed; inset: 0; z-index: 300; background: var(--bg-base);
@@ -2186,39 +2151,11 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .export-summary { font-size: 0.95rem; color: var(--text-secondary); }
 .export-summary strong { color: var(--text-primary); font-size: 1.4rem; }
 .mobile-cards { height: 100%; position: relative; display: flex; flex-direction: column; }
-/* Override del min-height:75vh mobile su .preview-root: in colonna deve cedere
-   spazio alla toolbar invece di forzare l'altezza. */
+/* Override del min-height:75vh mobile su .preview-root: in colonna deve cedere spazio invece di forzare l'altezza. */
 .mobile-cards .preview-root { min-height: 0; }
-/* Barra inferiore (sostituisce la tab bar): Settings (sx) · cluster azioni · Export (dx).
-   space-between spinge Settings/Export ai lati, il cluster resta centrato. */
-.cards-toolbar { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 10px 14px calc(18px + env(safe-area-inset-bottom, 0)); border-top: 1px solid var(--border); }
-.ct-cluster { display: flex; align-items: flex-start; gap: 18px; }
-/* Ogni voce del cluster = bottone + micro-label (disambigua, separa: meno mistap). */
-.ct-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.ct-lbl { font-size: 0.62rem; line-height: 1; color: var(--text-secondary); font-family: var(--font); }
-.ct-item:has(.ct-btn:disabled) .ct-lbl { opacity: 0.4; }
-/* Voci nav (Settings/Export): icona + label, target ≥44pt (skill: nav-label-icon). */
-.ct-nav { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-  min-width: 60px; min-height: 48px; padding: 4px 6px; background: transparent; border: none;
-  color: var(--text-secondary); font-family: var(--font); font-size: 0.7rem; cursor: pointer;
-  transition: color var(--transition); }
-.ct-nav span { line-height: 1; }
-.ct-nav:active { color: var(--accent-light); }
-.fab { width: 54px; height: 54px; border-radius: 50%; flex: none;
-  display: flex; align-items: center; justify-content: center;
-  border: 1.5px solid rgba(255,45,149,0.6); background: rgba(255,45,149,0.14); color: #ff9ccb;
-  box-shadow: 0 0 20px rgba(255,45,149,0.3); cursor: pointer; }
-.ct-btn { width: 50px; height: 50px; border-radius: 50%; flex: none;
-  display: flex; align-items: center; justify-content: center;
-  border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text-secondary);
-  cursor: pointer; transition: border-color var(--transition), color var(--transition), background var(--transition); }
-.ct-btn:disabled { opacity: 0.4; cursor: default; }
-.ct-danger:not(:disabled) { color: var(--danger); border-color: rgba(255,77,109,0.4); }
-.ct-save:not(:disabled) { color: var(--cyan-soft); border-color: rgba(0,229,255,0.4); }
-.ct-btn:not(:disabled):active { background: var(--bg-glass-hover); }
-.sheet-overlay { position: absolute; inset: 0; z-index: 40; background: rgba(8,9,12,0.5);
-  display: flex; align-items: flex-end; animation: fade-up 0.15s ease both; }
+/* z-index sopra il menu della X (.mnav, 70): il foglio copre anche la X. */
+.sheet-overlay { position: absolute; inset: 0; z-index: 75; background: rgba(8,9,12,0.5);
+  display: flex; align-items: flex-end; animation: fade-in 0.15s ease both; } /* solo opacità: un translate farebbe scorrere .mobile-body */
 .sheet { width: 100%; background: var(--bg-elevated); border-top: 1px solid var(--border);
   border-radius: 16px 16px 0 0; padding: 8px 12px calc(12px + env(safe-area-inset-bottom,0));
   display: flex; flex-direction: column; gap: 2px; }
@@ -2302,8 +2239,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
   box-shadow: 0 0 8px var(--cyan-glow);
 }
 .nav-tab:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-.mobile-header .nav-tabs { margin-left: 6px; }
-.mobile-header .nav-tab { padding: 6px 8px; font-size: 0.72rem; letter-spacing: 0.12em; }
 
 /* ============================================================
    MAZZI: contenitore
@@ -2311,7 +2246,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .decks-root { height: 100%; min-height: 0; overflow-y: auto; padding: 24px 28px 40px; }
 .decks-center { display: grid; place-items: center; }
 .mobile-decks { overflow: hidden; }
-.mobile-decks .decks-root { padding: 16px 14px 96px; }
+.mobile-decks .decks-root { padding: calc(16px + env(safe-area-inset-top, 0px)) 14px 140px; }
 
 /* Titolo sezione mazzi: [ YOUR DECKS ] come le intestazioni della sidebar. */
 .decks-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 40px; margin-bottom: 20px; } /* 40 = i pulsanti di My decks: le altre schede non saltano */
@@ -2362,6 +2297,9 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 .signin-link:hover:not(:disabled), .signin-link:focus-visible { text-decoration: underline; color: var(--cyan); }
 .signin-link:disabled { opacity: 0.5; cursor: default; }
+/* Testata desktop, area mazzi: ? e avatar a destra (DecksView li mette qui col portale). */
+.header-slot { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.header-slot .help { margin-left: 0; position: relative; }
 
 .account-btn {
   flex: none;
@@ -2383,8 +2321,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .account-placeholder { border-color: var(--border); cursor: default; }
 .account-placeholder:hover { border-color: var(--border); box-shadow: none; }
 /* Header, area mazzi: il ? della pagina mazzo e l'avatar, a destra (li porta qui DecksView). */
-.header-slot { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-.header-slot .help { margin-left: 0; position: relative; }
 
 /* Lista mazzi, profilo e Settings: contenuto in una colonna centrata (vince su .deck-grid e .decks-empty). */
 .decks-root:is(.profile-page, .decks-page) > :not(.modal-overlay) { max-width: 1240px; margin-inline: auto; } /* gli sfondi dei dialoghi restano a tutto schermo */
@@ -2585,18 +2521,10 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   animation-duration: 1ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important;
   transition-duration: 1ms !important; transition-delay: 0s !important; scroll-behavior: auto !important;
 }
-/* Schede Community / My decks: titoli [ ] come .decks-title, le parentesi solo su quella attiva. */
-.decks-tabs { display: flex; align-items: baseline; gap: 22px; flex-wrap: wrap; }
+/* Schede a trapezio da desktop (TabStrip, DeckTabs.jsx; da telefono e tablet sono nel menu della X): colori di base. */
 .decks-tab { text-decoration: none; color: var(--text-muted); transition: color var(--transition); }
-/* Parentesi delle schede: vere span (.br, TabLabel) e non ::before / ::after, così useBracketSlide le fa
-   scivolare da una scheda all'altra; occupano sempre il loro posto, visibili solo sulla scheda aperta. */
-.decks-tab::before, .decks-tab::after { content: none; }
-.decks-tab .br { font-family: var(--font-mono); letter-spacing: 0; opacity: 0; transition: opacity var(--transition); }
-.decks-tab .br.l { color: var(--cyan); text-shadow: 0 0 8px rgba(0, 229, 255, 0.6); }
-.decks-tab .br.r { color: var(--accent); text-shadow: 0 0 8px rgba(255, 45, 149, 0.6); }
 .decks-tab:hover { color: var(--text-secondary); }
 .decks-tab[aria-current] { color: var(--text-primary); }
-.decks-tab[aria-current] .br { opacity: 1; }
 /* Schede del mazzo come pulsanti (DeckTabs): niente aspetto da pulsante. */
 button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointer; }
 .decks-tab:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 4px; }
@@ -2944,25 +2872,6 @@ a.deck-tile.deck-add { text-decoration: none; }
 .deck-like.on { color: var(--accent); border-color: rgba(255, 45, 149, 0.7); box-shadow: 0 0 12px rgba(255, 45, 149, 0.35); }
 .deck-like.on svg { transform: scale(1.12); }
 .deck-like span { color: var(--text-primary); }
-/* Schede Deck / Stats / Dilemmas / Help da telefono (da desktop: .deck-band, in fondo al file).
-   Sovrapposte al fondo della testata (che ha 44 px di padding in più), centrate, sticky in cima,
-   col fondo della barra quando sono attaccate. */
-.deck-tabs {
-  /* z 5: sopra la testata (viene dopo), sotto la barra del nome (6), la cui tendina dei suggerimenti deve coprirle. */
-  position: sticky; top: 0; z-index: 5;
-  /* flex: none: in .deck-scroll (colonna flex) si restringeva a 24 px e il corpo saliva di 20 px sotto la testata. */
-  flex: none; height: 44px; margin-top: -44px;
-  display: flex; align-items: center; justify-content: center; gap: 18px;
-  pointer-events: none;
-  transition: background var(--transition), box-shadow var(--transition);
-}
-.deck-tabs > * { pointer-events: auto; }
-.deck-tabs.solid {
-  background: rgba(10, 9, 18, 0.94);
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(124, 92, 255, 0.16);
-  box-shadow: var(--shadow-md);
-}
 .deck-name-static { overflow-wrap: anywhere; }
 .deck-sections.tab-stats .deck-analysis { width: auto; min-width: 0; margin-top: 0; }
 /* Dilemmi (Dilemmas.jsx): elenco, dilemma aperto (due carte, nome del mazzo, domanda, voto, spiegazioni,
@@ -3257,15 +3166,6 @@ button.dilemma-list-name:focus-visible { outline: 2px solid var(--cyan); outline
 .dilemma-slot > .deck-card-ph { display: grid; }
 .dilemma-slot.active { border-color: var(--cyan); box-shadow: 0 0 14px rgba(0, 229, 255, 0.3); }
 /* Telefono: la testata ha il suo padding (va riallungato per le schede), schede più strette. */
-.deck-editor.is-mobile .deck-hero.has-tabs { padding-bottom: 56px; }
-/* Quattro schede (mazzo: Deck / Stats / Dilemmas / Help; lista: Community / Dilemmas / Help / My decks) su una riga,
-   colonne larghe quanto il testo e spazio uguale intorno: le parentesi (invisibili sulle altre) sono simmetriche,
-   quindi il testo resta al centro della sua colonna. */
-.deck-editor.is-mobile .deck-tabs, .mobile-decks .decks-tabs {
-  display: grid; grid-template-columns: repeat(4, auto); justify-content: space-around; align-items: center; gap: 0; padding: 0 4px;
-}
-.mobile-decks .decks-tabs { flex: 1 1 100%; }
-.deck-editor.is-mobile .deck-tabs .decks-tab, .mobile-decks .decks-tabs .decks-tab { min-height: 44px; align-items: center; font-size: 0.74rem; letter-spacing: 0.05em; white-space: nowrap; }
 span.deck-hero-art { cursor: default; }
 /* Testata del mazzo: pulsanti solo icona, quadrati da 36 px con il fondo scuro del prezzo (stanno sull'arte). */
 .deck-hero-meta .deck-icon-btn { flex: none; width: 36px; height: 36px; padding: 0; justify-content: center; background: rgba(8, 7, 15, 0.6); }
@@ -3657,21 +3557,27 @@ span.deck-hero-art { cursor: default; }
 @media (hover: none) {
   .deck-rows .deck-row-main img { pointer-events: none; -webkit-touch-callout: none; -webkit-user-drag: none; user-select: none; }
 }
-/* In basso (DeckBottomBar), senza barra: conteggio senza chip a sinistra (ombra scura per leggerlo sulle
-   carte), Back to top e lente a destra su fondo scuro pieno. La fascia vuota lascia passare i tocchi. */
-.deck-bottom-bar {
-  position: absolute; left: 0; right: 0; bottom: 0; z-index: 7;
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  min-height: 60px; padding: 8px 14px calc(8px + env(safe-area-inset-bottom, 0px));
-  pointer-events: none;
+/* Telefono e tablet (DeckTopBar): sotto la testata, ferma in cima: la ricerca sempre aperta, il conteggio senza chip
+   e Back to top; col fondo della barra quando è attaccata. z 5: la tendina dei suggerimenti copre le carte. */
+.deck-top-bar {
+  position: sticky; top: 0; z-index: 5; flex: none;
+  display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 14px;
+  transition: background var(--transition), box-shadow var(--transition);
 }
-.deck-bottom-bar > * { pointer-events: auto; }
-.deck-bottom-actions { display: flex; gap: 8px; }
-.deck-bottom-bar .deck-icon-btn { flex: none; width: 44px; height: 44px; padding: 0; justify-content: center; background: rgba(8, 7, 15, 0.92); box-shadow: var(--shadow-md); }
+.deck-top-bar:empty { display: none; }
+.deck-top-bar.solid {
+  background: rgba(10, 9, 18, 0.94); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(124, 92, 255, 0.16); box-shadow: var(--shadow-md);
+}
+.deck-top-search { flex: 1; min-width: 0; }
+.deck-top-bar .deck-count.plain { flex: none; margin-left: auto; }
+.deck-top-bar .deck-icon-btn { flex: none; width: 44px; height: 44px; padding: 0; justify-content: center; background: rgba(8, 7, 15, 0.92); }
+/* Il corpo lascia libero il fondo, dove sta il menu della X. */
+.deck-editor.is-mobile .deck-body { padding-bottom: 120px; }
 .deck-count.plain { position: static; flex-direction: row; align-items: baseline; gap: 16px; text-shadow: 0 1px 3px #000, 0 0 10px rgba(0, 0, 0, 0.9); }
 .deck-count.plain .deck-count-chip { padding: 0; background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; color: #fff; }
 /* Lista mazzi da telefono: Import / New deck / Play in basso a destra, tondi, sopra il contenuto. */
-.mobile-decks .decks-actions { position: fixed; right: 16px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 50; margin: 0; gap: 10px; }
+.mobile-decks .decks-actions { position: fixed; right: 16px; bottom: calc(104px + env(safe-area-inset-bottom, 0px)); z-index: 50; margin: 0; gap: 10px; }
 .mobile-decks .decks-actions .deck-icon-btn { width: 52px; height: 52px; border-radius: 50%; box-shadow: var(--shadow-lg); }
 .mobile-decks .decks-actions .btn-secondary { background: rgba(8, 7, 15, 0.92); }
 /* Settings della stampa da telefono: stesso spazio tra i gruppi della sidebar desktop (gap 24 px). */
@@ -3679,11 +3585,8 @@ span.deck-hero-art { cursor: default; }
 /* ── Telefono, revisione UX: bersagli da dito di almeno 44 px. Dove l'aspetto resta piccolo (?, export dei
    riquadri, matita del nickname) si allarga solo l'area di tocco con ::after. ── */
 /* inset in alto: nell'app Android (edge-to-edge) la testata scende sotto la status bar; sul web vale 0 */
-.mobile-header { padding-block: calc(6px + env(safe-area-inset-top, 0px)) 6px; }
-.mobile-header .nav-tab { min-height: 44px; display: inline-flex; align-items: center; font-size: 0.8rem; }
-.mobile-header .account-btn { width: 44px; height: 44px; }
-.mobile-header .help-btn, .mobile .profile-icon-btn { position: relative; }
-.mobile-header .help-btn::after, .mobile .profile-icon-btn::after { content: ''; position: absolute; inset: -6px; }
+.mobile .profile-icon-btn { position: relative; }
+.mobile .profile-icon-btn::after { content: ''; position: absolute; inset: -6px; }
 .deck-editor.is-mobile .deck-hero-meta .deck-icon-btn, .deck-editor.is-mobile .deck-format { height: 44px; }
 .deck-editor.is-mobile .deck-hero-meta .deck-icon-btn { width: 44px; }
 .deck-editor.is-mobile .deck-hero .deck-name { min-height: 44px; }
@@ -3702,7 +3605,7 @@ span.deck-hero-art { cursor: default; }
 /* Campi a 16 px: sotto, iOS Safari ingrandisce la pagina al tocco. Il nome del mazzo (20 px) resta com'è. */
 .mobile :is(select, textarea, input:is([type="text"], [type="search"], [type="email"], [type="password"], [type="number"], [type="url"], :not([type]))):not(.deck-name) { font-size: 16px !important; }
 /* Testo mai sotto i 12 px. */
-.mobile .ct-lbl, .mobile .ct-nav span, .deck-editor.is-mobile .deck-sync, .mobile-page-body .sidebar-section h2,
+.deck-editor.is-mobile .deck-sync, .mobile-page-body .sidebar-section h2,
 .mobile .profile-stats dt { font-size: 0.75rem; }
 .mobile .range-value, .mobile .field-hint { font-size: 0.78rem; }
 /* Barra della selezione (DeckSections, touch): − numero + della carta selezionata, sopra la barra in basso. */
@@ -4018,8 +3921,6 @@ span.deck-hero-art { cursor: default; }
   left: 0; right: 0; top: -4.5px; bottom: auto; height: 6.85px; border-radius: 0; box-shadow: none;
   background: url('./assets/figma/nav-roof.svg') no-repeat 0 0 / 100% 100%;
 }
-.mobile-header .nav-tab { line-height: 16px; }
-.mobile-header .nav-tab[aria-current="page"]::after { top: 1.5px; }
 
 /* Testata del mazzo: alta 370 (dalla linea dell'header alla fascia), sul fondo della pagina. La copertina è
    l'art_crop 572x353 a (-25, 18), all'80%, ritagliata dal trapezio sfocato del design (deck-art-mask.svg). */
@@ -4191,3 +4092,56 @@ span.deck-hero-art { cursor: default; }
 .mobile .deck-tile-likes { font-size: max(10px, calc(10 * var(--u))); }
 .mobile :is(.dilemma-tile-q, .help-card-text) { font-size: max(12px, calc(13 * var(--u))); }
 .mobile :is(.dilemma-tile-meta, .help-card-cards) { font-size: max(10px, calc(8.5 * var(--u))); }
+
+/* Menu della X da telefono e tablet (MobileNav, Figma 57:116): la X del logo ferma in basso al centro su una sfumatura
+   scura; premuta fa il flip delle V (l'hover del logo) e le voci escono ad arco dalla X (--x, --y, una dopo l'altra),
+   il ? a sinistra e il profilo a destra. Tutti i tondi hanno lo stile del ? (bordo ciano al 40%, velo ciano al 5%)
+   su un fondo scuro pieno, così si leggono sopra le carte. Chiusa, le voci tornano nella X. */
+.mnav-wrap { display: contents; }
+.mnav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 70; height: calc(170px + env(safe-area-inset-bottom, 0px)); pointer-events: none; }
+.mnav::before {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: calc(225px + env(safe-area-inset-bottom, 0px)); pointer-events: none;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0), #000); opacity: 0.7; mix-blend-mode: multiply;
+}
+.mnav-x, .mnav-item, .mnav .help-btn {
+  border: 1px solid rgba(0, 229, 255, 0.4); background: linear-gradient(rgba(0, 229, 255, 0.05), rgba(0, 229, 255, 0.05)), #05030c;
+}
+.mnav-x {
+  position: absolute; left: 50%; bottom: calc(32px + env(safe-area-inset-bottom, 0px)); margin-left: -21px;
+  width: 42px; height: 42px; padding: 0; display: grid; place-items: center; border-radius: 50%; cursor: pointer; pointer-events: auto;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.mnav-x::after { content: ''; position: absolute; inset: -2px; border-radius: 50%; } /* 46 px di tocco */
+.mnav.open .mnav-x, .mnav-x:focus-visible { border-color: var(--cyan); box-shadow: 0 0 16px rgba(0, 229, 255, 0.35), inset 0 0 8px rgba(0, 229, 255, 0.1); outline: none; }
+.mnav.open .mnav-x .x-v { transform: rotateY(180deg); }
+.mnav-items { list-style: none; margin: 0; padding: 0; }
+.mnav-item {
+  position: absolute; left: 50%; bottom: calc(53px + env(safe-area-inset-bottom, 0px)); margin: 0 0 -16px -16px;
+  width: 32px; height: 32px; padding: 0; display: grid; place-items: center; border-radius: 50%;
+  color: #7ce9ff; text-decoration: none; cursor: pointer; pointer-events: auto;
+  opacity: 0; visibility: hidden; transform: scale(0.4);
+  transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.2s ease, visibility 0.3s, border-color var(--transition), box-shadow var(--transition);
+  transition-delay: calc(var(--i) * 25ms);
+}
+.mnav.open .mnav-item { opacity: 1; visibility: visible; transform: translate(var(--x), var(--y)) scale(1); }
+.mnav-item::after { content: ''; position: absolute; inset: -5px; border-radius: 50%; } /* 42 px di tocco */
+.mnav-item:hover, .mnav-item[aria-current] { border-color: var(--cyan); color: #b7f4ff; box-shadow: 0 0 16px rgba(0, 229, 255, 0.35), inset 0 0 8px rgba(0, 229, 255, 0.1); }
+.mnav-item:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.mnav-extras {
+  position: absolute; left: 16px; right: 16px; bottom: calc(53px + env(safe-area-inset-bottom, 0px)); translate: 0 50%;
+  display: flex; align-items: center; justify-content: space-between; pointer-events: none;
+  opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s;
+}
+.mnav.open .mnav-extras { opacity: 1; visibility: visible; }
+.mnav-extras .header-slot { display: contents; }
+.mnav.open .mnav-extras .help, .mnav.open .mnav-extras .account-btn { pointer-events: auto; }
+.mnav .help { position: relative; }
+.mnav .help-btn { position: relative; }
+.mnav .help-btn::after { content: ''; position: absolute; inset: -6px; }
+.mnav .account-btn { width: 40px; height: 40px; }
+/* Il pannello del ? si apre sopra il menu, al centro. */
+.mnav .help-tooltip {
+  position: fixed; top: auto; right: auto; left: 50%; bottom: calc(160px + env(safe-area-inset-bottom, 0px));
+  width: min(92vw, 360px); max-width: none; max-height: 60vh; overflow-y: auto; transform: translateX(-50%) translateY(6px);
+}
+.mnav .help.open .help-tooltip { transform: translateX(-50%) translateY(0); }

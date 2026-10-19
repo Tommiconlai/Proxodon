@@ -38,7 +38,7 @@ export default function Tutorial({ tour, mobile, onClose }) {
   // Pagina vera inerte finché il tutorial è aperto; alla chiusura il focus torna al ? da cui è partito.
   useEffect(() => {
     const root = document.getElementById('root');
-    const opener = document.querySelector('.app-header .help-btn, .mobile-header .help-btn');
+    const opener = document.querySelector('.app-header .help-btn, .mnav .help-btn');
     if (root) root.inert = true;
     nextRef.current?.focus();
     return () => {
@@ -176,7 +176,7 @@ export default function Tutorial({ tour, mobile, onClose }) {
   );
 }
 
-const headerBottom = () => Math.round(document.querySelector('.app-header, .mobile-header')?.getBoundingClientRect().bottom || 0);
+const headerBottom = () => Math.round(document.querySelector('.app-header')?.getBoundingClientRect().bottom || 0);
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.classList.contains('reduce-motion');
 const abort = () => new DOMException('Tutorial step changed', 'AbortError');
 

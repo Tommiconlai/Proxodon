@@ -8,7 +8,8 @@ import { cardsByIds } from './scryfallSearch';
 import { navigate, replaceRoute } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
-import { DeckTabs, DeckBand, DeckTitle, DeckCount, DeckBottomBar, DeckTagList } from './DeckTabs';
+import { DeckBand, DeckTitle, DeckCount, DeckTopBar, DeckTagList } from './DeckTabs';
+import { setDeckNav } from '../components/deckNav';
 import { DeckDilemmas } from './Dilemmas';
 import { DeckHelps } from './HelpRequests';
 import CardSearch from './CardSearch';
@@ -26,7 +27,7 @@ const STUCK_AT = 72; // px: padding della barra + casella di ricerca, circa
 // bordi; click = scegli un'altra carta) e in basso a destra tag, stato sync e le icone; sotto la fascia
 // (DeckBand) col formato nell'incavo e le schede, ferma sotto la barra. Poi il corpo con le sezioni (o Stats /
 // Dilemmas / Help). Telefono: il nome sta nella testata e scorre con lei, formato e icone in alto a destra, le
-// schede sotto; in basso la barra (DeckBottomBar) con il conteggio, Back to top e la lente della ricerca.
+// schede nel menu della X (MobileNav); sotto la testata la barra (DeckTopBar) con la ricerca sempre aperta, il conteggio e Back to top.
 export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDeck, initialTab, owner }) {
   // Errori di sync del mazzo, anche dopo la chiusura dell'editor (notify è dell'app, resta vivo).
   const syncError = useCallback((e) => notify(e.code === 'resource-exhausted'
@@ -39,7 +40,6 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const likes = useCount(countLikes, id, undefined, !!deck?.public);
   const settings = useSettings(); // stampa (aggiungi o sostituisci, sideboard), valuta dei prezzi
   const [online, setOnline] = useState(() => navigator.onLine);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [coverOpen, setCoverOpen] = useState(false);
@@ -50,8 +50,14 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const [stuck, setStuck] = useState(false); // la testata è uscita: la fascia ricerca ha lo sfondo
   // Schede della testata: deck | stats | dilemmas | help; #/decks/:id/help (le proprie richieste dal feed Help) apre Help.
   const [tab, setTab] = useState(initialTab === 'help' ? 'help' : 'deck');
+  // Telefono e tablet: le schede stanno nel menu della X (MobileNav), che le legge da qui.
+  useEffect(() => {
+    if (!mobile) return undefined;
+    setDeckNav({ tab, onTab: setTab, back: 'mine' });
+    return () => setDeckNav(null);
+  }, [mobile, tab]);
   const heroRef = useRef(null);
-  const scrollRef = useRef(null); // .deck-scroll: Back to top della barra in basso (telefono)
+  const scrollRef = useRef(null); // .deck-scroll: Back to top della barra in cima (DeckTopBar, telefono)
   const refreshed = useRef(false);
   // Barra quando della testata resta meno della riga nome + ricerca. Soglia fissa: la barra da
   // .stuck è più bassa (niente Advanced search), misurarla farebbe oscillare lo stato.
@@ -145,7 +151,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
           </div>
         </div>
       )}
-      <header className={`deck-hero${mobile ? ' has-tabs' : ''}`} ref={heroRef}>
+      <header className="deck-hero" ref={heroRef}>
         <button type="button" className="deck-hero-art" onClick={() => setCoverOpen(true)} disabled={!cover}
           aria-label={cover ? `Deck cover: ${cover.card.name}. Change it` : 'Deck cover: add cards first'}>
           {cover?.card.art && (
@@ -185,7 +191,10 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
           </div>
         </div>
       </header>
-      {mobile ? <DeckTabs tab={tab} onTab={setTab} /> : <DeckBand tab={tab} onTab={setTab} format={format} />}
+      {mobile ? (
+        <DeckTopBar deck={deck} showCount={tab === 'deck'} scrollRef={scrollRef}
+          search={<CardSearch format={deck.format} identity={searchIdentity(deck)} onAdd={add} notify={notify} advanced={advOpen} onAdvanced={setAdvOpen} />} />
+      ) : <DeckBand tab={tab} onTab={setTab} format={format} />}
       <div className="deck-body">
         <section className="deck-main">
           {!mobile && advOpen && (
@@ -207,16 +216,15 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
         </section>
       </div>
       </div>
-      {mobile ? <DeckBottomBar deck={deck} showCount={tab === 'deck'} scrollRef={scrollRef} onSearch={() => setSearchOpen(true)} />
-        : tab === 'deck' && <DeckCount deck={deck} />}
+      {!mobile && tab === 'deck' && <DeckCount deck={deck} />}
       {exportOpen && <ExportDeckDialog deck={deck} onClose={() => setExportOpen(false)} />}
       {coverOpen && (
         <CoverDialog deck={deck} onClose={() => setCoverOpen(false)}
           onPick={(oid) => { update((d) => ({ ...d, cover: oid })); setCoverOpen(false); }} />
       )}
-      {mobile && searchOpen && (
-        <MobilePage title="Search cards" onClose={() => setSearchOpen(false)}>
-          <CardSearch format={deck.format} identity={searchIdentity(deck)} onAdd={add} notify={notify} autoFocus />
+      {mobile && advOpen && (
+        <MobilePage title="Advanced search" onClose={() => setAdvOpen(false)}>
+          <AdvancedSearch format={deck.format} identity={searchIdentity(deck)} onAdd={add} notify={notify} />
         </MobilePage>
       )}
       {tagsOpen && <TagsDialog tags={deckTags(deck)} onChange={(tags) => update((d) => ({ ...d, tags }))} onClose={() => setTagsOpen(false)} />}

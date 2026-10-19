@@ -1,6 +1,6 @@
 // Self-check del parser. Esegui: node src/utils/scryfall.selfcheck.js
 // ponytail: niente framework, un file, assert via throw, copre i rami di parseCardList.
-import { parseCardList, deckLine, buildDeckList } from './scryfall.js';
+import { parseCardList, deckLine } from './scryfall.js';
 
 const eq = (a, b, msg) => {
   if (JSON.stringify(a) !== JSON.stringify(b)) {
@@ -32,21 +32,4 @@ eq(parseCardList(deckLine(2, 'Sol Ring', 'c21', '263')),
 eq(deckLine(1, 'Lightning Bolt', '', ''), '1 Lightning Bolt', 'deckLine senza stampa → solo nome');
 eq(deckLine(1, ''), '', 'deckLine senza nome → vuoto');
 
-// buildDeckList (salvataggio progetto): raggruppa, conta solo front, ignora custom
-const save = buildDeckList([
-  { name: 'Sol Ring', set: 'c21', collector: '263', primary: true },
-  { name: 'Sol Ring', set: 'c21', collector: '263', primary: true },          // 2a copia
-  { name: 'Birgi, God of Storytelling', set: 'neo', collector: '128', primary: true },
-  { name: 'Harnfel, Horn of Bounty', set: 'neo', collector: '128', primary: false }, // retro DFC
-  { file: { name: 'foto.png' }, bleedMode: 'none' },                          // upload custom
-]);
-eq(save.text, '2 Sol Ring (C21) 263\n1 Birgi, God of Storytelling (NEO) 128', 'buildDeckList: raggruppa qty, solo front');
-eq(save.cards, 3, 'buildDeckList: copie (2 Sol Ring + 1 Birgi)');
-eq(save.custom, 1, 'buildDeckList: custom esclusi');
-// round-trip: il salvato si re-importa identico (set lowercased dal parser)
-eq(parseCardList(save.text), [
-  { qty: 2, name: 'Sol Ring', set: 'c21', collector: '263' },
-  { qty: 1, name: 'Birgi, God of Storytelling', set: 'neo', collector: '128' },
-], 'buildDeckList → parseCardList round-trip');
-
-console.log('parseCardList + deckLine + buildDeckList: tutti i check passati');
+console.log('parseCardList + deckLine: tutti i check passati');

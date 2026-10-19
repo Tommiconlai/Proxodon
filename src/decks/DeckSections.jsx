@@ -83,7 +83,7 @@ const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 // sezione porta il mazzo in raggruppamento custom; da telefono si sposta tutto dal menu.
 // readOnly (Community): niente menu (solo View card), trascinamento, +/- e sezioni nuove; update cambia solo la vista.
 // onCut(rows) (help request, anche in sola lettura): Suggest cut nel menu e carte trascinabili verso la zona Cuts.
-// tab (schede della testata, DeckTabs): 'deck' = barra e carte, 'stats' = statistiche e mano di prova.
+// tab (schede: DeckBand da desktop, menu della X da telefono): 'deck' = barra e carte, 'stats' = statistiche e mano di prova.
 // onPrint(rows): Print nel menu, porta le righe scelte (anche una sola) nella stampa.
 // notify(msg, kind, action): Remove e − sull'ultima copia tolgono subito, con Undo nel toast.
 // View card (menu, anche in sola lettura): la carta a tutto schermo, per leggerla da telefono.

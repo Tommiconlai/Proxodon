@@ -5,7 +5,8 @@ import { cardsByIds } from './scryfallSearch';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { navigate } from '../hooks/useHashRoute';
 import DeckSections from './DeckSections';
-import { DeckTabs, DeckBand, DeckTitle, DeckCount, DeckBottomBar, DeckTagList } from './DeckTabs';
+import { DeckBand, DeckTitle, DeckCount, DeckTopBar, DeckTagList } from './DeckTabs';
+import { setDeckNav } from '../components/deckNav';
 import { DeckDilemmas } from './Dilemmas';
 import { DeckHelps, HelpQuestion, HelpReply } from './HelpRequests';
 import { ExportDeckDialog } from './dialogs';
@@ -26,9 +27,15 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
   const [exportOpen, setExportOpen] = useState(false);
   const [tab, setTab] = useState('deck');
   const heroRef = useRef(null);
-  const scrollRef = useRef(null); // .deck-scroll: Back to top della barra in basso (telefono)
+  const scrollRef = useRef(null); // .deck-scroll: Back to top della barra in cima (DeckTopBar, telefono)
   const [stuck, setStuck] = useState(false); // la testata è uscita: la barra delle schede ha lo sfondo
   const mobile = useIsMobile();
+  // Telefono e tablet: schede nel menu della X (MobileNav), ritorno alla Community; la pagina di una richiesta non ne ha.
+  useEffect(() => {
+    if (!mobile || helpId) return undefined;
+    setDeckNav({ tab, onTab: setTab, back: 'community' });
+    return () => setDeckNav(null);
+  }, [mobile, helpId, tab]);
   // Immagini solo da Scryfall: vale per testata, carte, anteprima e per la copia in Copy to my decks.
   useEffect(() => listenPublicDeck(id, setDeck, (e) => { setDeck(null); notify(`Could not load this deck: ${e.message}`, 'error'); }), [id, notify]);
   const update = useCallback((fn) => setDeck((d) => d && fn(d)), []);
@@ -97,7 +104,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
             </div>
           </div>
         )}
-        <header className={`deck-hero${mobile && !helpId ? ' has-tabs' : ''}`} ref={heroRef}>
+        <header className="deck-hero" ref={heroRef}>
           <span className="deck-hero-art" aria-hidden="true">
             {cover?.card.art && (
               <>
@@ -127,7 +134,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
             </div>
           </div>
         </header>
-        {!helpId && (mobile ? <DeckTabs tab={tab} onTab={setTab} />
+        {!helpId && (mobile ? <DeckTopBar deck={deck} showCount={tab === 'deck'} scrollRef={scrollRef} />
           : <DeckBand tab={tab} onTab={setTab} format={<span className="deck-format-static">{formatLabel(deck.format)}</span>} />)}
         <div className="deck-body">
           <section className="deck-main">
@@ -141,7 +148,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
           </section>
         </div>
       </div>
-      {mobile ? <DeckBottomBar deck={deck} showCount={tab === 'deck'} scrollRef={scrollRef} /> : tab === 'deck' && <DeckCount deck={deck} />}
+      {!mobile && tab === 'deck' && <DeckCount deck={deck} />}
       {exportOpen && <ExportDeckDialog deck={deck} onClose={() => setExportOpen(false)} />}
     </div>
   );
