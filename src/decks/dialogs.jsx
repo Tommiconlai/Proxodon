@@ -90,11 +90,14 @@ export function TagsDialog({ tags, onChange, onClose }) {
 export function ExportDeckDialog({ deck, onClose }) {
   const [specs, setSpecs] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [note, setNote] = useState(null); // Copy o Download falliti: lo dice qui, il testo resta da copiare a mano
   const ref = useOverlayDismiss(onClose);
   const text = exportText(deck, { specs });
   const pick = (v) => { setSpecs(v); setCopied(false); };
   const copy = async () => {
-    try { await navigator.clipboard.writeText(text); setCopied(true); } catch { /* appunti bloccati: il testo resta selezionabile */ }
+    try { await navigator.clipboard.writeText(text); setCopied(true); setNote(null); } catch {
+      setNote('The browser blocked copying. Select the text above and copy it.');
+    }
   };
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -109,8 +112,10 @@ export function ExportDeckDialog({ deck, onClose }) {
         </div>
         <textarea className="import-textarea export-text" value={text} readOnly rows={12} spellCheck={false} aria-label="Deck list"
           onFocus={(e) => e.target.select()} />
+        {note && <p className="field-hint" role="alert">{note}</p>}
         <div className="modal-actions">
-          <button type="button" className="btn-secondary" onClick={() => downloadText(`${safeName(deck.name)}.txt`, `${text}\n`).catch(() => { /* salvataggio fallito: il testo resta qui da copiare */ })}>
+          <button type="button" className="btn-secondary" onClick={() => downloadText(`${safeName(deck.name)}.txt`, `${text}\n`)
+            .catch((e) => setNote(`Download failed (${e.message}). Copy the text instead.`))}>
             <IconDownload size={15} /> Download .txt
           </button>
           <button type="button" className="btn-generate import-btn" onClick={copy}><IconCopy size={15} /> {copied ? 'Copied' : 'Copy'}</button>

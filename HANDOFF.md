@@ -200,7 +200,13 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Print deck runs once at a time; PNGs skip the CMYK read (most recent, 2026-10-19):** review L23. `handlePrintDeck`
+- **Export deck: failed Copy or Download say so (most recent, 2026-10-19):** review L11, part. In
+  `ExportDeckDialog` a blocked clipboard or a failed download did nothing visible. Now a hint under the text (role
+  alert) says "The browser blocked copying. Select the text above and copy it." or "Download failed (...). Copy the
+  text instead." Checked with a rejecting `clipboard.writeText` on a real deck's Export (nothing written). Still
+  open from L11: counters that fail show 0, Scryfall down looks like no results in CardSearch, "We sent a link"
+  shown even if the verification email failed.
+- **Print deck runs once at a time; PNGs skip the CMYK read (2026-10-19):** review L23. `handlePrintDeck`
   had no guard, so a double click downloaded the images twice and replaced the queue twice: a `printingDeck` ref
   now ignores a second start until the first ends (`finally`). `addItems` read every added file whole to look for
   a CMYK JPEG; it now reads the first two bytes and goes on only for a JPEG (FF D8). Checked: adding 3 Scryfall
