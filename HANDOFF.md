@@ -206,9 +206,11 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
   of index.css gives `.btn-secondary`, `.bulk-btn` and `.btn-icc` the filter button look (black 25% veil, cyan 10%
   border, radius 10), icon-only `.btn-secondary.deck-icon-btn` a cyan icon, and the round `.nav-btn`,
   `.profile-icon-btn`, `.profile-bg-btn` the same fill and border (shape kept); the deck hero icons (desktop 30 px,
-  radius 8; phone) and the deck top bar lost their own dark fills. Kept apart on purpose: the magenta accent `.btn-add`
-  (Add cards, Play, Confirm), Generate PDF, Danger, the ghost Clear of the selection bar, the X menu and `?` circles.
-  Checked at 1440x900 (deck hero, Export dialog, Settings, Profile) and 375x812 (deck hero over the art, top bar).
+  radius 8; phone) and the deck top bar lost their own dark fills. Then, asked "Sì, uniforma anche i pulsanti magenta
+  (Add cards, Play, Confirm) e Generate PDF": `.btn-add` and `.btn-generate` take the same fill, border and radius,
+  cyan text, no glow, no animated gradient border (a disabled Generate PDF stays grey). Still apart: Danger, the ghost
+  Clear of the selection bar, the X menu and `?` circles. Checked at 1440x900 (deck hero, Export dialog, Settings,
+  Profile, Print sidebar, Generate PDF enabled in the Print tour) and 375x812 (deck hero over the art, top bar).
 - **Dilemmas on phones: Play in the header, no search (2026-10-19):** user: "dilemmas mobile: 1. sposta
   il tasto play in alto a destra e rendilo squadrato col bordo blu come gli altri 2. rimuovi la searchbar". Done for
   phones and tablets (`phoneDilemmas` in DeckList): Play is a `.decks-filter-btn` (72x44, cyan border, like the deck
