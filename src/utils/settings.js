@@ -19,6 +19,10 @@ export const DEFAULTS = {
   currency: 'eur', // eur (Cardmarket) | usd (TCGplayer) | off
 };
 
+// localStorage che non lancia (storage bloccato, navigazione privata, pieno): null in lettura, niente in scrittura.
+export const lsGet = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+export const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* vale per la sessione */ } };
+
 const KEY = 'ip:settings';
 const read = () => {
   try {

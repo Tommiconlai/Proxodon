@@ -15,6 +15,7 @@ import '@fontsource/jetbrains-mono/700.css'
 import './index.css'
 import './utils/settings' // applica subito le impostazioni globali (Reduce motion)
 import App from './App.jsx'
+import ErrorBoundary from './components/ErrorBoundary'
 import { Capacitor } from '@capacitor/core'
 
 // App Android: il tasto Indietro scorre la cronologia (overlay, cartelle, mazzi, vedi useBackClose); alla radice
@@ -28,6 +29,8 @@ if (Capacitor.isNativePlatform()) {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary message="Something went wrong. Reload the page: your settings are kept.">
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 )

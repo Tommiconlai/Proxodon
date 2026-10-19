@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { lsGet, lsSet } from '../utils/settings';
 
 // Banner consenso cookie. I settaggi vivono in localStorage (sempre, tecnici);
 // la scelta qui (`ip:cookieConsent` = accepted|declined) abilita/nega eventuali
@@ -6,10 +7,10 @@ import { useState } from 'react';
 const KEY = 'ip:cookieConsent';
 
 export default function CookieBanner() {
-    const [choice, setChoice] = useState(() => localStorage.getItem(KEY));
+    const [choice, setChoice] = useState(() => lsGet(KEY));
     if (choice) return null;
 
-    const decide = (v) => { localStorage.setItem(KEY, v); setChoice(v); };
+    const decide = (v) => { lsSet(KEY, v); setChoice(v); };
 
     return (
         <div className="cookie-banner" role="dialog" aria-label="Cookie consent" aria-live="polite">

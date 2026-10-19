@@ -200,7 +200,17 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Rules round: card and field checks, createdAt, nickname hoarding, dilemma votes in chunks (most recent, 2026-10-19):**
+- **No white page without localStorage, root error boundary (most recent, 2026-10-19):** review M6. `App.jsx` read
+  and wrote its print settings with bare `localStorage` (also `CookieBanner`, `ScryfallImportModal`): with storage
+  blocked (some private modes, disabled site data) or full, the first call threw during render and the page stayed
+  white. New `lsGet(k)` / `lsSet(k, v)` in `utils/settings.js` (null on read, no-op on write when storage throws)
+  replace every bare call in those three files (`cardLang`, `firebase.js`, `settings` already had try / catch).
+  `main.jsx` wraps `<App>` in the existing `ErrorBoundary` with `message` "Something went wrong. Reload the page:
+  your settings are kept."; the boundary got an optional `message` prop and its Retry is now icon-only
+  (`IconReplay`, `aria-label` / `title` Retry). Checked: print page renders at 1440x900 and 375x812, no console
+  errors; with `Storage.prototype.getItem` / `setItem` throwing, `lsGet` gives null, `lsSet` does nothing and the
+  settings module still loads.
+- **Rules round: card and field checks, createdAt, nickname hoarding, dilemma votes in chunks (2026-10-19):**
   review H4, M1, M3, M4, L5 (plus the H1 deck rule of the previous entry). One `firestore.rules` to publish by hand,
   tested on the Firestore emulator (harness in the review session's scratchpad `rulestest`: 101 ok; the rules before
   this round fail the 24 new negative cases). What changed:

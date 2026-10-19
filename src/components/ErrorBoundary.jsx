@@ -1,7 +1,9 @@
 import { Component } from 'react';
+import { IconReplay } from './icons';
 
 // Confine d'errore dell'area mazzi: se il chunk non si carica (offline) o Firebase non parte,
-// mostra un messaggio invece di smontare tutta l'app (la coda di stampa resta intatta).
+// mostra un messaggio invece di smontare tutta l'app (la coda di stampa resta intatta). Anche attorno a tutta
+// l'app (main.jsx, message generico): un errore di render non lascia la pagina bianca.
 export default class ErrorBoundary extends Component {
   state = { error: null };
 
@@ -20,8 +22,9 @@ export default class ErrorBoundary extends Component {
     return (
       <div className="decks-root decks-center">
         <div className="signin-panel" role="alert">
-          <p>Couldn’t load Decks. Check your connection, then retry.</p>
-          <button type="button" className="btn-secondary" onClick={() => window.location.reload()}>Retry</button>
+          <p>{this.props.message ?? 'Couldn’t load Decks. Check your connection, then retry.'}</p>
+          <button type="button" className="btn-secondary deck-icon-btn" onClick={() => window.location.reload()}
+            aria-label="Retry" title="Retry"><IconReplay size={18} /></button>
         </div>
       </div>
     );

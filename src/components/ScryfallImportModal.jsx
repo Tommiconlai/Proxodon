@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { parseCardList, fetchScryfallImages, MAX_LINES, TOO_MANY_LINES } from '../utils/scryfall';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 import { IconX } from './icons';
+import { lsGet, lsSet } from '../utils/settings';
 
 export default function ScryfallImportModal({ open, onClose, onImport }) {
-    const [text, setText] = useState(() => localStorage.getItem('ip:cardlist') || ''); // sopravvive al reload
+    const [text, setText] = useState(() => lsGet('ip:cardlist') || ''); // sopravvive al reload
     const [busy, setBusy] = useState(false);
     const [progress, setProgress] = useState({ done: 0, total: 0 });
     const [result, setResult] = useState(null); // { imported, notFound }
@@ -63,7 +64,7 @@ export default function ScryfallImportModal({ open, onClose, onImport }) {
                 <textarea
                     className="import-textarea"
                     value={text}
-                    onChange={(e) => { setText(e.target.value); try { localStorage.setItem('ip:cardlist', e.target.value); } catch { /* spazio finito: la bozza non sopravvive al reload */ } if (result) setResult(null); }}
+                    onChange={(e) => { setText(e.target.value); lsSet('ip:cardlist', e.target.value); if (result) setResult(null); }}
                     placeholder={'1x Sol Ring\n2x Brainstorm\n1x Fable of the Mirror-Breaker'}
                     rows={10}
                     disabled={busy}

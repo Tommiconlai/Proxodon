@@ -11,7 +11,7 @@ import CookieBanner from './components/CookieBanner';
 import ConfirmDialog from './components/ConfirmDialog';
 import ExportProgress from './components/ExportProgress';
 import Toast from './components/Toast';
-import { getSettings } from './utils/settings';
+import { getSettings, lsGet, lsSet } from './utils/settings';
 import MobileLayout from './components/MobileLayout';
 import { useIsMobile } from './hooks/useIsMobile';
 import { generatePDF, getGridInfo, PAPER_FORMATS, nextBleedMode } from './utils/pdfGenerator';
@@ -35,7 +35,7 @@ const DeckTour = lazy(() => import('./tutorial/DeckTour'));
 
 // Lettura numerica da localStorage con default (null/NaN → default, 0 valido).
 const readNum = (k, d) => {
-  const s = localStorage.getItem(k);
+  const s = lsGet(k);
   const v = Number(s);
   return s !== null && Number.isFinite(v) ? v : d;
 };
@@ -43,30 +43,30 @@ const readNum = (k, d) => {
 export default function App() {
   const [images, setImages] = useState([]);
   const [formatKey, setFormatKey] = useState(() => {
-    const s = localStorage.getItem('ip:format');
+    const s = lsGet('ip:format');
     return s && (PAPER_FORMATS[s] || s === 'custom') ? s : 'A3';
   });
   const [bleedMm, setBleedMm] = useState(() => readNum('ip:bleed', 2));
-  const [bleedStyle, setBleedStyle] = useState(() => localStorage.getItem('ip:bleedStyle') || 'auto'); // auto | mirror | stretch | black
+  const [bleedStyle, setBleedStyle] = useState(() => lsGet('ip:bleedStyle') || 'auto'); // auto | mirror | stretch | black
   const [dpi, setDpi] = useState(() => readNum('ip:dpi', 600));
   // Qualità JPEG dell'export RGB (0.5–1.0). Più bassa = più compressione, file più piccolo.
   // Non si applica al CMYK (FlateDecode lossless).
   const [quality, setQuality] = useState(() => { const q = readNum('ip:quality', 0.85); return q >= 0.3 && q <= 1 ? q : 0.85; });
-  const [cardType, setCardType] = useState(() => localStorage.getItem('ip:cardType') || 'mtg');
+  const [cardType, setCardType] = useState(() => lsGet('ip:cardType') || 'mtg');
   const [cardW, setCardW] = useState(() => readNum('ip:cardW', 63) || 63);
   const [cardH, setCardH] = useState(() => readNum('ip:cardH', 88) || 88);
-  const [cropMarks, setCropMarks] = useState(() => localStorage.getItem('ip:cropMarks') !== '0'); // default on
-  const [cropStyle, setCropStyle] = useState(() => localStorage.getItem('ip:cropStyle') || 'lines'); // lines | corners
-  const [sheetUnit, setSheetUnit] = useState(() => (localStorage.getItem('ip:sheetUnit') === 'in' ? 'in' : 'mm'));
+  const [cropMarks, setCropMarks] = useState(() => lsGet('ip:cropMarks') !== '0'); // default on
+  const [cropStyle, setCropStyle] = useState(() => lsGet('ip:cropStyle') || 'lines'); // lines | corners
+  const [sheetUnit, setSheetUnit] = useState(() => (lsGet('ip:sheetUnit') === 'in' ? 'in' : 'mm'));
   const [sheetW, setSheetW] = useState(() => readNum('ip:sheetW', 210) || 210);
   const [sheetH, setSheetH] = useState(() => readNum('ip:sheetH', 297) || 297);
   // Output: 'rgb' (jsPDF, schermo) | 'cmyk' (PDF/X-1a, stampa). Il profilo ICC NON
   // è persistito (binario; si ri-carica a sessione, come le immagini).
-  const [colorMode, setColorMode] = useState(() => (localStorage.getItem('ip:colorMode') === 'cmyk' ? 'cmyk' : 'rgb'));
-  const [renderIntent, setRenderIntent] = useState(() => (localStorage.getItem('ip:renderIntent') === 'perceptual' ? 'perceptual' : 'relative'));
+  const [colorMode, setColorMode] = useState(() => (lsGet('ip:colorMode') === 'cmyk' ? 'cmyk' : 'rgb'));
+  const [renderIntent, setRenderIntent] = useState(() => (lsGet('ip:renderIntent') === 'perceptual' ? 'perceptual' : 'relative'));
   // Profilo CMYK: id incluso ('fogra39'…) o 'upload'. Persistito (solo l'id).
   const [iccProfileId, setIccProfileId] = useState(() => {
-    const v = localStorage.getItem('ip:iccProfileId');
+    const v = lsGet('ip:iccProfileId');
     return v === UPLOAD_ID || getProfileMeta(v) ? v : DEFAULT_PROFILE_ID;
   });
   const [uploadedIcc, setUploadedIcc] = useState(null); // { bytes, name } profilo caricato (non persistito)
@@ -92,22 +92,22 @@ export default function App() {
 
   // Persiste i settaggi (non le immagini: sono blob, si re-importano in 1 click).
   useEffect(() => {
-    localStorage.setItem('ip:format', formatKey);
-    localStorage.setItem('ip:bleed', String(bleedMm));
-    localStorage.setItem('ip:bleedStyle', bleedStyle);
-    localStorage.setItem('ip:dpi', String(dpi));
-    localStorage.setItem('ip:quality', String(quality));
-    localStorage.setItem('ip:cardType', cardType);
-    localStorage.setItem('ip:cardW', String(cardW));
-    localStorage.setItem('ip:cardH', String(cardH));
-    localStorage.setItem('ip:cropMarks', cropMarks ? '1' : '0');
-    localStorage.setItem('ip:cropStyle', cropStyle);
-    localStorage.setItem('ip:sheetUnit', sheetUnit);
-    localStorage.setItem('ip:sheetW', String(sheetW));
-    localStorage.setItem('ip:sheetH', String(sheetH));
-    localStorage.setItem('ip:colorMode', colorMode);
-    localStorage.setItem('ip:renderIntent', renderIntent);
-    localStorage.setItem('ip:iccProfileId', iccProfileId);
+    lsSet('ip:format', formatKey);
+    lsSet('ip:bleed', String(bleedMm));
+    lsSet('ip:bleedStyle', bleedStyle);
+    lsSet('ip:dpi', String(dpi));
+    lsSet('ip:quality', String(quality));
+    lsSet('ip:cardType', cardType);
+    lsSet('ip:cardW', String(cardW));
+    lsSet('ip:cardH', String(cardH));
+    lsSet('ip:cropMarks', cropMarks ? '1' : '0');
+    lsSet('ip:cropStyle', cropStyle);
+    lsSet('ip:sheetUnit', sheetUnit);
+    lsSet('ip:sheetW', String(sheetW));
+    lsSet('ip:sheetH', String(sheetH));
+    lsSet('ip:colorMode', colorMode);
+    lsSet('ip:renderIntent', renderIntent);
+    lsSet('ip:iccProfileId', iccProfileId);
   }, [formatKey, bleedMm, bleedStyle, dpi, quality, cardType, cardW, cardH, cropMarks, cropStyle, sheetUnit, sheetW, sheetH, colorMode, renderIntent, iccProfileId]);
 
   // Revoca gli object URL residui allo smontaggio (evita leak di memoria).
