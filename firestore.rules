@@ -64,13 +64,18 @@ service cloud.firestore {
     // Mazzi: rev = revisione, +1 a ogni scrittura. Si accetta solo la revisione che segue quella salvata: un
     // dispositivo con una copia vecchia (cache non aggiornata) non sovrascrive quella nuova, la sua scrittura è
     // rifiutata e lui torna alla versione salvata. I mazzi di prima, senza rev, valgono 0. Un mazzo nasce con rev 1:
-    // il salvataggio di una copia vecchia di un mazzo cancellato altrove non lo fa rinascere.
+    // il salvataggio di una copia vecchia di un mazzo cancellato altrove non lo fa rinascere. ver: versione nuova a ogni
+    // salvataggio dell'editor, base = la ver da cui parte; deve essere quella salvata, così con più salvataggi in coda
+    // (offline) cadono tutti dopo il primo rifiutato (il secondo, rev + 2, passerebbe). ver invariata (cartelle, app
+    // di prima): conta solo rev.
     match /users/{uid}/decks/{deckId} {
       allow read, delete: if owner(uid);
       allow create: if owner(uid) && request.resource.data.cards is list && request.resource.data.cards.size() <= 500
         && request.resource.data.get('rev', 0) == 1;
       allow update: if owner(uid) && request.resource.data.cards is list && request.resource.data.cards.size() <= 500
-        && request.resource.data.get('rev', 0) == resource.data.get('rev', 0) + 1;
+        && request.resource.data.get('rev', 0) == resource.data.get('rev', 0) + 1
+        && (request.resource.data.get('ver', null) == resource.data.get('ver', null)
+          || request.resource.data.get('base', null) == resource.data.get('ver', null));
     }
     // Community: copia pubblica di un mazzo (stesso id), la legge chi ha un account. Solo i campi che scrive il client,
     // del tipo giusto (le righe le ripulisce chi legge: cleanPublicDeck); createdAt una data vera e non futura (5 minuti

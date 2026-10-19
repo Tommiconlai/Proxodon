@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDeck } from './useDeck';
 import { unpublishDeck, changedMs, countLikes } from './deckStore';
 import { useCount } from './useCount';
@@ -28,7 +28,13 @@ const STUCK_AT = 72; // px: padding della barra + casella di ricerca, circa
 // Dilemmas / Help). Telefono: il nome sta nella testata e scorre con lei, formato e icone in alto a destra, le
 // schede sotto; in basso la barra (DeckBottomBar) con il conteggio, Back to top e la lente della ricerca.
 export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDeck, initialTab, owner }) {
-  const { deck, update, saving, synced, error } = useDeck(uid, id);
+  // Errori di sync del mazzo, anche dopo la chiusura dell'editor (notify è dell'app, resta vivo).
+  const syncError = useCallback((e) => notify(e.code === 'resource-exhausted'
+    ? 'Daily sync limit reached. Your changes stay on this device and sync after the reset.'
+    // Versione rifiutata dalle regole (useDeck): il mazzo è cambiato altrove, qui torna la versione salvata.
+    : e.code === 'permission-denied' && !e.publish ? 'This deck changed on another device or tab: your last change was not saved. You now see the saved version.'
+      : e.publish ? `Community copy not updated: ${e.message}` : `Sync error: ${e.message}`, 'error'), [notify]);
+  const { deck, update, saving, synced } = useDeck(uid, id, syncError);
   const mobile = useIsMobile();
   const likes = useCount(countLikes, id, undefined, !!deck?.public);
   const settings = useSettings(); // stampa (aggiungi o sostituisci, sideboard), valuta dei prezzi
@@ -65,15 +71,6 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
     window.addEventListener('offline', off);
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []);
-
-  useEffect(() => {
-    if (!error) return;
-    notify(error.code === 'resource-exhausted'
-      ? 'Daily sync limit reached. Your changes stay on this device and sync after the reset.'
-      // Revisione rifiutata dalle regole (useDeck): il mazzo è cambiato altrove, qui torna la versione salvata.
-      : error.code === 'permission-denied' ? 'This deck changed on another device or tab: your last change was not saved. You now see the saved version.'
-        : `Sync error: ${error.message}`, 'error');
-  }, [error, notify]);
 
   // Eliminato da un altro dispositivo mentre era aperto.
   useEffect(() => {

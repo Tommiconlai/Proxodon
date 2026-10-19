@@ -8,7 +8,7 @@ import {
   query, where, orderBy, limit, startAfter, getCountFromServer, collectionGroup, arrayUnion, arrayRemove, Timestamp, increment,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { searchTerms, contentSig, deckTags, deckCover, cleanCards, cleanHelp, cleanReply, cleanPublicDeck } from './deckModel';
+import { searchTerms, contentSig, deckTags, deckCover, cleanCards, cleanHelp, cleanReply, cleanPublicDeck, rid } from './deckModel';
 
 const decksCol = (uid) => collection(db, 'users', uid, 'decks');
 // serverTimestamps 'estimate': un mazzo appena scritto ha già una data (stimata) per l'ordinamento.
@@ -100,14 +100,18 @@ export function setDeckFolder(uid, ids, folder) {
   return batch.commit();
 }
 
-// merge: createdAt resta; gli array (cards, sections) vengono sostituiti interi. rev = revisione del mazzo letto + 1:
-// le regole accettano solo la revisione successiva a quella salvata, così una copia vecchia (altro dispositivo,
-// cache non aggiornata) non sovrascrive quella nuova: la scrittura è rifiutata e la cache torna alla versione
-// del server. Pubblico: la copia si riscrive dopo, solo se il mazzo è stato accettato.
-export const saveDeck = (uid, deck) => {
+// merge: createdAt resta; gli array (cards, sections) vengono sostituiti interi. rev = revisione del mazzo letto + 1,
+// ver = versione nuova (una per salvataggio), base = la ver del mazzo letto: le regole accettano solo la revisione
+// successiva e base == ver salvata, così una copia vecchia (altro dispositivo, cache non aggiornata) non sovrascrive
+// quella nuova: la scrittura è rifiutata e la cache torna alla versione del server. Con più salvataggi in coda
+// (offline) cadono tutti: il secondo parte dalla ver del primo, che il server non ha mai avuto. Senza ver (app di
+// prima, cartelle) conta solo rev. Pubblico: la copia si riscrive dopo, solo se il mazzo è stato accettato; un suo
+// errore ha publish = true (non è un conflitto del mazzo).
+export const saveDeck = (uid, deck, ver = rid()) => {
   const f = changes(deck);
-  const done = setDoc(doc(decksCol(uid), deck.id), { ...payload(deck), ...f, rev: (deck.rev || 0) + 1 }, { merge: true });
-  return deck.public ? done.then(() => publish(uid, deck, f)) : done;
+  const done = setDoc(doc(decksCol(uid), deck.id),
+    { ...payload(deck), ...f, rev: (deck.rev || 0) + 1, ver, base: deck.ver ?? null }, { merge: true });
+  return deck.public ? done.then(() => publish(uid, deck, f).catch((e) => { e.publish = true; throw e; })) : done;
 };
 export const setDeckPublic = (uid, deck, on) => Promise.all([
   saveDeck(uid, { ...deck, public: on }), !on && unpublishDeck(uid, deck.id),
