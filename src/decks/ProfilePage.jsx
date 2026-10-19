@@ -44,7 +44,8 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
   const [decks, setDecks] = useState(null); // null = caricamento
   const [dialog, setDialog] = useState(null); // 'photo' | 'banner'
   const [confirmAll, setConfirmAll] = useState(false);
-  useEffect(() => listenDecks(user.uid, setDecks, () => setDecks(null)), [user.uid]);
+  const [loadError, setLoadError] = useState(null); // listener dei mazzi fallito: messaggio invece degli spinner
+  useEffect(() => listenDecks(user.uid, (d) => { setDecks(d); setLoadError(null); }, setLoadError), [user.uid]);
   const pub = (decks || []).filter((d) => d.public);
   const ids = pub.map((d) => d.id);
   const dilemmas = usePerDeck(ids, listenDilemmas);
@@ -123,7 +124,12 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
       <header className="decks-head">
         <h2 className="decks-title">Decks</h2>
       </header>
-      {decks === null && <span className="import-spinner" aria-label="Loading" />}
+      {decks === null && (loadError ? (
+        <div className="decks-empty" role="alert">
+          <p className="decks-empty-title">Could not load your decks</p>
+          <p className="field-hint">{loadError.message}</p>
+        </div>
+      ) : <span className="import-spinner" aria-label="Loading" />)}
       {decks?.length === 0 && (
         <div className="decks-empty">
           <p className="decks-empty-title">No decks yet</p>
@@ -152,7 +158,7 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
             aria-label="Delete all dilemmas" title="Delete all dilemmas"><IconTrash size={18} /></button>
         )}
       </header>
-      {!dilemmasReady && <span className="import-spinner" aria-label="Loading" />}
+      {!dilemmasReady && !loadError && <span className="import-spinner" aria-label="Loading" />}
       {dilemmasReady && myDilemmas.length === 0 && (
         <div className="decks-empty">
           <p className="decks-empty-title">No dilemmas yet</p>

@@ -200,7 +200,17 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Card language cache keeps only real "not in this language" answers (most recent, 2026-10-19):** review M9.
+- **Failed listeners show a message instead of spinning forever (most recent, 2026-10-19):** review M10. A
+  Firestore listener that errors (rules, quota) never delivers data again, and My decks, the profile and the deck
+  editor kept their loader forever. Now: My decks shows `Empty` "Could not load your decks" + the error (like the
+  Community tab already did; the old toast is gone); the profile shows the same in its Decks section and hides the
+  dilemmas loader; `useDeck` sets `deck` to `false` when the listener fails before the first snapshot, and
+  DeckEditor shows "Could not load this deck." with an icon-only All decks button (the reason is in the
+  `syncError` toast). `useAccount` keeps the last known profile on a listener error instead of nulling it: a
+  null profile made the nickname look empty and the next claim started from `old = ''` (the rules now refuse
+  that anyway, M1 / `nickFreed`). Retry = come back to the page (a new listener). Checked My decks and Profile
+  load normally (no loaders left, no console errors); the error states were not forced on the real account.
+- **Card language cache keeps only real "not in this language" answers (2026-10-19):** review M9.
   `localizedCard` returned null for any error, and `useCardImg` stored null as "" in `ip:locimg:v2`: one 429 /
   5xx / network hiccup meant English images for that print forever. Now null only for a 404 (or a print without
   scan); other errors return `undefined`, drop the in-memory promise (`LOC.delete`) so the next call retries, and

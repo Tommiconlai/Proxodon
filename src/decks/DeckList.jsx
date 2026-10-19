@@ -237,7 +237,9 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
   const dragId = useRef(null); // mazzo trascinato (desktop)
   const [dropOn, setDropOn] = useState(null); // id del mazzo / cartella (o 'out') sotto il trascinamento
 
-  useEffect(() => listenDecks(uid, setDecks, (e) => notify(`Could not load your decks: ${e.message}`, 'error')), [uid, notify]);
+  // Listener fallito (regole, quota): il messaggio al posto dello spinner. Si riprova tornando sulla pagina.
+  const [loadError, setLoadError] = useState(null);
+  useEffect(() => listenDecks(uid, (d) => { setDecks(d); setLoadError(null); }, setLoadError), [uid]);
 
   const writeError = (e) => notify(`Sync error: ${e.message}`, 'error');
   const create = (deck) => {
@@ -381,7 +383,8 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
       {dilemmas ? <DilemmaFeed uid={uid} notify={notify} open={open} play={play} terms={terms} format={filters.format} />
         : help ? <HelpFeed uid={uid} terms={terms} format={filters.format} />
         : community ? <CommunityGrid uid={uid} terms={terms} filters={filters} /> : <>
-        {decks === null && <span className="import-spinner" aria-label="Loading" />}
+        {decks === null && (loadError ? <Empty title="Could not load your decks" hint={loadError.message} />
+          : <span className="import-spinner" aria-label="Loading" />)}
         {decks?.length === 0 && <Empty title="Start your first deck" hint="Create one with the + below, from scratch or from a list." />}
         {decks?.length > 0 && searching && !shown.length && <Empty title="No decks match" hint="Try another name or clear the filters." />}
         {openFolder && (

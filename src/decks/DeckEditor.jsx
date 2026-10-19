@@ -15,7 +15,7 @@ import CardSearch from './CardSearch';
 import AdvancedSearch from './AdvancedSearch';
 import { MobilePage } from '../components/MobileLayout';
 import { PrintDeckDialog, CoverDialog, ExportDeckDialog, TagsDialog } from './dialogs';
-import { IconX, IconDeckTag, IconDeckPrint, IconDeckExport, IconDeckPublic, IconDeckHeart } from '../components/icons';
+import { IconX, IconArrowLeft, IconDeckTag, IconDeckPrint, IconDeckExport, IconDeckPublic, IconDeckHeart } from '../components/icons';
 import { timeAgo } from '../utils/timeAgo';
 
 const STUCK_AT = 72; // px: padding della barra + casella di ricerca, circa
@@ -94,6 +94,18 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
     return r.deck;
   });
 
+  // Listener fallito prima del primo snapshot (il motivo è nel toast di syncError): niente spinner infinito.
+  if (deck === false) {
+    return (
+      <div className="decks-root decks-center">
+        <div className="signin-panel" role="alert">
+          <p>Could not load this deck.</p>
+          <button type="button" className="btn-secondary deck-icon-btn" onClick={() => navigate('/decks')}
+            aria-label="All decks" title="All decks"><IconArrowLeft size={18} /></button>
+        </div>
+      </div>
+    );
+  }
   if (!deck) return <div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>;
 
   const c = boardCounts(deck);

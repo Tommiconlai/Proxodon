@@ -11,7 +11,8 @@ export function useAccount() {
   const ready = !!user && !needsVerification(user);
   const uid = user?.uid;
   useEffect(() => watchUser(setUser), []);
-  // Solo da verificato: prima le regole rifiutano la lettura.
-  useEffect(() => (ready ? listenProfile(uid, setProfile, () => setProfile(null)) : undefined), [uid, ready]);
+  // Solo da verificato: prima le regole rifiutano la lettura. Errore del listener: resta l'ultimo profilo noto
+  // (azzerarlo farebbe sembrare il nickname vuoto, e un nuovo nickname partirebbe senza liberare il vecchio).
+  useEffect(() => (ready ? listenProfile(uid, setProfile, () => {}) : undefined), [uid, ready]);
   return { user, profile, photo: profile?.photo || null, ready, rerender };
 }

@@ -15,7 +15,7 @@ import { rid } from './deckModel';
 // alive: chiuso l'editor, update non fa più niente (un Undo nel toast o una risposta di Scryfall in ritardo non
 // riscrivono il mazzo da una copia ormai vecchia).
 export function useDeck(uid, id, onError) {
-  const [deck, setDeck] = useState(undefined); // undefined = caricamento, null = eliminato
+  const [deck, setDeck] = useState(undefined); // undefined = caricamento, null = eliminato, false = non caricato (errore)
   const [pending, setPending] = useState(false); // scritture non ancora confermate dal server
   const [dirty, setDirty] = useState(false); // modifiche in attesa del debounce
   const [synced, setSynced] = useState(false);
@@ -48,7 +48,7 @@ export function useDeck(uid, id, onError) {
     setPending(hasPending);
     if (!fromCache) setSynced(true);
     if (!timer.current) { latest.current = d; setDeck(d); }
-  }, onError), [uid, id, onError]);
+  }, (e) => { setDeck((d) => (d === undefined ? false : d)); onError(e); }), [uid, id, onError]);
 
   useEffect(() => {
     alive.current = true;
