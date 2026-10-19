@@ -7,6 +7,7 @@ import { IconX } from './icons';
 export default function MpcImportModal({ open, onClose, onImport }) {
     const [cards, setCards] = useState(null);    // carte trovate nel file
     const [fileName, setFileName] = useState('');
+    const [skipped, setSkipped] = useState(0); // carte del file senza un'immagine Drive (non importabili)
     const [busy, setBusy] = useState(false);
     const [progress, setProgress] = useState({ done: 0, total: 0 });
     const [result, setResult] = useState(null);  // { imported, notFound }
@@ -29,8 +30,9 @@ export default function MpcImportModal({ open, onClose, onImport }) {
         try {
             // Un ordine MPCFill pesa pochi KB: un file enorme bloccherebbe la scheda nel parser XML.
             if (f.size > 5 * 1024 * 1024) throw new Error('This file is too big for an MPCFill order (max 5 MB).');
-            const { cards } = parseMpcXml(await f.text());
+            const { cards, skipped } = parseMpcXml(await f.text());
             setCards(cards);
+            setSkipped(skipped);
         } catch (err) {
             setError(err.message || 'Could not read the file.');
         }
@@ -83,6 +85,7 @@ export default function MpcImportModal({ open, onClose, onImport }) {
                     <p className="modal-hint">
                         {cards.length} card{cards.length > 1 ? 's' : ''} found
                         {copies !== cards.length ? ` (${copies} with copies)` : ''}.
+                        {skipped > 0 && ` ${skipped} skipped: not a Google Drive image.`}
                     </p>
                 )}
 

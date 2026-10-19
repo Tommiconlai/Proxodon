@@ -31,13 +31,15 @@ export function parseMpcXml(xmlText) {
       const name = (c.querySelector('query')?.textContent?.trim())
         || stripExt(c.querySelector('name')?.textContent) || 'card';
       return { id, name: name.slice(0, 200), count: Math.min(99, Math.max(1, count)) };
-    }).filter((c) => /^[\w-]{10,100}$/.test(c.id ?? '')); // id di un file Drive
+    });
 
-  const cards = [...read('fronts'), ...read('backs')];
-  if (!cards.length) throw new Error('No cards found in the file.');
+  const all = [...read('fronts'), ...read('backs')];
+  const cards = all.filter((c) => /^[\w-]{10,100}$/.test(c.id ?? '')); // id di un file Drive
+  const skipped = all.length - cards.length; // le altre (non Drive) le dice la finestra
+  if (!cards.length) throw new Error(skipped ? 'No Google Drive images in this file.' : 'No cards found in the file.');
   // Copie, non righe: 1000 righe da 99 copie sarebbero 99.000 file in coda.
   if (cards.reduce((n, c) => n + c.count, 0) > 1000) throw new Error('This file has more than 1000 cards: split it.');
-  return { cards };
+  return { cards, skipped };
 }
 
 // Esegue fn su items con al più `limit` richieste in parallelo (no flood su lh3).

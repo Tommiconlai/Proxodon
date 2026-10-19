@@ -200,7 +200,11 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Export deck: failed Copy or Download say so (most recent, 2026-10-19):** review L11, part. In
+- **MPC import says how many cards it skipped (most recent, 2026-10-19):** review L9. `parseMpcXml` dropped cards
+  whose id is not a Google Drive file id without a word ("110 cards found" for 120). It now returns `skipped` and
+  the window adds "N skipped: not a Google Drive image."; a file with none left says "No Google Drive images in
+  this file." Checked in the browser: 1 good + 2 bad ids gives 1 card, 2 skipped.
+- **Export deck: failed Copy or Download say so (2026-10-19):** review L11, part. In
   `ExportDeckDialog` a blocked clipboard or a failed download did nothing visible. Now a hint under the text (role
   alert) says "The browser blocked copying. Select the text above and copy it." or "Download failed (...). Copy the
   text instead." Checked with a rejecting `clipboard.writeText` on a real deck's Export (nothing written). Still
