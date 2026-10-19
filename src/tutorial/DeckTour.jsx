@@ -43,7 +43,7 @@ function FakeSearch({ q, active = 0, adv = true }) {
 
 // Il menu della X da telefono, come nell'app (copia con lo stato del tutorial: api.nav lo apre e lo chiude).
 const DemoNav = ({ items, current, open }) => (
-  <NavMenu items={items} current={current} open={open} onItem={noop} onToggle={noop}>
+  <NavMenu items={items} current={current} open={open} onItem={(k, h, e) => e.preventDefault()} onToggle={noop}>
     <div className="help"><button type="button" className="help-btn" aria-label="Help for this page" title="Help for this page">?</button></div>
     <span className="account-btn" aria-hidden="true"><span>D</span></span>
   </NavMenu>

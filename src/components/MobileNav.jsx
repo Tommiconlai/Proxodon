@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Wordmark } from './icons';
-import { useBackClose } from '../hooks/useBackClose';
+import { useBackClose, closingBack } from '../hooks/useBackClose';
+import { navigate } from '../hooks/useHashRoute';
 import { navItems, useDeckNav } from './deckNav';
 
 // Posizioni sull'arco sopra la X (Figma 57:116: quattro voci da 167° a 13°, raggio 58); con più voci il raggio
@@ -24,7 +25,7 @@ export function NavMenu({ items, current, onItem, open, onToggle, children }) {
         {items.map((item, i) => {
           const [key, label, href, Icon] = item;
           const props = {
-            className: 'mnav-item', 'aria-label': label, title: label, onClick: () => onItem(key, href),
+            className: 'mnav-item', 'aria-label': label, title: label, onClick: (e) => onItem(key, href, e),
             style: { '--x': `${pos[i][0]}px`, '--y': `${pos[i][1]}px`, '--i': i },
           };
           return (
@@ -61,11 +62,25 @@ export default function MobileNav({ route, onAction, children }) {
     return () => { document.removeEventListener('pointerdown', onDown); document.removeEventListener('keydown', onKey); };
   }, [open]);
   const { items, current } = navItems(deck, route);
-  const onItem = (key, href) => {
+  const onItem = (key, href, e) => {
     setOpen(false);
-    if (href) return;
+    // Link: la pagina nuova prende il posto della voce del menu in cronologia (navigate). Col default del link la
+    // chiusura del menu farebbe history.back() dopo il cambio di hash, e si tornerebbe alla pagina di prima.
+    if (href) {
+      e.preventDefault();
+      if (href !== window.location.hash) navigate(href.slice(1)); // la pagina aperta: si chiude e basta
+      return;
+    }
     if (deck) deck.onTab(key);
-    else onAction?.(key);
+    // Le azioni aprono un overlay con la sua voce in cronologia: dopo che il menu ha tolto la sua, sennò il suo
+    // history.back() toglierebbe quella dell'overlay (e Indietro lascerebbe la pagina invece di chiuderlo).
+    else if (onAction) {
+      setTimeout(() => {
+        const run = () => onAction(key);
+        if (closingBack()) window.addEventListener('popstate', () => setTimeout(run), { once: true });
+        else run();
+      });
+    }
   };
   return (
     <div className="mnav-wrap" ref={ref}>

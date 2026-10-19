@@ -50,7 +50,7 @@ function PrintStage({ apiRef, step, mobile }) {
   if (mobile) {
     return (
       <main className="mobile-body">
-        <NavMenu {...navItems(null, '/print')} open={navOpen} onItem={noop} onToggle={noop} />
+        <NavMenu {...navItems(null, '/print')} open={navOpen} onItem={(k, h, e) => e.preventDefault()} onToggle={noop} />
         <div className="mobile-cards">
           {preview}
           {addOpen && (
