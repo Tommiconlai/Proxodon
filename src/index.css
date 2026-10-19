@@ -2580,6 +2580,9 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 /* Formato accanto alla ricerca (Dilemmas, Help): alto e scuro come Filters. */
 .decks-format { flex: none; width: auto; height: 38px; background-color: rgba(0, 0, 0, 0.25); border-color: rgba(0, 229, 255, 0.1); border-radius: 10px; }
 .decks-format.on { border-color: var(--cyan); color: var(--cyan-soft); }
+/* Dilemmi da telefono: niente ricerca, il formato prende la riga; Play è il tasto squadrato a destra del titolo. */
+.decks-search:not(:has(.decks-search-box)) .decks-format { flex: 1; }
+.decks-head .decks-play { margin-left: auto; }
 .decks-card-filter { flex: none; width: 200px; } /* 223 nel design, che non ha C né Clear: così stanno su una riga */
 .decks-colors { display: flex; gap: 10px; flex-wrap: wrap; }
 .decks-color {
@@ -3590,10 +3593,6 @@ span.deck-hero-art { cursor: default; }
 .deck-editor.is-mobile .deck-body { padding-bottom: 120px; }
 .deck-count.plain { position: static; flex-direction: row; align-items: baseline; gap: 16px; text-shadow: 0 1px 3px #000, 0 0 10px rgba(0, 0, 0, 0.9); }
 .deck-count.plain .deck-count-chip { padding: 0; background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; color: #fff; }
-/* Lista mazzi da telefono: Import / New deck / Play in basso a destra, tondi, sopra il contenuto. */
-.mobile-decks .decks-actions { position: fixed; right: 16px; bottom: calc(104px + env(safe-area-inset-bottom, 0px)); z-index: 50; margin: 0; gap: 10px; }
-.mobile-decks .decks-actions .deck-icon-btn { width: 52px; height: 52px; border-radius: 50%; box-shadow: var(--shadow-lg); }
-.mobile-decks .decks-actions .btn-secondary { background: rgba(8, 7, 15, 0.92); }
 /* Settings della stampa da telefono: stesso spazio tra i gruppi della sidebar desktop (gap 24 px). */
 .mobile-page-body > .sidebar-section + .sidebar-section { margin-top: 24px; }
 /* ── Telefono, revisione UX: bersagli da dito di almeno 44 px. Dove l'aspetto resta piccolo (?, export dei

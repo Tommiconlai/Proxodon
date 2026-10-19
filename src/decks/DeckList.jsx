@@ -250,7 +250,8 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
     return id;
   };
 
-  const terms = searchTerms(q);
+  const phoneDilemmas = mobile && dilemmas; // telefono: niente ricerca nei dilemmi, Play nella testata
+  const terms = searchTerms(phoneDilemmas ? '' : q);
   const nFilters = (filters.format ? 1 : 0) + filters.colors.length + (filters.card.trim() ? 1 : 0);
   const toggleColor = (c) => setFilters((f) => ({ ...f, colors: f.colors.includes(c) ? f.colors.filter((x) => x !== c) : [...f.colors, c] }));
   const shown = decks?.filter((d) => deckMatches(d, terms, filters));
@@ -313,16 +314,24 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
   return (
     <div className="decks-root decks-page" ref={rootRef}>
       {/* Desktop: la fascia a trapezi del Figma 52:275; telefono e tablet: il titolo, le schede sono nel menu della X (MobileNav). */}
-      {mobile ? <header className="decks-head"><h1 className="decks-title">{LIST_TABS.find(([t]) => t === tab)[1]}</h1></header>
-        : <ListBand items={LIST_TABS.map(([t, label]) => [t, label, listHref(t)])} current={tab} />}
+      {mobile ? (
+        <header className="decks-head">
+          <h1 className="decks-title">{LIST_TABS.find(([t]) => t === tab)[1]}</h1>
+          {phoneDilemmas && !open && !play && (
+            <button type="button" className="decks-filter-btn decks-play" onClick={() => navigate('/dilemmas/play')} aria-label="Play dilemmas" title="Play dilemmas"><IconPlay size={18} /></button>
+          )}
+        </header>
+      ) : <ListBand items={LIST_TABS.map(([t, label]) => [t, label, listHref(t)])} current={tab} />}
 
       {!open && !play && <>
       <div className="decks-search" role="search">
-        <label className="decks-search-box">
-          <IconDeckSearch />
-          <input type="search" className="import-link-input" value={q} onChange={(e) => setQ(e.target.value)}
-            placeholder={searchLabel} aria-label={searchLabel} spellCheck={false} />
-        </label>
+        {!phoneDilemmas && (
+          <label className="decks-search-box">
+            <IconDeckSearch />
+            <input type="search" className="import-link-input" value={q} onChange={(e) => setQ(e.target.value)}
+              placeholder={searchLabel} aria-label={searchLabel} spellCheck={false} />
+          </label>
+        )}
         {/* Dilemmas e Help: solo il formato, accanto alla ricerca (lo stesso filtro formato delle altre schede). */}
         {feed ? (
           <select className={`decks-format${filters.format ? ' on' : ''}`} value={filters.format} aria-label="Format" title="Format"
@@ -337,7 +346,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
             <IconDeckFilter />{nFilters > 0 && <span className="decks-filter-n" aria-hidden="true">{nFilters}</span>}
           </button>
         )}
-        {dilemmas && (
+        {dilemmas && !mobile && (
           <div className="decks-actions">
             <button type="button" className="btn-add deck-new deck-icon-btn" onClick={() => navigate('/dilemmas/play')} aria-label="Play dilemmas" title="Play dilemmas"><IconPlay size={18} /></button>
           </div>

@@ -294,21 +294,26 @@ function ListStage({ apiRef, step, mobile, tab }) {
       <div className="decks-root decks-page">
         {/* Come DeckList: da desktop la fascia a trapezi, da telefono e tablet il titolo e le schede nel menu della X. */}
         {mobile ? <>
-          <header className="decks-head"><h1 className="decks-title">{LIST_TABS.find(([t]) => t === tab)[1]}</h1></header>
+          <header className="decks-head">
+            <h1 className="decks-title">{LIST_TABS.find(([t]) => t === tab)[1]}</h1>
+            {tab === 'dilemmas' && !open && <button type="button" className="decks-filter-btn decks-play" aria-label="Play dilemmas" title="Play dilemmas"><IconPlay size={18} /></button>}
+          </header>
           <DemoNav {...navItems(tab === 'mine' ? '/decks' : `/${tab}`)} open={navOpen} />
         </> : <ListBand items={LIST_TABS} current={tab} />}
         {!open && (
           <div className="decks-search" role="search">
-            <label className="decks-search-box">
-              <IconDeckSearch />
-              <input type="search" className="import-link-input" value={q} readOnly placeholder={label} aria-label={label} />
-            </label>
+            {!(mobile && tab === 'dilemmas') && (
+              <label className="decks-search-box">
+                <IconDeckSearch />
+                <input type="search" className="import-link-input" value={q} readOnly placeholder={label} aria-label={label} />
+              </label>
+            )}
             {feed ? (
               <select className="decks-format" value="" aria-label="Format" title="Format" onChange={noop}><option value="">Any format</option></select>
             ) : (
               <button type="button" className="decks-filter-btn" aria-expanded={filtersOpen} aria-label="Filters" title="Filters"><IconDeckFilter /></button>
             )}
-            {tab === 'dilemmas' && (
+            {tab === 'dilemmas' && !mobile && (
               <div className="decks-actions">
                 <button type="button" className="btn-add deck-new deck-icon-btn" aria-label="Play dilemmas" title="Play dilemmas"><IconPlay size={18} /></button>
               </div>
@@ -636,9 +641,9 @@ function listSteps(tab, mobile) {
   };
   if (tab === 'dilemmas') {
     return [tabsStep, {
-      target: '.decks-actions', title: 'Play',
+      target: mobile ? '.decks-play' : '.decks-actions', title: 'Play',
       text: 'Play shows the dilemmas you have not answered, one after another: pick with ← → or 1 to 4, Enter for the next.',
-      play: async (g) => { await g.move('.decks-actions .btn-add'); g.say('Play'); await g.wait(1200); },
+      play: async (g) => { await g.move(mobile ? '.decks-play' : '.decks-actions .btn-add'); g.say('Play'); await g.wait(1200); },
     }, {
       target: '.dilemma-list', title: 'Open a dilemma',
       text: 'Each tile shows the cards, the votes so far and New on the latest ones. Open one to answer.',

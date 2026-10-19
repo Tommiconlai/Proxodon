@@ -201,7 +201,14 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Stats in the deck card style (most recent, 2026-10-19; pushed after "Vanno bene, fai il push"):** user: "prova a
+- **Dilemmas on phones: Play in the header, no search (most recent, 2026-10-19):** user: "dilemmas mobile: 1. sposta
+  il tasto play in alto a destra e rendilo squadrato col bordo blu come gli altri 2. rimuovi la searchbar". Done for
+  phones and tablets (`phoneDilemmas` in DeckList): Play is a `.decks-filter-btn` (72x44, cyan border, like the deck
+  filters button) at the right of `[ DILEMMAS ]` (`.decks-play`), no longer the round button fixed above the menu; the
+  search box is gone, the format menu takes the row, and the query is ignored there (a search left from another tab
+  cannot hide dilemmas). Tour copy and the Play step follow; desktop keeps search and Play in the row. Checked at
+  375x812 (Play opens `#/dilemmas/play`, Back returns), 768x1024, 1440x900.
+- **Stats in the deck card style (2026-10-19):** user: "prova a
   riadattare le stats con lo stile delle card dei mazzi". Every stats panel (summary tiles, mana curve, mana value
   list, colour cards, draw odds) is now a `StatFrame` (see the DeckStats row): the `CutFrame` shape and gradient border
   of the deck tiles, with the title in a pill in the top-left pocket (colour cards: small symbol + name, the big symbol
