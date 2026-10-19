@@ -96,7 +96,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
         {/* Pagina della richiesta: niente barra delle schede, in alto restano ferme le zone Cuts / Suggestions. */}
         {!mobile && !helpId && (
           <div className="deck-sticky">
-            <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`} style={cover?.card.art ? { '--deck-art': `url("${cover.card.art}")` } : undefined}>
+            <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`}>
               <DeckTitle by={by}><h2 className="deck-name deck-name-static">{deck.name}</h2>{like}</DeckTitle>
             </div>
           </div>

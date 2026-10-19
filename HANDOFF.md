@@ -201,7 +201,7 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Desktop deck bar: search on the name line, cover art when stuck (most recent, 2026-10-19):** user: "allinea la
+- **Desktop deck bar: search on the name line (most recent, 2026-10-19; the cover art in the stuck bar was tried and removed):** user: "allinea la
   search bar col nome mazzo, in modo che siano già in posizione quando parte lo scroll. Inoltre lascia l'immagine della
   testata durante lo scroll, centrala nella porzione". The desktop `.deck-sticky-bar` now has the stuck geometry from
   the start (height 62, padding 28, `align-items: center`): name and search share one centre line (y 87 at 1440x900,
@@ -210,8 +210,9 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
   full-width `cover` under a veil; then, user: "l'immagine non allargarla, lascia le dimennsioni di quando si vede in
   testata": a `.stuck::before` with the hero's own geometry (image 572 px wide at -25, the 572x353 box centred on the
   bar's centre, the same `deck-art-mask.svg` at 16, -151.5 and opacity 0.8), so the bar shows the middle strip of the
-  hero art at hero size; the pseudo clips itself because the bar cannot hide overflow (search suggestions). Checked
-  at 1440x900 on the editor (Aesi) and a Community deck.
+  hero art at hero size. Then, user: "niente non viene coe lo avevo in mente. torna a prima", and asked how far:
+  "Solo l'immagine": `--deck-art` and the `::before` are gone, the stuck bar is the plain `--bg-base` again; the
+  search on the name line stays. Checked at 1440x900 (name and search at y 87 before and after sticking, no image).
 - **Wider deck search on desktop (2026-10-19):** user: "allarga la search bar nella vista mazzo, 30%".
   `.deck-hero-search` 227 -> 295 px (the Figma 227 + 30%), the cyan glow bar on its right edge moved with it (left
   293); same width in the stuck bar. Phones keep the full-width search of `DeckTopBar`. Checked at 1440x900 (295 px,

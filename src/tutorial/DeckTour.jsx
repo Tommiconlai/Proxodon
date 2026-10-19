@@ -111,7 +111,7 @@ function DeckStage({ apiRef, mobile, mode }) {
           onScroll={mobile ? undefined : (e) => setStuck(e.currentTarget.scrollTop > (heroRef.current?.offsetHeight || 0) - 72)}>
           {!mobile && !help && (
             <div className="deck-sticky">
-              <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`} style={cover ? { '--deck-art': `url("${cover}")` } : undefined}>
+              <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`}>
                 <DeckTitle by={editor ? 'demoplayer' : deck.owner}>{name}{!editor && like}</DeckTitle>
                 {editor && <div className="deck-hero-search"><FakeSearch q={q} active={active} /></div>}
               </div>
