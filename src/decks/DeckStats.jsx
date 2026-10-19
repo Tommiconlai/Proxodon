@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { deckStats, hyperAtLeast, priceLabel } from './deckModel';
 import { useSettings } from '../utils/settings';
 import { ManaCost } from './Mana';
+import { CutFrame } from './CutFrame';
 
 // Statistiche sotto il mazzo (main board), sul modello di Moxfield ma con lo stile del sito:
 // 1. curva di mana a colonne impilate (permanenti / magie); la barra scelta (all'inizio la più alta)
@@ -19,6 +20,31 @@ const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 const mvLabel = (mv) => (mv === 7 ? '7+' : String(mv));
 const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
+
+// Riquadro con la sagoma delle card dei mazzi (CutFrame, bordo sfumato, fondo scuro): misurato, perché le misure
+// cambiano con la pagina; la tasca in alto a sinistra è larga quanto la pillola del titolo (.stat-pill, anche dentro il
+// figcaption) più 4 px d'aria, alta 26 come nei riquadri dei mazzi.
+function StatFrame(props) {
+  const { as: Tag = 'div', className, children, ...rest } = props;
+  const ref = useRef(null);
+  const [box, setBox] = useState(null); // [larghezza, altezza, larghezza della pillola]
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const pill = el.querySelector('.stat-pill');
+    const measure = () => setBox([el.offsetWidth, el.offsetHeight, pill?.offsetWidth ?? 0]);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    if (pill) ro.observe(pill); // il font arriva dopo: la pillola si allarga
+    return () => ro.disconnect();
+  }, []);
+  return (
+    <Tag ref={ref} className={`stat-frame ${className}`} {...rest}>
+      {box && box[0] > 0 && <CutFrame w={box[0]} h={box[1]} cuts={box[2] ? { tl: [box[2] + 4, 26] } : undefined} />}
+      {children}
+    </Tag>
+  );
+}
 
 // Colonna con l'estremo dati arrotondato (4 px) e la base quadrata.
 const colPath = (x, y, w, h) => {
@@ -59,9 +85,9 @@ function CurveChart({ curve, pick, onPick }) {
   const y = (v) => H - bottom - (v / yMax) * plotH;
   const ticks = Array.from({ length: yMax / step + 1 }, (_, i) => i * step);
   return (
-    <figure className="stat-card stat-curve">
+    <StatFrame as="figure" className="stat-card stat-curve">
       <figcaption>
-        <span className="stat-title">Mana curve</span>
+        <span className="stat-pill">Mana curve</span>
         <span className="stat-sub">Non-land cards by mana value. Click a bar to see its cards.</span>
       </figcaption>
       <div className="stat-legend">
@@ -103,22 +129,24 @@ function CurveChart({ curve, pick, onPick }) {
           })}
         </svg>
         {tip.el}
-        <table className="sr-only">
-          <caption>Mana curve</caption>
-          <thead><tr><th>Mana value</th><th>Permanents</th><th>Spells</th></tr></thead>
-          <tbody>{curve.map((b) => <tr key={b.mv}><td>{mvLabel(b.mv)}</td><td>{b.perm}</td><td>{b.spell}</td></tr>)}</tbody>
-        </table>
+        <div className="sr-only">{/* nel div: una tabella non si stringe a 1 px e allargava la pagina */}
+          <table>
+            <caption>Mana curve</caption>
+            <thead><tr><th>Mana value</th><th>Permanents</th><th>Spells</th></tr></thead>
+            <tbody>{curve.map((b) => <tr key={b.mv}><td>{mvLabel(b.mv)}</td><td>{b.perm}</td><td>{b.spell}</td></tr>)}</tbody>
+          </table>
+        </div>
       </div>
-    </figure>
+    </StatFrame>
   );
 }
 
 // Carte della barra scelta, per tipo: click = selezionala nel mazzo.
 function CurveCards({ bin, onSelect }) {
   return (
-    <div className="stat-card stat-mv">
+    <StatFrame className="stat-card stat-mv">
       <div className="stat-mv-head">
-        <span className="stat-title">Mana value {mvLabel(bin.mv)}</span>
+        <span className="stat-pill">Mana value {mvLabel(bin.mv)}</span>
         <span className="n">{plural(bin.count, 'card')}</span>
         {bin.ids.length > 0 && <button type="button" className="btn-secondary stat-mv-select" onClick={() => onSelect(bin.ids)}>Select in deck</button>}
       </div>
@@ -139,7 +167,7 @@ function CurveCards({ bin, onSelect }) {
           </ul>
         </section>
       ))}
-    </div>
+    </StatFrame>
   );
 }
 
@@ -194,9 +222,9 @@ function DrawOdds({ library, types }) {
   const tip = at != null && pts[at];
   const what2 = type ? `the ${K} ${type.label.toLowerCase()}` : `${K} ${K === 1 ? 'copy' : 'copies'} of a card`;
   return (
-    <figure className="stat-card stat-odds">
+    <StatFrame as="figure" className="stat-card stat-odds">
       <figcaption className="stat-odds-title">
-        <span className="stat-title">Draw odds</span>
+        <span className="stat-pill">Draw odds</span>
         <span className="stat-sub">Chance to draw at least {k} of {what2} by each turn</span>
       </figcaption>
       <div className="stat-odds-controls">
@@ -263,17 +291,19 @@ function DrawOdds({ library, types }) {
             ))}
           </div>
         )}
-        <table className="sr-only">
-          <caption>Chance to draw at least {k} of {what2}</caption>
-          <thead><tr><th>Turn</th><th>On the play</th><th>On the draw</th></tr></thead>
-          <tbody>{pts.map((p) => <tr key={p.t}><td>{p.t}</td><td>{f(p.play)}</td><td>{f(p.draw)}</td></tr>)}</tbody>
-        </table>
+        <div className="sr-only">{/* nel div: una tabella non si stringe a 1 px e allargava la pagina */}
+          <table>
+            <caption>Chance to draw at least {k} of {what2}</caption>
+            <thead><tr><th>Turn</th><th>On the play</th><th>On the draw</th></tr></thead>
+            <tbody>{pts.map((p) => <tr key={p.t}><td>{p.t}</td><td>{f(p.play)}</td><td>{f(p.draw)}</td></tr>)}</tbody>
+          </table>
+        </div>
       </div>
       {/* Media nelle 7 carte iniziali di quello che si sta guardando: 7 x copie / grimorio. */}
       <p className="stat-odds-avg">
         Average {type ? type.label.toLowerCase() : `copies of the card (${K})`} in an opening hand: <b>{((7 * K) / library).toFixed(2)}</b>
       </p>
-    </figure>
+    </StatFrame>
   );
 }
 
@@ -281,18 +311,18 @@ function ColorCard({ c, s }) {
   const top = Math.max(1, ...c.byMv);
   const share = pct(c.sources, s.sources);
   return (
-    <div className={`stat-color${c.pips ? '' : ' dim'}`}>
-      <img src={symUrl(c.c)} alt="" width="44" height="44" />
+    <StatFrame className={`stat-color${c.pips ? '' : ' dim'}`}>
+      <span className="stat-pill"><img src={symUrl(c.c)} alt="" width="14" height="14" />{COLOR_NAME[c.c]}</span>
       <span className="stat-color-pct">{pct(c.pips, s.pips)}%</span>
       <span className="stat-color-sub">{plural(c.pips, 'symbol')} in costs</span>
       <svg className="stat-color-curve" viewBox="0 0 80 26" role="img" aria-label={`${COLOR_NAME[c.c]} symbols by mana value: ${c.byMv.join(', ')}`}>
         {c.byMv.map((v, i) => v > 0 && <rect key={i} x={i * 10 + 1} y={24 - (v / top) * 22} width="8" height={(v / top) * 22} rx="1.5" className="stat-bar s1" />)}
         <line x1="0" x2="80" y1="24.5" y2="24.5" className="stat-axis" />
       </svg>
-      <span className="stat-color-label"><span>{COLOR_NAME[c.c]} sources</span><b>{share}%</b></span>
+      <span className="stat-color-label"><span>Sources</span><b>{share}%</b></span>
       <span className="stat-meter" aria-hidden="true"><span style={{ width: `${share}%` }} /></span>
       <span className="stat-color-sub">{c.sources} of {s.sources} · {plural(c.landSources, 'land')}</span>
-    </div>
+    </StatFrame>
   );
 }
 
@@ -318,11 +348,11 @@ export default function DeckStats({ deck, onSelect }) {
     <div className="deck-stats">
       <div className="stat-colors stat-tiles" role="list" aria-label="Deck summary">
         {tiles.map(([label, value, sub, cls]) => (
-          <div key={label} className="stat-color" role="listitem">
-            <span className="stat-tile-label">{label}</span>
+          <StatFrame key={label} className="stat-color" role="listitem">
+            <span className="stat-pill">{label}</span>
             <span className={`stat-color-pct${cls ? ` ${cls}` : ''}`}>{value}</span>
             <span className="stat-color-sub">{sub}</span>
-          </div>
+          </StatFrame>
         ))}
       </div>
       <div className="stat-curve-row">

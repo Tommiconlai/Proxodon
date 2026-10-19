@@ -3416,15 +3416,23 @@ span.deck-hero-art { cursor: default; }
 /* Statistiche sotto il mazzo (DeckStats): curva + carte della barra scelta, frase di riepilogo,
    una scheda per colore, probabilità di pescata. Testi in colori del testo, mai della serie. */
 .deck-stats { display: flex; flex-direction: column; gap: 24px; }
-.stat-card, .stat-color {
-  margin: 0;
-  padding: 16px 18px;
-  background: linear-gradient(180deg, var(--bg-elevated), var(--bg-surface));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+/* Ogni riquadro ha la sagoma delle card dei mazzi (StatFrame + CutFrame, misurata): fondo scuro, bordo sfumato ciano →
+   viola → magenta al 35%, in alto a sinistra la tasca con la pillola del titolo; sagoma e bordo stanno sotto il testo
+   (z-index -1 nel riquadro isolato), la pillola sta nell'angolo del riquadro anche dentro il figcaption. */
+.stat-card, .stat-color { position: relative; isolation: isolate; margin: 0; padding: 40px 18px 16px; }
+.stat-frame > :is(.cut-shape, .cut-frame) { z-index: -1; }
+.stat-frame .cut-shape { background: linear-gradient(180deg, #0c0b16, #07060d); }
+.stat-frame .cut-frame path { stroke-opacity: 0.35; }
+.stat-pill {
+  position: absolute; top: 0; left: 0; display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 10px;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 999px; white-space: nowrap;
+  font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255, 255, 255, 0.82);
 }
+.stat-pill img { width: 14px; height: 14px; }
+/* Nei riquadri del riepilogo i nomi lunghi (Average mana value): pillola più stretta, così a destra resta bordo. */
+.stat-tiles .stat-pill { padding: 0 8px; font-size: 0.6rem; letter-spacing: 0.06em; }
 .stat-curve-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
-@media (max-width: 1000px) { .stat-curve-row { grid-template-columns: 1fr; } }
+@media (max-width: 1000px) { .stat-curve-row { grid-template-columns: minmax(0, 1fr); } } /* minmax: mai più largo della pagina */
 /* Il grafico scala con il riquadro (viewBox 400): oltre 600 px i testi diventerebbero enormi. */
 .stat-curve .stat-plot { max-width: 600px; margin-inline: auto; }
 .stat-grid { stroke: rgba(167, 161, 201, 0.1); stroke-width: 1; }
@@ -3450,9 +3458,8 @@ span.deck-hero-art { cursor: default; }
 .stat-mv-row .mana img { width: 16px; height: 16px; }
 /* Colori: simbolo, quota dei simboli nei costi, mini curva dei simboli, quota delle fonti. */
 .stat-colors { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
-.stat-color { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 20px 16px; text-align: center; }
+.stat-color { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 40px 16px 18px; text-align: center; }
 .stat-color.dim { opacity: 0.38; }
-.stat-color > img { width: 44px; height: 44px; filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.6)); }
 .stat-color-pct { margin-top: 4px; font-family: var(--font-display); font-size: 2.1rem; font-weight: 600; line-height: 1.1; color: var(--text-primary); }
 .stat-color-sub { font-size: 0.8rem; color: var(--text-secondary); }
 .stat-color-curve { width: 80px; height: 26px; margin: 6px 0 8px; }
@@ -3460,9 +3467,8 @@ span.deck-hero-art { cursor: default; }
 .stat-color-label b { font-family: var(--font-mono); font-weight: 600; color: var(--text-primary); }
 .stat-meter { width: 100%; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.06); overflow: hidden; }
 .stat-meter > span { display: block; height: 100%; border-radius: inherit; background: var(--chart-2); box-shadow: 0 0 10px rgba(255, 45, 149, 0.4); }
-/* Riepilogo del mazzo (primo nelle Stats): stessi riquadri dei colori, etichetta in alto al posto del simbolo. */
-.stat-tiles { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
-.stat-tile-label { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+/* Riepilogo del mazzo (primo nelle Stats): stessi riquadri dei colori, il nome del dato nella pillola. */
+.stat-tiles { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .stat-color-pct.small { font-size: 1.5rem; line-height: 1.5; }
 /* Probabilità di pescata: titolo, poi una riga di opzioni (Draw, Copies, At least, Turns) che va a
    capo sugli schermi stretti; grafico largo quanto la sezione. Linee 2 px, punti con anello del
@@ -3479,7 +3485,6 @@ span.deck-hero-art { cursor: default; }
 .stat-dot.s2 { fill: var(--chart-2); }
 .stat-crosshair { stroke: rgba(167, 161, 201, 0.4); stroke-width: 1; stroke-dasharray: 3 3; }
 .stat-card figcaption { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
-.stat-title { font-family: var(--font-display); font-size: 0.9rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-primary); }
 .stat-sub { font-size: 0.84rem; color: var(--text-secondary); }
 .stat-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 8px; font-size: 0.84rem; color: var(--text-secondary); }
 .stat-legend span { display: inline-flex; align-items: center; gap: 6px; }
