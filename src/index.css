@@ -2879,7 +2879,7 @@ a.deck-tile.deck-add { text-decoration: none; }
 .deck-like span { color: var(--text-primary); }
 .deck-name-static { overflow-wrap: anywhere; }
 .deck-sections.tab-stats .deck-analysis { width: auto; min-width: 0; margin-top: 0; }
-.deck-part { margin-top: 48px; } /* telefono: Dilemmas e Help sotto carte e Stats, staccati come Stats */
+.deck-part { margin-top: 30px; } /* telefono: Dilemmas e Help sotto carte e Stats; con i 14 del padding, 44 come tra le parti di Stats */
 .deck-editor.is-mobile :is(.deck-part, .deck-analysis) { scroll-margin-top: 130px; } /* portate in vista (Help, tour): sotto la barra ferma */
 /* Dilemmi (Dilemmas.jsx): elenco, dilemma aperto (due carte, nome del mazzo, domanda, voto, spiegazioni,
    lista del mazzo) e finestra New dilemma. */
@@ -3529,7 +3529,9 @@ span.deck-hero-art { cursor: default; }
 .deck-editor.is-mobile .deck-hero-art { width: 100%; }
 .deck-editor.is-mobile .deck-hero .deck-name { font-size: 1.25rem; }
 .deck-editor.is-mobile .deck-hero-meta { gap: 8px; }
-.deck-editor.is-mobile .deck-sections { padding: 14px 14px 110px; }
+/* Da telefono le sezioni stanno in fila (carte e Stats, Dilemmas, Help): niente min-height (serve alla selezione ad
+   area da desktop) né fondo da 110, che lasciavano centinaia di px vuoti; il fondo per il menu lo dà .deck-body. */
+.deck-editor.is-mobile .deck-sections { padding: 14px 14px 0; min-height: 0; }
 .deck-editor.is-mobile .deck-columns { columns: auto; }
 /* Tags / Print / Export / Public (Community: Copy / Export) in alto a destra della testata; il nome lascia lo
    spazio. Desktop: il gruppo non c'è (display: contents), i pulsanti restano nella riga in basso. */

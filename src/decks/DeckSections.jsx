@@ -84,7 +84,7 @@ const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 // readOnly (Community): niente menu (solo View card), trascinamento, +/- e sezioni nuove; update cambia solo la vista.
 // onCut(rows) (help request, anche in sola lettura): Suggest cut nel menu e carte trascinabili verso la zona Cuts.
 // tab (schede di DeckBand da desktop): 'deck' = barra e carte, 'stats' = statistiche e mano di prova; 'all' (telefono, una
-// sola pagina) = le carte e sotto le statistiche.
+// sola pagina) = le carte e sotto le statistiche, senza la mano di prova.
 // onPrint(rows): Print nel menu, porta le righe scelte (anche una sola) nella stampa.
 // notify(msg, kind, action): Remove e − sull'ultima copia tolgono subito, con Undo nel toast.
 // View card (menu, anche in sola lettura): la carta a tutto schermo, per leggerla da telefono.
@@ -572,16 +572,19 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
         </details>
       )}
       </>}
-      {/* Scheda Stats (o sotto le carte, da telefono): statistiche e mano di prova. */}
+      {/* Scheda Stats: statistiche e mano di prova; da telefono sotto le carte, solo le statistiche. */}
       {tab !== 'deck' && <div className="deck-analysis">
         <section aria-labelledby="deck-stats-head">
           <h3 className="deck-analysis-head" id="deck-stats-head">Stats</h3>
           <DeckStats deck={deck} onSelect={pick} />
         </section>
-        <section aria-labelledby="deck-hand-head">
-          <h3 className="deck-analysis-head" id="deck-hand-head">Sample hand</h3>
-          <SampleHand deck={deck} />
-        </section>
+        {/* La mano di prova solo da desktop: da telefono non è pratica (scelta dell'utente). */}
+        {tab === 'stats' && (
+          <section aria-labelledby="deck-hand-head">
+            <h3 className="deck-analysis-head" id="deck-hand-head">Sample hand</h3>
+            <SampleHand deck={deck} />
+          </section>
+        )}
       </div>}
       {/* Solo per il trascinamento col mouse (da tastiera e telefono si sposta dal menu): fuori dagli screen reader. */}
       {/* Remove toglie le righe trascinate (tutte le copie, anche con Alt), con Undo nel toast come dal menu. */}

@@ -507,18 +507,19 @@ function editorSteps(mobile) {
   });
   const tabs = [
     tabStep(2, 'Stats', 'Mana curve, colors, card types, prices and the cards that need attention. A bar selects its cards in the deck.'),
-    {
-      target: mobile ? '.sample-hand' : '.deck-tabs', side: 'above', title: 'Sample hand',
+    // La mano di prova c'è solo da desktop.
+    ...(mobile ? [] : [{
+      target: '.deck-tabs', side: 'above', title: 'Sample hand',
       text: 'Under the stats: draw a sample hand, mulligan, draw a card, play a card to see what you could cast.',
       play: async (g) => {
         g.api.tab('stats');
         await g.wait(400);
         g.spot('.sample-hand');
-        await g.click('.sample-hand-bar .btn-secondary', mobile ? 'Tap' : 'New hand', select);
-        await g.click('.sample-hand-cards li:first-child .sample-card', mobile ? 'Tap' : 'Play', select);
+        await g.click('.sample-hand-bar .btn-secondary', 'New hand', select);
+        await g.click('.sample-hand-cards li:first-child .sample-card', 'Play', select);
         await g.wait(1200);
       },
-    },
+    }]),
     tabStep(3, 'Dilemmas', 'Ask the community which card fits better: pick 2 to 4 cards (also from the card menu, Dilemma) and write the question. The deck must be public.'),
     tabStep(4, 'Help', 'Ask for help on the whole deck (cuts, upgrades, budget, mana base): players suggest cards to cut and to add, you apply them in one click.'),
   ];
