@@ -4,13 +4,14 @@ import { useBackClose } from '../hooks/useBackClose';
 import { navigate } from '../hooks/useHashRoute';
 import { navItems } from './navItems';
 
-// Posizioni sull'arco sopra la X (Figma 57:116: quattro voci da 167° a 13°, raggio 58); con più voci il raggio
-// cresce, così tra due tondi da 32 restano almeno 6 px.
+// Arco sopra la X (Figma 57:116), più largo e piatto da quando le voci hanno il nome sotto (tondi da 48): k = posto
+// dal centro (-2..2, la x la fa il CSS col passo --step, che segue la larghezza dello schermo), y = altezza sopra la X,
+// 72 px ai lati (i nomi restano sopra il ? e il profilo) fino a 102 al centro.
 function arc(n) {
-  const r = n <= 4 ? 58 : n === 5 ? 66 : 76;
+  const half = Math.max(1, (n - 1) / 2);
   return Array.from({ length: n }, (_, i) => {
-    const a = ((167 - (154 * i) / Math.max(1, n - 1)) * Math.PI) / 180;
-    return [Math.round(r * Math.cos(a)), Math.round(-r * Math.sin(a))];
+    const k = i - (n - 1) / 2;
+    return [k, -Math.round(72 + 30 * (1 - (k / half) ** 2))];
   });
 }
 
@@ -26,8 +27,10 @@ export function NavMenu({ items, current, onItem, open, onToggle, children }) {
           const [key, label, href, Icon] = item;
           return (
             <li key={key}>
-              <a href={href} className="mnav-item" aria-label={label} title={label} aria-current={key === current ? 'page' : undefined}
-                onClick={(e) => onItem(href, e)} style={{ '--x': `${pos[i][0]}px`, '--y': `${pos[i][1]}px`, '--i': i }}><Icon /></a>
+              <a href={href} className="mnav-item" aria-current={key === current ? 'page' : undefined}
+                onClick={(e) => onItem(href, e)} style={{ '--k': pos[i][0], '--y': `${pos[i][1]}px`, '--i': i }}>
+                <Icon size={22} /><span className="mnav-label">{label}</span>
+              </a>
             </li>
           );
         })}
