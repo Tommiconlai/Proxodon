@@ -183,6 +183,11 @@ service cloud.firestore {
         && (d.get('owner', null) == null || (d.owner is string
           && get(/databases/$(db)/documents/usernames/$(d.owner.lower())).data.uid == request.auth.uid));
     }
+    // La copia piena si scrive solo finché il mazzo privato è pubblico: un publish arrivato dopo Make private o Delete
+    // (salvataggio ancora in volo, coda offline) non riporta il mazzo in Community.
+    function stillPublic(deckId) {
+      return get(/databases/$(db)/documents/users/$(request.auth.uid)/decks/$(deckId)).data.get('public', false) == true;
+    }
     // applied cresce di una chiave alla volta (uid@ora, corta): la richiesta nasce vuota, così nessun elemento è grosso.
     function appliedOk(added) {
       return added.size() == 0 || (added.size() == 1 && added[0] is string && added[0].size() <= 100);
@@ -192,11 +197,11 @@ service cloud.firestore {
       // Elenchi: al massimo 60 alla volta (la Community), oppure solo le proprie copie (firma nuova, cancellazione dell'account).
       allow list: if verified() && ((request.query.limit != null && request.query.limit <= 60)
         || resource.data.uid == request.auth.uid);
-      allow create: if verified() && (validPublic(request.resource.data) || retired(request.resource.data));
+      allow create: if verified() && ((validPublic(request.resource.data) && stillPublic(deckId)) || retired(request.resource.data));
       // createdAt non si sposta in avanti (resterebbe in cima alla Community): uguale o prima (la data del mazzo
       // privato, che nasce un attimo prima della copia).
       allow update: if verified() && resource.data.uid == request.auth.uid
-        && (retired(request.resource.data) || (validPublic(request.resource.data)
+        && (retired(request.resource.data) || (validPublic(request.resource.data) && stillPublic(deckId)
           && (!('createdAt' in resource.data) || request.resource.data.createdAt <= resource.data.createdAt)));
       allow delete: if verified() && (resource == null || resource.data.uid == request.auth.uid);
       // Like: uno per account (id = uid), non al proprio mazzo né a una copia ritirata, con la sua traccia in
