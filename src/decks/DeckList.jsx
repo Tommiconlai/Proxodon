@@ -70,8 +70,8 @@ function TileFrame({ cuts, dashed, children }) {
 // fratello del riquadro, in My decks), in basso a destra i like. Sull'arte il formato col punto ciano
 // sfocato e in alto a destra, sotto l'Export, il globo (pubblico, fuori dalla Community) e la chiave inglese
 // magenta (help request aperta); in basso il nome grande, i tag, autore (by, nella Community) e ultima
-// modifica. Bordo sfumato pieno solo con una help request aperta (.helping), altrimenti al 30%. props vanno sul pulsante. stats = { likes, help } già noti (demo
-// del tutorial): niente letture dal server.
+// modifica. Bordo sfumato pieno solo con una help request aperta (.helping), altrimenti al 30%. props vanno
+// sul pulsante. stats = { likes, help } già noti (demo del tutorial): niente letture dal server.
 export function DeckTile({ deck: d, by, stats, exportable, ...props }) {
   const cover = scryfallImg(deckCover(d));
   const updated = changedMs(d); // ultimo cambio di carte (changedAt), non l'ultima scrittura
