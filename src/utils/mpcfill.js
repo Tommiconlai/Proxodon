@@ -7,6 +7,7 @@
  * manda gli header CORS → fetch leggibile → blob non "tainted" → export PDF ok.
  * Le immagini MPC sono già al vivo (~3mm di abbondanza) → bleedMode 'full'.
  */
+import { timeoutSignal } from './scryfall';
 
 // w<N> = larghezza richiesta; lh3 non fa upscale, quindi 2000 = nativo o meno.
 // lh3 manda gli header CORS (drive.google.com no) → niente proxy: questo modulo
@@ -61,7 +62,7 @@ export async function fetchMpcImages(cards, onProgress) {
   const total = cards.length;
   const fetched = await mapLimit(cards, 6, async (c) => {
     try {
-      const res = await fetch(driveImg(c.id));
+      const res = await fetch(driveImg(c.id), { signal: timeoutSignal() });
       if (!res.ok) throw new Error(String(res.status));
       const blob = await res.blob();
       if (!blob.type.startsWith('image/')) throw new Error('not an image');

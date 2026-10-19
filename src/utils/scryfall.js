@@ -17,12 +17,17 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // tornano senza header CORS → nel browser appaiono come "Failed to fetch" opaco:
 // qui ritentiamo con backoff e, se persiste, diamo un messaggio chiaro.
 // AbortError (richiesta annullata dall'utente) esce subito; i 4xx portano `.status`.
+// Tetto di 30 s per richiesta: con la rete ferma un import finisce con un errore invece di girare per sempre.
+// Il signal del chiamante (ricerca) resta valido; senza AbortSignal.any (Safari < 17.4) vale solo il suo.
+export const timeoutSignal = (signal) => (signal
+  ? (AbortSignal.any?.([signal, AbortSignal.timeout(30000)]) ?? signal) : AbortSignal.timeout?.(30000));
+
 export async function scryfallFetch(url, opts, tries = 3) {
   let lastErr;
   for (let i = 0; i < tries; i++) {
     let res;
     try {
-      res = await fetch(url, opts);
+      res = await fetch(url, { ...opts, signal: timeoutSignal(opts?.signal) }); // TimeoutError = come la rete: si ritenta
     } catch (e) {
       if (e.name === 'AbortError') throw e;
       lastErr = e; // rete/CORS → ritenta
@@ -126,7 +131,7 @@ export const artName = (item) => item.file.name.replace(/\.[a-z0-9]+$/i, '');
 
 export async function fetchPrints(name, unique = 'prints') {
   const q = encodeURIComponent(`!"${name}" game:paper`);
-  const res = await fetch(`https://api.scryfall.com/cards/search?q=${q}&unique=${unique}&order=released`);
+  const res = await fetch(`https://api.scryfall.com/cards/search?q=${q}&unique=${unique}&order=released`, { signal: timeoutSignal() });
   if (res.status === 404) return []; // nessuna stampa
   if (!res.ok) throw new Error(`Scryfall responded ${res.status}`);
   const json = await res.json();
@@ -144,7 +149,7 @@ export async function fetchPrints(name, unique = 'prints') {
 
 /** Scarica un'immagine come File (riusa la pipeline esistente). */
 export async function downloadAsFile(url, name) {
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: timeoutSignal() });
   if (!res.ok) throw new Error(`Image download failed (${res.status})`);
   return new File([await res.blob()], `${sanitizeName(name)}.png`, { type: 'image/png' });
 }
@@ -292,7 +297,7 @@ export async function fetchScryfallImages(entries, onProgress, { lang = 'en' } =
   const blobs = await mapLimit(tasks, IMG_CONCURRENCY, async (t) => {
     let blob = null;
     try {
-      const res = await fetch(t.url);
+      const res = await fetch(t.url, { signal: timeoutSignal() });
       if (res.ok) blob = await res.blob();
     } catch {
       blob = null;

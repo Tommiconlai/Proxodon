@@ -200,7 +200,17 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Arena "Companion" section imports into the sideboard (most recent, 2026-10-19):** review M15. `parseDeckText`
+- **Import requests time out after 30 s (most recent, 2026-10-19):** review M16, partly. No fetch of the import
+  paths had a timeout, so with a stalled network the Scryfall / MPC / Change art windows spun forever (and their
+  Close is disabled while busy). New `timeoutSignal(signal?)` in `utils/scryfall.js`: `AbortSignal.timeout(30000)`,
+  joined with the caller's signal via `AbortSignal.any` where it exists (Safari < 17.4: the caller's signal only).
+  Used by `scryfallFetch` (a `TimeoutError` is retried like a network error, then "Could not reach Scryfall..."),
+  `fetchPrints`, `downloadAsFile`, the image downloads of `fetchScryfallImages` and `fetchMpcImages`. Not done:
+  Close that cancels a running import (needs an AbortController through each pipeline). Checked in the browser: a
+  real import of "2 Xenagos, God of Revels / 1 Sol Ring" (3 files, also H3 end to end) and `fetchPrints` work; with
+  a fetch that never answers, `downloadAsFile` fails with `TimeoutError` after 30 s; aborting the caller's signal
+  aborts the joined one.
+- **Arena "Companion" section imports into the sideboard (2026-10-19):** review M15. `parseDeckText`
   did not know the `Companion` header of MTG Arena exports: the line became a card named "Companion" (not found)
   and, still under `Commander`, the companion became a second commander. `HEADERS` maps `companion(s)` to the side,
   where Arena keeps it. Self-check case added (`node src/decks/deckModel.selfcheck.js`).
