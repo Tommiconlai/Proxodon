@@ -3178,7 +3178,7 @@ button.dilemma-list-name:focus-visible { outline: 2px solid var(--cyan); outline
 /* Telefono: la testata ha il suo padding (va riallungato per le schede), schede più strette. */
 span.deck-hero-art { cursor: default; }
 /* Testata del mazzo: pulsanti solo icona, quadrati da 36 px con il fondo scuro del prezzo (stanno sull'arte). */
-.deck-hero-meta .deck-icon-btn { flex: none; width: 36px; height: 36px; padding: 0; justify-content: center; background: rgba(8, 7, 15, 0.6); }
+.deck-hero-meta .deck-icon-btn { flex: none; width: 36px; height: 36px; padding: 0; justify-content: center; }
 /* Pubblico: non solo il colore (la scritta Public / Private non c'è più), il fondo si riempie. */
 .deck-hero-meta .deck-icon-btn.is-public { background: rgba(0, 229, 255, 0.22); border-color: var(--cyan); color: #fff; box-shadow: 0 0 10px rgba(0, 229, 255, 0.35); }
 .deck-sync { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); }
@@ -3588,7 +3588,7 @@ span.deck-hero-art { cursor: default; }
 }
 .deck-top-search { flex: 1 1 100%; min-width: 0; }
 .deck-top-bar .deck-count.plain { flex: none; margin-right: auto; }
-.deck-top-bar .deck-icon-btn { flex: none; width: 44px; height: 44px; padding: 0; justify-content: center; background: rgba(8, 7, 15, 0.92); }
+.deck-top-bar .deck-icon-btn { flex: none; width: 44px; height: 44px; padding: 0; justify-content: center; }
 /* Il corpo lascia libero il fondo, dove sta il menu della X. */
 .deck-editor.is-mobile .deck-body { padding-bottom: 120px; }
 .deck-count.plain { position: static; flex-direction: row; align-items: baseline; gap: 16px; text-shadow: 0 1px 3px #000, 0 0 10px rgba(0, 0, 0, 0.9); }
@@ -3972,10 +3972,10 @@ span.deck-hero-art { cursor: default; }
 .deck-hero-actions { display: inline-flex; gap: 10px; }
 .deck-editor:not(.is-mobile) .deck-hero-meta .deck-icon-btn {
   width: 30px; height: 30px; padding: 0; display: inline-grid; place-items: center;
-  background: rgba(0, 39, 43, 0.25); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 5px;
-  color: rgba(255, 255, 255, 0.75); box-shadow: none;
+  background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(0, 229, 255, 0.1); border-radius: 8px;
+  color: var(--cyan); box-shadow: none;
 }
-.deck-editor:not(.is-mobile) .deck-hero-meta .deck-icon-btn:hover:not(:disabled) { border-color: rgba(255, 255, 255, 0.55); color: #fff; }
+.deck-editor:not(.is-mobile) .deck-hero-meta .deck-icon-btn:hover:not(:disabled) { border-color: rgba(0, 229, 255, 0.55); color: var(--cyan-soft); }
 .deck-editor:not(.is-mobile) .deck-hero-meta .deck-icon-btn.is-public { border-color: var(--cyan); color: var(--cyan); background: rgba(0, 229, 255, 0.12); box-shadow: 0 0 10px rgba(0, 229, 255, 0.3); }
 .deck-icon-btn > svg[width="30"] { margin: -7px; } /* stampa e mondo hanno il riquadro 30x30 del design attorno al simbolo */
 
@@ -4172,3 +4172,12 @@ span.deck-hero-art { cursor: default; }
   width: min(92vw, 360px); max-width: none; max-height: 60vh; overflow-y: auto; transform: translateX(-50%) translateY(6px);
 }
 .mnav .help.open .help-tooltip { transform: translateX(-50%) translateY(0); }
+
+/* Fondo comune dei pulsanti neutri in tutto il sito (richiesta dell'utente, "come questo": il tasto Settings di Print,
+   cioè .decks-filter-btn): velo scuro al 25%, bordo ciano al 10%, raggio 10; i pulsanti solo icona hanno l'icona ciano.
+   In fondo al file così vince sulle regole di base; restano a parte quelli con un significato (accento magenta .btn-add,
+   Generate PDF, Danger, il fantasma Clear della selezione) e i tondi (menu della X, ?, avatar, profilo: solo il fondo). */
+.btn-secondary, .bulk-btn, .btn-icc { background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(0, 229, 255, 0.1); border-radius: 10px; }
+.nav-btn, .profile-icon-btn, .profile-bg-btn { background: rgba(0, 0, 0, 0.25); border-color: rgba(0, 229, 255, 0.1); }
+.btn-secondary.deck-icon-btn { color: var(--cyan); }
+.bulk-btn:hover, .btn-icc:hover { border-color: rgba(0, 229, 255, 0.55); }
