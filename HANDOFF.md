@@ -200,7 +200,13 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Failed listeners show a message instead of spinning forever (most recent, 2026-10-19):** review M10. A
+- **Restore says how many rows it left out (most recent, 2026-10-19):** review M11 (partly as reported: decks are
+  never dropped, a broken one becomes an empty "Untitled deck"; rows are). `fromBackup` drops rows that do not
+  validate or pass the 500 per deck, and Settings said "Restored N decks" anyway. `SettingsPage.restore` now counts
+  rows in the file minus rows restored and the toast becomes "Restored N decks. M rows could not be read and were
+  left out" (error style). Checked the count in Node (a deck with 1 good and 2 broken rows plus a null deck: 2
+  decks, 2 rows left out); not run on the real account (it would add decks).
+- **Failed listeners show a message instead of spinning forever (2026-10-19):** review M10. A
   Firestore listener that errors (rules, quota) never delivers data again, and My decks, the profile and the deck
   editor kept their loader forever. Now: My decks shows `Empty` "Could not load your decks" + the error (like the
   Community tab already did; the old toast is gone); the profile shows the same in its Decks section and hides the

@@ -77,9 +77,14 @@ export default function SettingsPage({ user, notify }) {
     e.target.value = '';
     if (!file) return;
     try {
-      const restored = fromBackup(JSON.parse(await file.text()));
+      const json = JSON.parse(await file.text());
+      const restored = fromBackup(json);
       restored.forEach((d) => createDeck(uid, d).done.catch((err) => notify(`Sync error: ${err.message}`, 'error')));
-      notify(`Restored ${plural(restored.length, 'deck')}`);
+      // Righe rotte o oltre il massimo per mazzo: fromBackup le scarta, il toast le conta.
+      const left = json.decks.reduce((n, d) => n + (Array.isArray(d?.cards) ? d.cards.length : 0), 0)
+        - restored.reduce((n, d) => n + d.cards.length, 0);
+      notify(`Restored ${plural(restored.length, 'deck')}${left > 0 ? `. ${plural(left, 'row')} could not be read and ${left === 1 ? 'was' : 'were'} left out` : ''}`,
+        left > 0 ? 'error' : 'success');
     } catch (err) {
       notify(err instanceof SyntaxError ? 'This file is not valid JSON.' : err.message, 'error');
     }
