@@ -68,9 +68,9 @@ function TileFrame({ cuts, dashed, children }) {
 // Riquadro di un mazzo (lista, Community, profilo): l'arte nel pannello;
 // tasche: in alto a sinistra i simboli dell'identità (pillola), in alto a destra Export (exportable: il pulsante è
 // fratello del riquadro, in My decks), in basso a destra i like. Sull'arte il formato col punto ciano
-// sfocato, in basso il nome grande (globo se pubblico fuori dalla Community, chiave inglese magenta con una help
-// request aperta), i tag, autore (by, nella Community) e ultima modifica. Bordo sfumato pieno solo con una help
-// request aperta (.helping), altrimenti al 30%. props vanno sul pulsante. stats = { likes, help } già noti (demo
+// sfocato e in alto a destra, sotto l'Export, il globo (pubblico, fuori dalla Community) e la chiave inglese
+// magenta (help request aperta); in basso il nome grande, i tag, autore (by, nella Community) e ultima
+// modifica. Bordo sfumato pieno solo con una help request aperta (.helping), altrimenti al 30%. props vanno sul pulsante. stats = { likes, help } già noti (demo
 // del tutorial): niente letture dal server.
 export function DeckTile({ deck: d, by, stats, exportable, ...props }) {
   const cover = scryfallImg(deckCover(d));
@@ -94,17 +94,20 @@ export function DeckTile({ deck: d, by, stats, exportable, ...props }) {
       <span className="deck-tile-pips"><ManaPips colors={identity} /></span>
       <span className="deck-tile-callout"><span className="deck-tile-dot" aria-hidden="true" />{format}</span>
       <span className="deck-tile-body">
-        <span className="deck-tile-title">
-          <span className="deck-tile-name">{d.name}</span>
-          {d.public && !by && <span className="deck-tile-public" title="Public, in Community"><IconGlobe size={12} /><span className="sr-only">, public</span></span>}
-          {helping && <span className="deck-tile-public help" title="Open help request"><IconWrench size={12} /><span className="sr-only">, open help request</span></span>}
-        </span>
+        <span className="deck-tile-name">{d.name}</span>
         {tags && <span className="deck-tile-tags" title={tags}>{tags}</span>}
         <span className="deck-tile-meta">
           {by && <span className="deck-tile-by">by {by}</span>}
           {updated && <span>Updated {timeAgo(updated)}</span>}
         </span>
       </span>
+      {/* Dopo il nome nel DOM (lo screen reader legge "nome, public, open help request"), in alto a destra a vista. */}
+      {((d.public && !by) || helping) && (
+        <span className="deck-tile-flags">
+          {d.public && !by && <span className="deck-tile-public" title="Public, in Community"><IconGlobe size={12} /><span className="sr-only">, public</span></span>}
+          {helping && <span className="deck-tile-public help" title="Open help request"><IconWrench size={12} /><span className="sr-only">, open help request</span></span>}
+        </span>
+      )}
       <span className="deck-tile-likes"><IconHeart size={12} /> {likes}<span className="sr-only"> likes</span></span>
     </button>
   );
