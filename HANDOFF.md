@@ -200,7 +200,11 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Loaders are the logo X (most recent, 2026-10-19):** user: "in tutti gli eventuali caricamenti metti il logo, solo
+- **No cyan bars in the search row (most recent, 2026-10-19):** user: "togli le due barrette azzurre tra la barra di
+  ricerca e i filtri, in tutte le tab". The `.decks-search-box::after` with `glow-cyan-left/right.svg` is gone (the
+  two SVGs deleted, nothing else used them); same row in Community, Dilemmas, Help, My decks and the tour. Checked
+  the four tabs at desktop (`::after` content none) and 375x812.
+- **Loaders are the logo X (2026-10-19):** user: "in tutti gli eventuali caricamenti metti il logo, solo
   la X, che compie l'animazione di flip già presente con l'aggiunta del flip del pezzo centrale". CSS only, in
   `index.css` where `.import-spinner` was: `.import-spinner` and `.spinner` (every loader in the app, ~30 call sites,
   untouched) draw the X with two layers, `::before` = the cyan centre, `::after` = the magenta V's, as data-URI SVGs
@@ -302,7 +306,7 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
     right + a stretching line, two data-URI backgrounds). The overlap rule is now "closer to the open tab = higher"
     (the deck frame has the first tab open, this one the last). Phone keeps the `[ ]` text tabs.
   - **Search row:** 776 px column; 38 px box, black 25% background, cyan 10% border, radius 10, cyan lens; the two cyan
-    bars of the design (`glow-cyan-left/right.svg`) between it and the icon-only Filters button (72x38, magenta count
+    bars of the design between it and the icon-only Filters button (removed later on request, see the log) (72x38, magenta count
     badge) or the format select of Dilemmas / Help; Play moved into the row. Filters panel: same box, labels Chakra
     Petch 12, controls 32 px on `#020b0c` with the cyan 25% border, colour symbols 21 px at 30% when off; C and an
     icon-only Clear kept (card input 200 px instead of 223 so it all fits on one line).

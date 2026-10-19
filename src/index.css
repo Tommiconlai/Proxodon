@@ -2602,8 +2602,8 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
 .decks-tab:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 4px; }
 /* Ricerca per nome + Filters (formato, colori) sopra la griglia. */
 /* Ricerca (Figma 52:275): casella alta 38, fondo nero al 25%, bordo ciano al 10%, angoli 10, lente ciano; accanto
-   Filters solo icona (72x38) o il formato (Dilemmas, Help), separati dalle due barre ciano (gruppi 95 / 96).
-   Colonna di 776 px centrata; 20 px sopra i filtri aperti, 34 sopra i riquadri. */
+   Filters solo icona (72x38) o il formato (Dilemmas, Help); le due barre ciano del design in mezzo tolte su
+   richiesta (2026-10-19). Colonna di 776 px centrata; 20 px sopra i filtri aperti, 34 sopra i riquadri. */
 .decks-search { display: flex; gap: 12px; max-width: 776px; margin: 0 auto 34px; }
 .decks-search:has(+ .decks-filters) { margin-bottom: 20px; }
 .decks-search-box { flex: 1; min-width: 0; position: relative; display: flex; margin: 0; }
@@ -2613,10 +2613,6 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
   background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(0, 229, 255, 0.1); border-radius: 10px;
 }
 .decks-search-box .import-link-input:focus { border-color: rgba(0, 229, 255, 0.55); box-shadow: none; }
-.decks-search-box::after {
-  content: ''; position: absolute; left: calc(100% - 3px); top: -17px; width: 18px; height: 72px; pointer-events: none;
-  background: url('./assets/figma/glow-cyan-left.svg') 0 0 / 13px 72px no-repeat, url('./assets/figma/glow-cyan-right.svg') 5px 0 / 13px 72px no-repeat;
-}
 .decks-filter-btn {
   position: relative; flex: none; width: 72px; height: 38px; padding: 0; display: grid; place-items: center; cursor: pointer;
   background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(0, 229, 255, 0.1); border-radius: 10px; color: var(--cyan);
