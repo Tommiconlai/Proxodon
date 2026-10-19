@@ -41,7 +41,7 @@ const save = buildDeckList([
   { file: { name: 'foto.png' }, bleedMode: 'none' },                          // upload custom
 ]);
 eq(save.text, '2 Sol Ring (C21) 263\n1 Birgi, God of Storytelling (NEO) 128', 'buildDeckList: raggruppa qty, solo front');
-eq(save.cards, 2, 'buildDeckList: carte uniche');
+eq(save.cards, 3, 'buildDeckList: copie (2 Sol Ring + 1 Birgi)');
 eq(save.custom, 1, 'buildDeckList: custom esclusi');
 // round-trip: il salvato si re-importa identico (set lowercased dal parser)
 eq(parseCardList(save.text), [

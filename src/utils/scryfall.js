@@ -361,5 +361,6 @@ export function buildDeckList(items) {
     map.set(key, e);
   }
   const text = [...map.values()].map((e) => deckLine(e.qty, e.name, e.set, e.collector)).join('\n');
-  return { text, cards: map.size, custom };
+  // cards = copie (come custom): "Saved 3 Scryfall cards" per 2 Sol Ring + 1 Birgi, non le righe.
+  return { text, cards: [...map.values()].reduce((n, e) => n + e.qty, 0), custom };
 }

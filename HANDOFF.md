@@ -200,7 +200,10 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Print pipeline: clear errors, WASM freed on failure (most recent, 2026-10-19):** review L13 and L22.
+- **Save list counts copies (most recent, 2026-10-19):** review L16. `buildDeckList` returned `cards` = the number of
+  distinct lines, so "Saved 2 Scryfall cards" for 2 Sol Ring + 1 Birgi, while `custom` counted copies. `cards` is
+  now the sum of the quantities (3 there); the self-check case says so.
+- **Print pipeline: clear errors, WASM freed on failure (2026-10-19):** review L13 and L22.
   `loadBundledProfileBytes` did not check `res.ok`, so a 404 page became the "profile" and lcms failed later with
   an obscure error; it now throws "Could not load the <profile> profile (status)...". `upscaleFile` turned a null
   `toBlob` (out of memory) into a file containing "null"; it now throws, and frees its canvas. `cmykEngine`
