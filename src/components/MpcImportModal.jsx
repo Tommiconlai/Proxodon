@@ -22,6 +22,8 @@ export default function MpcImportModal({ open, onClose, onImport }) {
         if (!f) return;
         setError(null); setResult(null); setCards(null); setFileName(f.name);
         try {
+            // Un ordine MPCFill pesa pochi KB: un file enorme bloccherebbe la scheda nel parser XML.
+            if (f.size > 5 * 1024 * 1024) throw new Error('This file is too big for an MPCFill order (max 5 MB).');
             const { cards } = parseMpcXml(await f.text());
             setCards(cards);
         } catch (err) {

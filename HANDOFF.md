@@ -200,7 +200,14 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Import requests time out after 30 s (most recent, 2026-10-19):** review M16, partly. No fetch of the import
+- **Import caps: 1000 copies, MPC files up to 5 MB (most recent, 2026-10-19):** review M17. Lines were capped
+  (1000) but not copies: "999 Island" on many lines, or an MPC XML with 1000 cards of 99 slots, meant tens of
+  thousands of `File`s and object URLs and a frozen tab; the XML size had no cap. Now `fetchScryfallImages` throws
+  "Import at most 1000 cards at a time (this list has N)." (`MAX_COPIES`; covers the Scryfall import and Print
+  deck), `parseMpcXml` counts copies (slots) instead of lines for its 1000 limit, and `MpcImportModal` refuses
+  files over 5 MB before parsing. Checked in the browser: "999 Island / 2 Forest" gives the error, an XML of 20
+  cards x 60 slots too, a 4-slot card still parses to 4.
+- **Import requests time out after 30 s (2026-10-19):** review M16, partly. No fetch of the import
   paths had a timeout, so with a stalled network the Scryfall / MPC / Change art windows spun forever (and their
   Close is disabled while busy). New `timeoutSignal(signal?)` in `utils/scryfall.js`: `AbortSignal.timeout(30000)`,
   joined with the caller's signal via `AbortSignal.any` where it exists (Safari < 17.4: the caller's signal only).

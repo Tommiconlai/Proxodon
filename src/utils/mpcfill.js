@@ -35,7 +35,8 @@ export function parseMpcXml(xmlText) {
 
   const cards = [...read('fronts'), ...read('backs')];
   if (!cards.length) throw new Error('No cards found in the file.');
-  if (cards.length > 1000) throw new Error('This file has more than 1000 cards: split it.');
+  // Copie, non righe: 1000 righe da 99 copie sarebbero 99.000 file in coda.
+  if (cards.reduce((n, c) => n + c.count, 0) > 1000) throw new Error('This file has more than 1000 cards: split it.');
   return { cards };
 }
 

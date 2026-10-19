@@ -248,7 +248,12 @@ export function localizedCard(set, cn, lang) {
 }
 
 // lang: lingua preferita per le immagini (Card language); dove la stampa non esiste resta l'inglese.
+// Copie in tutto per import (righe x quantità): "999 Island" su 1000 righe bloccherebbe la scheda.
+export const MAX_COPIES = 1000;
+
 export async function fetchScryfallImages(entries, onProgress, { lang = 'en' } = {}) {
+  const copies = entries.reduce((n, e) => n + (e.qty || 1), 0);
+  if (copies > MAX_COPIES) throw new Error(`Import at most ${MAX_COPIES} cards at a time (this list has ${copies}).`);
   // Aggrega le quantità per (nome|set|collector), preservando l'ordine.
   const byKey = new Map();
   for (const e of entries) {
