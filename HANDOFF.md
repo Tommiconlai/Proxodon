@@ -200,7 +200,12 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Import windows reopen clean (most recent, 2026-10-19):** review L21. The Scryfall and MPCFill import windows stay
+- **Print deck runs once at a time; PNGs skip the CMYK read (most recent, 2026-10-19):** review L23. `handlePrintDeck`
+  had no guard, so a double click downloaded the images twice and replaced the queue twice: a `printingDeck` ref
+  now ignores a second start until the first ends (`finally`). `addItems` read every added file whole to look for
+  a CMYK JPEG; it now reads the first two bytes and goes on only for a JPEG (FF D8). Checked: adding 3 Scryfall
+  PNGs still works with no errors; the double click was not reproduced in the UI (one-line guard).
+- **Import windows reopen clean (2026-10-19):** review L21. The Scryfall and MPCFill import windows stay
   mounted, so after an import, closing and reopening showed the old "N images imported / Done". Their `close` (also
   used by Esc, Back and the Done button) now clears the result and the error; the MPC one also forgets the file when
   an import was done (the pasted Scryfall list stays, it is a draft). Checked: imported "2 Sol Ring / 1 Xenagos"

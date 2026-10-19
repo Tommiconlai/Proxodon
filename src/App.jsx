@@ -183,6 +183,9 @@ export default function App() {
     newItems.forEach((it) => {
       (async () => {
         try {
+          // Prima i 2 byte di testa: solo un JPEG (FF D8) può essere CMYK, un PNG non si legge tutto.
+          const head = new Uint8Array(await it.file.slice(0, 2).arrayBuffer());
+          if (head[0] !== 0xff || head[1] !== 0xd8) return;
           const raw = new Uint8Array(await it.file.arrayBuffer());
           const { isCmykJpeg, extractIccFromJpeg } = await import('./utils/cmykRaster');
           if (!isCmykJpeg(raw)) return;
@@ -462,7 +465,10 @@ export default function App() {
   // "Print deck": scarica le immagini (nella lingua di Settings dove c'è), poi SOSTITUISCE la coda di
   // stampa, o la allunga con add (Settings), e apre la stampa. La conferma la chiede l'editor; la coda
   // vecchia resta intatta se il download fallisce.
+  const printingDeck = useRef(false); // un Print deck alla volta: un doppio click non scarica e sostituisce due volte
   const handlePrintDeck = async (entries, add = false) => {
+    if (printingDeck.current) return;
+    printingDeck.current = true;
     setToast({ kind: 'progress', msg: 'Downloading card images…' });
     try {
       const { files, notFound } = await fetchScryfallImages(entries,
@@ -477,6 +483,8 @@ export default function App() {
         : { kind: 'success', msg: `${files.length} images ready to print` });
     } catch (e) {
       setToast({ kind: 'error', msg: e.message || 'Could not download the card images.' });
+    } finally {
+      printingDeck.current = false;
     }
   };
 
