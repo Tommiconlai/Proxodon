@@ -9,6 +9,7 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import CardMenu from '../components/CardMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { ManaPips } from './Mana';
+import { CutFrame } from './CutFrame';
 import { NameFormatDialog, ExportDeckDialog } from './dialogs';
 import { timeAgo } from '../utils/timeAgo';
 import NewDeckDialog from './NewDeckDialog';
@@ -56,53 +57,22 @@ function useScrollMemory(ref, key) {
 const LIST_TABS = [['community', 'Community'], ['dilemmas', 'Dilemmas'], ['help', 'Help'], ['mine', 'My decks']];
 const listHref = (t) => (t === 'mine' ? '#/decks' : `#/${t}`);
 
-// Sagoma dei riquadri (Figma "Proxodon" 52:275): 209x208, angoli 10, in alto al centro un incavo per i simboli
-// dell'identità, largo quanto loro. Simboli da 13.5 px (il design +50%, su richiesta) a passi di 18.5: n simboli
-// = 18.5n - 5 px, mezzo fondo a = 9.25n - 4. Incavo profondo 17.5 (2 sopra e sotto i simboli), fatto come nel
-// design con due quarti di cerchio per lato (là raggio 6.5 per 9 px, qui 8.75). n = 0: senza incavo.
-const TILE_BOX = 'H199C204.523 0 209 4.477 209 10V198C209 203.523 204.523 208 199 208H10C4.477 208 0 203.523 0 198V10C0 4.477 4.477 0 10 0Z';
-const NOTCH_R = 8.75;
-const K = 0.552 * NOTCH_R; // maniglia della curva (quarto di cerchio), come nel design
-const f = (v) => +v.toFixed(3);
-function tileShape(n) {
-  if (!n) return `M10 0${TILE_BOX}`;
-  const R = NOTCH_R;
-  const l = 104.5 - (9.25 * n - 4);
-  const r = 104.5 + (9.25 * n - 4);
-  return `M${f(l - 2 * R)} 0C${f(l - 2 * R + K)} 0 ${f(l - R)} ${f(R - K)} ${f(l - R)} ${R}C${f(l - R)} ${f(R + K)} ${f(l - K)} ${2 * R} ${f(l)} ${2 * R}H${f(r)}`
-    + `C${f(r + K)} ${2 * R} ${f(r + R)} ${f(R + K)} ${f(r + R)} ${R}C${f(r + R)} ${f(R - K)} ${f(r + 2 * R - K)} 0 ${f(r + 2 * R)} 0${TILE_BOX}`;
-}
-const masks = {};
-const tileMask = (n) => (masks[n] ??= `url("data:image/svg+xml,${encodeURIComponent(
-  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 209 208' preserveAspectRatio='none'><path d='${tileShape(n)}' fill='white'/></svg>`)}")`);
-let frames = 0; // id del gradiente del bordo, uno per riquadro
-// Arte ritagliata dalla sagoma (children) e bordo sfumato ciano → viola → magenta (dashed = tratteggio ciano, il +).
-function TileFrame({ n = 0, dashed, children }) {
-  const [k] = useState(() => `tile-g${++frames}`);
-  const mask = tileMask(n);
-  return (
-    <>
-      <span className="deck-tile-shape" style={{ maskImage: mask, WebkitMaskImage: mask }}>{children}</span>
-      <svg className="deck-tile-frame" viewBox="0 0 209 208" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-        {!dashed && (
-          <linearGradient id={k} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0.1" stopColor="#00E5FF" /><stop offset="0.5" stopColor="#AB61ED" /><stop offset="0.9" stopColor="#FF2E96" />
-          </linearGradient>
-        )}
-        <path d={tileShape(n)} fill="none" vectorEffect="non-scaling-stroke" strokeWidth={dashed ? 1.5 : 1}
-          stroke={dashed ? 'rgba(0, 229, 255, 0.55)' : `url(#${k})`} strokeDasharray={dashed ? '6 5' : undefined} />
-      </svg>
-    </>
-  );
+// Sagoma dei riquadri: 209x208, angoli 14, con le tasche agli angoli (CutFrame, spunto della card "GLITCH"). Le
+// misure dentro le tasche sono in unità del riquadro (--u in CSS), così scalano con lui anche su telefono.
+const TILE_W = 209;
+const TILE_H = 208;
+function TileFrame({ cuts, dashed, children }) {
+  return <CutFrame w={TILE_W} h={TILE_H} cuts={cuts} dashed={dashed}>{children}</CutFrame>;
 }
 
-// Riquadro di un mazzo (lista, Community, profilo), sagoma del Figma 52:275: l'arte al 50% con l'ombra interna, i
-// simboli dell'identità nell'incavo in alto; in alto a sinistra nome (accanto il globo se è pubblico, fuori dalla
-// Community, e la chiave inglese magenta se ha una help request aperta, anche nella Community) e formato; in basso
-// like ricevuti e tag, poi autore (by, nella Community) e ultima modifica. Il prezzo sta solo in Stats. Il bordo
-// sfumato è pieno solo se il mazzo ha una help request aperta (.helping), altrimenti al 30%. props vanno sul
-// pulsante. stats = { likes, help } già noti (demo del tutorial): niente letture dal server.
-export function DeckTile({ deck: d, by, stats, ...props }) {
+// Riquadro di un mazzo (lista, Community, profilo): l'arte nel pannello;
+// tasche: in alto a sinistra i simboli dell'identità (pillola), in alto a destra Export (exportable: il pulsante è
+// fratello del riquadro, in My decks), in basso a destra i like. Sull'arte il formato col punto ciano
+// sfocato, in basso il nome grande (globo se pubblico fuori dalla Community, chiave inglese magenta con una help
+// request aperta), i tag, autore (by, nella Community) e ultima modifica. Bordo sfumato pieno solo con una help
+// request aperta (.helping), altrimenti al 30%. props vanno sul pulsante. stats = { likes, help } già noti (demo
+// del tutorial): niente letture dal server.
+export function DeckTile({ deck: d, by, stats, exportable, ...props }) {
   const cover = scryfallImg(deckCover(d));
   const updated = changedMs(d); // ultimo cambio di carte (changedAt), non l'ultima scrittura
   const live = !stats && !!d.public;
@@ -112,30 +82,30 @@ export function DeckTile({ deck: d, by, stats, ...props }) {
   const helping = stats ? stats.help : helpsNow > 0; // chiave inglese: help request aperta
   const tags = deckTags(d).join(' · ');
   const identity = deckIdentity(d);
+  const n = Math.max(1, identity.length);
+  const format = formatLabel(d.format);
+  // Pillola dei simboli: 13.5 l'uno a passi di 18.5, 7 di margine; tasca = pillola + 4 di vuoto.
+  const cuts = { tl: [18.5 * n + 13, 26], br: [48, 26], ...(exportable ? { tr: [32, 32] } : {}) };
   return (
     <button type="button" className={`deck-tile${helping ? ' helping' : ''}`} {...props}>
-      <TileFrame n={Math.max(1, identity.length)}>
+      <TileFrame cuts={cuts}>
         {cover && <span className="deck-tile-art" style={{ backgroundImage: `url("${cover}")` }} />}
       </TileFrame>
       <span className="deck-tile-pips"><ManaPips colors={identity} /></span>
-      <span className="deck-tile-head">
+      <span className="deck-tile-callout"><span className="deck-tile-dot" aria-hidden="true" />{format}</span>
+      <span className="deck-tile-body">
         <span className="deck-tile-title">
           <span className="deck-tile-name">{d.name}</span>
           {d.public && !by && <span className="deck-tile-public" title="Public, in Community"><IconGlobe size={12} /><span className="sr-only">, public</span></span>}
           {helping && <span className="deck-tile-public help" title="Open help request"><IconWrench size={12} /><span className="sr-only">, open help request</span></span>}
         </span>
-        <span className="deck-tile-format">{formatLabel(d.format)}</span>
-      </span>
-      <span className="deck-tile-body">
-        <span className="deck-tile-foot">
-          <span className="deck-tile-likes"><IconHeart size={12} /> {likes}<span className="sr-only"> likes</span></span>
-          {tags && <span className="deck-tile-tags" title={tags}>{tags}</span>}
-        </span>
+        {tags && <span className="deck-tile-tags" title={tags}>{tags}</span>}
         <span className="deck-tile-meta">
           {by && <span className="deck-tile-by">by {by}</span>}
           {updated && <span>Updated {timeAgo(updated)}</span>}
         </span>
       </span>
+      <span className="deck-tile-likes"><IconHeart size={12} /> {likes}<span className="sr-only"> likes</span></span>
     </button>
   );
 }
@@ -435,7 +405,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
                 onDragStart={(e) => { dragId.current = d.id; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', d.name); }}
                 onDragEnd={() => { dragId.current = null; setDropOn(null); }}
                 {...dropProps(d.id, dropOnDeck(d))}>
-                <DeckTile deck={d}
+                <DeckTile deck={d} exportable
                   onClick={() => { if (!press.consumed()) navigate(`/decks/${d.id}`); }}
                   onContextMenu={(e) => { e.preventDefault(); setMenu({ deck: d, ...menuPoint(e) }); }}
                   {...press.bind((x, y) => setMenu({ deck: d, x, y }))} />

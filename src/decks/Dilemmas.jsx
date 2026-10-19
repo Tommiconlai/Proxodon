@@ -14,6 +14,7 @@ import {
 import { goBack } from '../hooks/useHashRoute';
 import { useBackClose } from '../hooks/useBackClose';
 import { useCount } from './useCount';
+import { CutFrame } from './CutFrame';
 import { groupMain, commanderRows, boardRows, scryfallImg, artCrop as art, shuffle, splitSlices, MAX_DILEMMA_CARDS, searchIdentity } from './deckModel';
 import {
   IconPlus, IconArrowLeft, IconArrowRight, IconTrash, IconCheck, IconX,
@@ -108,22 +109,29 @@ export function DilemmaTile({ deckId, d, uid, solved, meta, href, onClick, votes
   const Tag = href ? 'a' : 'button';
   const status = [fresh && 'new', voted && 'voted'].filter(Boolean).join(', ');
   const split = splitSlices(d.cards.length); // una fetta per carta, divise in diagonale
+  const label = `${votes} ${votes === 1 ? 'vote' : 'votes'}`;
+  const pill = 7.2 * label.length + 18; // JetBrains Mono 12: 0.6em a carattere, 8 di margine, 1 di bordo
+  // Tasche (CutFrame, 300x219 = la proporzione dell'arte): in alto a sinistra le risposte, in basso a destra la freccia.
+  const cuts = { tl: [pill + 4, 26], br: [34, 34] };
   return (
     <li>
       <Tag className="dilemma-tile" {...(href ? { href } : { type: 'button', onClick })}
         aria-label={`${d.question} ${d.cards.map((c) => c.name).join(' or ')}. ${votes} ${votes === 1 ? 'vote' : 'votes'}${status ? `, ${status}` : ''}.`}>
         <span className="dilemma-split" aria-hidden="true">
-          {d.cards.map((c, i) => {
-            const s = split.slices[i];
-            const style = { left: `${s.left}%`, width: `${s.width}%`, clipPath: s.clip };
-            return art(c)
-              ? <img key={i} className="slice" style={style} src={art(c)} alt="" loading="lazy" title={c.name} />
-              : <span key={i} className="slice dilemma-split-ph" style={style} title={c.name}>{c.name}</span>;
-          })}
-          <svg className="dilemma-split-line" viewBox="0 0 100 100" preserveAspectRatio="none">
-            {split.lines.map(([a, b]) => <line key={a} x1={a} y1="0" x2={b} y2="100" />)}
-          </svg>
-          <span className="dilemma-votes">{votes} {votes === 1 ? 'vote' : 'votes'}</span>
+          <CutFrame w={300} h={219} cuts={cuts}>
+            {d.cards.map((c, i) => {
+              const s = split.slices[i];
+              const style = { left: `${s.left}%`, width: `${s.width}%`, clipPath: s.clip };
+              return art(c)
+                ? <img key={i} className="slice" style={style} src={art(c)} alt="" loading="lazy" title={c.name} />
+                : <span key={i} className="slice dilemma-split-ph" style={style} title={c.name}>{c.name}</span>;
+            })}
+            <svg className="dilemma-split-line" viewBox="0 0 100 100" preserveAspectRatio="none">
+              {split.lines.map(([a, b]) => <line key={a} x1={a} y1="0" x2={b} y2="100" />)}
+            </svg>
+          </CutFrame>
+          <span className="dilemma-votes" style={{ width: `calc(${pill} * var(--u))` }}>{label}</span>
+          <span className="tile-go"><IconArrowRight size={14} /></span>
           {(fresh || voted) && (
             <span className="dilemma-flags">
               {fresh && <span className="dilemma-flag">New</span>}

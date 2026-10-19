@@ -14,7 +14,8 @@ import {
   HELP_KINDS, MAX_HELP_CARDS, DRAG_ROWS, searchIdentity, helpKindLabel, applySuggestion, revertSuggestion, snapshotFromCard, scryfallImg, artCrop, deckCover,
 } from './deckModel';
 import { timeAgo } from '../utils/timeAgo';
-import { IconPlus, IconArrowLeft, IconTrash, IconCheck, IconX, IconLifebuoy, IconMerge } from '../components/icons';
+import { IconPlus, IconArrowLeft, IconArrowRight, IconTrash, IconCheck, IconX, IconLifebuoy, IconMerge } from '../components/icons';
+import { CutFrame } from './CutFrame';
 import { goBack } from '../hooks/useHashRoute';
 
 const ms = (t) => t?.toMillis?.() ?? 0;
@@ -145,19 +146,25 @@ export function HelpItem({ deckId, info, h, mine, flags = [], inFeed, href, onCl
   const by = inFeed && info ? `${info.name} by ${info.owner || 'a player'}` : ''; // solo nel feed: nella scheda del mazzo è ovvio
   const cards = h.cards.map((c) => c.name).join(', ');
   const stop = /[.?!]$/.test(h.text) ? '' : '.'; // niente "?." dopo una domanda
+  // Tasche (CutFrame, 340x148.75 = 16 / 7): in alto a sinistra i suggerimenti (icona 12, 5, cifre mono 12, margini), in basso a destra la freccia.
+  const pill = 35 + 7.2 * String(replies).length;
+  const cuts = { tl: [pill + 4, 26], br: [34, 34] };
   return (
     <li>
       <Tag className={`help-card${solved ? ' solved' : ''}`} {...(href ? { href } : { type: 'button', onClick })}
         aria-label={`${helpKindLabel(h.kind)}: ${h.text}${stop}${by ? ` ${by}.` : ''}${cards ? ` Cards: ${cards}.` : ''} ${plural(replies, 'suggestion', 'suggestions')}${status ? `, ${status}` : ''}.`}>
         <span className="help-card-art" aria-hidden="true">
-          {pic && <img className="help-card-img" src={pic} alt="" loading="lazy" decoding="async" />}
+          <CutFrame w={340} h={148.75} cuts={cuts}>
+            {pic && <img className="help-card-img" src={pic} alt="" loading="lazy" decoding="async" />}
+          </CutFrame>
           <span className="help-kind">{helpKindLabel(h.kind)}</span>
           <span className="dilemma-flags">
             {flags.map((f) => <span key={f} className="dilemma-flag">{f}</span>)}
             {fresh > 0 && <span className="dilemma-flag voted">{fresh} new</span>}
             {solved && <span className="dilemma-flag solved">Solved</span>}
           </span>
-          <span className="help-count"><IconLifebuoy size={12} /> {replies}</span>
+          <span className="help-count" style={{ width: `calc(${pill} * var(--u))` }}><IconLifebuoy size={12} /> {replies}</span>
+          <span className="tile-go"><IconArrowRight size={14} /></span>
         </span>
         <span className="help-card-text">{h.text}</span>
         {cards && <span className="help-card-cards">{h.cards.map((c) => c.name).join(' · ')}</span>}

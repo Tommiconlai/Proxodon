@@ -2708,72 +2708,91 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
   transition: filter var(--transition), transform var(--transition);
 }
 .deck-tile-wrap:hover .deck-tile, .deck-tile:focus-visible { filter: drop-shadow(0 0 10px rgba(255, 45, 149, 0.45)); transform: translateY(-2px); outline: none; }
-/* Arte ritagliata dalla sagoma (maschera, TileFrame): 290x212 a (-40, -2) come nel design, al 50%, ombra interna
-   nera di 20 px; il bordo sfumato è l'SVG sopra. */
-.deck-tile-shape {
+/* Sagoma (CutFrame): l'arte ritagliata (290x212 a -40, -2 come nel Figma 52:275, all'80%, ombra interna di 20 px)
+   con un velo scuro in basso e in alto per le scritte; il bordo sfumato è l'SVG sopra. Agli angoli le tasche, buchi
+   della maschera con dentro pillole e pulsanti tondi (spunto della card "GLITCH" dell'utente). --u = 1 px del
+   riquadro a misura piena (209), così tasche e contenuto scalano insieme (telefono: 168). */
+.cut-shape {
   position: absolute; inset: 0; overflow: hidden; background: rgba(0, 0, 0, 0.25);
   -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
 }
+.cut-frame { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.deck-tile, .deck-tile-wrap { container-type: inline-size; }
+.deck-tile-wrap { position: relative; --u: calc(100cqi / 209); }
+.deck-tile .cut-shape { background: #07060d; }
+.deck-tile .cut-shape::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to top, rgba(5, 4, 10, 0.96), rgba(5, 4, 10, 0.55) 40%, rgba(5, 4, 10, 0) 66%),
+    linear-gradient(to bottom, rgba(5, 4, 10, 0.5), rgba(5, 4, 10, 0) 32%);
+}
 .deck-tile-art {
   position: absolute; left: -19.14%; top: -0.96%; width: 138.76%; height: 101.92%;
-  background: center / cover no-repeat; opacity: 0.5; box-shadow: inset 0 0 20px #000;
+  background: center / cover no-repeat; opacity: 0.8; box-shadow: inset 0 0 20px #000;
 }
-.deck-tile-frame { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 /* Bordo al 30%; pieno solo sui mazzi con una help request aperta (richiesta dell'utente) e sul + tratteggiato. */
-.deck-tile-frame path { stroke-opacity: 0.3; transition: stroke-opacity var(--transition); }
-.deck-tile.helping .deck-tile-frame path, .deck-add .deck-tile-frame path { stroke-opacity: 1; }
-/* Identità nell'incavo: simboli da 13.5 px (il design +50%) a 5 di distanza, 2 px sotto il bordo; in cqi del
-   riquadro (209 px = 100cqi), così su telefono restano dentro l'incavo, che scala con la sagoma. */
-.deck-tile { container-type: inline-size; }
-.deck-tile-pips { position: absolute; z-index: 1; top: 0.957cqi; left: 0; right: 0; display: flex; justify-content: center; pointer-events: none; }
-.deck-tile-pips .mana { gap: 2.392cqi; }
-.deck-tile-pips .mana img { width: 6.459cqi; height: 6.459cqi; }
-/* Nome (Chakra Petch 15 bold) a 12 / 23 px, formato (10, al 70%) sotto; Export 23x23 a 12 / 21 dall'angolo. */
-.deck-tile-head {
-  position: absolute; z-index: 1; left: 12px; right: 12px; top: 23px; /* 19 nel design: l'incavo è più profondo */
-  display: flex; flex-direction: column; font-family: var(--font-display); line-height: normal;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+.deck-tile .cut-frame path { stroke-opacity: 0.3; transition: stroke-opacity var(--transition); }
+.deck-tile.helping .cut-frame path, .deck-add .cut-frame path { stroke-opacity: 1; }
+/* Tasca in alto a sinistra: i simboli dell'identità (13.5 a passi di 18.5) in una pillola. */
+.deck-tile-pips {
+  position: absolute; z-index: 1; top: 0; left: 0; display: flex; align-items: center; pointer-events: none;
+  height: calc(22 * var(--u)); padding: 0 calc(6 * var(--u));
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 999px;
 }
-.deck-tile-wrap:has(.deck-tile-export) .deck-tile-head { right: 47px; }
-.deck-tile-title { display: flex; align-items: flex-start; gap: 6px; min-width: 0; }
-.deck-tile-name {
-  min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
-  overflow-wrap: anywhere; font-size: 15px; font-weight: 700; line-height: 19px;
+.deck-tile-pips .mana { gap: calc(5 * var(--u)); }
+.deck-tile-pips .mana img { width: calc(13.5 * var(--u)); height: calc(13.5 * var(--u)); }
+/* Il formato e un punto ciano sfocato, come i richiami dei prodotti nel disegno. */
+.deck-tile-callout {
+  position: absolute; z-index: 1; left: calc(12 * var(--u)); top: calc(40 * var(--u)); display: flex; align-items: center; gap: calc(6 * var(--u));
+  font-family: var(--font-mono); font-size: calc(9 * var(--u)); letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255, 255, 255, 0.78);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9); pointer-events: none;
 }
-.deck-tile-format { font-size: 10px; font-weight: 400; opacity: 0.7; }
-.deck-tile-public { flex: none; display: inline-flex; margin-top: 3px; color: var(--cyan); }
-.deck-tile-public svg { width: 12px; height: 12px; }
-.deck-tile-public.help { color: var(--accent); filter: drop-shadow(0 0 4px rgba(255, 45, 149, 0.6)); } /* chiave inglese: help request aperta */
-/* In basso le informazioni che il design non mostra: like e tag, poi autore e ultima modifica. */
+.deck-tile-dot { order: 1; flex: none; width: calc(5 * var(--u)); height: calc(5 * var(--u)); border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+/* In basso il nome grande (2 righe), i tag, autore e ultima modifica; a destra resta la tasca dei like. */
 .deck-tile-body {
-  position: absolute; z-index: 1; left: 12px; right: 12px; bottom: 11px;
-  display: flex; flex-direction: column; gap: 3px;
-  font-family: var(--font-display); font-size: 10px; line-height: 13px; color: rgba(255, 255, 255, 0.7);
+  position: absolute; z-index: 1; left: calc(12 * var(--u)); right: calc(12 * var(--u)); bottom: calc(8 * var(--u));
+  display: flex; flex-direction: column; gap: calc(3 * var(--u));
+  font-family: var(--font-display); font-size: calc(9 * var(--u)); line-height: 1.3; color: rgba(255, 255, 255, 0.7);
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
 }
 .deck-tile-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
-.deck-tile-likes { flex: none; display: inline-flex; align-items: center; gap: 4px; color: #fff; }
-.deck-tile-likes svg { width: 11px; height: 11px; color: var(--accent); }
-.deck-tile-tags { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent-light); }
-.deck-tile-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; }
+.deck-tile-title { display: flex; align-items: flex-end; gap: 6px; min-width: 0; }
+.deck-tile-name {
+  min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere;
+  font-size: calc(17 * var(--u)); line-height: 1.02; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase;
+  color: #fff; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+}
+.deck-tile-public { flex: none; display: inline-flex; margin-bottom: calc(2 * var(--u)); color: var(--cyan); }
+.deck-tile-public svg { width: 12px; height: 12px; }
+.deck-tile-public.help { color: var(--accent); filter: drop-shadow(0 0 4px rgba(255, 45, 149, 0.6)); } /* chiave inglese: help request aperta */
+.deck-tile-tags { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(9 * var(--u)); color: var(--accent-light); }
+.deck-tile-meta {
+  display: flex; flex-wrap: wrap; gap: 0 calc(8 * var(--u)); padding-right: calc(40 * var(--u));
+  font-family: var(--font-mono); font-size: calc(8.5 * var(--u)); color: rgba(255, 255, 255, 0.6);
+}
 .deck-tile-by { color: var(--cyan-soft); }
-/* Export: fratello del riquadro (niente pulsanti annidati), posato sull'angolo in alto a destra. */
-.deck-tile-wrap { position: relative; }
+/* Tasca in basso a destra: i like ricevuti. */
+.deck-tile-likes {
+  position: absolute; z-index: 1; right: 0; bottom: 0; display: inline-flex; align-items: center; justify-content: center; gap: calc(4 * var(--u));
+  width: calc(44 * var(--u)); height: calc(22 * var(--u)); background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 999px;
+  font-family: var(--font-mono); font-size: calc(10 * var(--u)); line-height: 1; color: #fff;
+}
+.deck-tile-likes svg { width: calc(11 * var(--u)); height: calc(11 * var(--u)); color: var(--accent); }
+/* Export: fratello del riquadro (niente pulsanti annidati), tondo nella tasca in alto a destra (solo My decks). */
 .deck-tile-export {
-  position: absolute; top: 21px; right: 12px; z-index: 2; /* come nel design: anche con 5 colori l'incavo finisce prima (x 164) */
-  display: grid; place-items: center; width: 23px; height: 23px; padding: 0; cursor: pointer;
-  background: rgba(0, 17, 18, 0.75); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 5px; color: rgba(255, 255, 255, 0.75);
+  position: absolute; top: 0; right: 0; z-index: 2; display: grid; place-items: center;
+  width: calc(28 * var(--u)); height: calc(28 * var(--u)); padding: 0; cursor: pointer;
+  background: #0d0c16; border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 50%; color: #fff;
   transition: border-color var(--transition), color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
-.deck-tile-export svg { width: 12.733px; height: 12.817px; } /* lo stesso simbolo del design, a questa misura */
+.deck-tile-export svg { width: calc(12 * var(--u)); height: calc(12 * var(--u)); }
 .deck-tile-export:hover, .deck-tile-export:focus-visible { color: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 12px rgba(0, 229, 255, 0.3); outline: none; }
 .deck-tile-wrap:hover .deck-tile-export { transform: translateY(-2px); }
 /* + in fondo a My decks e See all del profilo: la sagoma tratteggiata ciano, il contenuto al centro. */
 .deck-tile.deck-add { color: var(--cyan); }
-.deck-add .deck-tile-shape { background: rgba(0, 229, 255, 0.04); transition: background var(--transition); }
-.deck-add > svg:not(.deck-tile-frame) { position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
+.deck-add .cut-shape { background: rgba(0, 229, 255, 0.04); transition: background var(--transition); }
+.deck-add > svg:not(.cut-frame) { position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
 .deck-tile-wrap:hover .deck-tile.deck-add, .deck-tile.deck-add:focus-visible { filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.4)); }
-.deck-tile-wrap:hover .deck-add .deck-tile-shape, .deck-tile.deck-add:focus-visible .deck-tile-shape { background: rgba(0, 229, 255, 0.1); }
+.deck-tile-wrap:hover .deck-add .cut-shape, .deck-tile.deck-add:focus-visible .cut-shape { background: rgba(0, 229, 255, 0.1); }
 /* See all in fondo ai mazzi e ai dilemmi del profilo: freccia, scritta e quanti sono, al centro del riquadro. */
 .deck-all { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
   font-family: var(--font-display); font-size: 0.95rem; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; }
@@ -2988,13 +3007,11 @@ a.deck-tile.deck-add { text-decoration: none; }
 }
 .dilemma-tile:focus-visible { outline: none; }
 .dilemma-split {
-  position: relative; display: block; aspect-ratio: 626 / 457; overflow: hidden;
-  /* Bordo sfumato ciano → viola → magenta e angoli 10 come i riquadri dei mazzi (Figma 52:275). */
-  background: linear-gradient(var(--bg-base), var(--bg-base)) padding-box, linear-gradient(90deg, #00e5ff 10%, #ab61ed 50%, #ff2e96 90%) border-box;
-  border: 1px solid transparent; border-radius: 10px; box-shadow: var(--shadow-md);
-  transition: box-shadow var(--transition);
+  /* Sagoma con le tasche (CutFrame, 300x219) e il bordo sfumato come i mazzi; --u = 1 px a misura piena (300). */
+  position: relative; display: block; aspect-ratio: 626 / 457; container-type: inline-size; --u: calc(100cqi / 300);
+  transition: filter var(--transition);
 }
-.dilemma-tile:hover .dilemma-split, .dilemma-tile:focus-visible .dilemma-split { box-shadow: 0 0 16px rgba(255, 45, 149, 0.35); }
+.dilemma-tile:not(.dilemma-add):hover .dilemma-split, .dilemma-tile:not(.dilemma-add):focus-visible .dilemma-split { filter: drop-shadow(0 0 10px rgba(255, 45, 149, 0.4)); }
 /* Fette (una per carta): left / width / clip-path inline da splitSlices. */
 .dilemma-split .slice { position: absolute; top: 0; height: 100%; object-fit: cover; transition: filter 0.25s ease; }
 .dilemma-split-ph { display: flex; align-items: center; justify-content: center; padding: 0 18%; font-size: 0.75rem; color: var(--text-muted); text-align: center; }
@@ -3007,7 +3024,11 @@ a.deck-tile.deck-add { text-decoration: none; }
   background: rgba(8, 7, 15, 0.85); border: 1px solid rgba(0, 229, 255, 0.45); border-radius: var(--radius-sm);
   font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; color: var(--cyan);
 }
-.dilemma-votes { position: absolute; top: 8px; left: 8px; }
+.dilemma-votes, .help-count { /* tasca in alto a sinistra; larghezza inline dal testo */
+  position: absolute; top: 0; left: 0; display: inline-flex; align-items: center; justify-content: center; gap: calc(5 * var(--u));
+  height: calc(22 * var(--u)); padding: 0; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 999px;
+  font-family: var(--font-mono); font-size: calc(12 * var(--u)); font-weight: 600; line-height: 1; color: #fff;
+}
 /* In alto a destra: New (ultime 12 ore, ciano) e Voted (hai risposto, magenta). */
 .dilemma-flags { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; }
 .dilemma-flag { letter-spacing: 0.06em; text-transform: uppercase; }
@@ -3019,7 +3040,7 @@ a.deck-tile.deck-add { text-decoration: none; }
 }
 .dilemma-tile:hover .dilemma-tile-q, .dilemma-tile:focus-visible .dilemma-tile-q { color: var(--cyan-soft); }
 /* + della scheda Dilemmas del mazzo (ultimo della griglia): riquadro tratteggiato al posto dell'arte, ciano del logo. */
-.dilemma-add .dilemma-split { display: flex; align-items: center; justify-content: center; border: 1px dashed rgba(0, 229, 255, 0.5); background: rgba(0, 229, 255, 0.04); box-shadow: none; color: var(--cyan); }
+.dilemma-add .dilemma-split { display: flex; align-items: center; justify-content: center; border-radius: 14px; border: 1px dashed rgba(0, 229, 255, 0.5); background: rgba(0, 229, 255, 0.04); box-shadow: none; color: var(--cyan); }
 .dilemma-add:hover .dilemma-split, .dilemma-add:focus-visible .dilemma-split { border-color: var(--cyan); background: rgba(0, 229, 255, 0.1); box-shadow: 0 0 16px rgba(0, 229, 255, 0.3); }
 .dilemma-tile-meta { margin-top: -6px; padding: 0 2px; font-size: 0.78rem; color: var(--text-muted); }
 .dilemma-tile-meta b { font-family: var(--font-display); font-weight: 500; letter-spacing: 0.02em; color: var(--cyan-soft); }
@@ -3107,16 +3128,14 @@ button.dilemma-list-name:focus-visible { outline: 2px solid var(--cyan); outline
   background: none; border: 0; color: var(--text-primary); font: inherit; text-align: left; text-decoration: none; cursor: pointer;
 }
 .help-card:focus-visible { outline: none; }
-.help-card-art {
-  position: relative; display: block; aspect-ratio: 16 / 7; overflow: hidden;
-  background: linear-gradient(var(--bg-base), var(--bg-base)) padding-box, linear-gradient(90deg, #00e5ff 10%, #ab61ed 50%, #ff2e96 90%) border-box;
-  border: 1px solid transparent; border-radius: 10px; box-shadow: var(--shadow-md);
-  transition: box-shadow var(--transition);
+.help-card-art { /* sagoma con le tasche (CutFrame, 340x148.75), --u = 1 px a misura piena (340) */
+  position: relative; display: block; aspect-ratio: 16 / 7; container-type: inline-size; --u: calc(100cqi / 340);
+  transition: filter var(--transition);
 }
-.help-card:hover .help-card-art, .help-card:focus-visible .help-card-art { box-shadow: 0 0 16px rgba(255, 45, 149, 0.35); }
+.help-card:hover .help-card-art, .help-card:focus-visible .help-card-art { filter: drop-shadow(0 0 10px rgba(255, 45, 149, 0.4)); }
 .help-card-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 30%; filter: brightness(0.8); transition: filter 0.25s ease; }
 /* Velo scuro dal basso sopra l'arte (img lazy, niente ::after su un img); tipo, segnali e conteggio stanno sopra. */
-.help-card-art::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to top, rgba(8, 7, 15, 0.9), rgba(8, 7, 15, 0) 65%); }
+.help-card .cut-shape::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to top, rgba(8, 7, 15, 0.9), rgba(8, 7, 15, 0) 65%); }
 .help-card-art > span { z-index: 1; }
 .help-card:hover .help-card-img { filter: brightness(1); }
 .help-card.solved .help-card-img { filter: grayscale(0.8) brightness(0.55); }
@@ -3124,13 +3143,9 @@ button.dilemma-list-name:focus-visible { outline: 2px solid var(--cyan); outline
   display: inline-flex; align-items: center; padding: 3px 8px; border-radius: var(--radius-sm);
   background: var(--accent); color: #08070f; font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
 }
-.help-card-art .help-kind { position: absolute; left: 10px; bottom: 10px; }
+.help-card-art .help-kind { position: absolute; left: calc(12 * var(--u)); bottom: calc(10 * var(--u)); padding: calc(4 * var(--u)) calc(10 * var(--u)); border-radius: 999px; font-size: calc(10 * var(--u)); line-height: 1; }
 .help-card.solved .help-kind { background: var(--text-muted); }
-.help-count {
-  position: absolute; top: 8px; left: 8px; display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px;
-  background: rgba(8, 7, 15, 0.85); border: 1px solid rgba(0, 229, 255, 0.45); border-radius: var(--radius-sm);
-  font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; color: var(--cyan);
-}
+.help-count svg { width: calc(12 * var(--u)); height: calc(12 * var(--u)); color: var(--cyan); }
 .help-card-text {
   padding: 0 2px; font-family: var(--font-display); font-size: 1rem; line-height: 1.35; overflow-wrap: anywhere;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; transition: color var(--transition);
@@ -3707,7 +3722,7 @@ span.deck-hero-art { cursor: default; }
 .mobile-header .account-btn { width: 44px; height: 44px; }
 .mobile-header .help-btn, .mobile .profile-icon-btn { position: relative; }
 .mobile-header .help-btn::after, .mobile .profile-icon-btn::after { content: ''; position: absolute; inset: -6px; }
-.mobile .deck-tile-export::after { content: ''; position: absolute; inset: -11px; } /* 23 px + 11 per lato = 45 */
+.mobile .deck-tile-export::after { content: ''; position: absolute; inset: -11px; } /* 22 px + 11 per lato = 44 */
 .deck-editor.is-mobile .deck-hero-meta .deck-icon-btn, .deck-editor.is-mobile .deck-format { height: 44px; }
 .deck-editor.is-mobile .deck-hero-meta .deck-icon-btn { width: 44px; }
 .deck-editor.is-mobile .deck-hero .deck-name { min-height: 44px; }
@@ -4190,3 +4205,26 @@ span.deck-hero-art { cursor: default; }
 .deck-count:not(.plain) .n { font-size: 20px; font-weight: 700; line-height: 26px; color: rgba(255, 255, 255, 0.8); }
 .deck-count:not(.plain) .deck-count-chip.warn { border-color: rgba(245, 158, 11, 0.4); }
 .deck-count:not(.plain) .deck-count-chip.warn .n { color: var(--warning); }
+
+/* Riquadri di dilemmi e richieste: segnali e freccia nelle tasche (spunto della card "GLITCH" dell'utente). */
+/* New / Voted / Solved: pillole piene dentro il pannello, come lo SHOP NOW del disegno. */
+.dilemma-tile .dilemma-flags, .help-card .dilemma-flags { top: calc(10 * var(--u)); right: calc(10 * var(--u)); gap: calc(5 * var(--u)); }
+.dilemma-tile .dilemma-flag, .help-card .dilemma-flag {
+  padding: calc(4 * var(--u)) calc(10 * var(--u)); border-radius: 999px; border: 0; background: #fff; color: #08070f;
+  font-size: calc(10 * var(--u)); line-height: 1;
+}
+.dilemma-tile .dilemma-flag.voted, .help-card .dilemma-flag.voted { background: var(--accent); color: #fff; }
+.help-card .dilemma-flag.solved { background: var(--text-muted); }
+/* Freccia nella tasca in basso a destra: il riquadro è già il link, questa la indica. */
+.tile-go {
+  position: absolute; z-index: 1; right: 0; bottom: 0; display: grid; place-items: center;
+  width: calc(30 * var(--u)); height: calc(30 * var(--u)); border-radius: 50%;
+  background: #0d0c16; border: 1px solid rgba(255, 255, 255, 0.25); color: #fff;
+  transition: border-color var(--transition), color var(--transition), translate var(--transition);
+}
+.tile-go svg { width: calc(14 * var(--u)); height: calc(14 * var(--u)); }
+.dilemma-tile:hover .tile-go, .dilemma-tile:focus-visible .tile-go, .help-card:hover .tile-go, .help-card:focus-visible .tile-go { border-color: var(--cyan); color: var(--cyan); translate: 2px 0; }
+/* Telefono, due mazzi per riga (168 px): le scritte piccole non scendono sotto 10 px, come prima. */
+.mobile .deck-tile-callout { font-size: max(10px, calc(9 * var(--u))); }
+.mobile .deck-tile-meta, .mobile .deck-tile-tags { font-size: max(10px, calc(8.5 * var(--u))); }
+.mobile .deck-tile-likes { font-size: max(10px, calc(10 * var(--u))); }
