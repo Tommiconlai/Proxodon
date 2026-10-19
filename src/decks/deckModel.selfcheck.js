@@ -10,7 +10,7 @@ import {
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
   splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies, packPiles, splitPiles,
   libraryCards, shuffle, mulliganBottom, hyperAtLeast, deckPrice, addEntries, searchTerms, deckMatches, contentSig,
-  scryfallImg, cleanPublicDeck, deckTags, MAX_TAGS, splitSlices, applySuggestion, revertSuggestion, cleanCards, cleanHelp, cleanReply,
+  scryfallImg, cleanPublicDeck, cleanIndex, indexFields, deckTags, MAX_TAGS, splitSlices, applySuggestion, revertSuggestion, cleanCards, cleanHelp, cleanReply,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
 
@@ -409,6 +409,15 @@ eq([deckMatches(sd, [], { format: 'modern', colors: ['R'] }), deckMatches(sd, []
 const maybeOnly = addCard(newDeck({ name: 'm' }), bolt, { board: 'maybe' }).deck;
 eq([deckMatches(sd, [], { ...none, card: ' lightning ' }), deckMatches(sd, [], { ...none, card: 'counterspell' }),
   deckMatches(maybeOnly, [], { ...none, card: 'bolt' })], [true, false, false], 'filtri: contiene carta, maybeboard esclusa');
+// Indice della Community: campi dal mazzo, voce ripulita, stessi filtri senza righe.
+const withMaybe = addCard(sd, forest, { board: 'maybe' }).deck;
+eq(indexFields(withMaybe), { ci: 'R', art: '', names: 'Lightning Bolt' }, 'indice: identità, copertina non Scryfall = vuota, nomi senza maybeboard');
+const entry = cleanIndex({ id: 'x', uid: 'u', name: 'Mono-Red Burn', format: 'modern', ci: 'RXW', art: 'https://evil.test/a.jpg',
+  names: 'Lightning Bolt\nGoblin Guide', tags: ['Burn', 'Nope'], owner: 7 });
+eq([entry.ci, entry.art, entry.tags, entry.owner, entry.public, cleanIndex({ name: 3 })], [['W', 'R'], '', ['Burn'], null, true, null], 'indice: voce ripulita');
+eq([deckMatches(entry, searchTerms('burn'), { format: 'modern', colors: ['R'] }), deckMatches(entry, [], { ...none, card: 'goblin' }),
+  deckMatches(entry, [], { ...none, card: 'counterspell' }), deckMatches(entry, [], { format: '', colors: ['C'] })],
+[true, true, false, false], 'indice: ricerca e filtri sulla voce');
 
 // Immagini dei mazzi pubblici: solo https da Scryfall, il resto diventa '' (segnaposto).
 const sfImg = 'https://cards.scryfall.io/normal/front/6/9/x.jpg?1783908173';

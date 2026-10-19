@@ -132,7 +132,7 @@ service cloud.firestore {
         && d.get('public', true) is bool
         && d.get('updatedAt', request.time) is timestamp && d.get('changedAt', request.time) is timestamp
         && d.cards is list && d.cards.size() <= 500
-        && d.words is list && d.words.size() <= 200
+        && d.words is list && d.words.size() <= 200 && d.words.join(' ').size() <= 4400
         && strs(d.get('tags', []), 40)
         && d.get('sections', []) is list && d.get('sections', []).size() <= 100
         && d.createdAt is timestamp && d.createdAt <= request.time + duration.value(5, 'm')
@@ -187,6 +187,37 @@ service cloud.firestore {
     // (salvataggio ancora in volo, coda offline) non riporta il mazzo in Community.
     function stillPublic(deckId) {
       return get(/databases/$(db)/documents/users/$(request.auth.uid)/decks/$(deckId)).data.get('public', false) == true;
+    }
+    // Indice leggero della Community (publicIndex/{id}, stesso id della copia): quello che servono i riquadri e i filtri,
+    // ogni campo con un tetto (join su words: lunghezza totale e solo valori semplici), così il feed legge 60 documenti
+    // piccoli invece di 60 copie piene, le cui righe non si possono controllare una per una (join non accetta mappe).
+    // Lo scrive il proprietario della copia (ownCopy, niente id presi da altri), finché il mazzo è pubblico.
+    function validIndex(d) {
+      return d.uid == request.auth.uid
+        && d.keys().hasOnly(['uid', 'name', 'format', 'owner', 'tags', 'words', 'ci', 'art', 'names', 'createdAt', 'changedAt'])
+        && d.name is string && d.name.size() <= 200
+        && d.format is string && d.format.size() <= 20
+        && strs(d.get('tags', []), 40)
+        && d.words is list && d.words.size() <= 200 && d.words.join(' ').size() <= 4400
+        && d.get('ci', '') is string && d.get('ci', '').size() <= 5
+        && d.get('art', '') is string && d.get('art', '').size() <= 500
+        && d.get('names', '') is string && d.get('names', '').size() <= 16000
+        && d.createdAt is timestamp && d.createdAt <= request.time + duration.value(5, 'm')
+        && d.get('changedAt', request.time) is timestamp
+        && (d.get('owner', null) == null || (d.owner is string
+          && get(/databases/$(db)/documents/usernames/$(d.owner.lower())).data.uid == request.auth.uid));
+    }
+    function ownCopy(deckId) {
+      return getAfter(/databases/$(db)/documents/publicDecks/$(deckId)).data.uid == request.auth.uid;
+    }
+    match /publicIndex/{deckId} {
+      allow get: if verified();
+      allow list: if verified() && ((request.query.limit != null && request.query.limit <= 60)
+        || resource.data.uid == request.auth.uid);
+      allow create: if verified() && validIndex(request.resource.data) && stillPublic(deckId) && ownCopy(deckId);
+      allow update: if verified() && resource.data.uid == request.auth.uid && validIndex(request.resource.data)
+        && stillPublic(deckId) && request.resource.data.createdAt <= resource.data.createdAt;
+      allow delete: if verified() && (resource == null || resource.data.uid == request.auth.uid);
     }
     // applied cresce di una chiave alla volta (uid@ora, corta): la richiesta nasce vuota, così nessun elemento è grosso.
     function appliedOk(added) {

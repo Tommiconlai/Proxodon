@@ -8,7 +8,9 @@ import {
   query, where, orderBy, limit, startAfter, getCountFromServer, collectionGroup, arrayUnion, arrayRemove, Timestamp, increment,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { searchTerms, contentSig, deckTags, deckCover, cleanCards, cleanHelp, cleanReply, cleanPublicDeck, rid } from './deckModel';
+import {
+  searchTerms, contentSig, deckTags, deckCover, cleanCards, cleanHelp, cleanReply, cleanPublicDeck, cleanIndex, indexFields, rid,
+} from './deckModel';
 
 const decksCol = (uid) => collection(db, 'users', uid, 'decks');
 // serverTimestamps 'estimate': un mazzo appena scritto ha già una data (stimata) per l'ordinamento.
@@ -55,21 +57,47 @@ const ownerOf = async (uid) => {
 };
 const searchWords = (name) => [...new Set(searchTerms(name)
   .flatMap((w) => Array.from({ length: Math.min(w.length, 20) }, (_, i) => w.slice(0, i + 1))))];
+// Indice leggero della Community: publicIndex/{id} (stesso id della copia) con quello che servono i riquadri e i filtri
+// (nome, formato, firma, tag, words, identità, copertina, nomi delle carte), ogni campo con un tetto nelle regole.
+// Il feed legge 60 voci piccole invece di 60 copie piene, le cui righe le regole non possono controllare.
+const indexCol = collection(db, 'publicIndex');
+const indexOf = (s) => cleanIndex({ id: s.id, ...s.data({ serverTimestamps: 'estimate' }) });
+// Le regole dell'indice non ancora pubblicate (o mazzo appena tornato privato): permission-denied, la copia vale lo stesso.
+const indexDenied = (e) => { if (e.code !== 'permission-denied') throw e; };
+const writeIndex = (uid, d, owner, common) => setDoc(doc(indexCol, d.id), {
+  uid, name: d.name, format: d.format, ...(owner !== undefined && { owner }), tags: deckTags(d), ...indexFields(d), ...common,
+}, { merge: true }).catch(indexDenied);
+const commonOf = (d, f = {}) => ({
+  words: searchWords([d.name, ...deckTags(d)].join(' ')).slice(0, 200), createdAt: d.createdAt ?? serverTimestamp(),
+  changedAt: f.changedAt ?? d.changedAt ?? d.updatedAt ?? serverTimestamp(),
+});
 // changedAt sempre scritto (il nuovo o quello del mazzo). Merge solo per la firma: senza firma nota la copia
-// tiene la sua; tutto il resto si riscrive comunque (gli array vengono sostituiti interi).
+// tiene la sua; tutto il resto si riscrive comunque (gli array vengono sostituiti interi). Poi l'indice: dopo la copia,
+// perché le regole vogliono che la copia sia di chi lo scrive.
 const publish = async (uid, d, f) => {
   const owner = await ownerOf(uid);
-  return setDoc(doc(publicCol, d.id), {
-    ...payload(d), ...f, changedAt: f.changedAt ?? d.changedAt ?? d.updatedAt ?? serverTimestamp(),
-    uid, ...(owner !== undefined && { owner }), words: searchWords([d.name, ...deckTags(d)].join(' ')).slice(0, 200), createdAt: d.createdAt ?? serverTimestamp(),
-  }, { merge: true });
+  const common = commonOf(d, f);
+  await setDoc(doc(publicCol, d.id), { ...payload(d), ...f, uid, ...(owner !== undefined && { owner }), ...common }, { merge: true });
+  return writeIndex(uid, d, owner, common);
 };
+// Mazzi pubblici di prima dell'indice: il proprietario aprendo My decks scrive la voce che manca (una lettura per mazzo
+// pubblico, una volta per sessione). ponytail: i mazzi di chi non riapre l'app restano fuori dall'indice.
+const indexed = new Set();
+export function ensureIndexed(uid, decks) {
+  decks.filter((d) => d.public && !indexed.has(d.id)).forEach((d) => {
+    indexed.add(d.id);
+    getDoc(doc(indexCol, d.id))
+      .then(async (s) => { if (!s.exists()) await writeIndex(uid, d, await ownerOf(uid), commonOf(d)); })
+      .catch(() => {}); // offline o regole vecchie: si riprova alla prossima sessione (non a ogni aggiornamento)
+  });
+}
 // Fuori dalla Community: la copia diventa un segnaposto { uid } invece di sparire, così l'id resta di chi l'ha
 // pubblicato (nessun altro può prenderlo, far vedere altro sotto il vecchio link o bloccare la cancellazione
-// dell'account); via dilemmi e help request (con voti e risposte) e like. Un errore nella pulizia arriva al
-// chiamante (toast); il segnaposto è scritto comunque.
+// dell'account); via la voce dell'indice, dilemmi e help request (con voti e risposte) e like. Un errore nella pulizia
+// arriva al chiamante (toast); il segnaposto è scritto comunque.
 export const unpublishDeck = (uid, id) => Promise.all([
-  setDoc(doc(publicCol, id), { uid }), deleteDilemmasOf(id), deleteHelpsOf(id), deleteLikesOf(id),
+  setDoc(doc(publicCol, id), { uid }), deleteDoc(doc(indexCol, id)).catch(indexDenied),
+  deleteDilemmasOf(id), deleteHelpsOf(id), deleteLikesOf(id),
 ]);
 
 // ponytail: ordinamento lato client (niente indice); legge i documenti interi, va bene per
@@ -120,13 +148,23 @@ export const setDeckPublic = (uid, deck, on) => Promise.all([
 // Pulizia anche per un mazzo già privato: dilemmi o richieste rimasti da prima (unpublishDeck non fallisce per una copia che non c'è).
 export const deleteDeck = (uid, deck) => Promise.all([deleteDoc(doc(decksCol(uid), deck.id)), unpublishDeck(uid, deck.id)]);
 
-// Gli ultimi creati, o quelli con una parola che inizia per word; i più recenti prima.
+// Gli ultimi creati, o quelli con una parola che inizia per word; i più recenti prima. Dall'indice; finché è vuoto o le
+// sue regole non sono pubblicate (deciso una volta per sessione), dalle copie piene come prima.
 // ponytail: niente indici composti, quindi filtri e altre parole li applica la lista su questi 60.
 // Se la community cresce: indici su format / words + createdAt e filtri nella query.
+let fromIndex;
 export function listenCommunity(word, onChange, onError) {
-  const q = word ? query(publicCol, where('words', 'array-contains', word), limit(60))
-    : query(publicCol, orderBy('createdAt', 'desc'), limit(60));
-  return onSnapshot(q, (qs) => onChange(qs.docs.map(publicOf).filter(Boolean).sort((a, b) => ms(b.createdAt) - ms(a.createdAt))), onError);
+  fromIndex ??= getDocs(query(indexCol, limit(1))).then((qs) => !qs.empty, () => false);
+  let stop = false;
+  let un = () => {};
+  fromIndex.then((idx) => {
+    if (stop) return;
+    const col = idx ? indexCol : publicCol;
+    const q = word ? query(col, where('words', 'array-contains', word), limit(60)) : query(col, orderBy('createdAt', 'desc'), limit(60));
+    un = onSnapshot(q, (qs) => onChange(qs.docs.map(idx ? indexOf : publicOf).filter(Boolean)
+      .sort((a, b) => ms(b.createdAt) - ms(a.createdAt))), onError);
+  });
+  return () => { stop = true; un(); };
 }
 export const listenPublicDeck = (id, onChange, onError) =>
   onSnapshot(doc(publicCol, id), (s) => onChange(s.exists() ? publicOf(s) : null), onError);
@@ -338,6 +376,9 @@ export async function claimNickname(uid, name, old) {
   getDocs(query(publicCol, where('uid', '==', uid)))
     .then((mine) => Promise.all(mine.docs.filter((d) => Array.isArray(d.data().cards)).map((d) => updateDoc(d.ref, { owner: ownerName }))))
     .catch(() => {});
+  getDocs(query(indexCol, where('uid', '==', uid))) // e le voci dell'indice
+    .then((mine) => Promise.all(mine.docs.map((d) => updateDoc(d.ref, { owner: ownerName }))))
+    .catch(() => {});
 }
 
 // Elimina account: i propri voti ai dilemmi, le risposte alle help request e i like (con le loro tracce), le copie
@@ -360,6 +401,9 @@ export async function deleteUserData(uid) {
     await settle([batch.commit()]);
     page = page.length < 60 ? [] : await docsOf(query(publicCol, orderBy('createdAt'), startAfter(page.at(-1)), limit(60)));
   }
+  // Voci dell'indice della Community (regole vecchie: l'elenco è negato e non c'è niente da cancellare).
+  await settle((await getDocs(query(indexCol, where('uid', '==', uid))).then((qs) => qs.docs, () => []))
+    .map((i) => deleteDoc(i.ref)));
   const [mine, decks] = await Promise.all([docsOf(query(publicCol, where('uid', '==', uid))), docsOf(decksCol(uid))]);
   // Copie proprie: prima dilemmi, richieste e like, poi la copia (se la pulizia fallisce resta, e si ritrova riprovando).
   await settle(mine.map((p) => Promise.all([deleteDilemmasOf(p.id), deleteHelpsOf(p.id), deleteLikesOf(p.id)]).then(() => deleteDoc(p.ref))));

@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { listenDecks, listenCommunity, createDeck, saveDeck, deleteDeck, setDeckPublic, setDeckFolder, changedMs, countLikes, countOpenHelps } from './deckStore';
+import {
+  listenDecks, listenCommunity, createDeck, saveDeck, deleteDeck, setDeckPublic, setDeckFolder, changedMs, countLikes, countOpenHelps,
+  ensureIndexed,
+} from './deckStore';
 import {
   FORMATS, duplicateDeck, deckIdentity, deckCover, deckTags, scryfallImg, formatLabel, searchTerms, deckMatches, rid,
   MAX_ROWS, MAX_QTY,
@@ -73,7 +76,8 @@ function TileFrame({ cuts, dashed, children }) {
 // modifica. Bordo sfumato pieno solo con una help request aperta (.helping), altrimenti al 30%. props vanno
 // sul pulsante. stats = { likes, help } già noti (demo del tutorial): niente letture dal server.
 export function DeckTile({ deck: d, by, stats, ...props }) {
-  const cover = scryfallImg(deckCover(d));
+  // Voce dell'indice della Community (cleanIndex): copertina e identità già pronte, niente righe.
+  const cover = scryfallImg(d.art ?? deckCover(d));
   const updated = changedMs(d); // ultimo cambio di carte (changedAt), non l'ultima scrittura
   const live = !stats && !!d.public;
   const likesNow = useCount(countLikes, d.id, undefined, live);
@@ -81,7 +85,7 @@ export function DeckTile({ deck: d, by, stats, ...props }) {
   const likes = stats ? stats.likes : likesNow;
   const helping = stats ? stats.help : helpsNow > 0; // chiave inglese: help request aperta
   const tags = deckTags(d).join(' · ');
-  const identity = deckIdentity(d);
+  const identity = d.ci ?? deckIdentity(d);
   const n = Math.max(1, identity.length);
   const format = formatLabel(d.format);
   // Pillola dei simboli: 13.5 l'uno a passi di 18.5, 7 di margine; tasca = pillola + 4 di vuoto.
@@ -239,7 +243,8 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
 
   // Listener fallito (regole, quota): il messaggio al posto dello spinner. Si riprova tornando sulla pagina.
   const [loadError, setLoadError] = useState(null);
-  useEffect(() => listenDecks(uid, (d) => { setDecks(d); setLoadError(null); }, setLoadError), [uid]);
+  // ensureIndexed: i mazzi pubblici di prima dell'indice della Community ci entrano (una volta per sessione).
+  useEffect(() => listenDecks(uid, (d) => { setDecks(d); setLoadError(null); ensureIndexed(uid, d); }, setLoadError), [uid]);
 
   const writeError = (e) => notify(`Sync error: ${e.message}`, 'error');
   const create = (deck) => {

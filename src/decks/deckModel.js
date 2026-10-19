@@ -502,8 +502,10 @@ export function deckMatches(deck, terms, { format, colors, card = '' }) {
   const name = [deck.name, ...deckTags(deck)].join(' ').toLowerCase(); // ricerca su nome e tag
   if (!terms.every((w) => name.includes(w)) || (format && deck.format !== format)) return false;
   const c = card.trim().toLowerCase();
-  if (c && !deck.cards.some((r) => r.board !== 'maybe' && r.card.name.toLowerCase().includes(c))) return false;
-  const id = deckIdentity(deck);
+  // Voce dell'indice della Community (cleanIndex): nomi e identità già pronti, niente righe.
+  if (c && !(deck.names != null ? deck.names.toLowerCase().includes(c)
+    : deck.cards.some((r) => r.board !== 'maybe' && r.card.name.toLowerCase().includes(c)))) return false;
+  const id = deck.ci ?? deckIdentity(deck);
   return colors.every((c) => (c === 'C' ? !id.length : id.includes(c)));
 }
 
@@ -512,6 +514,12 @@ export function deckMatches(deck, terms, { format, colors, card = '' }) {
 export const coverRow = (deck) => (deck.cover && deck.cards.find((r) => r.card.oid === deck.cover))
   || commanderRows(deck)[0] || deck.cards.find((x) => x.board === 'main');
 export const deckCover = (deck) => coverRow(deck)?.card.art || '';
+// Campi dell'indice della Community (publicIndex) calcolati dal mazzo: identità come stringa ("WUG"), copertina,
+// nomi delle carte fuori dal maybeboard (per Contains card), uno per riga; tetti come le regole.
+export const indexFields = (d) => ({
+  ci: deckIdentity(d).join(''), art: scryfallImg(deckCover(d)),
+  names: [...new Set(d.cards.filter((r) => r.board !== 'maybe').map((r) => r.card.name))].join('\n').slice(0, 16000),
+});
 
 // Immagini dei mazzi solo da Scryfall (https, cards/svgs.scryfall.io), sennò '' (= segnaposto): i mazzi
 // pubblici li scrive il proprietario e li legge chiunque, un altro host farebbe caricare a chi guarda
@@ -641,6 +649,17 @@ export function cleanPublicDeck(d) {
     cover: typeof d.cover === 'string' ? d.cover.slice(0, 64) : null, tags: deckTags(d), sections: cleanSections(d.sections),
     cards: d.cards.slice(0, MAX_ROWS).map(cleanRow).filter(Boolean),
     sig: str(d.sig, 32), createdAt: stamp(d.createdAt), changedAt: stamp(d.changedAt), updatedAt: stamp(d.updatedAt),
+  };
+}
+// Voce dell'indice della Community (publicIndex): la scrive chiunque abbia un account, quindi ripulita come le copie.
+// Ha ci (identità), art (copertina) e names (nomi delle carte) al posto delle righe: DeckTile e deckMatches li usano.
+export function cleanIndex(d) {
+  if (!d || typeof d.name !== 'string') return null;
+  return {
+    id: d.id, uid: str(d.uid, 128), owner: str(d.owner, 24) || null, public: true, name: d.name.slice(0, 80),
+    format: FORMATS.some((x) => x.id === d.format) ? d.format : 'casual', tags: deckTags(d),
+    ci: WUBRG.filter((c) => str(d.ci, 5).includes(c)), art: scryfallImg(d.art), names: str(d.names, 16000),
+    createdAt: stamp(d.createdAt), changedAt: stamp(d.changedAt),
   };
 }
 
