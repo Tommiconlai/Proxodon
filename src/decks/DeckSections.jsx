@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import CardMenu from '../components/CardMenu';
 import { useLongPress, menuPoint } from '../hooks/useLongPress';
@@ -32,6 +32,28 @@ export const HoverCard = ({ hover }) => createPortal(hover.back ? (
     <img src={hover.back} alt="" style={{ width: hover.w }} />
   </div>
 ) : <img className="deck-hover" src={hover.img} alt="" style={{ left: hover.x, top: hover.y, width: hover.w }} />, document.body);
+
+// Anteprima di DeckSections in un piccolo store per istanza: cambiarla ridisegna solo HoverLayer.
+const hoverStore = () => {
+  let value = null;
+  const subs = new Set();
+  return {
+    get: () => value,
+    set: (h) => { value = h; subs.forEach((f) => f()); },
+    sub: (f) => { subs.add(f); return () => subs.delete(f); },
+  };
+};
+// L'anteprima è fissa sullo schermo: sparisce appena qualcosa scorre.
+function HoverLayer({ store }) {
+  const hover = useSyncExternalStore(store.sub, store.get);
+  useEffect(() => {
+    if (!hover) return undefined;
+    const off = () => store.set(null);
+    window.addEventListener('scroll', off, true);
+    return () => window.removeEventListener('scroll', off, true);
+  }, [hover, store]);
+  return hover && <HoverCard hover={hover} />;
+}
 // Stack: le pile si allargano (da 200 a 400 px, --stack-w) per riempire l'area del mazzo; l'altezza
 // di una pila viene dal numero di carte e dalla larghezza: carta 680/488, poi la riga del nome di
 // ogni carta coperta (margin-top -125.3% della larghezza).
@@ -72,7 +94,10 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   const [sel, setSel] = useState(() => new Set());
   const [anchor, setAnchor] = useState(null);
   const [menu, setMenu] = useState(null); // { ids, x, y }
-  const [hover, setHover] = useState(null); // anteprima accanto alla riga: { img, back, w, x, y }
+  // Anteprima accanto alla riga ({ img, back, w, x, y }) nel suo componente (HoverLayer): passare sulle righe
+  // ridisegna solo lei, non tutte le righe con l'effect delle cornici (mazzi da centinaia di righe).
+  const [hoverBox] = useState(hoverStore);
+  const setHover = hoverBox.set;
   // Carte a due facce: id riga → mezzi giri fatti. Ogni click aggiunge 180° (rotateY), così la carta gira
   // sempre nello stesso verso; dispari = retro. Solo su questo schermo, non si salva.
   const [flipped, setFlipped] = useState(() => new Map());
@@ -145,14 +170,6 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
       li.style.setProperty('--frame-h', bottom < y + h ? `${bottom - y}px` : '');
     });
   });
-
-  // L'anteprima è fissa sullo schermo: sparisce appena qualcosa scorre.
-  useEffect(() => {
-    if (!hover) return undefined;
-    const off = () => setHover(null);
-    window.addEventListener('scroll', off, true);
-    return () => window.removeEventListener('scroll', off, true);
-  }, [hover]);
 
   const blocks = useMemo(() => {
     const cmd = commanderRows(deck);
@@ -619,7 +636,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
             {canAdd(r) && <button type="button" className="btn-secondary deck-icon-btn" aria-label={`One more ${r.card.name}`} title="One more" onClick={() => update((d) => bumpQty(d, r.id, 1))}><IconPlus size={20} /></button>}
           </div>, document.body);
       })()}
-      {hover && <HoverCard hover={hover} />}
+      <HoverLayer store={hoverBox} />
     </div>
   );
 }

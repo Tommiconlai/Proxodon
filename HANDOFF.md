@@ -200,6 +200,13 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
+- **Hovering deck rows no longer re-renders the whole deck (most recent, 2026-10-19):** review M28, partly. The
+  hover preview was state of `DeckSections`, so every mouse enter / leave re-rendered every row and re-ran the
+  no-deps layout effect of the frames (O(n²) over the rows). The preview now lives in `HoverLayer`, fed by a
+  small per-instance store (`hoverStore`, read with `useSyncExternalStore`; `setHover` keeps its callers; the
+  scroll-hides-it effect moved there). Measured on a 100-row deck (dev build): about 6.4 ms of work per hover
+  before, about 1 ms after; preview shown on 20 of 20 hovers and gone on leave. Not done: `memo` on the rows and
+  deps / per-column map for the frame effect (0.4 ms per run at 100 rows, it still runs on real re-renders).
 - **Overlay focus and Esc: top layer only, focus stays in the new dialog, back to the opener (most recent,
   2026-10-19):** review M25, M26, M27, all in `useOverlayDismiss`. M25: every open overlay listened for Escape on
   the document, so one Esc closed all of them (card zoom inside the phone search); a module `layers` stack now lets
