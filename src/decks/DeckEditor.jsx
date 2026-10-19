@@ -5,7 +5,7 @@ import { useCount } from './useCount';
 import { FORMATS, boardCounts, refreshSnapshots, addCard, toPrintEntries, coverRow, deckTags, searchIdentity } from './deckModel';
 import { useSettings } from '../utils/settings';
 import { cardsByIds } from './scryfallSearch';
-import { navigate } from '../hooks/useHashRoute';
+import { navigate, replaceRoute } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
 import { DeckTabs, DeckBand, DeckTitle, DeckCount, DeckBottomBar, DeckTagList } from './DeckTabs';
@@ -76,7 +76,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   useEffect(() => {
     if (deck !== null) return;
     notify('This deck was deleted', 'error');
-    navigate('/decks');
+    replaceRoute('/decks'); // con navigate, Indietro (anche quello di Android) rientrerebbe nel mazzo che non c'è più
   }, [deck, notify]);
 
   // Riallinea una volta gli snapshot con Scryfall (ban, immagini). Scryfall giù = restano quelli salvati.

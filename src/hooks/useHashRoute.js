@@ -13,6 +13,12 @@ export function useHashRoute() {
 }
 
 export const navigate = (path) => { window.location.hash = path; };
+// Come navigate ma al posto della voce attuale, che Indietro non ritrova (il mazzo aperto è stato cancellato).
+// replaceState tiene idx (la posizione non cambia) e non manda hashchange: lo si manda a mano.
+export const replaceRoute = (path) => {
+  window.history.replaceState(window.history.state, '', `#${path}`);
+  window.dispatchEvent(new HashChangeEvent('hashchange'));
+};
 
 // Posizione della pagina in cronologia (history.state.idx, 0 = la prima aperta nella scheda): serve a goBack
 // per sapere se la pagina prima è dell'app. Le voci degli overlay (useBackClose) copiano quella della pagina.
