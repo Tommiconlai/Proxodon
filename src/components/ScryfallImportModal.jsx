@@ -12,7 +12,8 @@ export default function ScryfallImportModal({ open, onClose, onImport }) {
     const [error, setError] = useState(null);
 
     // Esc chiude (ma non durante un import) + focus dentro al modale.
-    const close = () => { if (!busy) onClose(); };
+    // Chiudendo si azzera l'esito: riaperta, la finestra non mostra il Done del giro prima (la lista resta).
+    const close = () => { if (!busy) { setResult(null); setError(null); onClose(); } };
     const dismissRef = useOverlayDismiss(close, open);
 
     if (!open) return null;
@@ -100,7 +101,7 @@ export default function ScryfallImportModal({ open, onClose, onImport }) {
                     )}
                     <button
                         className="btn-generate import-btn"
-                        onClick={busy ? undefined : (result ? onClose : handleImport)}
+                        onClick={busy ? undefined : (result ? close : handleImport)}
                         disabled={busy || (!result && !text.trim())}
                     >
                         {busy ? <><span className="spinner" /> Importing…</> : result ? 'Done' : 'Import'}

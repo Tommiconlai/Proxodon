@@ -200,7 +200,12 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Save list counts copies (most recent, 2026-10-19):** review L16. `buildDeckList` returned `cards` = the number of
+- **Import windows reopen clean (most recent, 2026-10-19):** review L21. The Scryfall and MPCFill import windows stay
+  mounted, so after an import, closing and reopening showed the old "N images imported / Done". Their `close` (also
+  used by Esc, Back and the Done button) now clears the result and the error; the MPC one also forgets the file when
+  an import was done (the pasted Scryfall list stays, it is a draft). Checked: imported "2 Sol Ring / 1 Xenagos"
+  (3 images), Done, reopened: the button says Import again. The user's saved list draft was restored after the test.
+- **Save list counts copies (2026-10-19):** review L16. `buildDeckList` returned `cards` = the number of
   distinct lines, so "Saved 2 Scryfall cards" for 2 Sol Ring + 1 Birgi, while `custom` counted copies. `cards` is
   now the sum of the quantities (3 there); the self-check case says so.
 - **Print pipeline: clear errors, WASM freed on failure (2026-10-19):** review L13 and L22.

@@ -12,7 +12,12 @@ export default function MpcImportModal({ open, onClose, onImport }) {
     const [result, setResult] = useState(null);  // { imported, notFound }
     const [error, setError] = useState(null);
 
-    const close = () => { if (!busy) onClose(); };
+    // Chiudendo si azzera l'esito (e, a import fatto, il file): riaperta, la finestra riparte pulita.
+    const close = () => {
+        if (busy) return;
+        if (result) { setCards(null); setFileName(''); }
+        setResult(null); setError(null); onClose();
+    };
     const dismissRef = useOverlayDismiss(close, open); // Esc chiude (non durante l'import) + focus
 
     if (!open) return null;
@@ -110,7 +115,7 @@ export default function MpcImportModal({ open, onClose, onImport }) {
                     )}
                     <button
                         className="btn-generate import-btn"
-                        onClick={busy ? undefined : (result ? onClose : handleImport)}
+                        onClick={busy ? undefined : (result ? close : handleImport)}
                         disabled={busy || (!result && !cards)}
                     >
                         {busy ? <><span className="spinner" /> Importing…</> : result ? 'Done' : 'Import'}
