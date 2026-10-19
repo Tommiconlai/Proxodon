@@ -201,7 +201,11 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **One background for neutral buttons, site-wide (most recent, 2026-10-19):** user, pointing at the Print Settings
+- **Wider deck search on desktop (most recent, 2026-10-19):** user: "allarga la search bar nella vista mazzo, 30%".
+  `.deck-hero-search` 227 -> 295 px (the Figma 227 + 30%), the cyan glow bar on its right edge moved with it (left
+  293); same width in the stuck bar. Phones keep the full-width search of `DeckTopBar`. Checked at 1440x900 (295 px,
+  6 px from the right edge, stuck bar too).
+- **One background for neutral buttons, site-wide (2026-10-19):** user, pointing at the Print Settings
   button (a `.decks-filter-btn`): "adatta tutti gli sfondi dei button come questo, in tutto il sito". A rule at the end
   of index.css gives `.btn-secondary`, `.bulk-btn` and `.btn-icc` the filter button look (black 25% veil, cyan 10%
   border, radius 10), icon-only `.btn-secondary.deck-icon-btn` a cyan icon, and the round `.nav-btn`,

@@ -3979,7 +3979,7 @@ span.deck-hero-art { cursor: default; }
 .deck-editor:not(.is-mobile) .deck-hero-meta .deck-icon-btn.is-public { border-color: var(--cyan); color: var(--cyan); background: rgba(0, 229, 255, 0.12); box-shadow: 0 0 10px rgba(0, 229, 255, 0.3); }
 .deck-icon-btn > svg[width="30"] { margin: -7px; } /* stampa e mondo hanno il riquadro 30x30 del design attorno al simbolo */
 
-/* Barra in alto: nome (JetBrains Mono 25 bold) e cuore a 48 / 32 px, sotto "by"; ricerca 227x38 a 6 px dal
+/* Barra in alto: nome (JetBrains Mono 25 bold) e cuore a 48 / 32 px, sotto "by"; ricerca 295x38 (227 del Figma + 30%) a 6 px dal
    bordo destro, 54 px sotto l'header, con la barra ciano sul bordo. Quando la testata esce (.stuck): alta 62,
    col fondo; sotto si attacca la fascia. */
 .deck-editor:not(.is-mobile) .deck-sticky-bar { justify-content: space-between; align-items: flex-start; gap: 24px; padding: 32px 6px 0 48px; }
@@ -4004,7 +4004,7 @@ span.deck-hero-art { cursor: default; }
 :is(.deck-sticky-bar, .deck-editor:not(.is-mobile) .deck-hero-title) .deck-like { padding: 4px; gap: 6px; background: none; border: 0; border-radius: 6px; color: var(--accent); font-size: 12px; box-shadow: none; }
 :is(.deck-sticky-bar, .deck-editor:not(.is-mobile) .deck-hero-title) .deck-like:is(:hover, :focus-visible) { box-shadow: var(--focus-ring); }
 :is(.deck-sticky-bar, .deck-editor:not(.is-mobile) .deck-hero-title) .deck-like span { color: rgba(255, 255, 255, 0.75); }
-.deck-editor:not(.is-mobile) .deck-hero-search { width: 227px; margin-top: 22px; }
+.deck-editor:not(.is-mobile) .deck-hero-search { width: 295px; margin-top: 22px; } /* 227 del Figma + 30% (richiesta dell'utente) */
 .deck-editor:not(.is-mobile) .deck-sticky-bar.stuck .deck-hero-search { margin-top: 0; }
 .deck-editor:not(.is-mobile) .deck-hero-search .search-box {
   height: 38px; gap: 9px; padding: 0 10px 0 11px; color: var(--cyan);
@@ -4014,7 +4014,7 @@ span.deck-hero-art { cursor: default; }
 .deck-editor:not(.is-mobile) .deck-hero-search .search-box input { padding: 0; height: 100%; font-size: 0.85rem; }
 /* Barra ciano (vettori 48 + 49): 3x62 sul bordo destro, centrata sulla casella, specchiata (bordo dritto fuori). */
 .deck-editor:not(.is-mobile) .deck-hero-search .search-wrap::after {
-  content: ''; position: absolute; left: 225px; top: -17px; width: 8px; height: 72px; pointer-events: none;
+  content: ''; position: absolute; left: 293px; top: -17px; width: 8px; height: 72px; pointer-events: none;
   transform: scaleX(-1);
   background: url('./assets/figma/glow-cyan.svg') 0 5px / 3px 62px no-repeat, url('./assets/figma/glow-cyan-blur.svg') -5px 0 / 13px 72px no-repeat;
 }
