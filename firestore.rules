@@ -31,8 +31,12 @@ service cloud.firestore {
         || (d.get('nickname', null) is string && d.nickname.lower() == old.lower())
         || !existsAfter(/databases/$(db)/documents/usernames/$(old.lower()));
     }
+    // Cancellare il profilo libera anche il nickname (stessa scrittura, deleteUserData): sennò, ricreato il profilo con
+    // un altro nome, l'account firmerebbe ancora col vecchio.
     match /users/{uid} {
-      allow read, delete: if owner(uid);
+      allow read: if owner(uid);
+      allow delete: if owner(uid) && (resource == null || resource.data.get('nickname', null) == null
+        || !existsAfter(/databases/$(db)/documents/usernames/$(resource.data.nickname.lower())));
       allow create: if owner(uid) && validProfile(uid, request.resource.data);
       allow update: if owner(uid) && validProfile(uid, request.resource.data) && nickFreed(request.resource.data);
     }
@@ -68,11 +72,24 @@ service cloud.firestore {
     // salvataggio dell'editor, base = la ver da cui parte; deve essere quella salvata, così con più salvataggi in coda
     // (offline) cadono tutti dopo il primo rifiutato (il secondo, rev + 2, passerebbe). ver invariata (cartelle, app
     // di prima): conta solo rev.
+    // Solo i campi che scrive il client (payload, changes, createDeck, cartelle, versioni), nome e cartella corti.
+    function validDeck(d) {
+      return d.keys().hasOnly(['v', 'name', 'format', 'groupBy', 'sections', 'cover', 'cards', 'tags', 'public',
+          'updatedAt', 'sig', 'changedAt', 'createdAt', 'folder', 'rev', 'ver', 'base'])
+        && d.cards is list && d.cards.size() <= 500
+        && d.get('sections', []) is list && d.get('sections', []).size() <= 100
+        && d.get('tags', []) is list && d.get('tags', []).size() <= 10
+        && d.get('name', '') is string && d.get('name', '').size() <= 200
+        && d.get('format', '') is string && d.get('format', '').size() <= 20
+        && d.get('ver', '') is string && d.get('ver', '').size() <= 64
+        && (d.get('base', null) == null || (d.base is string && d.base.size() <= 64))
+        && (d.get('folder', null) == null || (d.folder is map && d.folder.keys().hasOnly(['id', 'name'])
+          && d.folder.id is string && d.folder.id.size() <= 64 && d.folder.name is string && d.folder.name.size() <= 80));
+    }
     match /users/{uid}/decks/{deckId} {
       allow read, delete: if owner(uid);
-      allow create: if owner(uid) && request.resource.data.cards is list && request.resource.data.cards.size() <= 500
-        && request.resource.data.get('rev', 0) == 1;
-      allow update: if owner(uid) && request.resource.data.cards is list && request.resource.data.cards.size() <= 500
+      allow create: if owner(uid) && validDeck(request.resource.data) && request.resource.data.get('rev', 0) == 1;
+      allow update: if owner(uid) && validDeck(request.resource.data)
         && request.resource.data.get('rev', 0) == resource.data.get('rev', 0) + 1
         && (request.resource.data.get('ver', null) == resource.data.get('ver', null)
           || request.resource.data.get('base', null) == resource.data.get('ver', null));
@@ -81,15 +98,42 @@ service cloud.firestore {
     // del tipo giusto (le righe le ripulisce chi legge: cleanPublicDeck); createdAt una data vera e non futura (5 minuti
     // di margine per l'orologio del dispositivo), così nessuno resta in cima alla lista. La firma (owner) è il nickname
     // dell'autore in usernames/, o nessuna.
+    // ponytail: le regole non hanno cicli, quindi le liste corte si controllano posizione per posizione. Le righe del
+    // mazzo (fino a 500), le sezioni e words restano senza controllo per elemento: per un tetto al peso dei feed
+    // servirebbe un documento indice leggero.
+    function str(l, i, max) {
+      return l.size() <= i || (l[i] is string && l[i].size() <= max);
+    }
+    function strs(l, max) {
+      return l is list && l.size() <= 10 && str(l, 0, max) && str(l, 1, max) && str(l, 2, max) && str(l, 3, max)
+        && str(l, 4, max) && str(l, 5, max) && str(l, 6, max) && str(l, 7, max) && str(l, 8, max) && str(l, 9, max);
+    }
+    // Carta di dilemmi, help request e risposte (dilemmaCard nel client): solo questi 7 campi (7 chiavi, e il + di un
+    // campo che manca o non è una stringa è un errore, quindi un rifiuto), insieme al massimo 1400 caratteri.
+    // ponytail: un controllo per campo supera il tetto di 1000 espressioni con 10 + 10 carte in una risposta.
+    function card(c) {
+      return c.size() == 7 && (c.name + c.img + c.back + c.sid + c.oid + c.set + c.cn).size() <= 1400;
+    }
+    function cards(l, max) {
+      let n = l.size();
+      return l is list && n <= max && (n < 1 || card(l[0])) && (n < 2 || card(l[1])) && (n < 3 || card(l[2]))
+        && (n < 4 || card(l[3])) && (n < 5 || card(l[4])) && (n < 6 || card(l[5])) && (n < 7 || card(l[6]))
+        && (n < 8 || card(l[7])) && (n < 9 || card(l[8])) && (n < 10 || card(l[9]));
+    }
     function validPublic(d) {
       return d.uid == request.auth.uid
         && d.keys().hasOnly(['v', 'name', 'format', 'groupBy', 'sections', 'cover', 'cards', 'tags', 'public',
           'updatedAt', 'sig', 'changedAt', 'uid', 'owner', 'words', 'createdAt'])
         && d.name is string && d.name.size() <= 200
         && d.format is string && d.format.size() <= 20
+        && d.get('groupBy', '') is string && d.get('groupBy', '').size() <= 20
+        && (d.get('cover', null) == null || (d.cover is string && d.cover.size() <= 64))
+        && d.get('sig', '') is string && d.get('sig', '').size() <= 16
+        && d.get('public', true) is bool
+        && d.get('updatedAt', request.time) is timestamp && d.get('changedAt', request.time) is timestamp
         && d.cards is list && d.cards.size() <= 500
         && d.words is list && d.words.size() <= 200
-        && d.get('tags', []) is list && d.get('tags', []).size() <= 10
+        && strs(d.get('tags', []), 40)
         && d.get('sections', []) is list && d.get('sections', []).size() <= 100
         && d.createdAt is timestamp && d.createdAt <= request.time + duration.value(5, 'm')
         && (d.get('owner', null) == null || (d.owner is string
@@ -102,7 +146,7 @@ service cloud.firestore {
     function validDilemma(d) {
       return d.keys().hasOnly(['uid', 'question', 'cards', 'createdAt'])
         && d.question is string && d.question.size() > 0 && d.question.size() <= 280
-        && d.cards is list && d.cards.size() >= 2 && d.cards.size() <= 4;
+        && cards(d.cards, 4) && d.cards.size() >= 2;
     }
     function validVote(d) {
       return d.keys().hasOnly(['pick', 'why', 'owner', 'at'])
@@ -134,11 +178,14 @@ service cloud.firestore {
     function validReply(d) {
       return d.keys().hasOnly(['text', 'add', 'cut', 'owner', 'at'])
         && d.text is string && d.text.size() <= 1000
-        && d.add is list && d.add.size() <= 10
-        && d.cut is list && d.cut.size() <= 10
+        && cards(d.add, 10) && cards(d.cut, 10)
         && (d.text.size() > 0 || d.add.size() > 0 || d.cut.size() > 0)
         && (d.get('owner', null) == null || (d.owner is string
           && get(/databases/$(db)/documents/usernames/$(d.owner.lower())).data.uid == request.auth.uid));
+    }
+    // applied cresce di una chiave alla volta (uid@ora, corta): la richiesta nasce vuota, così nessun elemento è grosso.
+    function appliedOk(added) {
+      return added.size() == 0 || (added.size() == 1 && added[0] is string && added[0].size() <= 100);
     }
     match /publicDecks/{deckId} {
       allow get: if verified();
@@ -146,8 +193,11 @@ service cloud.firestore {
       allow list: if verified() && ((request.query.limit != null && request.query.limit <= 60)
         || resource.data.uid == request.auth.uid);
       allow create: if verified() && (validPublic(request.resource.data) || retired(request.resource.data));
+      // createdAt non si sposta in avanti (resterebbe in cima alla Community): uguale o prima (la data del mazzo
+      // privato, che nasce un attimo prima della copia).
       allow update: if verified() && resource.data.uid == request.auth.uid
-        && (validPublic(request.resource.data) || retired(request.resource.data));
+        && (retired(request.resource.data) || (validPublic(request.resource.data)
+          && (!('createdAt' in resource.data) || request.resource.data.createdAt <= resource.data.createdAt)));
       allow delete: if verified() && (resource == null || resource.data.uid == request.auth.uid);
       // Like: uno per account (id = uid), non al proprio mazzo né a una copia ritirata, con la sua traccia in
       // users/{uid}/liked (stesso batch); il conteggio è una query (list). Li toglie chi li ha dati o il proprietario
@@ -171,6 +221,7 @@ service cloud.firestore {
         allow read: if verified();
         allow create: if verified() && request.resource.data.uid == request.auth.uid
           && get(/databases/$(db)/documents/publicDecks/$(deckId)).data.uid == request.auth.uid
+          && 'cards' in get(/databases/$(db)/documents/publicDecks/$(deckId)).data
           && request.resource.data.createdAt == request.time
           && validDilemma(request.resource.data);
         allow delete: if verified() && resource.data.uid == request.auth.uid;
@@ -197,13 +248,14 @@ service cloud.firestore {
         // Date del server (createdAt, seenAt): una data futura terrebbe la richiesta in cima al feed.
         allow create: if verified() && request.resource.data.uid == request.auth.uid
           && get(/databases/$(db)/documents/publicDecks/$(deckId)).data.uid == request.auth.uid
+          && 'cards' in get(/databases/$(db)/documents/publicDecks/$(deckId)).data
           && request.resource.data.status == 'open' && request.resource.data.applied.size() == 0
           && request.resource.data.createdAt == request.time && request.resource.data.seenAt == request.time
-          && validHelp(request.resource.data) && validHelpDeck(request.resource.data);
+          && validHelp(request.resource.data) && cards(request.resource.data.cards, 10) && validHelpDeck(request.resource.data);
         allow update: if verified() && resource.data.uid == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'applied', 'seenAt'])
           && (!('seenAt' in request.resource.data.diff(resource.data).affectedKeys()) || request.resource.data.seenAt == request.time)
-          && validHelp(request.resource.data);
+          && validHelp(request.resource.data) && appliedOk(request.resource.data.applied.removeAll(resource.data.applied));
         allow delete: if verified() && resource.data.uid == request.auth.uid;
         match /replies/{uid} {
           allow read: if verified();
@@ -228,11 +280,12 @@ service cloud.firestore {
     }
     // Nickname unici: usernames/{nome in minuscolo} = { uid }. Lo legge chi ha un account (per sapere
     // se è libero, mai l'elenco), lo prende chi lo trova libero e lo mette nel proprio profilo nella stessa
-    // scrittura (uno per account, vedi nickFreed), lo libera solo il proprietario.
+    // scrittura (uno per account, vedi nickFreed), lo libera solo il proprietario. Alcuni nomi sono riservati.
     match /usernames/{name} {
       allow get: if verified();
       allow create: if owner(request.resource.data.uid)
         && name.matches('^[a-z0-9._-]{3,24}$')
+        && !(name in ['admin', 'administrator', 'proxodon', 'proxoteca', 'moderator', 'support', 'staff', 'official', 'system'])
         && request.resource.data.keys().hasOnly(['uid'])
         && getAfter(/databases/$(db)/documents/users/$(request.auth.uid)).data.get('nickname', '').lower() == name;
       allow delete: if owner(resource.data.uid);

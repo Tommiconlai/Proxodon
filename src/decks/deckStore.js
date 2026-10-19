@@ -195,13 +195,16 @@ export const listenAnswered = (uid, onChange, onError) =>
   onSnapshot(answeredCol(uid), (qs) => onChange(new Set(qs.docs.map((d) => d.id))), onError);
 export const createDilemma = (uid, deckId, question, cards) =>
   addDoc(dilemmasCol(deckId), { uid, question, cards: cards.map(dilemmaCard), createdAt: serverTimestamp() });
-// Il proprietario cancella prima i voti, poi il dilemma (le regole glielo permettono).
+// Il proprietario cancella prima i voti (a gruppi: un batch arriva a 500 scritture), poi il dilemma (le regole glielo
+// permettono). Un errore a metà lascia il dilemma con i voti rimasti: si riprova.
 export async function deleteDilemma(deckId, dId) {
-  const votes = await getDocs(votesCol(deckId, dId));
-  const batch = writeBatch(db);
-  votes.docs.forEach((v) => batch.delete(v.ref));
-  batch.delete(doc(dilemmasCol(deckId), dId));
-  await batch.commit();
+  const votes = (await getDocs(votesCol(deckId, dId))).docs;
+  for (let i = 0; i < votes.length; i += 400) {
+    const batch = writeBatch(db);
+    votes.slice(i, i + 400).forEach((v) => batch.delete(v.ref));
+    await batch.commit();
+  }
+  await deleteDoc(doc(dilemmasCol(deckId), dId));
 }
 async function deleteDilemmasOf(deckId) {
   const list = await getDocs(dilemmasCol(deckId));
@@ -311,9 +314,12 @@ export const saveProfile = (uid, fields) =>
 // altro errore 'taken', altrimenti lo prende, libera il vecchio e lo scrive nel profilo (le regole
 // controllano che i due documenti corrispondano). name vuoto = nessun nickname.
 export const nicknameKey = (name) => name.toLowerCase();
+// Riservati anche dalle regole (usernames/): qui solo per dire "taken" invece di un errore di permessi.
+const RESERVED = ['admin', 'administrator', 'proxodon', 'proxoteca', 'moderator', 'support', 'staff', 'official', 'system'];
 export async function claimNickname(uid, name, old) {
   const key = name && nicknameKey(name);
   const oldKey = old && nicknameKey(old);
+  if (RESERVED.includes(key)) throw Object.assign(new Error('This nickname is taken.'), { code: 'taken' });
   await runTransaction(db, async (tx) => {
     const ref = key && doc(db, 'usernames', key);
     if (ref) {
