@@ -295,7 +295,9 @@ function compressImage(img, cellWmm, cellHmm, dpi, bleedMm, bleedMode, quality =
     const b = Math.round(bleedMm * mmToPx);
     ctx.drawImage(img, b, b, w - 2 * b, h - 2 * b);
   }
-  return canvas.toDataURL('image/jpeg', quality);
+  const url = canvas.toDataURL('image/jpeg', quality);
+  canvas.width = canvas.height = 0; // memoria del canvas liberata subito: iOS ha un tetto, 100+ carte lo superano
+  return url;
 }
 
 /**

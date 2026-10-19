@@ -47,7 +47,9 @@ function renderCellRGBA(img, cellWmm, cellHmm, dpi, bleedMm, bleedMode) {
     const b = Math.round(bleedMm * mmToPx);
     ctx.drawImage(img, b, b, w - 2 * b, h - 2 * b);
   }
-  return { data: ctx.getImageData(0, 0, w, h).data, w, h };
+  const { data } = ctx.getImageData(0, 0, w, h); // copia: il canvas si può liberare
+  canvas.width = canvas.height = 0; // memoria del canvas liberata subito: iOS ha un tetto, 100+ carte lo superano
+  return { data, w, h };
 }
 
 /**

@@ -200,7 +200,12 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Downloads keep their blob URL for 60 s (most recent, 2026-10-19):** review M18 ([U] in the report, cheap).
+- **PDF export frees each card's canvas at once (most recent, 2026-10-19):** review M19 ([U], cheap). Both
+  generators drew every card on a new canvas and left it to the garbage collector; iOS caps total canvas memory, so
+  a 100+ card export could fail. `compressImage` (RGB) and `renderCellRGBA` (CMYK) now set `canvas.width =
+  canvas.height = 0` right after `toDataURL` / `getImageData` (the data is a copy). Checked a CMYK export in the
+  browser; the RGB path was not run (it downloads a file); no iOS device here.
+- **Downloads keep their blob URL for 60 s (2026-10-19):** review M18 ([U] in the report, cheap).
   `saveFile` revoked the object URL right after `a.click()`; Firefox and Safari may read the blob after the click,
   so a big PDF could be cut. The revoke now runs after 60 s. Not reproducible here (Chromium pane).
 - **Import caps: 1000 copies, MPC files up to 5 MB (2026-10-19):** review M17. Lines were capped
