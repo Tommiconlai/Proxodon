@@ -99,8 +99,8 @@ service cloud.firestore {
     // di margine per l'orologio del dispositivo), così nessuno resta in cima alla lista. La firma (owner) è il nickname
     // dell'autore in usernames/, o nessuna.
     // ponytail: le regole non hanno cicli, quindi le liste corte si controllano posizione per posizione. Le righe del
-    // mazzo (fino a 500), le sezioni e words restano senza controllo per elemento: per un tetto al peso dei feed
-    // servirebbe un documento indice leggero.
+    // mazzo (fino a 500) e le sezioni restano senza controllo per elemento (join non accetta mappe); words ha un tetto
+    // con join. Il feed della Community non legge le copie piene ma l'indice leggero (publicIndex, sotto).
     function str(l, i, max) {
       return l.size() <= i || (l[i] is string && l[i].size() <= max);
     }
