@@ -200,7 +200,10 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Letter and Legal at their exact size (most recent, 2026-10-19):** review L17. `PAPER_FORMATS` had Letter
+- **Help texts no longer promise deck-link import (most recent, 2026-10-19):** review L20. The import from a deck
+  link was removed long ago, but the print page help (`App.jsx`), the phone help (`MobileLayout.jsx`) and two
+  steps of the print tour (`PrintTour.jsx`) still said "a card list or a deck link". They now say "a card list".
+- **Letter and Legal at their exact size (2026-10-19):** review L17. `PAPER_FORMATS` had Letter
   216x279 and Legal 216x356 mm; now 215.9x279.4 and 215.9x355.6 (8.5x11 and 8.5x14 in), so the PDF pages are
   exactly 612x792 and 612x1008 pt. The sheet menu shows the new numbers; the grids do not change (Letter 4x2,
   Legal 5x2 landscape with 63x88 and 2 mm bleed, checked in Node).

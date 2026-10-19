@@ -136,7 +136,7 @@ const DESKTOP = [
   },
   {
     target: '.sidebar-export', side: 'right', title: 'Add cards',
-    text: 'Add cards opens the same upload, plus import from Scryfall (a card list or a deck link) and from an MPCFill XML.',
+    text: 'Add cards opens the same upload, plus import from Scryfall (a card list) and from an MPCFill XML.',
     play: async (g) => {
       await g.click('.btn-add', 'Click', () => g.api.addMenu(true));
       g.spot('.sidebar');
@@ -205,7 +205,7 @@ const MOBILE = [
   SHEET,
   {
     target: '.fab', cards: 6, title: 'Add cards',
-    text: 'Tap + to upload images or import from Scryfall (a card list or a deck link) and from an MPCFill XML.',
+    text: 'Tap + to upload images or import from Scryfall (a card list) and from an MPCFill XML.',
     play: async (g) => {
       await g.click('.fab', 'Tap', () => g.api.addMenu(true));
       g.spot('.sheet');
