@@ -200,7 +200,13 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Restore says how many rows it left out (most recent, 2026-10-19):** review M11 (partly as reported: decks are
+- **Delete account: a failure after the data is gone says so (most recent, 2026-10-19):** review M12.
+  `deleteAccount` deletes the data first, then the Auth user; an error there (Google window closed during the
+  re-authentication, network) reached the toast raw ("Firebase: Error (auth/popup-closed-by-user)."). Every error
+  after `deleteData` now becomes "Your decks were deleted, but the account was not: <authMessage> Try Delete account
+  again." (`dataGone`); `AUTH_MESSAGES` maps `auth/popup-closed-by-user` / `auth/cancelled-popup-request` to "The
+  Google window was closed." (sign-in still ignores those two codes). Not run (destructive on the real account).
+- **Restore says how many rows it left out (2026-10-19):** review M11 (partly as reported: decks are
   never dropped, a broken one becomes an empty "Untitled deck"; rows are). `fromBackup` drops rows that do not
   validate or pass the 500 per deck, and Settings said "Restored N decks" anyway. `SettingsPage.restore` now counts
   rows in the file minus rows restored and the toast becomes "Restored N decks. M rows could not be read and were

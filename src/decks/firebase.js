@@ -112,6 +112,8 @@ const AUTH_MESSAGES = {
   'auth/too-many-requests': 'Too many attempts. Wait a few minutes and try again.',
   'auth/operation-not-allowed': 'Email sign-in is not enabled for this site yet.',
   'auth/network-request-failed': 'No connection. Check your network and try again.',
+  'auth/popup-closed-by-user': 'The Google window was closed.',
+  'auth/cancelled-popup-request': 'The Google window was closed.',
 };
 export const authMessage = (e) => AUTH_MESSAGES[e?.code] || e?.message || 'Sign-in failed.';
 
@@ -144,15 +146,21 @@ export async function deleteAccount(deleteData) {
   if (!user) return;
   await deleteData(user.uid);
   clearLater();
+  // Da qui i dati non ci sono più: un errore lo dice, invece del messaggio grezzo (es. finestra di Google chiusa).
+  const dataGone = (e) => new Error(`Your decks were deleted, but the account was not: ${authMessage(e)} Try Delete account again.`);
   try {
     await deleteUser(user);
   } catch (e) {
-    if (e.code !== 'auth/requires-recent-login') throw e;
+    if (e.code !== 'auth/requires-recent-login') throw dataGone(e);
     if (!user.providerData.some((p) => p.providerId === 'google.com')) {
       throw new Error('Your decks were deleted. To delete the account too, sign out, sign in again and repeat.');
     }
-    if (isApp) await reauthenticateWithCredential(user, await googleCredential());
-    else await reauthenticateWithPopup(user, provider);
-    await deleteUser(user);
+    try {
+      if (isApp) await reauthenticateWithCredential(user, await googleCredential());
+      else await reauthenticateWithPopup(user, provider);
+      await deleteUser(user);
+    } catch (e2) {
+      throw dataGone(e2);
+    }
   }
 }
