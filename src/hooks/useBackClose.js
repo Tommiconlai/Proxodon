@@ -10,6 +10,7 @@ import { useEffect, useRef } from 'react';
 const stack = [];
 let skip = 0; // popstate provocati dalle nostre history.back(), da ignorare
 let seq = 0;
+export const closingBack = () => skip > 0; // un overlay appena chiuso sta ancora togliendo la sua voce
 if (typeof window !== 'undefined') {
   window.addEventListener('popstate', () => {
     if (skip) { skip -= 1; return; }

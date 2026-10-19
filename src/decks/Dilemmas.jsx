@@ -11,7 +11,7 @@ import {
   listenDilemmas, createDilemma, deleteDilemma, listenVotes, voteDilemma, explainVote,
   listenDilemmaFeed, listenDilemma, deckOnce, listenPublicDeck, listenAnswered, countVotes,
 } from './deckStore';
-import { navigate } from '../hooks/useHashRoute';
+import { goBack } from '../hooks/useHashRoute';
 import { useBackClose } from '../hooks/useBackClose';
 import { useCount } from './useCount';
 import { groupMain, commanderRows, boardRows, scryfallImg, artCrop as art, shuffle, splitSlices, MAX_DILEMMA_CARDS, searchIdentity } from './deckModel';
@@ -203,7 +203,7 @@ export function DilemmaFeed({ uid, notify, open, play, terms = [], format = '' }
 function DilemmaPlay({ list, decks, answered, uid, notify }) {
   const [queue] = useState(() => shuffle(list.filter((d) => d.uid !== uid && !answered.has(`${d.deckId}_${d.id}`))));
   const [pos, setPos] = useState(0);
-  const exit = () => navigate('/dilemmas');
+  const exit = () => goBack('/dilemmas');
   const at = queue.findIndex((d, i) => i >= pos && decks[d.deckId] !== null); // salta i mazzi tornati privati
   const d = queue[at];
   if (!d) {
@@ -214,7 +214,7 @@ function DilemmaPlay({ list, decks, answered, uid, notify }) {
           {queue.length ? 'No more dilemmas in this round. The ones you skipped come back the next time you press Play.'
             : 'Nothing left to answer: you voted on every dilemma from other players. New ones show up as the community asks them.'}
         </p>
-        <button type="button" className="btn-secondary deck-icon-btn" onClick={exit} aria-label="All dilemmas" title="All dilemmas"><IconArrowLeft size={18} /></button>
+        <button type="button" className="btn-secondary deck-icon-btn" onClick={exit} aria-label="Back" title="Back"><IconArrowLeft size={18} /></button>
       </div>
     );
   }
@@ -234,12 +234,12 @@ function FeedDilemma({ deckId, id, uid, notify }) {
   const [dilemma, setDilemma] = useState(undefined);
   useEffect(() => listenPublicDeck(deckId, setDeck, () => setDeck(null)), [deckId]);
   useEffect(() => listenDilemma(deckId, id, setDilemma, () => setDilemma(null)), [deckId, id]);
-  const back = () => navigate('/dilemmas');
+  const back = () => goBack('/dilemmas');
   if (deck === undefined || dilemma === undefined) return <span className="import-spinner" aria-label="Loading" />;
   if (!deck || !dilemma) {
     return (
       <div className="dilemma-head">
-        <button type="button" className="btn-secondary deck-icon-btn" onClick={back} aria-label="All dilemmas" title="All dilemmas"><IconArrowLeft size={18} /></button>
+        <button type="button" className="btn-secondary deck-icon-btn" onClick={back} aria-label="Back" title="Back"><IconArrowLeft size={18} /></button>
         <p className="field-hint">This dilemma is no longer available.</p>
       </div>
     );
@@ -311,7 +311,7 @@ function DilemmaView({ deck, dilemma, uid, mine, notify, onBack, deckHref, onNex
   return (
     <div className="deck-sections dilemma-view">
       <div className="dilemma-head">
-        <button type="button" className="btn-secondary deck-icon-btn" onClick={onBack} aria-label="All dilemmas" title="All dilemmas"><IconArrowLeft size={18} /></button>
+        <button type="button" className="btn-secondary deck-icon-btn" onClick={onBack} aria-label="Back" title="Back"><IconArrowLeft size={18} /></button>
         <h3 className="deck-analysis-head">Dilemma</h3>
         {progress && <span className="dilemma-progress">{progress}</span>}
         {onNext && (

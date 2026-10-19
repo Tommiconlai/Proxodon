@@ -15,7 +15,7 @@ import {
 } from './deckModel';
 import { timeAgo } from '../utils/timeAgo';
 import { IconPlus, IconArrowLeft, IconTrash, IconCheck, IconX, IconLifebuoy, IconMerge } from '../components/icons';
-import { navigate } from '../hooks/useHashRoute';
+import { goBack } from '../hooks/useHashRoute';
 
 const ms = (t) => t?.toMillis?.() ?? 0;
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
@@ -354,7 +354,7 @@ function ReplyDraft({ deck, help, uid, reply, others, notify, update, touch }) {
       <div className="help-reply-body">
         <div className="help-page">
           <div className="dilemma-head">
-            <button type="button" className="btn-secondary deck-icon-btn" onClick={() => navigate('/help')} aria-label="All help requests" title="All help requests"><IconArrowLeft size={18} /></button>
+            <button type="button" className="btn-secondary deck-icon-btn" onClick={() => goBack('/help')} aria-label="Back" title="Back"><IconArrowLeft size={18} /></button>
             <h3 className="deck-analysis-head">{!open ? 'Solved' : reply ? 'Your suggestion' : 'Suggest changes'}</h3>
           </div>
           {!open && <p className="field-hint">This request is solved: no new suggestions.</p>}
@@ -499,7 +499,7 @@ function HelpView({ deck, help, uid, notify, update, onBack, canReopen }) {
   return (
     <div className="deck-sections help-view">
       <div className="dilemma-head">
-        <button type="button" className="btn-secondary deck-icon-btn" onClick={onBack} aria-label="All help requests" title="All help requests"><IconArrowLeft size={18} /></button>
+        <button type="button" className="btn-secondary deck-icon-btn" onClick={onBack} aria-label="Back" title="Back"><IconArrowLeft size={18} /></button>
         <h3 className="deck-analysis-head">Help request</h3>
         <button type="button" className={`${solved ? 'btn-secondary' : 'btn-add'} deck-icon-btn`} aria-pressed={solved} onClick={toggleSolved}
           aria-label="Solved" title={solved ? (canReopen ? 'Solved. Click to reopen it' : 'Solved. Another request is open') : 'Mark as solved: no new suggestions'}><IconCheck size={18} /></button>

@@ -174,7 +174,7 @@ function HelpReplyDemo({ deck, update, mobile, cut, add, q, why, over }) {
     <div className="help-reply-body">
       <div className="help-page">
         <div className="dilemma-head">
-          <button type="button" className="btn-secondary deck-icon-btn" aria-label="All help requests" title="All help requests"><IconArrowLeft size={18} /></button>
+          <button type="button" className="btn-secondary deck-icon-btn" aria-label="Back" title="Back"><IconArrowLeft size={18} /></button>
           <h3 className="deck-analysis-head">Suggest changes</h3>
         </div>
       </div>
@@ -329,7 +329,7 @@ function DilemmaDemo({ d, pick, voted }) {
   return (
     <div className="deck-sections dilemma-view">
       <div className="dilemma-head">
-        <button type="button" className="btn-secondary deck-icon-btn" aria-label="All dilemmas" title="All dilemmas"><IconArrowLeft size={18} /></button>
+        <button type="button" className="btn-secondary deck-icon-btn" aria-label="Back" title="Back"><IconArrowLeft size={18} /></button>
         <h3 className="deck-analysis-head">Dilemma</h3>
         {!voted && <button type="button" className="btn-add deck-icon-btn tut-confirm" disabled={pick === null} aria-label="Confirm vote" title="Confirm vote"><IconCheck size={18} /></button>}
       </div>
