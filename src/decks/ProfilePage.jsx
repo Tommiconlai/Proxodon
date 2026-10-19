@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { listenDecks, saveProfile, claimNickname, countAnswered, listenDilemmas, deleteDilemma } from './deckStore';
 import { updateNickname, authMessage } from './firebase';
 import { deckCover } from './deckModel';
@@ -7,6 +7,7 @@ import { Avatar } from './AccountMenu';
 import { DeckTile, GhostTile } from './DeckList';
 import { DilemmaTile } from './Dilemmas';
 import PhotoDialog from './PhotoDialog';
+import { CutFrame } from './CutFrame';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { IconImage, IconPencil, IconArrowRight, IconTrash } from '../components/icons';
 
@@ -62,13 +63,25 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
   const custom = { photo, banner: profile?.banner || null };
   const banner = custom.banner || decks?.map(deckCover).find(Boolean);
   const stats = [
-    ['Member since', day(user.metadata.creationTime)],
     ['Last sign-in', day(user.metadata.lastSignInTime)],
     ['Decks', decks ? decks.length : '…'],
     ['Dilemmas answered', answered ?? '…'],
     ['Followers', profile?.followers ?? 0],
     ['Following', profile?.following ?? 0],
   ];
+  // Testata come i riquadri dei mazzi: un pannello con le tasche (CutFrame) grande quanto la sezione, misurata, così
+  // gli angoli restano tondi a ogni larghezza. Largo: foto nella tasca in basso a sinistra, stretto (< 600): in alto.
+  const heroRef = useRef(null);
+  const [hero, setHero] = useState([1240, 280]);
+  useLayoutEffect(() => {
+    const el = heroRef.current;
+    if (!el) return undefined;
+    const ro = new ResizeObserver(() => setHero([el.offsetWidth, el.offsetHeight]));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const small = hero[0] < 600;
+  const cuts = small ? { tl: [96, 96], tr: [44, 44] } : { bl: [136, 136], tr: [44, 44] };
   // Delete all: ogni dilemma con i suoi voti (deleteDilemma); gli ascolti per mazzo svuotano la lista da soli.
   const deleteAll = () => {
     setConfirmAll(false);
@@ -87,16 +100,19 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
 
   return (
     <div className="decks-root profile-page">
-      <section className="profile-hero" aria-label="Profile">
-        <button type="button" className={`profile-banner${banner ? ' art' : ''}`} onClick={() => setDialog('banner')}
-          style={banner ? { backgroundImage: `url("${banner}")` } : undefined} aria-label="Change background">
-          <span className="profile-banner-hint" aria-hidden="true"><IconImage size={14} /> Change background</span>
+      <section className={`profile-hero${small ? ' small' : ''}`} aria-label="Profile" ref={heroRef}>
+        <CutFrame w={hero[0]} h={hero[1]} cuts={cuts}>
+          <span className={`profile-banner${banner ? ' art' : ''}`} style={banner ? { backgroundImage: `url("${banner}")` } : undefined} />
+        </CutFrame>
+        <button type="button" className="profile-avatar" onClick={() => setDialog('photo')} aria-label="Change photo" title="Change photo">
+          <Avatar user={user} photo={photo} />
+          <span className="profile-avatar-hover" aria-hidden="true"><IconImage size={22} /></span>
         </button>
+        <button type="button" className="profile-bg-btn" onClick={() => setDialog('banner')} aria-label="Change background" title="Change background">
+          <IconImage size={16} />
+        </button>
+        <p className="profile-callout">Member since {day(user.metadata.creationTime)}<span className="deck-tile-dot" aria-hidden="true" /></p>
         <div className="profile-hero-body">
-          <button type="button" className="profile-avatar" onClick={() => setDialog('photo')} aria-label="Change photo" title="Change photo">
-            <Avatar user={user} photo={photo} />
-            <span className="profile-avatar-hover" aria-hidden="true"><IconImage size={22} /></span>
-          </button>
           <Nickname user={user} nick={profile?.nickname || ''} notify={notify} onChange={onChange} />
           <dl className="profile-stats">
             {stats.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}

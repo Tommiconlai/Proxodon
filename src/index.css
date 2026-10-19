@@ -2406,76 +2406,43 @@ input[type="range"]::-webkit-slider-thumb:hover {
 /* Profilo: testata con lo sfondo scelto o l'arte del mazzo modificato per ultimo (senza, bagliore
    magenta / ciano), foto sul bordo; sfondo e foto sono pulsanti che aprono PhotoDialog. Nickname con
    l'aberrazione cromatica del wordmark, numeri in mono sotto una hairline. */
+/* Testata come i riquadri dei mazzi (spunto "GLITCH"): un pannello con le tasche (CutFrame, misurato), lo sfondo a
+   tutto pannello sotto un velo scuro e il bordo sfumato. Largo: foto nella tasca in basso a sinistra, testo alla sua
+   destra; stretto (.small, sotto 600 px): foto in alto a sinistra, testo sotto. In alto a destra, nella sua tasca,
+   Cambia sfondo. --u = 1 px: il punto ciano è quello dei riquadri. */
 .profile-hero {
-  position: relative;
-  margin-bottom: 32px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  background: linear-gradient(180deg, var(--bg-elevated), var(--bg-surface));
+  position: relative; --u: 1px;
+  display: flex; flex-direction: column; justify-content: flex-end; min-height: 280px;
+  margin-bottom: 32px; padding: 64px 28px 24px calc(136px + 22px);
 }
-/* 5:1 come il ritaglio dello sfondo; sui telefoni almeno 150 px (cover ne mostra il centro). */
+.profile-hero.small { min-height: 0; padding: 112px 16px 18px; }
 .profile-banner {
-  position: relative;
-  display: block;
-  width: 100%; aspect-ratio: 5 / 1; min-height: 150px;
-  padding: 0;
-  border: 0;
+  position: absolute; inset: 0;
   background:
     radial-gradient(90% 120% at 10% 0%, rgba(255, 45, 149, 0.38), transparent 60%),
     radial-gradient(90% 120% at 92% 0%, rgba(0, 229, 255, 0.3), transparent 60%),
     var(--bg-base);
-  cursor: pointer;
 }
-.profile-banner.art { background-size: cover; background-position: center; }
-.profile-banner:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
-/* Velo: l'arte sfuma nel fondo della testata, dove stanno foto e nome. Niente scanline (tolte dal sito, 2026-10-19). */
-.profile-banner::after {
-  content: '';
-  position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(8, 7, 15, 0.05) 30%, rgba(20, 17, 42, 0.75) 78%, var(--bg-elevated));
+.profile-banner.art { background-size: cover; background-position: center 30%; }
+.profile-hero .cut-shape::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to top, rgba(5, 4, 10, 0.95), rgba(5, 4, 10, 0.55) 55%, rgba(5, 4, 10, 0.15));
 }
-.profile-banner-hint {
-  position: absolute; top: 12px; right: 12px; z-index: 1;
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 10px;
-  background: rgba(8, 7, 18, 0.72); backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.16); border-radius: var(--radius-sm);
-  font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase;
-  color: #d6d2ef;
-  opacity: 0;
-  transition: opacity var(--transition), color var(--transition), border-color var(--transition);
-}
-.profile-banner:hover .profile-banner-hint, .profile-banner:focus-visible .profile-banner-hint { opacity: 1; color: var(--cyan); border-color: var(--cyan); }
-/* Touch: niente hover, l'indicazione resta visibile. */
-@media (hover: none) { .profile-banner-hint { opacity: 1; } }
-/* Sopra il fondo dello sfondo: solo foto, nome e numeri prendono i clic, il resto va allo sfondo. */
-.profile-hero-body {
-  position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-areas: "avatar who" "stats stats";
-  align-items: end;
-  gap: 20px 24px;
-  margin-top: -64px;
-  padding: 0 28px 24px;
-  pointer-events: none;
-}
-.profile-hero-body > * { pointer-events: auto; }
+/* Foto nella tasca (128, 4 di vuoto attorno; stretto 88). */
 .profile-avatar {
-  grid-area: avatar;
-  position: relative;
+  position: absolute; left: 0; bottom: 0; z-index: 1;
   width: 128px; height: 128px; padding: 0;
   display: grid; place-items: center;
   border-radius: 50%;
   overflow: hidden;
   border: 1px solid rgba(0, 229, 255, 0.55);
-  box-shadow: 0 0 0 4px var(--bg-elevated), 0 0 0 5px rgba(255, 45, 149, 0.45), 0 0 26px var(--cyan-glow);
+  box-shadow: 0 0 22px var(--cyan-glow);
   background: var(--bg-elevated);
   color: var(--cyan-soft);
   font-family: var(--font-display); font-size: 2.8rem; font-weight: 600;
   cursor: pointer;
 }
+.profile-hero.small .profile-avatar { top: 0; bottom: auto; width: 88px; height: 88px; font-size: 2rem; }
 .profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .profile-avatar:focus-visible { outline: 2px solid var(--cyan); outline-offset: 4px; }
 .profile-avatar-hover {
@@ -2487,12 +2454,30 @@ input[type="range"]::-webkit-slider-thumb:hover {
   transition: opacity var(--transition);
 }
 .profile-avatar:hover .profile-avatar-hover, .profile-avatar:focus-visible .profile-avatar-hover { opacity: 1; }
-.profile-who { grid-area: who; min-width: 0; padding-bottom: 14px; }
+/* Cambia sfondo: tondo nella tasca in alto a destra, come l'Export di una volta. */
+.profile-bg-btn {
+  position: absolute; top: 0; right: 0; z-index: 1;
+  width: 36px; height: 36px; padding: 0; display: grid; place-items: center; cursor: pointer;
+  background: #0d0c16; border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 50%; color: #fff;
+  transition: color var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+.profile-bg-btn:hover, .profile-bg-btn:focus-visible { color: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 12px rgba(0, 229, 255, 0.3); outline: none; }
+.mobile .profile-bg-btn::after { content: ''; position: absolute; inset: -4px; } /* 36 + 4 per lato = 44 */
+/* Il richiamo in alto, come il formato dei mazzi: testo mono maiuscolo e il punto ciano sfocato. */
+.profile-callout {
+  position: absolute; z-index: 1; top: 22px; left: 28px; margin: 0;
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255, 255, 255, 0.78);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+}
+.profile-hero.small .profile-callout { top: 16px; left: 108px; right: 56px; font-size: 0.66rem; letter-spacing: 0.1em; }
+.profile-hero-body { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 16px; min-width: 0; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85); }
+.profile-who { min-width: 0; }
 .profile-name-row { display: flex; align-items: center; gap: 8px; }
 .profile-name {
   margin: 0 6px 0 0; min-width: 0;
-  font-family: var(--font-display); font-size: clamp(1.4rem, 2.6vw, 2rem); font-weight: 600;
-  letter-spacing: 0.08em; text-transform: uppercase;
+  font-family: var(--font-display); font-size: clamp(1.4rem, 2.6vw, 2.2rem); font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
   color: #f5f3ff;
   text-shadow: -1.5px 0 rgba(0, 229, 255, 0.7), 1.5px 0 rgba(255, 45, 149, 0.7);
   overflow-wrap: anywhere;
@@ -2501,34 +2486,25 @@ input[type="range"]::-webkit-slider-thumb:hover {
   flex: none;
   width: 32px; height: 32px; padding: 0;
   display: grid; place-items: center;
-  background: transparent;
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
-  color: var(--text-secondary);
+  background: rgba(13, 12, 22, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 50%;
+  color: #fff;
   cursor: pointer;
   transition: color var(--transition), border-color var(--transition);
 }
 .profile-icon-btn:hover, .profile-icon-btn:focus-visible { color: var(--cyan); border-color: var(--cyan); outline: none; }
-.profile-name-form { max-width: 520px; display: flex; flex-direction: column; gap: 6px; padding-bottom: 0; }
+.profile-name-form { max-width: 520px; display: flex; flex-direction: column; gap: 6px; }
 .profile-name-form .import-link-input { flex: 1; min-width: 0; }
 .profile-name-form .field-hint { margin: 0; }
-.profile-stats {
-  grid-area: stats;
-  margin: 0; padding-top: 18px;
-  display: flex; flex-wrap: wrap; row-gap: 14px;
-  border-top: 1px solid var(--border);
-}
-.profile-stats div { padding: 0 32px; border-left: 1px solid var(--border); }
+.profile-stats { margin: 0; display: flex; flex-wrap: wrap; row-gap: 12px; }
+.profile-stats div { padding: 0 28px; border-left: 1px solid rgba(255, 255, 255, 0.14); }
 .profile-stats div:first-child { padding-left: 0; border-left: 0; }
-.profile-stats dt { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); }
-.profile-stats dd { margin: 6px 0 0; font-family: var(--font-mono); font-size: 1rem; font-weight: 700; color: var(--text-primary); }
-@media (max-width: 640px) {
-  .profile-hero-body { grid-template-columns: 1fr; grid-template-areas: "avatar" "who" "stats"; justify-items: center; text-align: center; gap: 14px; margin-top: -56px; padding: 0 16px 20px; }
-  .profile-avatar { width: 104px; height: 104px; font-size: 2.4rem; }
-  .profile-who { padding-bottom: 0; }
-  .profile-name-row { justify-content: center; }
-  .profile-stats { width: 100%; justify-content: center; gap: 14px 26px; }
-  .profile-stats div, .profile-stats div:first-child { padding: 0; border: 0; }
-}
+.profile-stats dt { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); }
+.profile-stats dd { margin: 6px 0 0; font-family: var(--font-mono); font-size: 1rem; font-weight: 700; color: #fff; }
+.profile-hero.small .profile-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px 16px; }
+.profile-hero.small .profile-stats div { padding: 0; border: 0; }
+.profile-hero.small .profile-stats dt { letter-spacing: 0.08em; }
+.profile-hero.small .profile-stats dd { margin-top: 3px; }
 .profile-form { width: 100%; display: flex; flex-direction: column; gap: 10px; }
 .profile-row { display: flex; gap: 8px; }
 .profile-h {
@@ -3735,7 +3711,7 @@ span.deck-hero-art { cursor: default; }
 .mobile :is(select, textarea, input:is([type="text"], [type="search"], [type="email"], [type="password"], [type="number"], [type="url"], :not([type]))):not(.deck-name) { font-size: 16px !important; }
 /* Testo mai sotto i 12 px. */
 .mobile .ct-lbl, .mobile .ct-nav span, .deck-editor.is-mobile .deck-sync, .mobile-page-body .sidebar-section h2,
-.mobile .profile-banner-hint, .mobile .profile-stats dt { font-size: 0.75rem; }
+.mobile .profile-stats dt { font-size: 0.75rem; }
 .mobile .range-value, .mobile .field-hint { font-size: 0.78rem; }
 /* Barra della selezione (DeckSections, touch): − numero + della carta selezionata, sopra la barra in basso. */
 .deck-sel-bar {

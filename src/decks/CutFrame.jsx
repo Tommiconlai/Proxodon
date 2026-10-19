@@ -30,6 +30,7 @@ const masks = new Map();
 const maskOf = (w, h, d) => {
   const k = `${w} ${h} ${d}`;
   if (!masks.has(k)) {
+    if (masks.size > 200) masks.clear(); // la testata del profilo ne fa una per misura, ridimensionando
     masks.set(k, `url("data:image/svg+xml,${encodeURIComponent(
       `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${w} ${h}' preserveAspectRatio='none'><path d='${d}' fill='white'/></svg>`)}")`);
   }
