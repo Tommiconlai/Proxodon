@@ -200,7 +200,13 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Delete account: a failure after the data is gone says so (most recent, 2026-10-19):** review M12.
+- **CMYK PDF/X-1a gets a file ID (most recent, 2026-10-19):** review M13, half of it. PDF/X wants an `/ID` array
+  in the trailer and pdf-lib writes none: `buildCmykPdfBytes` now sets `doc.context.trailerInfo.ID` to two copies of
+  a random 16-byte hex string. The other half of the finding was wrong: `GTS_PDFXConformance` belongs to the 2001
+  versions only (CGATS registry); for PDF/X-1a:2003 `GTS_PDFXVersion (PDF/X-1a:2003)`, which we already write, is
+  the key. Checked with a real export in the browser (one PNG, FOGRA39, A4): `%PDF-1.4`, trailer `/ID [ <...>
+  <...> ]`, `GTS_PDFXVersion` present.
+- **Delete account: a failure after the data is gone says so (2026-10-19):** review M12.
   `deleteAccount` deletes the data first, then the Auth user; an error there (Google window closed during the
   re-authentication, network) reached the toast raw ("Firebase: Error (auth/popup-closed-by-user)."). Every error
   after `deleteData` now becomes "Your decks were deleted, but the account was not: <authMessage> Try Delete account

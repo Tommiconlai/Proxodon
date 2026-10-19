@@ -119,7 +119,7 @@ export async function buildCmykPdfBytes(items, formatKey, bleedMm, dpi = 300, bl
 
   // Caricati on-demand: tengono pdf-lib + lcms/WASM fuori dal bundle iniziale.
   const [pdfLib, engine] = await Promise.all([import('pdf-lib'), import('./cmykEngine.js')]);
-  const { PDFDocument, PDFName, PDFString, cmyk, pushGraphicsState, popGraphicsState, concatTransformationMatrix, drawObject } = pdfLib;
+  const { PDFDocument, PDFName, PDFString, PDFHexString, cmyk, pushGraphicsState, popGraphicsState, concatTransformationMatrix, drawObject } = pdfLib;
 
   // Convertitore RGB→CMYK (lcms) creato solo se serve: un set di soli file CMYK
   // nativi non carica il WASM.
@@ -138,6 +138,10 @@ export async function buildCmykPdfBytes(items, formatKey, bleedMm, dpi = 300, bl
   const info = doc.getInfoDict();
   info.set(PDFName.of('GTS_PDFXVersion'), PDFString.of('PDF/X-1a:2003'));
   info.set(PDFName.of('Trapped'), PDFName.of('False')); // /False (mai /Unknown)
+  // ID del file nel trailer, obbligatorio in PDF/X (pdf-lib non lo scrive): due volte lo stesso, 16 byte a caso.
+  // GTS_PDFXConformance no: nel registro CGATS vale solo per le versioni 2001, per la 2003 basta GTS_PDFXVersion.
+  const fileId = PDFHexString.of([...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join(''));
+  doc.context.trailerInfo.ID = doc.context.obj([fileId, fileId]);
 
   // OutputIntent + ICC incorporato (l'unico ICC del documento, /N 4 = CMYK).
   const iccStream = doc.context.flateStream(iccBytes, { N: 4 });
