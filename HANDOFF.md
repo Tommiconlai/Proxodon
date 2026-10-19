@@ -200,7 +200,18 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Play skips a deck that did not load; deckOnce retries failures (most recent, 2026-10-19):** review M24.
+- **Overlay focus and Esc: top layer only, focus stays in the new dialog, back to the opener (most recent,
+  2026-10-19):** review M25, M26, M27, all in `useOverlayDismiss`. M25: every open overlay listened for Escape on
+  the document, so one Esc closed all of them (card zoom inside the phone search); a module `layers` stack now lets
+  only the top one close. M26: menu, then Rename or Delete: the dialog's `autoFocus` ran in the commit, then the
+  closing menu gave focus back to the tile behind, and Enter opened the deck under the confirm; a layout effect
+  now remembers the element an internal `autoFocus` focused (`mountFocus`, kept while open so the dev
+  StrictMode re-run does not lose it) and the effect puts the focus back there. M27: `opener` was read once at
+  mount, so an always-mounted `ConfirmDialog` returned focus to whatever had it at page load (the body); it is
+  now taken at each activation (state adjusted during render when `active` flips on). Checked on My decks by
+  keyboard, cancelling only: tile menu, Rename = focus in the name field, Delete = focus on Cancel, Esc = focus
+  back on the tile, deck untouched. M25 not reproduced in the UI.
+- **Play skips a deck that did not load; deckOnce retries failures (2026-10-19):** review M24.
   `deckOnce` cached the failed promise for the session, and Play showed a spinner with no way out for a dilemma
   whose deck could not be read. Now a failure is not cached (the next call retries), the Dilemmas feed stores it
   as `false` (feed shows "…", Play skips that dilemma like a deck gone private) and retries at the next update of
