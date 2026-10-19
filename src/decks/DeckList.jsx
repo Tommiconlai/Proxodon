@@ -20,7 +20,7 @@ import { HelpFeed } from './HelpRequests';
 import { useBracketSlide } from '../hooks/useBracketSlide';
 import {
   IconPlus, IconCopy, IconTrash, IconPencil, IconExport, IconGlobe, IconHeart, IconPlay, IconFolder, IconArrowLeft, IconWrench,
-  IconDeckSearch, IconDeckFilter, IconDeckExport, IconX,
+  IconDeckSearch, IconDeckFilter, IconX,
 } from '../components/icons';
 
 const COLORS = [['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green'], ['C', 'Colorless']];
@@ -66,13 +66,12 @@ function TileFrame({ cuts, dashed, children }) {
 }
 
 // Riquadro di un mazzo (lista, Community, profilo): l'arte nel pannello;
-// tasche: in alto a sinistra i simboli dell'identità (pillola), in alto a destra Export (exportable: il pulsante è
-// fratello del riquadro, in My decks), in basso a destra i like. Sull'arte il formato col punto ciano
-// sfocato e in alto a destra, sotto l'Export, il globo (pubblico, fuori dalla Community) e la chiave inglese
-// magenta (help request aperta); in basso il nome grande, i tag, autore (by, nella Community) e ultima
+// tasche: in alto a sinistra i simboli dell'identità (pillola), in alto a destra la chiave inglese magenta solo con
+// una help request aperta, in basso a destra i like. Sull'arte il formato col punto ciano sfocato e a destra,
+// dentro il bordo, il globo (pubblico, fuori dalla Community); in basso il nome grande, i tag, autore (by, nella Community) e ultima
 // modifica. Bordo sfumato pieno solo con una help request aperta (.helping), altrimenti al 30%. props vanno
 // sul pulsante. stats = { likes, help } già noti (demo del tutorial): niente letture dal server.
-export function DeckTile({ deck: d, by, stats, exportable, ...props }) {
+export function DeckTile({ deck: d, by, stats, ...props }) {
   const cover = scryfallImg(deckCover(d));
   const updated = changedMs(d); // ultimo cambio di carte (changedAt), non l'ultima scrittura
   const live = !stats && !!d.public;
@@ -85,7 +84,7 @@ export function DeckTile({ deck: d, by, stats, exportable, ...props }) {
   const n = Math.max(1, identity.length);
   const format = formatLabel(d.format);
   // Pillola dei simboli: 13.5 l'uno a passi di 18.5, 7 di margine; tasca = pillola + 4 di vuoto.
-  const cuts = { tl: [18.5 * n + 13, 26], br: [48, 26], ...(exportable ? { tr: [32, 32] } : {}) };
+  const cuts = { tl: [18.5 * n + 13, 26], br: [48, 26], ...(helping ? { tr: [32, 32] } : {}) };
   return (
     <button type="button" className={`deck-tile${helping ? ' helping' : ''}`} {...props}>
       <TileFrame cuts={cuts}>
@@ -102,12 +101,8 @@ export function DeckTile({ deck: d, by, stats, exportable, ...props }) {
         </span>
       </span>
       {/* Dopo il nome nel DOM (lo screen reader legge "nome, public, open help request"), in alto a destra a vista. */}
-      {((d.public && !by) || helping) && (
-        <span className="deck-tile-flags">
-          {d.public && !by && <span className="deck-tile-public" title="Public, in Community"><IconGlobe size={12} /><span className="sr-only">, public</span></span>}
-          {helping && <span className="deck-tile-public help" title="Open help request"><IconWrench size={12} /><span className="sr-only">, open help request</span></span>}
-        </span>
-      )}
+      {d.public && !by && <span className="deck-tile-public" title="Public, in Community"><IconGlobe size={12} /><span className="sr-only">, public</span></span>}
+      {helping && <span className="deck-tile-help" title="Open help request"><IconWrench size={12} /><span className="sr-only">, open help request</span></span>}
       <span className="deck-tile-likes"><IconHeart size={12} /> {likes}<span className="sr-only"> likes</span></span>
     </button>
   );
@@ -408,13 +403,10 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
                 onDragStart={(e) => { dragId.current = d.id; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', d.name); }}
                 onDragEnd={() => { dragId.current = null; setDropOn(null); }}
                 {...dropProps(d.id, dropOnDeck(d))}>
-                <DeckTile deck={d} exportable
+                <DeckTile deck={d}
                   onClick={() => { if (!press.consumed()) navigate(`/decks/${d.id}`); }}
                   onContextMenu={(e) => { e.preventDefault(); setMenu({ deck: d, ...menuPoint(e) }); }}
                   {...press.bind((x, y) => setMenu({ deck: d, x, y }))} />
-                {/* Fuori dal riquadro (niente pulsanti annidati), posato sull'angolo dell'arte. */}
-                <button type="button" className="deck-tile-export" aria-label={`Export ${d.name}`} title="Export"
-                  onClick={() => setDialog({ exp: d })}><IconDeckExport /></button>
               </li>
             ))}
             {!searching && <GhostTile label="New deck" onClick={() => setDialog('new')}><IconPlus size={44} /></GhostTile>}

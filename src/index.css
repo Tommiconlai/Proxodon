@@ -2760,15 +2760,13 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
   font-size: calc(17 * var(--u)); line-height: 1.02; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase;
   color: #fff; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
 }
-/* Globo (pubblico, fuori dalla Community) e sotto la chiave inglese (help request aperta): in colonna in alto a
-   destra, sotto la tasca dell'Export e dentro il bordo; così un nome su due righe non li spinge in fondo a destra. */
-.deck-tile-flags {
+/* Globo (pubblico, fuori dalla Community): a destra dentro il bordo, all'altezza del formato (sotto la tasca della
+   chiave inglese, se c'è); fuori dal nome, così uno su due righe non lo spinge in fondo. */
+.deck-tile-public {
   position: absolute; z-index: 1; top: calc(40 * var(--u)); right: calc(12 * var(--u));
-  display: flex; flex-direction: column; align-items: center; gap: calc(7 * var(--u));
+  display: inline-flex; color: var(--cyan); filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.9));
 }
-.deck-tile-public { display: inline-flex; color: var(--cyan); filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.9)); }
 .deck-tile-public svg { width: max(12px, calc(14 * var(--u))); height: max(12px, calc(14 * var(--u))); }
-.deck-tile-public.help { color: var(--accent); filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 4px rgba(255, 45, 149, 0.6)); } /* chiave inglese: help request aperta */
 .deck-tile-tags { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(9 * var(--u)); color: var(--accent-light); }
 .deck-tile-meta {
   display: flex; flex-wrap: wrap; gap: 0 calc(8 * var(--u)); padding-right: calc(40 * var(--u));
@@ -2782,17 +2780,14 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
   font-family: var(--font-mono); font-size: calc(10 * var(--u)); line-height: 1; color: #fff;
 }
 .deck-tile-likes svg { width: calc(11 * var(--u)); height: calc(11 * var(--u)); color: var(--accent); }
-/* Export: fratello del riquadro (niente pulsanti annidati), tondo nella tasca in alto a destra (solo My decks). */
-.deck-tile-export {
-  position: absolute; top: 0; right: 0; z-index: 2; display: grid; place-items: center;
-  width: calc(28 * var(--u)); height: calc(28 * var(--u)); padding: 0; cursor: pointer;
-  background: #0d0c16; border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 50%; color: #fff;
-  transition: border-color var(--transition), color var(--transition), box-shadow var(--transition), transform var(--transition), filter var(--transition);
+/* Tasca in alto a destra, solo con una help request aperta: la chiave inglese magenta in un tondo. */
+.deck-tile-help {
+  position: absolute; z-index: 1; top: 0; right: 0; display: grid; place-items: center;
+  width: calc(28 * var(--u)); height: calc(28 * var(--u)); border-radius: 50%;
+  background: #0d0c16; border: 1px solid rgba(255, 45, 149, 0.6); color: var(--accent);
+  box-shadow: 0 0 10px rgba(255, 45, 149, 0.35);
 }
-.deck-tile-export svg { width: calc(12 * var(--u)); height: calc(12 * var(--u)); }
-.deck-tile-export:hover, .deck-tile-export:focus-visible { color: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 12px rgba(0, 229, 255, 0.3); outline: none; }
-/* Al passaggio si accende col riquadro (è fuori dal pulsante, il suo drop-shadow non lo prende). */
-.deck-tile-wrap:hover .deck-tile-export { transform: translateY(-2px); filter: drop-shadow(0 0 10px rgba(255, 45, 149, 0.45)); }
+.deck-tile-help svg { width: calc(13 * var(--u)); height: calc(13 * var(--u)); filter: drop-shadow(0 0 4px rgba(255, 45, 149, 0.6)); }
 /* + in fondo a My decks e See all del profilo: la sagoma tratteggiata ciano, il contenuto al centro. */
 .deck-tile.deck-add { color: var(--cyan); }
 .deck-add .cut-shape { background: rgba(0, 229, 255, 0.04); transition: background var(--transition); }
@@ -3728,7 +3723,6 @@ span.deck-hero-art { cursor: default; }
 .mobile-header .account-btn { width: 44px; height: 44px; }
 .mobile-header .help-btn, .mobile .profile-icon-btn { position: relative; }
 .mobile-header .help-btn::after, .mobile .profile-icon-btn::after { content: ''; position: absolute; inset: -6px; }
-.mobile .deck-tile-export::after { content: ''; position: absolute; inset: -11px; } /* 22 px + 11 per lato = 44 */
 .deck-editor.is-mobile .deck-hero-meta .deck-icon-btn, .deck-editor.is-mobile .deck-format { height: 44px; }
 .deck-editor.is-mobile .deck-hero-meta .deck-icon-btn { width: 44px; }
 .deck-editor.is-mobile .deck-hero .deck-name { min-height: 44px; }

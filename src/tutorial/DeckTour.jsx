@@ -244,8 +244,7 @@ function ListStage({ apiRef, step, mobile, tab }) {
         {!searching && folders.map((f) => <FolderTile key={f.id} folder={f} onOpen={noop} onRename={noop} active={dropOn === f.id} drop={{ 'data-deck': f.id }} />)}
         {(searching ? shown : decks.filter((d) => !d.folder?.id)).map((d) => (
           <li key={d.id} className={`deck-tile-wrap${dropOn === d.id ? ' drop' : ''}`} data-deck={d.id}>
-            <DeckTile deck={d} exportable stats={{ likes: d.public ? 12 : 0, help: d.id === 'tut-deck' }} />
-            <button type="button" className="deck-tile-export" aria-label={`Export ${d.name}`} title="Export"><IconDeckExport /></button>
+            <DeckTile deck={d} stats={{ likes: d.public ? 12 : 0, help: d.id === 'tut-deck' }} />
           </li>
         ))}
         {!searching && <GhostTile label="New deck" onClick={noop}><IconPlus size={44} /></GhostTile>}
