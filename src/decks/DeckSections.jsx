@@ -82,6 +82,8 @@ const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 // trascinamento compaiono in basso a sinistra sopra il conteggio (senza scorrere fino al gruppo). Creare una
 // sezione porta il mazzo in raggruppamento custom; da telefono si sposta tutto dal menu.
 // readOnly (Community): niente menu (solo View card), trascinamento, +/- e sezioni nuove; update cambia solo la vista.
+// Senza onCut (il mazzo di un altro, non una help request) niente selezione né selezione ad area: da desktop il click
+// non fa nulla, da telefono il tocco seleziona quella carta e la apre (CardView, si chiude toccando fuori).
 // onCut(rows) (help request, anche in sola lettura): Suggest cut nel menu e carte trascinabili verso la zona Cuts.
 // tab (schede di DeckBand da desktop): 'deck' = barra e carte, 'stats' = statistiche e mano di prova; 'all' (telefono, una
 // sola pagina) = le carte e sotto le statistiche, senza la mano di prova.
@@ -193,8 +195,14 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   const sectionable = useMemo(() => new Set(blocks.groups.flatMap((g) => g.rows.map((r) => r.id))), [blocks]);
 
 
+  const noSelect = readOnly && !onCut;
   const onRowClick = (e, id) => {
     if (press.consumed()) return;
+    if (noSelect) {
+      const r = touch && deck.cards.find((x) => x.id === id);
+      if (r) { setSel(new Set([id])); setViewing(r.card); }
+      return;
+    }
     if (e.shiftKey && anchor && anchor !== id) {
       const a = order.indexOf(anchor);
       const b = order.indexOf(id);
@@ -211,7 +219,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
 
   const openMenu = (id, x, y) => {
     const inSel = sel.has(id);
-    if (!inSel) { setSel(new Set([id])); setAnchor(id); }
+    if (!inSel && !noSelect) { setSel(new Set([id])); setAnchor(id); }
     setHover(null);
     setMenu({ ids: inSel && selected.length > 1 ? selected : [id], x, y });
   };
@@ -305,7 +313,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   const marqueeHandlers = {
     onPointerDown: (e) => {
       swallowClick.current = false; // nuovo gesto
-      if (touch || e.pointerType !== 'mouse' || e.button !== 0 || !onEmpty(e)) return;
+      if (touch || noSelect || e.pointerType !== 'mouse' || e.button !== 0 || !onEmpty(e)) return;
       e.preventDefault(); // niente selezione di testo mentre si trascina
       marqueeRef.current = { x0: e.clientX, y0: e.clientY, base: new Set(selected), active: false };
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -632,7 +640,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
             setEdition(null);
           }} />
       )}
-      {viewing && <CardView card={viewing} onClose={() => setViewing(null)} />}
+      {viewing && <CardView card={viewing} onClose={() => { setViewing(null); if (noSelect) setSel(new Set()); }} />}
       {/* Telefono: − / + della carta selezionata, grandi, sopra la barra in basso (sulla carta non
           stanno a 44 px nella fascia scoperta degli stack). */}
       {touch && !readOnly && view !== 'list' && tab !== 'stats' && selected.length === 1 && (() => {

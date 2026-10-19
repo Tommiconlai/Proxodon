@@ -201,7 +201,16 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Deck hero art without visible edges (most recent, 2026-10-20):** user, with two crops (the art ending in a line
+- **Someone else's deck: no selection, tap opens the card (most recent, 2026-10-20):** user: "quando guardo un mazzo
+  non mio non devo poter selezionare le carte, disattiva la selezione sinngola e ad area. Su mobile tieni la singola e
+  apri la preview della carta selazionata, lasciando lo spazio per fare tap fuori e chiuderla". `DeckSections`
+  `noSelect` = `readOnly && !onCut` (the Community deck view; a help request page keeps selection, it feeds Suggest
+  cut): desktop click and area selection do nothing and the menu no longer selects the row; on phones a tap selects
+  that one card and opens `CardView`, closing it (tap outside, ✕, Esc, Back) clears the selection. `CardView` on
+  phones and tablets is at most 78vw x 70vh (was 92vw x 86vh), so there is room around it to tap. The Community tour
+  text says so. Checked: Community deck at 1440x900 (click and drag select nothing), 375x812 (tap opens Arbor Elf
+  292x407 with about 200 px above and below, tap outside closes, still on the deck); own deck still selects.
+- **Deck hero art without visible edges (2026-10-20):** user, with two crops (the art ending in a line
   under the header and above the band): "puoi allargare l'immagine? si vede il taglio". The blurred Figma mask
   (`deck-art-mask.svg`, stdDeviation 25) was still at about 4% at the top edge of the 572x353 box and was cut by the
   hero's `overflow: hidden` at the bottom (412, the mask fades to 419). Desktop `.deck-hero-img` now has `inset: -30px`

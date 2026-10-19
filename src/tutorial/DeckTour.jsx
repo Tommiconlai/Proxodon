@@ -573,7 +573,7 @@ function communitySteps(mobile) {
     play: (g) => pointAt(g, [['.deck-hero-actions [aria-label="Copy to my decks"]', 'Copy to my decks'], ['.deck-hero-actions [aria-label="Export"]', 'Export']]),
   }, {
     target: '.deck-sections', title: 'Read only',
-    text: `Group, sort and view change only your screen. ${mobile ? 'Long-press' : 'Right-click'} a card to see it full screen.`,
+    text: `Group, sort and view change only your screen, and the cards cannot be selected. ${mobile ? 'Tap a card to see it big (tap outside to close), or long-press it.' : 'Right-click a card to see it full screen.'}`,
     play: (g) => g.menu(rowSel('r13'), { title: 'Counterspell', items: [[IconEye, 'View card']] }, mobile ? { text: 'Long press', hold: true } : {}),
   }, {
     target: mobile ? '.deck-analysis' : '.deck-tabs', title: 'Stats, Dilemmas, Help',

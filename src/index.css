@@ -3733,6 +3733,8 @@ span.deck-hero-art { cursor: default; }
 .mobile-page .adv-form { grid-template-columns: 1fr; }
 .card-zoom-wrap { position: relative; outline: none; }
 .card-zoom { display: block; max-width: 92vw; max-height: 86vh; border-radius: 18px; box-shadow: var(--shadow-lg); }
+/* Telefono e tablet: la carta lascia attorno spazio da toccare per chiuderla (richiesta dell'utente). */
+@media (max-width: 768px), (max-width: 1024px) and (orientation: portrait) { .card-zoom { max-width: 78vw; max-height: 70vh; } }
 .card-zoom-close { position: absolute; top: -12px; right: -12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 50%; }
 
 /* Ricerca nella testata (desktop, a destra) e pannello della ricerca avanzata sopra il mazzo. */
