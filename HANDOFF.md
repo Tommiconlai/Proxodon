@@ -200,7 +200,12 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **CMYK PDF/X-1a gets a file ID (most recent, 2026-10-19):** review M13, half of it. PDF/X wants an `/ID` array
+- **CMYK export embeds each card once (most recent, 2026-10-19):** review M14. Every copy in the print queue was
+  converted with lcms and embedded again (30 Forest = 30 CMYK streams). `buildCmykPdfBytes` keeps an `embedded` map
+  keyed by bleed mode + SHA-1 of the file bytes (copies are separate `File` objects over the same blob, and the
+  bytes are read anyway to spot native CMYK JPEGs) and reuses the image XObject. Checked in the browser: 9 copies
+  of one PNG + 1 other on A4 give 2 image XObjects (was 10).
+- **CMYK PDF/X-1a gets a file ID (2026-10-19):** review M13, half of it. PDF/X wants an `/ID` array
   in the trailer and pdf-lib writes none: `buildCmykPdfBytes` now sets `doc.context.trailerInfo.ID` to two copies of
   a random 16-byte hex string. The other half of the finding was wrong: `GTS_PDFXConformance` belongs to the 2001
   versions only (CGATS registry); for PDF/X-1a:2003 `GTS_PDFXVersion (PDF/X-1a:2003)`, which we already write, is

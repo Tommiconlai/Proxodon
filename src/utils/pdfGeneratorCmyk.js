@@ -166,6 +166,9 @@ export async function buildCmykPdfBytes(items, formatKey, bleedMm, dpi = 300, bl
 
   let imgIndex = 0;
   const perPage = cols * rows;
+  // Copie della stessa carta (stessi byte, stesso abbondamento): convertite e incorporate una volta, poi lo stesso
+  // XObject (30 Forest = un flusso, non 30). Chiave = SHA-1 dei byte, che si leggono comunque per il JPEG CMYK.
+  const embedded = new Map();
 
   while (imgIndex < items.length) {
     const page = doc.addPage([pageWpt, pageHpt]);
@@ -189,29 +192,34 @@ export async function buildCmykPdfBytes(items, formatKey, bleedMm, dpi = 300, bl
 
       // Routing per spazio colore (Fase 2): JPEG CMYK nativo → canali grezzi,
       // niente conversione (numeri preservati); tutto il resto → RGB su canvas + lcms.
-      let cmykBytes, w, h;
       const raw = new Uint8Array(await item.file.arrayBuffer());
-      if (isCmykJpeg(raw)) {
-        const dec = decodeCMYK(raw); // {width,height,data} DeviceCMYK (0=no ink)
-        const cell = cmykCellBuffer(dec, cardW, cardH, bleedMm, mode);
-        cmykBytes = cell.data; w = cell.w; h = cell.h;
-      } else {
-        const imgEl = await createImageBitmap(item.file).catch(() => { throw new Error(`Cannot load ${item.file.name}`); });
-        const cell = renderCellRGBA(imgEl, cellW, cellH, dpi, bleedMm, mode);
-        imgEl.close();
-        cmykBytes = (await getConv()).convert(cell.data, cell.w * cell.h); // RGBA → CMYK 8-bit
-        w = cell.w; h = cell.h;
-      }
+      const key = `${mode}|${new Uint8Array(await crypto.subtle.digest('SHA-1', raw)).join(',')}`;
+      let imgRef = embedded.get(key);
+      if (!imgRef) {
+        let cmykBytes, w, h;
+        if (isCmykJpeg(raw)) {
+          const dec = decodeCMYK(raw); // {width,height,data} DeviceCMYK (0=no ink)
+          const cell = cmykCellBuffer(dec, cardW, cardH, bleedMm, mode);
+          cmykBytes = cell.data; w = cell.w; h = cell.h;
+        } else {
+          const imgEl = await createImageBitmap(item.file).catch(() => { throw new Error(`Cannot load ${item.file.name}`); });
+          const cell = renderCellRGBA(imgEl, cellW, cellH, dpi, bleedMm, mode);
+          imgEl.close();
+          cmykBytes = (await getConv()).convert(cell.data, cell.w * cell.h); // RGBA → CMYK 8-bit
+          w = cell.w; h = cell.h;
+        }
 
-      const imgStream = doc.context.flateStream(cmykBytes, {
-        Type: 'XObject',
-        Subtype: 'Image',
-        Width: w,
-        Height: h,
-        ColorSpace: 'DeviceCMYK',
-        BitsPerComponent: 8,
-      });
-      const imgRef = doc.context.register(imgStream);
+        const imgStream = doc.context.flateStream(cmykBytes, {
+          Type: 'XObject',
+          Subtype: 'Image',
+          Width: w,
+          Height: h,
+          ColorSpace: 'DeviceCMYK',
+          BitsPerComponent: 8,
+        });
+        imgRef = doc.context.register(imgStream);
+        embedded.set(key, imgRef);
+      }
       const name = page.node.newXObject('Im', imgRef);
 
       // Posiziona: angolo basso-sx della cella in pt; matrice = scala cella.
