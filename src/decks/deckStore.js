@@ -184,10 +184,11 @@ export const listenDilemma = (deckId, dId, onChange, onError) => onSnapshot(doc(
 }, onError);
 export const getPublicDeck = (id) => getDoc(doc(publicCol, id)).then((s) => (s.exists() ? publicOf(s) : null));
 // Nome, formato e autore del mazzo pubblico per i feed (dilemmi, help request), letto una volta per mazzo. ponytail: cache
-// per la sessione, un nome cambiato si vede ricaricando. null = mazzo non più pubblico; errore = undefined, resta "…".
+// per la sessione, un nome cambiato si vede ricaricando. null = mazzo non più pubblico; errore = undefined, resta "…"
+// e non resta in cache (la chiamata dopo riprova).
 const publicDecks = new Map();
 export const deckOnce = (id) => {
-  if (!publicDecks.has(id)) publicDecks.set(id, getPublicDeck(id).catch(() => undefined));
+  if (!publicDecks.has(id)) publicDecks.set(id, getPublicDeck(id).catch(() => { publicDecks.delete(id); return undefined; }));
   return publicDecks.get(id);
 };
 // Id {deck}_{dilemma} dei dilemmi a cui l'account ha risposto.

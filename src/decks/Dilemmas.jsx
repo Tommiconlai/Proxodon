@@ -159,8 +159,10 @@ export function DilemmaFeed({ uid, notify, open, play, terms = [], format = '' }
   useEffect(() => listenDilemmaFeed((l) => { setList(l); setError(null); }, setError), []);
   useEffect(() => {
     let on = true;
+    // false = non caricato (errore): nel feed "…", in Play saltato; si riprova al prossimo aggiornamento della lista.
     new Set((list || []).map((d) => d.deckId)).forEach((id) => deckOnce(id).then((x) => {
-      if (on && x !== undefined) setDecks((m) => (m[id] === x ? m : { ...m, [id]: x }));
+      const v = x === undefined ? false : x;
+      if (on) setDecks((m) => (m[id] === v ? m : { ...m, [id]: v }));
     }));
     return () => { on = false; };
   }, [list]);
@@ -214,7 +216,8 @@ function DilemmaPlay({ list, decks, answered, uid, notify }) {
   const [queue] = useState(() => shuffle(list.filter((d) => d.uid !== uid && !answered.has(`${d.deckId}_${d.id}`))));
   const [pos, setPos] = useState(0);
   const exit = () => goBack('/dilemmas');
-  const at = queue.findIndex((d, i) => i >= pos && decks[d.deckId] !== null); // salta i mazzi tornati privati
+  // Salta i mazzi tornati privati (null) e quelli che non si sono caricati (false): niente spinner senza uscita.
+  const at = queue.findIndex((d, i) => i >= pos && decks[d.deckId] !== null && decks[d.deckId] !== false);
   const d = queue[at];
   if (!d) {
     return (

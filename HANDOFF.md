@@ -200,7 +200,12 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **No orphan history entries from menus and stacked overlays (most recent, 2026-10-19):** review M23. Each open
+- **Play skips a deck that did not load; deckOnce retries failures (most recent, 2026-10-19):** review M24.
+  `deckOnce` cached the failed promise for the session, and Play showed a spinner with no way out for a dilemma
+  whose deck could not be read. Now a failure is not cached (the next call retries), the Dilemmas feed stores it
+  as `false` (feed shows "…", Play skips that dilemma like a deck gone private) and retries at the next update of
+  the list. Checked: feed shows 5 dilemmas with deck names, Play opens a dilemma, no console errors.
+- **No orphan history entries from menus and stacked overlays (2026-10-19):** review M23. Each open
   overlay pushes a history entry (`useBackClose`) and removes it on close only if it is still the current one.
   Two leaks: (1) a menu item that navigates (account menu Profile / Settings, New deck then the editor, Print deck)
   pushed the new page above the menu's entry, which stayed orphaned, so Back had to be pressed twice; (2) two
