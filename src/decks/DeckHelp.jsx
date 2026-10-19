@@ -29,7 +29,7 @@ export default function DeckHelp({ editor }) {
             <li><b>Add cards</b>. Type a name in the search bar at the top, then tap a result. The filters button under it opens <b>Advanced search</b>.</li>
             <li><b>Select</b>. Tap a card to select or deselect it.</li>
             <li><b>Options</b>. Long-press a card, or the selection: change edition, split, set as commander, move to a board or a section, remove.</li>
-            <li><b>Organize</b>. <b>Group</b>, <b>Sort</b> and <b>View</b> above the cards. <b>New section</b> makes your own groups.</li>
+            <li><b>Organize</b>. <b>Group</b>, <b>Sort</b> and <b>View</b> above the cards. <b>New section</b>, the last option of <b>Group by</b>, makes your own groups.</li>
             <li><b>Cover</b>. Tap the art behind the deck name to pick another card.</li>
             <li><b>More</b>. <b>Stats</b>, <b>Dilemmas</b> and <b>Help</b> follow the cards, further down.</li>
           </ol>

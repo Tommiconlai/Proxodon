@@ -91,6 +91,8 @@ const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 // onDilemma(cards): Dilemma nel menu, attivo solo con 2-4 carte diverse selezionate e il mazzo pubblico.
 // onHelp(cards): Ask for help nel menu, le carte scelte (fino a MAX_HELP_CARDS diverse) in focus nella nuova richiesta.
 // Telefono (touch): − / + della carta selezionata (una sola) in una barra sopra quella in basso, a 44 px.
+const NEW_SECTION = 'new-section'; // voce di Group by da telefono: apre New section, non è un raggruppamento
+
 export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab, onPrint, onDilemma, onHelp, onCut, notify }) {
   const [sel, setSel] = useState(() => new Set());
   const [anchor, setAnchor] = useState(null);
@@ -534,11 +536,13 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
         </label>
         <label className="deck-tool">
           <span>Group by</span>
-          <select value={deck.groupBy} onChange={(e) => update((d) => ({ ...d, groupBy: e.target.value }))}>
+          {/* Da telefono New section è l'ultima voce di Group by (la tendina resta sul raggruppamento attuale); da desktop il +. */}
+          <select value={deck.groupBy} onChange={(e) => (e.target.value === NEW_SECTION ? setDialog({}) : update((d) => ({ ...d, groupBy: e.target.value })))}>
             {GROUP_MODES.filter((m) => m.id !== 'custom' || custom || deck.sections.length).map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+            {touch && !readOnly && <option value={NEW_SECTION}>New section…</option>}
           </select>
         </label>
-        {!readOnly && <button type="button" className="btn-secondary deck-new-section" aria-label="New section" title="New section" onClick={() => setDialog({})}><IconPlus size={16} /></button>}
+        {!readOnly && !touch && <button type="button" className="btn-secondary deck-new-section" aria-label="New section" title="New section" onClick={() => setDialog({})}><IconPlus size={16} /></button>}
       </div>
       {issues.length > 0 && (
         <ul className="deck-issues" aria-label={`${formatLabel(deck.format)} checks`}>

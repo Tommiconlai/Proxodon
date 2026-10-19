@@ -485,7 +485,7 @@ function editorSteps(mobile) {
   };
   const organize = {
     target: '.deck-toolbar', title: 'Group, sort and view',
-    text: 'Group by type, mana value or your own sections. Sort and View apply to every deck.',
+    text: `Group by type, mana value or your own sections${mobile ? ' (New section is the last option of Group by)' : ''}. Sort and View apply to every deck.`,
     play: (g) => g.click('.deck-toolbar .deck-tool:nth-of-type(3) select', mobile ? 'Tap' : 'Group by', () => g.api.update((d) => ({ ...d, groupBy: 'mv' }))),
   };
   // Da telefono niente schede: Stats, Dilemmas e Help stanno sotto le carte, si scende fino alla sezione.
