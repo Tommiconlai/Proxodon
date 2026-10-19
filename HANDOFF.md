@@ -200,7 +200,11 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Tutorial type lines without mojibake (most recent, 2026-10-19):** review L3. 11 type lines in
+- **Letter and Legal at their exact size (most recent, 2026-10-19):** review L17. `PAPER_FORMATS` had Letter
+  216x279 and Legal 216x356 mm; now 215.9x279.4 and 215.9x355.6 (8.5x11 and 8.5x14 in), so the PDF pages are
+  exactly 612x792 and 612x1008 pt. The sheet menu shows the new numbers; the grids do not change (Letter 4x2,
+  Legal 5x2 landscape with 63x88 and 2 mm bleed, checked in Node).
+- **Tutorial type lines without mojibake (2026-10-19):** review L3. 11 type lines in
   `src/tutorial/demo.js` had "â€”" (the Scryfall dash read as Windows-1252) and the tour showed it. Replaced with
   the backslash-u2014 escape in the source (the project never writes the glyph itself), so the demo cards read like
   real Scryfall snapshots. Checked in Node: `C.tatyova.type` contains the dash and no "â" is left in the file.
