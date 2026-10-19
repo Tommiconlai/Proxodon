@@ -219,7 +219,10 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
   ok (19 new index cases plus a client-shaped publish that builds the entry with the real `indexFields` and reads it
   back through `cleanIndex`), deckModel self-check cases for `indexFields`, `cleanIndex` and the filters on an entry,
   Community / My decks / Profile at 1440x900 and 375x812 with the current (old) rules: legacy mode, 10 tiles with
-  art and pips, no console errors. **Rules to publish.**
+  art and pips, no console errors. Rules published by the user the same day; both accounts opened My decks once
+  (blazedfoot 5, tommiconlai 10: 15 entries, none missing) and the Community, checked from each account at 1440x900 and
+  375x812, reads the index (entries with `names`, no rows): word search, Contains card and color filters work on the
+  entries, a tile opens the full copy.
 - **MPC import says how many cards it skipped (2026-10-19):** review L9. `parseMpcXml` dropped cards
   whose id is not a Google Drive file id without a word ("110 cards found" for 120). It now returns `skipped` and
   the window adds "N skipped: not a Google Drive image."; a file with none left says "No Google Drive images in
