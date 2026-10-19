@@ -200,7 +200,18 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Profile hero like the deck tiles (most recent, 2026-10-19):** user: "adatta la testata del profilo come le card
+- **Loaders are the logo X (most recent, 2026-10-19):** user: "in tutti gli eventuali caricamenti metti il logo, solo
+  la X, che compie l'animazione di flip già presente con l'aggiunta del flip del pezzo centrale". CSS only, in
+  `index.css` where `.import-spinner` was: `.import-spinner` and `.spinner` (every loader in the app, ~30 call sites,
+  untouched) draw the X with two layers, `::before` = the cyan centre, `::after` = the magenta V's, as data-URI SVGs
+  of `WORDMARK_X_CORE` / `WORDMARK_X_V` (viewBox `42 0 31 31`, like `Wordmark mark`). Loop of 2 s: the V's flip
+  (rotateY 180, the wordmark hover), then the centre, then the V's again, then the centre, ending at 360 so it
+  restarts seamlessly (`x-v-flip`, `x-core-flip`; old `spin` keyframes removed). With `aria-label` or
+  `role=status` (page and list loaders) it is 52 px, centred, with a cyan glow; in buttons, status lines and the
+  toast 16 px (`.btn-generate .spinner` 18). `.spinner` outside the PDF button had no style before (sign-in, import
+  modals, new deck): now it shows. Reduce motion (OS or Settings): still X. Checked in the dev pane with a test
+  box (big and in a button; `::before` / `::after` transforms alternate as planned; `html.reduce-motion` = none).
+- **Profile hero like the deck tiles (2026-10-19):** user: "adatta la testata del profilo come le card
   mazzi". See the `ProfilePage.jsx` row: `CutFrame` panel (measured), avatar in a corner pocket, round Change
   background in the top-right pocket (the hover chip and the banner-as-button are gone), Member since as the
   callout with the cyan dot, name and stats over the veiled background. `CutFrame`'s mask cache now clears past 200
