@@ -200,7 +200,14 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Sign out asks before dropping unsynced changes (most recent, 2026-10-19):** review M7. Sign out marks the
+- **Deck import says what it left out (most recent, 2026-10-19):** review M8. `addEntries` drops rows past
+  `MAX_ROWS` (500) and `clampQty` cuts quantities past `MAX_QTY` (99, also after merging the same print), but the
+  toast still said "Deck imported". `NewDeckDialog` now counts the copies that did not land (copies asked minus
+  copies in the new deck) and passes them as `onCreate(deck, notFound, left)`; DeckList's toast becomes "Imported.
+  [Not found: ....] N copies left out (at most 500 rows and 99 copies per row)." (error style), else "Deck imported".
+  Checked the count in Node (510 rows + 150 copies of one card: 500 rows, 62 copies left out); the toast was not
+  run on the real account (it would create a deck).
+- **Sign out asks before dropping unsynced changes (2026-10-19):** review M7. Sign out marks the
   Firestore cache for clearing at the next start and, once signed out, the server rejects queued writes anyway:
   deck edits made offline were lost without a word. `writesSynced(ms = 4000)` in `firebase.js` races
   `waitForPendingWrites(db)` against a 4 s timeout; the account menu's Sign out calls it and signs out at once when

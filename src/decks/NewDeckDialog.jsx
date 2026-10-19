@@ -34,7 +34,10 @@ export default function NewDeckDialog({ onClose, onCreate }) {
       if (!rows.length) throw new Error('No cards found. Check the list.');
       const { items, notFound } = await resolveEntries(rows, { fallback: s.importFallback });
       if (!items.length) throw new Error(`None of the ${notFound.length} cards was found. Check the spelling, or the (SET) number.`);
-      onCreate(addEntries(deck, items, { merge: s.importMerge }), notFound);
+      const made = addEntries(deck, items, { merge: s.importMerge });
+      // Copie rimaste fuori (righe oltre MAX_ROWS, quantità oltre MAX_QTY): le dice il toast.
+      const left = items.reduce((n, it) => n + (it.qty || 1), 0) - made.cards.reduce((n, r) => n + r.qty, 0);
+      onCreate(made, notFound, left);
     } catch (err) {
       setError(err.message || 'Import failed.');
       setBusy(false);
