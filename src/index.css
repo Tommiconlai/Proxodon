@@ -3983,15 +3983,25 @@ span.deck-hero-art { cursor: default; }
    dal bordo destro, con la barra ciano sul bordo. Nome e ricerca sono sulla stessa riga e già dove resteranno con la
    barra attaccata (richiesta dell'utente: niente salto all'inizio dello scroll): alta 62, padding sopra 28, contenuto
    34 px centrato, a metà tra la linea dell'header e quella della fascia; "by" e Advanced search stanno sotto, fuori
-   dal centraggio. Quando la testata esce (.stuck) cambia solo il fondo: la copertina (--deck-art) centrata nella
-   barra, sotto un velo scuro; sotto si attacca la fascia. */
+   dal centraggio. Quando la testata esce (.stuck) cambia solo il fondo: la copertina (--deck-art) grande come nella
+   testata (572 di larghezza a -25, stessa maschera e opacità), centrata in altezza sulla barra (richiesta
+   dell'utente: non allargarla); sotto si attacca la fascia. */
 .deck-editor:not(.is-mobile) .deck-sticky-bar { justify-content: space-between; align-items: center; gap: 24px; height: 62px; padding: 28px 6px 0 48px; }
 .deck-editor:not(.is-mobile) .deck-sticky-bar .deck-title { position: relative; }
 .deck-editor:not(.is-mobile) .deck-sticky-bar .deck-by { position: absolute; left: 0; top: 100%; white-space: nowrap; }
 .deck-editor:not(.is-mobile) .deck-hero-search .search-foot { position: absolute; right: 0; top: 100%; }
 .deck-editor:not(.is-mobile) .deck-sticky-bar.stuck {
-  background: linear-gradient(rgba(5, 4, 10, 0.4), rgba(5, 4, 10, 0.6)), var(--deck-art, none) center / cover no-repeat, var(--bg-base);
-  border-bottom: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+  position: relative; isolation: isolate;
+  background: var(--bg-base); border-bottom: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+/* La striscia centrale della copertina: misure della testata (.deck-hero-img: riquadro 572x353 a -25, immagine larga
+   572), il centro del riquadro sul centro della barra (31), quindi la maschera (41, -6 nel riquadro) a 16, -151.5.
+   Un pseudo che ritaglia da solo: la barra non può avere overflow hidden (sotto escono i suggerimenti). */
+.deck-editor:not(.is-mobile) .deck-sticky-bar.stuck::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0.8;
+  background: var(--deck-art, none) -25px center / 572px auto no-repeat;
+  -webkit-mask: url('./assets/figma/deck-art-mask.svg') 16px -151.5px / 417.763px 365px no-repeat;
+  mask: url('./assets/figma/deck-art-mask.svg') 16px -151.5px / 417.763px 365px no-repeat;
 }
 .deck-title { min-width: 0; display: flex; flex-direction: column; }
 .deck-title-row { min-width: 0; display: flex; align-items: center; gap: 14px; }

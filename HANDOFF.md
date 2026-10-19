@@ -206,8 +206,12 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
   testata durante lo scroll, centrala nella porzione". The desktop `.deck-sticky-bar` now has the stuck geometry from
   the start (height 62, padding 28, `align-items: center`): name and search share one centre line (y 87 at 1440x900,
   the same before, during and after the scroll), "by" and Advanced search sit absolutely under them. Stuck changes
-  only the fill: the cover (`--deck-art`, set on the bar by DeckEditor, CommunityDeck and the tour copy) centred and
-  `cover`, under a 40 -> 60% dark veil. Checked at 1440x900 on the editor (Aesi) and a Community deck.
+  only the fill: the cover (`--deck-art`, set on the bar by DeckEditor, CommunityDeck and the tour copy). First as a
+  full-width `cover` under a veil; then, user: "l'immagine non allargarla, lascia le dimennsioni di quando si vede in
+  testata": a `.stuck::before` with the hero's own geometry (image 572 px wide at -25, the 572x353 box centred on the
+  bar's centre, the same `deck-art-mask.svg` at 16, -151.5 and opacity 0.8), so the bar shows the middle strip of the
+  hero art at hero size; the pseudo clips itself because the bar cannot hide overflow (search suggestions). Checked
+  at 1440x900 on the editor (Aesi) and a Community deck.
 - **Wider deck search on desktop (2026-10-19):** user: "allarga la search bar nella vista mazzo, 30%".
   `.deck-hero-search` 227 -> 295 px (the Figma 227 + 30%), the cyan glow bar on its right edge moved with it (left
   293); same width in the stuck bar. Phones keep the full-width search of `DeckTopBar`. Checked at 1440x900 (295 px,
