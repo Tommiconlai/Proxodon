@@ -3938,7 +3938,7 @@ span.deck-hero-art { cursor: default; }
 /* Testata del mazzo: alta 370 (dalla linea dell'header alla fascia), sul fondo della pagina. La copertina è
    l'art_crop 572x353 a (-25, 18), all'80%, ritagliata dal trapezio sfocato del design (deck-art-mask.svg). */
 .deck-editor:not(.is-mobile) .deck-hero {
-  display: block; height: 370px; min-height: 0; padding: 0; overflow: hidden;
+  display: block; height: 370px; min-height: 0; padding: 0; overflow-x: clip; overflow-y: visible; /* sotto la copertina sfuma da sé */
   background: none; border: 0;
 }
 .deck-editor:not(.is-mobile) .deck-hero::before,
@@ -3946,10 +3946,12 @@ span.deck-hero-art { cursor: default; }
 .deck-editor:not(.is-mobile) .deck-hero-blur { display: none; }
 .deck-editor:not(.is-mobile) .deck-hero-art { inset: auto; left: -25px; top: 18px; width: 572px; height: 353px; overflow: visible; }
 .deck-editor:not(.is-mobile) .deck-hero-art:focus-visible { box-shadow: none; outline: 2px solid var(--cyan); outline-offset: -2px; }
+/* Immagine 30 px più larga per lato del riquadro (circa +10%), così copre tutta la maschera sfocata e non se ne vede
+   il bordo (richiesta dell'utente: "si vede il taglio"); la maschera spostata di 30, 30 resta dov'era. */
 .deck-editor:not(.is-mobile) .deck-hero-img {
-  background-position: center; opacity: 0.8;
-  -webkit-mask: url('./assets/figma/deck-art-mask.svg') 41px -6px / 417.763px 365px no-repeat;
-  mask: url('./assets/figma/deck-art-mask.svg') 41px -6px / 417.763px 365px no-repeat;
+  inset: -30px; background-position: center; opacity: 0.8;
+  -webkit-mask: url('./assets/figma/deck-art-mask.svg') 71px 24px / 417.763px 365px no-repeat;
+  mask: url('./assets/figma/deck-art-mask.svg') 71px 24px / 417.763px 365px no-repeat;
 }
 /* A destra della copertina, in basso: tag, stato del salvataggio e le icone (30x30, a 70 px dal bordo, sopra la fascia). */
 .deck-editor:not(.is-mobile) .deck-hero-content {

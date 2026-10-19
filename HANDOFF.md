@@ -201,7 +201,14 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Desktop deck bar: search on the name line (most recent, 2026-10-19; the cover art in the stuck bar was tried and removed):** user: "allinea la
+- **Deck hero art without visible edges (most recent, 2026-10-20):** user, with two crops (the art ending in a line
+  under the header and above the band): "puoi allargare l'immagine? si vede il taglio". The blurred Figma mask
+  (`deck-art-mask.svg`, stdDeviation 25) was still at about 4% at the top edge of the 572x353 box and was cut by the
+  hero's `overflow: hidden` at the bottom (412, the mask fades to 419). Desktop `.deck-hero-img` now has `inset: -30px`
+  (632x413, the art about 10% bigger, still `cover`) with the mask moved by 30, 30 so it stays in place, and the hero
+  clips only sideways (`overflow-x: clip; overflow-y: visible`). Checked at 800x600 and 1440x900 (editor Aesi, a
+  Community deck): soft fade at top and bottom, no sideways scroll.
+- **Desktop deck bar: search on the name line (2026-10-19; the cover art in the stuck bar was tried and removed):** user: "allinea la
   search bar col nome mazzo, in modo che siano già in posizione quando parte lo scroll. Inoltre lascia l'immagine della
   testata durante lo scroll, centrala nella porzione". The desktop `.deck-sticky-bar` now has the stuck geometry from
   the start (height 62, padding 28, `align-items: center`): name and search share one centre line (y 87 at 1440x900,
