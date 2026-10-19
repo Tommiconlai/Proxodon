@@ -34,7 +34,10 @@ export async function loadBundledProfileBytes(id) {
   const meta = getProfileMeta(id);
   if (!meta) throw new Error('Unknown bundled profile.');
   if (!_cache.has(id)) {
-    const buf = await (await fetch(meta.url)).arrayBuffer();
+    const res = await fetch(meta.url);
+    // Senza questo controllo una pagina d'errore (404) diventerebbe il profilo e lcms fallirebbe più avanti, oscuro.
+    if (!res.ok) throw new Error(`Could not load the ${meta.info} profile (${res.status}). Check your connection and try again.`);
+    const buf = await res.arrayBuffer();
     _cache.set(id, new Uint8Array(buf));
   }
   return _cache.get(id);

@@ -22,10 +22,11 @@ import {
 } from 'lcms-wasm';
 import wasmURL from 'lcms-wasm/dist/lcms.wasm?url';
 
-// Istanza WASM singleton (instantiate è costoso; riusala).
+// Istanza WASM singleton (instantiate è costoso; riusala). Si tiene la promessa, non il risultato: due chiamate
+// in parallelo (profilo + convertitore) non la istanziano due volte; se fallisce si riprova la volta dopo.
 let _lcms = null;
-async function getLcms() {
-  if (!_lcms) _lcms = await instantiate({ locateFile: () => wasmURL });
+function getLcms() {
+  _lcms ??= instantiate({ locateFile: () => wasmURL }).catch((e) => { _lcms = null; throw e; });
   return _lcms;
 }
 

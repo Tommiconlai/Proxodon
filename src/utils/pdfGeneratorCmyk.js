@@ -172,85 +172,87 @@ export async function buildCmykPdfBytes(items, formatKey, bleedMm, dpi = 300, bl
   // XObject (30 Forest = un flusso, non 30). Chiave = SHA-1 dei byte, che si leggono comunque per il JPEG CMYK.
   const embedded = new Map();
 
-  while (imgIndex < items.length) {
-    const page = doc.addPage([pageWpt, pageHpt]);
-    // TrimBox = BleedBox = MediaBox = foglio (l'abbondanza per-carta è gestita
-    // dai crocini interni, non dai box pagina). TrimBox ⊆ BleedBox ⊆ MediaBox.
-    const box = doc.context.obj([0, 0, pageWpt, pageHpt]);
-    page.node.set(PDFName.of('TrimBox'), box);
-    page.node.set(PDFName.of('BleedBox'), doc.context.obj([0, 0, pageWpt, pageHpt]));
+  try {
+    while (imgIndex < items.length) {
+      const page = doc.addPage([pageWpt, pageHpt]);
+      // TrimBox = BleedBox = MediaBox = foglio (l'abbondanza per-carta è gestita
+      // dai crocini interni, non dai box pagina). TrimBox ⊆ BleedBox ⊆ MediaBox.
+      const box = doc.context.obj([0, 0, pageWpt, pageHpt]);
+      page.node.set(PDFName.of('TrimBox'), box);
+      page.node.set(PDFName.of('BleedBox'), doc.context.obj([0, 0, pageWpt, pageHpt]));
 
-    let posOnPage = 0;
-    while (posOnPage < perPage && imgIndex < items.length) {
-      const col = posOnPage % cols;
-      const row = Math.floor(posOnPage / cols);
-      const xmm = offsetX + col * cellW;
-      const ymm = offsetY + row * cellH; // dall'alto
+      let posOnPage = 0;
+      while (posOnPage < perPage && imgIndex < items.length) {
+        const col = posOnPage % cols;
+        const row = Math.floor(posOnPage / cols);
+        const xmm = offsetX + col * cellW;
+        const ymm = offsetY + row * cellH; // dall'alto
 
-      if (signal?.aborted) { if (conv) conv.close(); throw new DOMException('Export canceled.', 'AbortError'); }
+        if (signal?.aborted) { throw new DOMException('Export canceled.', 'AbortError'); }
 
-      const item = items[imgIndex];
-      const mode = resolveBleedMode(item.bleedMode, bleedStyle);
+        const item = items[imgIndex];
+        const mode = resolveBleedMode(item.bleedMode, bleedStyle);
 
-      // Routing per spazio colore (Fase 2): JPEG CMYK nativo → canali grezzi,
-      // niente conversione (numeri preservati); tutto il resto → RGB su canvas + lcms.
-      const raw = new Uint8Array(await item.file.arrayBuffer());
-      const key = `${mode}|${new Uint8Array(await crypto.subtle.digest('SHA-1', raw)).join(',')}`;
-      let imgRef = embedded.get(key);
-      if (!imgRef) {
-        let cmykBytes, w, h;
-        if (isCmykJpeg(raw)) {
-          const dec = decodeCMYK(raw); // {width,height,data} DeviceCMYK (0=no ink)
-          const cell = cmykCellBuffer(dec, cardW, cardH, bleedMm, mode);
-          cmykBytes = cell.data; w = cell.w; h = cell.h;
-        } else {
-          const imgEl = await createImageBitmap(item.file).catch(() => { throw new Error(`Cannot load ${item.file.name}`); });
-          const cell = renderCellRGBA(imgEl, cellW, cellH, dpi, bleedMm, mode);
-          imgEl.close();
-          cmykBytes = (await getConv()).convert(cell.data, cell.w * cell.h); // RGBA → CMYK 8-bit
-          w = cell.w; h = cell.h;
+        // Routing per spazio colore (Fase 2): JPEG CMYK nativo → canali grezzi,
+        // niente conversione (numeri preservati); tutto il resto → RGB su canvas + lcms.
+        const raw = new Uint8Array(await item.file.arrayBuffer());
+        const key = `${mode}|${new Uint8Array(await crypto.subtle.digest('SHA-1', raw)).join(',')}`;
+        let imgRef = embedded.get(key);
+        if (!imgRef) {
+          let cmykBytes, w, h;
+          if (isCmykJpeg(raw)) {
+            const dec = decodeCMYK(raw); // {width,height,data} DeviceCMYK (0=no ink)
+            const cell = cmykCellBuffer(dec, cardW, cardH, bleedMm, mode);
+            cmykBytes = cell.data; w = cell.w; h = cell.h;
+          } else {
+            const imgEl = await createImageBitmap(item.file).catch(() => { throw new Error(`Cannot load ${item.file.name}`); });
+            const cell = renderCellRGBA(imgEl, cellW, cellH, dpi, bleedMm, mode);
+            imgEl.close();
+            cmykBytes = (await getConv()).convert(cell.data, cell.w * cell.h); // RGBA → CMYK 8-bit
+            w = cell.w; h = cell.h;
+          }
+
+          const imgStream = doc.context.flateStream(cmykBytes, {
+            Type: 'XObject',
+            Subtype: 'Image',
+            Width: w,
+            Height: h,
+            ColorSpace: 'DeviceCMYK',
+            BitsPerComponent: 8,
+          });
+          imgRef = doc.context.register(imgStream);
+          embedded.set(key, imgRef);
+        }
+        const name = page.node.newXObject('Im', imgRef);
+
+        // Posiziona: angolo basso-sx della cella in pt; matrice = scala cella.
+        const xPt = xmm * MM_TO_PT;
+        const yPt = pageHpt - (ymm + cellH) * MM_TO_PT;
+        page.pushOperators(
+          pushGraphicsState(),
+          concatTransformationMatrix(cellW * MM_TO_PT, 0, 0, cellH * MM_TO_PT, xPt, yPt),
+          drawObject(name),
+          popGraphicsState(),
+        );
+
+        if (cropMarks) {
+          const limits = {
+            left:  (col === 0 ? offsetX : 0) + bleedMm,
+            right: (col === cols - 1 ? offsetX : 0) + bleedMm,
+            up:    (row === 0 ? offsetY : 0) + bleedMm,
+            down:  (row === rows - 1 ? offsetY : 0) + bleedMm,
+          };
+          drawCropMarksPdf(page, ops, xmm, ymm, bleedMm, limits, cardW, cardH, cropStyle, pageHpt);
         }
 
-        const imgStream = doc.context.flateStream(cmykBytes, {
-          Type: 'XObject',
-          Subtype: 'Image',
-          Width: w,
-          Height: h,
-          ColorSpace: 'DeviceCMYK',
-          BitsPerComponent: 8,
-        });
-        imgRef = doc.context.register(imgStream);
-        embedded.set(key, imgRef);
+        posOnPage++;
+        imgIndex++;
+        onProgress?.(imgIndex, items.length); // carte renderizzate finora
       }
-      const name = page.node.newXObject('Im', imgRef);
-
-      // Posiziona: angolo basso-sx della cella in pt; matrice = scala cella.
-      const xPt = xmm * MM_TO_PT;
-      const yPt = pageHpt - (ymm + cellH) * MM_TO_PT;
-      page.pushOperators(
-        pushGraphicsState(),
-        concatTransformationMatrix(cellW * MM_TO_PT, 0, 0, cellH * MM_TO_PT, xPt, yPt),
-        drawObject(name),
-        popGraphicsState(),
-      );
-
-      if (cropMarks) {
-        const limits = {
-          left:  (col === 0 ? offsetX : 0) + bleedMm,
-          right: (col === cols - 1 ? offsetX : 0) + bleedMm,
-          up:    (row === 0 ? offsetY : 0) + bleedMm,
-          down:  (row === rows - 1 ? offsetY : 0) + bleedMm,
-        };
-        drawCropMarksPdf(page, ops, xmm, ymm, bleedMm, limits, cardW, cardH, cropStyle, pageHpt);
-      }
-
-      posOnPage++;
-      imgIndex++;
-      onProgress?.(imgIndex, items.length); // carte renderizzate finora
     }
+  } finally {
+    if (conv) conv.close(); // anche su errore (immagine illeggibile, annulla): libera la memoria WASM
   }
-
-  if (conv) conv.close();
 
   // useObjectStreams:false → tabella xref classica + oggetti in chiaro: gli
   // object/xref stream sono feature PDF 1.5+, VIETATE in PDF/X-1a:2003 (PDF 1.4).

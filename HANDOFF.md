@@ -200,7 +200,15 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Icon buttons with title, named confirm, quiet sync status (most recent, 2026-10-19):** review L25. 28 icon-only
+- **Print pipeline: clear errors, WASM freed on failure (most recent, 2026-10-19):** review L13 and L22.
+  `loadBundledProfileBytes` did not check `res.ok`, so a 404 page became the "profile" and lcms failed later with
+  an obscure error; it now throws "Could not load the <profile> profile (status)...". `upscaleFile` turned a null
+  `toBlob` (out of memory) into a file containing "null"; it now throws, and frees its canvas. `cmykEngine`
+  memoized the instantiated WASM only after `await`, so two parallel calls instantiated it twice; it now keeps the
+  promise (cleared on failure). `buildCmykPdfBytes` closed the lcms converter only at the end and on cancel; the
+  page loop is now in `try / finally`, so an unreadable image also frees it. Checked in the browser: normal
+  export, cancelled export (AbortError), broken file ("Cannot load x.png"), then a normal export again.
+- **Icon buttons with title, named confirm, quiet sync status (2026-10-19):** review L25. 28 icon-only
   buttons had `aria-label` but no `title` (account avatar, deck help ? and its close, the row - / + and the section
   rename / delete in DeckSections, every modal close, the print page ? and error dismiss, the phone toolbar Delete /
   Add / Save, Remove ICC profile, Add in Advanced search): `title` now repeats the `aria-label` (codemod with

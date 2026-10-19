@@ -54,8 +54,11 @@ export async function upscaleFile(file, onProgress) {
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, c.width, c.height);
         const blob = await new Promise((resolve) => c.toBlob(resolve, 'image/png'));
+        const width = c.width;
+        c.width = c.height = 0; // memoria del canvas liberata subito
+        if (!blob) throw new Error('Could not encode the upscaled image.'); // toBlob dà null (memoria finita)
         const name = `${file.name.replace(/\.[^.]+$/, '')}.png`;
-        return { file: new File([blob], name, { type: 'image/png' }), width: c.width };
+        return { file: new File([blob], name, { type: 'image/png' }), width };
     } finally {
         URL.revokeObjectURL(url);
     }
