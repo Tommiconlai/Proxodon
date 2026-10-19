@@ -50,7 +50,7 @@ export default function ScryfallImportModal({ open, onClose, onImport }) {
             <div className="modal" ref={dismissRef} tabIndex={-1} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Import from Scryfall">
                 <div className="modal-header">
                     <h2>Import from Scryfall</h2>
-                    <button className="modal-close" onClick={close} aria-label="Close" disabled={busy}>
+                    <button className="modal-close" onClick={close} aria-label="Close" title="Close" disabled={busy}>
                         <IconX size={18} />
                     </button>
                 </div>

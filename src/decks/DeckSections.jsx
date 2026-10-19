@@ -451,9 +451,9 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
             singola: solo − e +, centrati). Lista: +/- in fondo alla riga, il numero è nella colonna. */}
         {(!readOnly || (view !== 'list' && r.qty > 1 && !split)) && (
           <span className="deck-row-qty">
-            {!readOnly && <button type="button" aria-label={`One less ${r.card.name}`} onClick={() => less(r)}><IconMinus size={13} /></button>}
+            {!readOnly && <button type="button" aria-label={`One less ${r.card.name}`} title={`One less ${r.card.name}`} onClick={() => less(r)}><IconMinus size={13} /></button>}
             {view !== 'list' && r.qty > 1 && !split && <span className="deck-card-qty" aria-hidden="true">{r.qty}</span>}
-            {!readOnly && canAdd(r) && <button type="button" aria-label={`One more ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, 1))}><IconPlus size={13} /></button>}
+            {!readOnly && canAdd(r) && <button type="button" aria-label={`One more ${r.card.name}`} title={`One more ${r.card.name}`} onClick={() => update((d) => bumpQty(d, r.id, 1))}><IconPlus size={13} /></button>}
           </span>
         )}
       </li>
@@ -469,8 +469,8 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
         <span className="deck-group-name">{g.label}</span> <span className="n">{sum(g.rows)}</span>
         {g.section && !readOnly && (
           <span className="deck-group-actions">
-            <button type="button" aria-label={`Rename ${g.label}`} onClick={() => setDialog({ id: g.section, name: g.label })}><IconPencil size={13} /></button>
-            <button type="button" aria-label={`Delete section ${g.label}`} onClick={() => update((d) => deleteSection(d, g.section))}><IconTrash size={13} /></button>
+            <button type="button" aria-label={`Rename ${g.label}`} title={`Rename ${g.label}`} onClick={() => setDialog({ id: g.section, name: g.label })}><IconPencil size={13} /></button>
+            <button type="button" aria-label={`Delete section ${g.label}`} title={`Delete section ${g.label}`} onClick={() => update((d) => deleteSection(d, g.section))}><IconTrash size={13} /></button>
           </span>
         )}
       </h3>

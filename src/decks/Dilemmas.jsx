@@ -490,7 +490,7 @@ function NewDilemmaDialog({ deck, notify, initial, onSubmit, onClose }) {
         onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); if (ok) onSubmit(question.trim(), cards); }}>
         <div className="modal-header">
           <h2>New dilemma</h2>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Close"><IconX size={18} /></button>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close" title="Close"><IconX size={18} /></button>
         </div>
         <div className="dilemma-slots" role="group" aria-label="Cards">
           {cards.map((c, i) => (

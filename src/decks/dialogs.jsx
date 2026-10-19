@@ -24,7 +24,7 @@ export function CoverDialog({ deck, onPick, onClose }) {
       <div className="modal modal-art" ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Deck cover" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Deck cover</h2>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Close"><IconX size={18} /></button>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close" title="Close"><IconX size={18} /></button>
         </div>
         <div className="art-search-row">
           <input type="search" className="import-link-input" value={q} onChange={(e) => setQ(e.target.value)}
@@ -101,7 +101,7 @@ export function ExportDeckDialog({ deck, onClose }) {
       <div className="modal" ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Export ${deck.name}`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Export deck</h2>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Close"><IconX size={18} /></button>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close" title="Close"><IconX size={18} /></button>
         </div>
         <div className="deck-mode export-mode" role="group" aria-label="Export format">
           <button type="button" aria-pressed={!specs} onClick={() => pick(false)}>Plain text</button>
@@ -128,7 +128,7 @@ export function PrivacyPanel({ onClose }) {
       <div className="modal" ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Privacy" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Privacy</h2>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Close"><IconX size={18} /></button>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close" title="Close"><IconX size={18} /></button>
         </div>
         <p className="modal-hint">Signing in (with Google, or with email and password) lets Proxodon keep your decks on Firebase (Google Cloud), so they sync between your devices.</p>
         <ul className="privacy-list">
@@ -174,7 +174,7 @@ export function CreditsPanel({ onClose }) {
       <div className="modal modal-credits" ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Credits" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Credits</h2>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Close"><IconX size={18} /></button>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close" title="Close"><IconX size={18} /></button>
         </div>
         <p className="modal-hint">Proxodon builds on the work of these people and projects.</p>
         {CREDITS.map(([group, items]) => (

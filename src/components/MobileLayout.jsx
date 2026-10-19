@@ -25,7 +25,7 @@ export function MobilePage({ title, onClose, children }) {
     <div className="mobile-page" ref={dismissRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title}>
       <header className="mobile-page-header">
         <h2>{title}</h2>
-        <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
+        <button className="modal-close" onClick={onClose} aria-label="Close" title="Close">✕</button>
       </header>
       <div className="mobile-page-body">{children}</div>
     </div>
@@ -59,9 +59,9 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
           <>
             {/* Pulsante ? con tap-toggle su mobile, riusa lo stesso markup del desktop */}
             <div className={`help${helpOpen ? ' open' : ''}`}>
-              <button type="button" className="help-btn" aria-label="How it works" onClick={() => setHelpOpen((o) => !o)}>?</button>
+              <button type="button" className="help-btn" aria-label="How it works" title="How it works" onClick={() => setHelpOpen((o) => !o)}>?</button>
               <div className="help-tooltip" role="tooltip">
-                <button type="button" className="help-tooltip-close" aria-label="Close help" onClick={() => setHelpOpen(false)}>✕</button>
+                <button type="button" className="help-tooltip-close" aria-label="Close help" title="Close help" onClick={() => setHelpOpen(false)}>✕</button>
                 <strong>How it works</strong>
                 <ol>
                   <li><b>Add cards</b>. Tap <b>＋</b> to upload images or import from Scryfall (a card list).</li>
@@ -91,15 +91,15 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
                 </button>
                 <div className="ct-cluster">
                   <div className="ct-item">
-                    <button className="ct-btn ct-danger" onClick={actions.onClear} disabled={actions.count === 0} aria-label="Delete all"><IconTrash size={20} /></button>
+                    <button className="ct-btn ct-danger" onClick={actions.onClear} disabled={actions.count === 0} aria-label="Delete all" title="Delete all"><IconTrash size={20} /></button>
                     <span className="ct-lbl">Delete</span>
                   </div>
                   <div className="ct-item">
-                    <button className="fab" onClick={() => setAddOpen(true)} aria-label="Add cards"><IconPlus size={26} /></button>
+                    <button className="fab" onClick={() => setAddOpen(true)} aria-label="Add cards" title="Add cards"><IconPlus size={26} /></button>
                     <span className="ct-lbl">Add</span>
                   </div>
                   <div className="ct-item">
-                    <button className="ct-btn ct-save" onClick={actions.onSave} disabled={actions.count === 0} aria-label="Save list"><IconList size={20} /></button>
+                    <button className="ct-btn ct-save" onClick={actions.onSave} disabled={actions.count === 0} aria-label="Save list" title="Save list"><IconList size={20} /></button>
                     <span className="ct-lbl">Save</span>
                   </div>
                 </div>
@@ -148,7 +148,7 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
             {actions.error && (
               <div className="info-box info-box-error">
                 <span>{actions.error}</span>
-                <button type="button" className="info-box-dismiss" onClick={actions.onClearError} aria-label="Dismiss error">
+                <button type="button" className="info-box-dismiss" onClick={actions.onClearError} aria-label="Dismiss error" title="Dismiss error">
                   <IconX size={14} />
                 </button>
               </div>

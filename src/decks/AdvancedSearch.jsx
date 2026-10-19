@@ -156,7 +156,7 @@ export default function AdvancedSearch({ format, identity, onAdd, notify }) {
                       aria-label={`${c.name}. Enter to add, Space to enlarge`}>
                       <img src={thumb(c)} alt="" loading="lazy" />
                     </button>
-                    <button type="button" className="search-card-add" aria-label={`Add ${c.name}`}
+                    <button type="button" className="search-card-add" aria-label={`Add ${c.name}`} title={`Add ${c.name}`}
                       onClick={(e) => onPick(async () => c, e)} onKeyDown={enterAdds(c)}>
                       <IconPlus size={16} />
                     </button>

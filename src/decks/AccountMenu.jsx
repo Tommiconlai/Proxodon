@@ -50,7 +50,7 @@ export default function AccountMenu({ user, photo, notify, onDeleteData }) {
   ];
   return (
     <>
-      <button type="button" className="account-btn" aria-haspopup="menu" aria-label={`Account: ${label}`}
+      <button type="button" className="account-btn" aria-haspopup="menu" aria-label={`Account: ${label}`} title={`Account: ${label}`}
         onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMenu({ x: r.right - 230, y: r.bottom + 6 }); }}>
         <Avatar user={user} photo={photo} />
       </button>

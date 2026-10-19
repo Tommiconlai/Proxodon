@@ -230,7 +230,7 @@ export default function PhotoDialog({ kind = 'photo', onClose, onSave, onRemove 
       <div className="modal modal-photo" ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={K.title} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{img ? K.frame : K.title}</h2>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Close" disabled={busy}><IconX size={18} /></button>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close" title="Close" disabled={busy}><IconX size={18} /></button>
         </div>
         {error && <div className="info-box info-box-error"><span>{error}</span></div>}
         {busy && <div className="import-status"><span className="import-spinner" /> Loading the image…</div>}

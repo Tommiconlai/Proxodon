@@ -560,7 +560,7 @@ export default function App() {
         <NavTabs decks={inDecks} />
         {inDecks ? <div className="header-slot" ref={setHeaderSlot} /> : (
           <div className={`help${helpOpen ? ' open' : ''}`} ref={helpRef}>
-            <button type="button" className="help-btn" aria-label="How it works"
+            <button type="button" className="help-btn" aria-label="How it works" title="How it works"
               aria-expanded={helpOpen}
               onClick={() => setHelpOpen((o) => !o)}>?</button>
             <div className="help-tooltip" role="tooltip">
@@ -627,7 +627,7 @@ export default function App() {
                 <div className="info-box info-box-error">
                   <IconAlert size={15} style={{ flexShrink: 0, marginTop: 2 }} />
                   <span>{error}</span>
-                  <button type="button" className="info-box-dismiss" onClick={() => setError(null)} aria-label="Dismiss error">
+                  <button type="button" className="info-box-dismiss" onClick={() => setError(null)} aria-label="Dismiss error" title="Dismiss error">
                     <IconX size={14} />
                   </button>
                 </div>

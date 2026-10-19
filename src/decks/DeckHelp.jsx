@@ -19,10 +19,10 @@ export default function DeckHelp({ editor }) {
 
   return (
     <div className={`help${open ? ' open' : ''}`} ref={ref}>
-      <button type="button" className="help-btn" aria-label={editor ? 'How the deck editor works' : 'Help for this page'} aria-expanded={open}
+      <button type="button" className="help-btn" aria-label={editor ? 'How the deck editor works' : 'Help for this page'} title={editor ? 'How the deck editor works' : 'Help for this page'} aria-expanded={open}
         onClick={() => setOpen((o) => !o)}>?</button>
       <div className="help-tooltip" role="tooltip">
-        {touch && <button type="button" className="help-tooltip-close" aria-label="Close help" onClick={() => setOpen(false)}>✕</button>}
+        {touch && <button type="button" className="help-tooltip-close" aria-label="Close help" title="Close help" onClick={() => setOpen(false)}>✕</button>}
         <strong>{editor ? 'How the deck editor works' : 'This page'}</strong>
         {!editor ? null : touch ? (
           <ol>

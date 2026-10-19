@@ -116,7 +116,8 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   };
   const cover = coverRow(deck);
   const savedAt = changedMs(deck); // ultimo cambio di carte (changedAt): Public, edizioni, prezzi non contano
-  const sync = !online ? (saving ? 'Offline, saved on this device' : 'Offline') : saving ? 'Saving…' : savedAt ? `Saved ${timeAgo(savedAt)}` : 'Saved';
+  const syncState = !online ? (saving ? 'Offline, saved on this device' : 'Offline') : saving ? 'Saving…' : 'Saved';
+  const sync = syncState === 'Saved' && savedAt ? `Saved ${timeAgo(savedAt)}` : syncState;
   const name = (
     <input className="deck-name" value={deck.name} maxLength={80} aria-label="Deck name" spellCheck={false}
       onChange={(e) => update((d) => ({ ...d, name: e.target.value }))}
@@ -178,7 +179,9 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
                 notify(on ? 'Shared in Community' : 'Removed from Community, with its dilemmas and help requests');
               }}><IconDeckPublic /></button>
             </span>
-            <span className={`deck-sync${online ? '' : ' offline'}`} role="status">{sync}</span>
+            <span className={`deck-sync${online ? '' : ' offline'}`}>{sync}</span>
+            {/* Annuncia solo i cambi di stato, non il "minutes ago" che si aggiorna da solo. */}
+            <span className="sr-only" role="status">{syncState}</span>
           </div>
         </div>
       </header>
@@ -189,7 +192,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
             <section className="deck-adv-panel" aria-label="Advanced search">
               <div className="deck-adv-head">
                 <h2 className="decks-title">Advanced search</h2>
-                <button type="button" className="modal-close" onClick={() => setAdvOpen(false)} aria-label="Close advanced search"><IconX size={18} /></button>
+                <button type="button" className="modal-close" onClick={() => setAdvOpen(false)} aria-label="Close advanced search" title="Close advanced search"><IconX size={18} /></button>
               </div>
               <AdvancedSearch format={deck.format} identity={searchIdentity(deck)} onAdd={add} notify={notify} />
             </section>

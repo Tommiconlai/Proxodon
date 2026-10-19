@@ -200,7 +200,17 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Help texts no longer promise deck-link import (most recent, 2026-10-19):** review L20. The import from a deck
+- **Icon buttons with title, named confirm, quiet sync status (most recent, 2026-10-19):** review L25. 28 icon-only
+  buttons had `aria-label` but no `title` (account avatar, deck help ? and its close, the row - / + and the section
+  rename / delete in DeckSections, every modal close, the print page ? and error dismiss, the phone toolbar Delete /
+  Add / Save, Remove ICC profile, Add in Advanced search): `title` now repeats the `aria-label` (codemod with
+  `@babel/parser`; buttons with visible text or a card image left alone). `ConfirmDialog` takes its accessible name
+  from the message (`aria-labelledby` + `useId`). The deck editor's sync label had `role="status"`, so screen
+  readers heard "Saved N minutes ago" every time the clock ticked: the visible label lost the role and a
+  `.sr-only` status announces only the state (Saving..., Saved, Offline...). Checked at 1440x900 and 375x812: the
+  label still reads "Saved 2 days ago" in place, the live region says "Saved", the avatar shows "Account:
+  blazedfoot" on hover.
+- **Help texts no longer promise deck-link import (2026-10-19):** review L20. The import from a deck
   link was removed long ago, but the print page help (`App.jsx`), the phone help (`MobileLayout.jsx`) and two
   steps of the print tour (`PrintTour.jsx`) still said "a card list or a deck link". They now say "a card list".
 - **Letter and Legal at their exact size (2026-10-19):** review L17. `PAPER_FORMATS` had Letter

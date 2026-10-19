@@ -50,7 +50,7 @@ export default function ArtPickerModal({ card, name: nameProp, title, current, c
             <div className="modal modal-art" ref={dismissRef} tabIndex={-1} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={`Change art: ${name}`}>
                 <div className="modal-header">
                     <h2>{title || `Change art, ${name}${count > 1 ? ` (${count} cards)` : ''}`}</h2>
-                    <button className="modal-close" onClick={onClose} aria-label="Close" disabled={picking}>
+                    <button className="modal-close" onClick={onClose} aria-label="Close" title="Close" disabled={picking}>
                         <IconX size={18} />
                     </button>
                 </div>

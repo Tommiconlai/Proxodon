@@ -171,7 +171,7 @@ export default function PageSettings({
                                                 {uploadedIcc ? 'Change ICC…' : 'Load .icc / .icm…'}
                                             </label>
                                             {uploadedIcc && (
-                                                <button type="button" className="icc-clear" onClick={() => onIccClear?.()} aria-label="Remove ICC profile">×</button>
+                                                <button type="button" className="icc-clear" onClick={() => onIccClear?.()} aria-label="Remove ICC profile" title="Remove ICC profile">×</button>
                                             )}
                                         </div>
                                         {uploadedIcc && <p className="field-hint icc-ok">✓ {uploadedIcc.name}</p>}
