@@ -212,7 +212,10 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
   border became the shape's border and the hover glow a drop-shadow. Old `.deck-tile-head`, `.deck-tile-format`,
   `.deck-tile-shape`, `.deck-tile-frame` rules removed. Checked at 1440x900 (My decks, Community, Dilemmas, Help,
   zoomed tiles: pills at 0,0 in their pockets, arrow at the bottom right), 375x812 (tiles 168 px, Export hit area 44,
-  no horizontal scroll), lint and build.
+  no horizontal scroll), lint and build. Follow-up (user: "c'è qualcosa di strano nel contorno dei mazzi con help
+  aperti, solo in my decks", screenshot taken with the pointer on the tile): the hover glow is a drop-shadow on the
+  tile button, so it wrapped the panel and the pills inside it but not the round Export, a sibling that only My
+  decks has; `.deck-tile-wrap:hover .deck-tile-export` now gets the same drop-shadow.
 - **Delete all dilemmas on the profile (2026-10-19):** user: "metti un pulsante close all accanto alla
   sezione dilemmas nel profilo, facendo un check di conferma per cancellare tutto" (after the console script for the
   28 `[Test]` dilemmas of blazedfoot failed with "Missing or insufficient permissions": run from another account; the

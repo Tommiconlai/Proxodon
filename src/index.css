@@ -2782,11 +2782,12 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
   position: absolute; top: 0; right: 0; z-index: 2; display: grid; place-items: center;
   width: calc(28 * var(--u)); height: calc(28 * var(--u)); padding: 0; cursor: pointer;
   background: #0d0c16; border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 50%; color: #fff;
-  transition: border-color var(--transition), color var(--transition), box-shadow var(--transition), transform var(--transition);
+  transition: border-color var(--transition), color var(--transition), box-shadow var(--transition), transform var(--transition), filter var(--transition);
 }
 .deck-tile-export svg { width: calc(12 * var(--u)); height: calc(12 * var(--u)); }
 .deck-tile-export:hover, .deck-tile-export:focus-visible { color: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 12px rgba(0, 229, 255, 0.3); outline: none; }
-.deck-tile-wrap:hover .deck-tile-export { transform: translateY(-2px); }
+/* Al passaggio si accende col riquadro (è fuori dal pulsante, il suo drop-shadow non lo prende). */
+.deck-tile-wrap:hover .deck-tile-export { transform: translateY(-2px); filter: drop-shadow(0 0 10px rgba(255, 45, 149, 0.45)); }
 /* + in fondo a My decks e See all del profilo: la sagoma tratteggiata ciano, il contenuto al centro. */
 .deck-tile.deck-add { color: var(--cyan); }
 .deck-add .cut-shape { background: rgba(0, 229, 255, 0.04); transition: background var(--transition); }
