@@ -200,7 +200,14 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Hovering deck rows no longer re-renders the whole deck (most recent, 2026-10-19):** review M28, partly. The
+- **Tutorial type lines without mojibake (most recent, 2026-10-19):** review L3. 11 type lines in
+  `src/tutorial/demo.js` had "â€”" (the Scryfall dash read as Windows-1252) and the tour showed it. Replaced with
+  the backslash-u2014 escape in the source (the project never writes the glyph itself), so the demo cards read like
+  real Scryfall snapshots. Checked in Node: `C.tatyova.type` contains the dash and no "â" is left in the file.
+  Note: the change landed in commit e08acb7, which by mistake carries the commit message of the M28 hover fix (a
+  shell chain went on after a failed step); this entry and its commit set the record straight, history was not
+  rewritten.
+- **Hovering deck rows no longer re-renders the whole deck (2026-10-19):** review M28, partly. The
   hover preview was state of `DeckSections`, so every mouse enter / leave re-rendered every row and re-ran the
   no-deps layout effect of the frames (O(n²) over the rows). The preview now lives in `HoverLayer`, fed by a
   small per-instance store (`hoverStore`, read with `useSyncExternalStore`; `setHover` keeps its callers; the
