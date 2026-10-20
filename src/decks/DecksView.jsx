@@ -12,7 +12,6 @@ import CommunityDeck from './CommunityDeck';
 import DeckHelp from './DeckHelp';
 import ProfilePage from './ProfilePage';
 import SettingsPage from './SettingsPage';
-import { deleteUserData } from './deckStore';
 
 // Radice dell'area mazzi (lazy): attende lo stato di login, poi lista (#/decks, #/community, #/dilemmas con
 // #/dilemmas/:mazzo/:dilemma per quello aperto e #/dilemmas/play per il gioco, #/help con #/help/:mazzo/:richiesta),
@@ -29,7 +28,7 @@ export default function DecksView({ route, notify, printQueueCount, onPrintDeck,
   return (
     <>
       {headerSlot && createPortal(
-        <><DeckHelp editor={area === 'decks' && !!id && id !== 'folder'} /><AccountMenu user={user} photo={photo} notify={notify} onDeleteData={deleteUserData} /></>,
+        <><DeckHelp editor={area === 'decks' && !!id && id !== 'folder'} /><AccountMenu user={user} photo={photo} notify={notify} /></>,
         headerSlot,
       )}
       {route === '/profile' ? <ProfilePage user={user} profile={profile} notify={notify} onChange={rerender} />

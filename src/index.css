@@ -2512,6 +2512,11 @@ input[type="range"]::-webkit-slider-thumb:hover {
 /* Import e New deck solo icona: quadrati da 40 px. */
 .decks-actions .deck-icon-btn { width: 40px; height: 40px; padding: 0; justify-content: center; }
 .settings-btn { align-self: flex-start; }
+/* In fondo alle Settings: eliminazione dell'account, a tutta larghezza, bordo e pulsante rossi. */
+.profile-card.settings-danger { margin-top: 16px; border-color: var(--danger); background: linear-gradient(180deg, rgba(255, 77, 109, 0.06), var(--bg-surface)); }
+.settings-danger .profile-h { color: var(--danger); }
+.btn-secondary.settings-delete { color: var(--danger); border-color: rgba(255, 77, 109, 0.55); }
+.btn-secondary.settings-delete:hover:not(:disabled) { color: #fff; border-color: var(--danger); background: rgba(255, 77, 109, 0.14); box-shadow: 0 0 14px rgba(255, 77, 109, 0.25); }
 /* Pagina Settings: riquadri del profilo con righe etichetta + select. */
 .settings-note { margin: -6px 0 16px; font-size: 0.85rem; color: var(--text-muted); }
 .settings-field { display: flex; flex-direction: column; gap: 6px; }

@@ -1,10 +1,12 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { listenDecks, createDeck } from './deckStore';
-import { changePassword, authMessage } from './firebase';
+import { createPortal } from 'react-dom';
+import { listenDecks, createDeck, deleteUserData } from './deckStore';
+import { changePassword, authMessage, deleteAccount } from './firebase';
 import { toBackup, fromBackup, FORMATS, GROUP_MODES, SORT_MODES, VIEWS } from './deckModel';
 import { downloadText } from '../utils/download';
 import { useSettings, setSetting } from '../utils/settings';
-import { IconDownload, IconUpload } from '../components/icons';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { IconDownload, IconUpload, IconTrash } from '../components/icons';
 
 const plural = (n, word) => `${n} ${word}${n !== 1 ? 's' : ''}`;
 const WRONG_PASSWORD = ['auth/invalid-credential', 'auth/wrong-password', 'auth/invalid-login-credentials'];
@@ -47,9 +49,9 @@ function Toggle({ k, label }) {
   );
 }
 
-function Card({ id, title, children }) {
+function Card({ id, title, className = '', children }) {
   return (
-    <section className="profile-card" aria-labelledby={id}>
+    <section className={`profile-card ${className}`.trim()} aria-labelledby={id}>
       <h3 id={id} className="profile-h">{title}</h3>
       {children}
     </section>
@@ -59,11 +61,12 @@ function Card({ id, title, children }) {
 // Impostazioni (menu dell'avatar → Settings, #/settings): account (email, accesso) e password, poi le
 // preferenze salvate su questo dispositivo (utils/settings): mazzi nuovi, stampa, lingua delle carte,
 // import, aspetto, prezzi, poi backup e ripristino dei mazzi (il ripristino aggiunge i mazzi del file
-// accanto a quelli che ci sono).
+// accanto a quelli che ci sono); in fondo, a tutta larghezza e col bordo rosso, l'eliminazione dell'account (con conferma).
 export default function SettingsPage({ user, notify }) {
   const uid = user.uid;
   const providers = user.providerData.map((p) => p.providerId);
   const [decks, setDecks] = useState(null); // null = caricamento
+  const [confirmDel, setConfirmDel] = useState(false);
   const fileRef = useRef(null);
   useEffect(() => listenDecks(uid, setDecks, (e) => notify(`Could not load your decks: ${e.message}`, 'error')), [uid, notify]);
 
@@ -155,6 +158,25 @@ export default function SettingsPage({ user, notify }) {
           <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={restore} />
         </Card>
       </div>
+      <Card id="settings-delete" title="Delete account" className="settings-danger">
+        <p className="profile-note">
+          Delete your account, your decks with their Community copies, dilemmas and help requests, and your votes, replies and likes. This can’t be undone.
+        </p>
+        <button type="button" className="btn-secondary settings-btn settings-delete" onClick={() => setConfirmDel(true)}>
+          <IconTrash size={15} /> Delete account and data
+        </button>
+      </Card>
+      {createPortal(
+        <ConfirmDialog open={confirmDel} message="Delete your account and all your decks? This can’t be undone."
+          confirmLabel="Delete everything" onCancel={() => setConfirmDel(false)}
+          onConfirm={() => {
+            setConfirmDel(false);
+            deleteAccount(deleteUserData)
+              .then(() => notify('Account and decks deleted'))
+              .catch((e) => notify(e.message || 'Could not delete the account.', 'error'));
+          }} />,
+        document.body,
+      )}
     </div>
   );
 }

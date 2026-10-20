@@ -2,7 +2,7 @@ import { C, myDecks, communityDecks, dilemmas, demoUser } from './demo';
 import { DeckTile, GhostTile } from '../decks/DeckList';
 import { DilemmaTile } from '../decks/Dilemmas';
 import { Avatar } from '../decks/AccountMenu';
-import { IconPencil, IconArrowRight, IconImage, IconDownload, IconUpload } from '../components/icons';
+import { IconPencil, IconArrowRight, IconImage, IconDownload, IconUpload, IconTrash } from '../components/icons';
 
 // Pagine demo del tutorial per Profilo e Settings (copie con dati inventati, niente letture dal server), e Shell, il
 // contenitore delle pagine mazzi su telefono (.mobile-body.mobile-decks), usato anche da DeckTour.
@@ -112,6 +112,11 @@ export function SettingsStage({ mobile }) {
             <button type="button" className="btn-secondary settings-btn"><IconUpload size={15} /> Restore from file</button>
           </Card>
         </div>
+        <section className="profile-card settings-danger" id="tut-set-delete" aria-labelledby="tut-set-delete-h">
+          <h3 id="tut-set-delete-h" className="profile-h">Delete account</h3>
+          <p className="profile-note">Delete your account, your decks with their Community copies, dilemmas and help requests, and your votes, replies and likes. This can’t be undone.</p>
+          <button type="button" className="btn-secondary settings-btn settings-delete"><IconTrash size={15} /> Delete account and data</button>
+        </section>
       </div>
     </Shell>
   );
