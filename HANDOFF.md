@@ -208,8 +208,9 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
   "Delete account and data" button with the same confirm and `deleteAccount(deleteUserData)` as before. The Privacy
   panel says where it is now; the tour copy of Settings has the card. Checked at 1440x900 and on the pane (card
   last, 1240 px, red border; the confirm opens in the body with Cancel focused and I pressed Cancel) and 375x812
-  (full width, no sideways scroll). Noticed, not changed: the Privacy text says likes you gave stay in the counts,
-  while `deleteUserData` removes them.
+  (full width, no sideways scroll). Then, on the user's yes, the Privacy text was fixed: it said the likes you gave
+  stay in the counts, but `deleteUserData` removes them (and the likes your public decks received go with them), so
+  it now says so.
 - **Bracket menu with pills (2026-10-20):** user: "cambia il menu a tendina che appare quando clicchi sul
   bracket, le opzioni devono avere solo "BRACKET X" o "NONE" e cambia l'aspetto, fallo simile al bracket attuale".
   The native select (its open list cannot be styled) is now a button that opens `CardMenu` (`bracket-menu`):
