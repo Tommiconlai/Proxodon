@@ -27,12 +27,6 @@ dist-ssr
 .env
 .env.*
 !.env.example
-*.jks
-*.keystore
-keystore.properties
-google-services.json
-GoogleService-Info.plist
 service-account*.json
 *.pem
 *.p12
-local.properties

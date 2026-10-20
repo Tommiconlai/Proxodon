@@ -3628,7 +3628,6 @@ span.deck-hero-art { cursor: default; }
 .mobile-page-body > .sidebar-section + .sidebar-section { margin-top: 24px; }
 /* ── Telefono, revisione UX: bersagli da dito di almeno 44 px. Dove l'aspetto resta piccolo (?, export dei
    riquadri, matita del nickname) si allarga solo l'area di tocco con ::after. ── */
-/* inset in alto: nell'app Android (edge-to-edge) la testata scende sotto la status bar; sul web vale 0 */
 .mobile .profile-icon-btn { position: relative; }
 .mobile .profile-icon-btn::after { content: ''; position: absolute; inset: -6px; }
 .deck-editor.is-mobile .deck-hero-meta .deck-icon-btn, .deck-editor.is-mobile .deck-format { height: 44px; }

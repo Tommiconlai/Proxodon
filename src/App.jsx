@@ -16,7 +16,6 @@ import { useIsMobile } from './hooks/useIsMobile';
 import { generatePDF, getGridInfo, PAPER_FORMATS, nextBleedMode } from './utils/pdfGenerator';
 import { DEFAULT_PROFILE_ID, UPLOAD_ID, getProfileMeta, loadBundledProfileBytes } from './utils/iccProfiles';
 import { fetchScryfallImages } from './utils/scryfall';
-import { Capacitor } from '@capacitor/core';
 import { IconFile, IconAlert, IconDownload, IconImage, IconPlus, IconX, Wordmark } from './components/icons';
 import NavTabs from './components/NavTabs';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -201,15 +200,7 @@ export default function App() {
   // Upload manuali (drag&drop / file picker): nessuna abbondanza generata.
   // Upload manuali: nessuna abbondanza generata (carta a misura di taglio).
   // Per le carte già al vivo: Bleed style → "Bleed in art", o il toggle per-carta.
-  // App Android: i file scelti sono URI content:// letti in modo pigro e il permesso scade dopo la scelta
-  // (NotReadableError al PDF), quindi si copiano subito in memoria, come i file scaricati da Scryfall.
-  const handleImagesAdded = (files) => {
-    const toItems = (list) => addItems(list.map(file => ({ file, bleedMode: 'none' })));
-    if (!Capacitor.isNativePlatform()) return toItems(files);
-    Promise.all(files.map(async (f) => new File([await f.arrayBuffer()], f.name, { type: f.type, lastModified: f.lastModified })))
-      .then(toItems)
-      .catch(() => setError('Cannot read the chosen files. Pick them again.'));
-  };
+  const handleImagesAdded = (files) => addItems(files.map(file => ({ file, bleedMode: 'none' })));
 
   // Rimozione con UNDO: niente revoke immediato. Cattura gli item + indici (puro,
   // da `images` corrente), mostra un toast con azione Undo, e revoca gli object URL

@@ -5,14 +5,13 @@
 import { initializeApp } from 'firebase/app';
 import {
   getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged,
-  signOut as fbSignOut, deleteUser, reauthenticateWithPopup, signInWithCredential,
+  signOut as fbSignOut, deleteUser, reauthenticateWithPopup,
   signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification,
   updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider,
 } from 'firebase/auth';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, clearIndexedDbPersistence, waitForPendingWrites } from 'firebase/firestore';
-import { Capacitor } from '@capacitor/core';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
-import { firebaseConfig, googleWebClientId, appCheckSiteKey } from './firebaseConfig';
+import { firebaseConfig, appCheckSiteKey } from './firebaseConfig';
 
 const app = initializeApp(firebaseConfig);
 // App Check: ogni richiesta a Firestore porta un token reCAPTCHA che dice "viene da questo sito", non da uno
@@ -40,35 +39,8 @@ const provider = new GoogleAuthProvider();
 // Sempre la scelta dell'account: su un computer condiviso, dopo l'uscita di A, B non entra come A senza volerlo.
 provider.setCustomParameters({ prompt: 'select_account' });
 
-// App Android: popup e redirect non funzionano nella WebView. Login Google nativo (Credential Manager,
-// plugin caricato solo nell'app) e il suo idToken passa all'SDK web: Firestore e watchUser restano uguali.
-const isApp = Capacitor.isNativePlatform();
-let socialLogin = null;
-const getSocialLogin = () => (socialLogin ??= import('@capgo/capacitor-social-login')
-  .then(async ({ SocialLogin }) => {
-    await SocialLogin.initialize({ google: { webClientId: googleWebClientId } });
-    return SocialLogin;
-  })
-  .catch((e) => { socialLogin = null; throw e; })); // un errore non resta in cache: il tentativo dopo riprova
-async function googleCredential() {
-  const { result } = await (await getSocialLogin()).login({ provider: 'google', options: {} });
-  return GoogleAuthProvider.credential(result.idToken);
-}
-
 // Popup; se il browser lo blocca, login a pagina intera (redirect). Popup chiuso = nessun errore.
 export async function signIn() {
-  if (isApp) {
-    let credential;
-    try {
-      credential = await googleCredential();
-    } catch (e) {
-      if (e.code === 'USER_CANCELLED') return; // foglio Google chiuso = nessun errore, come il popup
-      // il dettaglio tecnico (pacchetto, SHA-1, client id) è nel logcat, tag GoogleProvider
-      throw new Error('Google sign-in failed. Try again, or sign in with email.');
-    }
-    await signInWithCredential(auth, credential);
-    return;
-  }
   try {
     await signInWithPopup(auth, provider);
   } catch (e) {
@@ -149,17 +121,15 @@ export async function changePassword(current, next) {
 export const writesSynced = (ms = 4000) =>
   Promise.race([waitForPendingWrites(db).then(() => true, () => false), new Promise((r) => { setTimeout(r, ms, false); })]);
 
-// Nell'app si azzera anche la scelta dell'account Google, così il prossimo accesso può cambiarlo.
 export async function signOut() {
   clearLater();
   await fbSignOut(auth);
-  if (isApp) await getSocialLogin().then((s) => s.logout({ provider: 'google' })).catch(() => {});
 }
 export const watchUser = (cb) => onAuthStateChanged(auth, cb);
 
 // Prima un accesso recente (meno di 5 minuti, quello che Firebase chiede per cancellare l'account), poi i dati (servono
 // ancora i permessi), poi l'account: chi trova la sessione aperta su un dispositivo non cancella tutto con due click.
-// Con Google si rifà l'accesso (popup o nativo), con email + password si esce e si rientra; i dati restano finché non va.
+// Con Google si rifà l'accesso (popup), con email + password si esce e si rientra; i dati restano finché non va.
 const RECENT_LOGIN = 5 * 60 * 1000;
 export async function deleteAccount(deleteData) {
   const user = auth.currentUser;
@@ -171,8 +141,7 @@ export async function deleteAccount(deleteData) {
       throw new Error('For safety, sign out, sign in again and repeat Delete account within 5 minutes. Nothing was deleted.');
     }
     try {
-      if (isApp) await reauthenticateWithCredential(user, await googleCredential());
-      else await reauthenticateWithPopup(user, provider);
+      await reauthenticateWithPopup(user, provider);
     } catch (e) {
       throw new Error(`${authMessage(e)} Nothing was deleted.`);
     }
@@ -189,8 +158,7 @@ export async function deleteAccount(deleteData) {
       throw new Error('Your decks were deleted. To delete the account too, sign out, sign in again and repeat.');
     }
     try {
-      if (isApp) await reauthenticateWithCredential(user, await googleCredential());
-      else await reauthenticateWithPopup(user, provider);
+      await reauthenticateWithPopup(user, provider);
       await deleteUser(user);
     } catch (e2) {
       throw dataGone(e2);

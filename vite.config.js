@@ -7,8 +7,7 @@ import react from '@vitejs/plugin-react'
 // Firebase (solo i suoi host googleapis: Auth identitytoolkit + securetoken, Firestore, lo scambio del token di App Check,
 // che c'è anche con App Check spento così accenderlo non rompe niente; mai *.googleapis.com, che comprende anche bucket
 // di Storage di chiunque), il login Google (apis.google.com e l'iframe di authDomain), reCAPTCHA di App Check.
-// 'wasm-unsafe-eval' per lcms (stampa CMYK). Nell'app Android lo script di Capacitor è iniettato prima del meta,
-// e una CSP via meta vale solo per ciò che viene dopo. Un host nuovo (fetch, immagine, script) va aggiunto qui.
+// 'wasm-unsafe-eval' per lcms (stampa CMYK). Un host nuovo (fetch, immagine, script) va aggiunto qui.
 const CSP = [
   "default-src 'self'",
   "script-src 'self' 'wasm-unsafe-eval' https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/",
