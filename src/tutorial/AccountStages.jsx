@@ -2,6 +2,7 @@ import { C, myDecks, communityDecks, dilemmas, demoUser } from './demo';
 import { DeckTile, GhostTile } from '../decks/DeckList';
 import { DilemmaTile } from '../decks/Dilemmas';
 import { Avatar } from '../decks/AccountMenu';
+import { ProfileHero } from '../decks/ProfilePage';
 import { IconPencil, IconArrowRight, IconImage, IconDownload, IconUpload, IconTrash } from '../components/icons';
 
 // Pagine demo del tutorial per Profilo e Settings (copie con dati inventati, niente letture dal server), e Shell, il
@@ -13,26 +14,24 @@ export const Shell = ({ mobile, children }) => (mobile ? <main className="mobile
 // ── Profilo ──
 export function ProfileStage({ mobile }) {
   const decks = myDecks();
-  const stats = [['Member since', '14 Mar 2026'], ['Last sign-in', 'Today'], ['Decks', decks.length], ['Dilemmas answered', 9], ['Followers', 0], ['Following', 0]];
+  const stats = [['Last sign-in', 'Today'], ['Decks', decks.length], ['Dilemmas answered', 9], ['Followers', 3], ['Following', 5]];
   return (
     <Shell mobile={mobile}>
       <div className="decks-root profile-page">
-        <section className="profile-hero" aria-label="Profile">
-          <button type="button" className="profile-banner art" style={{ backgroundImage: `url("${C.tatyova.art}")` }} aria-label="Change background">
-            <span className="profile-banner-hint" aria-hidden="true"><IconImage size={14} /> Change background</span>
-          </button>
-          <div className="profile-hero-body">
+        {mobile && <header className="decks-head"><h1 className="decks-title">Profile</h1></header>}
+        <ProfileHero banner={C.tatyova.art} since="14 Mar 2026" stats={stats}
+          avatar={(
             <button type="button" className="profile-avatar" aria-label="Change photo" title="Change photo">
               <Avatar user={demoUser} photo={null} />
               <span className="profile-avatar-hover" aria-hidden="true"><IconImage size={22} /></span>
             </button>
-            <div className="profile-who profile-name-row">
-              <h2 className="profile-name">{demoUser.displayName}</h2>
-              <button type="button" className="profile-icon-btn" aria-label="Edit nickname" title="Edit nickname"><IconPencil size={15} /></button>
-            </div>
-            <dl className="profile-stats">{stats.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+          )}
+          action={<button type="button" className="profile-bg-btn" aria-label="Change background" title="Change background"><IconImage size={16} /></button>}>
+          <div className="profile-who profile-name-row">
+            <h2 className="profile-name">{demoUser.displayName}</h2>
+            <button type="button" className="profile-icon-btn" aria-label="Edit nickname" title="Edit nickname"><IconPencil size={15} /></button>
           </div>
-        </section>
+        </ProfileHero>
         <header className="decks-head"><h2 className="decks-title">Decks</h2></header>
         <ul className="deck-grid tut-profile-decks">
           {decks.slice(0, 4).map((d) => <li key={d.id} className="deck-tile-wrap"><DeckTile deck={d} stats={{ likes: d.public ? 12 : 0, help: d.id === 'tut-deck' }} /></li>)}

@@ -727,8 +727,11 @@ function listSteps(tab, mobile) {
 
 const profileSteps = () => [{
   target: '.profile-hero', title: 'Your profile',
-  text: 'A demo profile. Click the background or the photo to change them, the pencil to set your nickname.',
-  play: (g) => pointAt(g, [['.profile-banner', 'Background'], ['.profile-avatar', 'Photo'], ['.profile-icon-btn', 'Nickname']]),
+  text: 'A demo profile. The round button changes the background, the photo changes on click, the pencil sets your nickname.',
+  play: (g) => pointAt(g, [['.profile-bg-btn', 'Background'], ['.profile-avatar', 'Photo'], ['.profile-icon-btn', 'Nickname']]),
+}, {
+  target: '.profile-stats', title: 'Numbers',
+  text: 'Your decks, the dilemmas you answered, who follows you and who you follow. Follow other players from their profile.',
 }, {
   target: '.tut-profile-decks', title: 'Decks',
   text: 'Your latest decks. See all opens My decks.',

@@ -37,10 +37,10 @@ function usePerDeck(ids, listen) {
   return map;
 }
 
-// Testata del profilo (il mio e quello pubblico): un pannello con le tasche (CutFrame) grande quanto la sezione,
-// misurata, così gli angoli restano tondi a ogni larghezza. Largo: foto nella tasca in basso a sinistra, stretto (< 600):
+// Testata del profilo (il mio, quello pubblico e la copia del tutorial): un pannello con le tasche (CutFrame) grande
+// quanto la sezione, misurata, così gli angoli restano tondi a ogni larghezza. Largo: foto nella tasca in basso a sinistra, stretto (< 600):
 // in alto. avatar = foto (pulsante nel mio), action = il tondo in alto a destra (cambia sfondo nel mio, Segui nel pubblico).
-function ProfileHero({ banner, avatar, action, since, stats, children }) {
+export function ProfileHero({ banner, avatar, action, since, stats, children }) {
   const heroRef = useRef(null);
   const [hero, setHero] = useState([1240, 280]);
   useLayoutEffect(() => {
