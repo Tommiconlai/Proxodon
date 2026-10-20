@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import CardMenu from '../components/CardMenu';
 import { boardCounts, countTarget, countOk, deckTags, BRACKETS, gameChangers, autoBracket, deckBracket } from './deckModel';
 import { IconArrowUp, IconDeckFilter } from '../components/icons';
 
@@ -91,27 +92,34 @@ export function ListBand({ items, current }) {
   return <div className="list-band"><TabStrip items={items} current={current} label="Decks" /></div>;
 }
 
-// Commander bracket accanto al nome (solo mazzi Commander). Con update (mazzo proprio) sopra la pillola c'è un select
-// trasparente: Auto (dai Game Changer), 1-5 a mano, Off; spento resta qui sbiadito, per riaccenderlo. Senza update
-// (mazzo altrui) solo la pillola, niente se è spento.
+// Commander bracket accanto al nome (solo mazzi Commander). Con update (mazzo proprio) la pillola apre un menu con
+// le stesse pillole: Bracket 1-5 e None (spento). Scegliere il bracket calcolato dai Game Changer torna all'automatico
+// (segue le carte), gli altri restano fissi. Spento resta qui sbiadito, per riaccenderlo. Senza update (mazzo altrui)
+// solo la pillola, niente se è spento.
 export function DeckBracket({ deck, update }) {
+  const [menu, setMenu] = useState(null); // { x, y }
+  const closeMenu = useCallback(() => setMenu(null), []);
   if (deck.format !== 'commander') return null;
   const b = deckBracket(deck);
   const n = gameChangers(deck);
-  const gcs = `${n} Game Changer${n === 1 ? '' : 's'}`;
-  const how = deck.bracket == null ? `auto, ${gcs}` : 'set by hand';
-  const title = b ? `Bracket ${b}: ${BRACKETS[b - 1]} (${how})` : 'Bracket off';
+  const auto = autoBracket(deck);
+  const how = deck.bracket == null ? `auto, ${n} Game Changer${n === 1 ? '' : 's'}` : 'set by hand';
+  const title = b ? `Bracket ${b}: ${BRACKETS[b - 1]} (${how})` : 'No bracket';
   if (!update) return b && <span className="deck-bracket" title={title}>Bracket {b}</span>;
-  const set = (v) => update((d) => ({ ...d, bracket: v === 'auto' ? undefined : Number(v) }));
+  const set = (v) => update((d) => ({ ...d, bracket: v }));
+  const items = [
+    ...BRACKETS.map((name, i) => ({ key: i + 1, label: `Bracket ${i + 1}`, checked: b === i + 1, run: () => set(i + 1 === auto ? undefined : i + 1) })),
+    { key: 'none', label: 'None', checked: !b, run: () => set(0) },
+  ];
   return (
-    <span className={`deck-bracket${b ? '' : ' off'}`} title={`${title}. Click to change`}>
-      {b ? `Bracket ${b}` : 'No bracket'}
-      <select value={deck.bracket ?? 'auto'} onChange={(e) => set(e.target.value)} aria-label={`Commander bracket: ${title}`}>
-        <option value="auto">Auto: bracket {autoBracket(deck)} ({gcs})</option>
-        {BRACKETS.map((name, i) => <option key={name} value={i + 1}>Bracket {i + 1}: {name}</option>)}
-        <option value="0">Off</option>
-      </select>
-    </span>
+    <>
+      <button type="button" className={`deck-bracket${b ? '' : ' off'}`} aria-haspopup="menu" aria-expanded={!!menu}
+        aria-label={`Commander bracket: ${title}`} title={`${title}. Click to change`}
+        onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMenu({ x: r.left, y: r.bottom + 6 }); }}>
+        {b ? `Bracket ${b}` : 'No bracket'}
+      </button>
+      {menu && <CardMenu className="bracket-menu" x={menu.x} y={menu.y} title="Commander bracket" items={items} onClose={closeMenu} />}
+    </>
   );
 }
 

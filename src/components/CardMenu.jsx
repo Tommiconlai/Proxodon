@@ -3,9 +3,10 @@ import { createPortal } from 'react-dom';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 
 // ── Menu contestuale (click destro / Shift+F10 / pressione lunga): carte in stampa, mazzi, righe ──
-// items: [{ key, Icon, label, run, keepOpen?, danger?, disabled?, note? }].
+// items: [{ key, Icon?, label, run, keepOpen?, danger?, disabled?, note?, checked? }]; checked (true/false) = scelta
+// unica (menuitemradio), e all'apertura il focus va su quella scelta. className = variante (es. bracket-menu).
 // In portal sul body: gli antenati animati (transform) romperebbero il position:fixed.
-export default function CardMenu({ x, y, title, items, onClose }) {
+export default function CardMenu({ x, y, title, items, onClose, className = '' }) {
     // Esc chiude + focus restituito alla carta alla chiusura.
     const ref = useOverlayDismiss(onClose, true, { focusContainer: false });
     // Tieni il menu dentro il viewport (aperto vicino al bordo destro/basso).
@@ -16,7 +17,10 @@ export default function CardMenu({ x, y, title, items, onClose }) {
         el.style.top = `${Math.max(8, Math.min(y, window.innerHeight - r.height - 8))}px`;
     }, [x, y, ref]);
     // Dopo l'effect dell'hook (che memorizza la carta come focus da ripristinare).
-    useEffect(() => { ref.current.querySelector('[role="menuitem"]:not([aria-disabled="true"])')?.focus(); }, [ref]);
+    useEffect(() => {
+        const el = ref.current;
+        (el.querySelector('[aria-checked="true"]') || el.querySelector('[role^="menuitem"]:not([aria-disabled="true"])'))?.focus();
+    }, [ref]);
     // Click fuori / finestra ridimensionata o persa = chiudi.
     useEffect(() => {
         const onDown = (e) => { if (!ref.current?.contains(e.target)) onClose(); };
@@ -31,7 +35,7 @@ export default function CardMenu({ x, y, title, items, onClose }) {
     }, [onClose, ref]);
 
     const onKeyDown = (e) => {
-        const items = [...ref.current.querySelectorAll('[role="menuitem"]')];
+        const items = [...ref.current.querySelectorAll('[role^="menuitem"]')];
         const step = { ArrowDown: 1, ArrowUp: -1 }[e.key];
         if (step) {
             e.preventDefault();
@@ -39,15 +43,16 @@ export default function CardMenu({ x, y, title, items, onClose }) {
         } else if (e.key === 'Tab') onClose();
     };
     return createPortal(
-        <div className="card-menu" role="menu" aria-label={title} ref={ref} style={{ left: x, top: y }}
+        <div className={`card-menu ${className}`.trim()} role="menu" aria-label={title} ref={ref} style={{ left: x, top: y }}
             onKeyDown={onKeyDown} onContextMenu={(e) => e.preventDefault()}>
             <div className="card-menu-title" aria-hidden="true">{title}</div>
             {items.map((it) => (
                 // aria-disabled (non `disabled`): resta focusabile/leggibile, il click non fa nulla.
-                <button key={it.key} type="button" role="menuitem" className={it.danger ? 'danger' : undefined}
+                <button key={it.key} type="button" role={it.checked === undefined ? 'menuitem' : 'menuitemradio'}
+                    aria-checked={it.checked} className={it.danger ? 'danger' : undefined}
                     aria-disabled={it.disabled || undefined}
                     onClick={it.disabled ? undefined : () => { it.run(); if (!it.keepOpen) onClose(); }}>
-                    <it.Icon size={15} /> {it.label}
+                    {it.Icon && <it.Icon size={15} />} {it.label}
                     {it.disabled && it.note && <span className="card-menu-note">{it.note}</span>}
                 </button>
             ))}
