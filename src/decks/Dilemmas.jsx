@@ -217,7 +217,7 @@ export function DilemmaFeed({ uid, notify, open, play, terms = [], format = '' }
 // Play (#/dilemmas/play), un "Tinder" dei dilemmi: quelli altrui a cui non hai ancora risposto, uno alla
 // volta in ordine casuale (fissato all'avvio: il voto appena dato non fa saltare via il risultato). Scegli
 // una carta (o ← →), vedi come hanno scelto gli altri, spieghi se vuoi, poi Next (→ o Enter); prima del voto
-// lo stesso pulsante salta. ponytail: pesca tra gli ultimi 40 del feed; con più dilemmi, una query a caso.
+// lo stesso pulsante salta. Pesca tra gli ultimi 40 del feed; con più dilemmi, una query a caso.
 function DilemmaPlay({ list, decks, answered, uid, notify }) {
   const [queue] = useState(() => shuffle(list.filter((d) => d.uid !== uid && !answered.has(`${d.deckId}_${d.id}`))));
   const [pos, setPos] = useState(0);

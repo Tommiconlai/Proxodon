@@ -128,7 +128,7 @@ service cloud.firestore {
     // del tipo giusto (le righe le ripulisce chi legge: cleanPublicDeck); createdAt una data vera e non futura (5 minuti
     // di margine per l'orologio del dispositivo), così nessuno resta in cima alla lista. La firma (owner) è il nickname
     // dell'autore in usernames/, o nessuna.
-    // ponytail: le regole non hanno cicli, quindi le liste corte si controllano posizione per posizione. Le righe del
+    // Le regole non hanno cicli, quindi le liste corte si controllano posizione per posizione. Le righe del
     // mazzo (fino a 500) e le sezioni restano senza controllo per elemento (join non accetta mappe); words ha un tetto
     // con join. Il feed della Community non legge le copie piene ma l'indice leggero (publicIndex, sotto).
     function str(l, i, max) {
@@ -140,7 +140,7 @@ service cloud.firestore {
     }
     // Carta di dilemmi, help request e risposte (dilemmaCard nel client): solo questi 7 campi (7 chiavi, e il + di un
     // campo che manca o non è una stringa è un errore, quindi un rifiuto), insieme al massimo 1400 caratteri.
-    // ponytail: un controllo per campo supera il tetto di 1000 espressioni con 10 + 10 carte in una risposta.
+    // Un controllo per campo supera il tetto di 1000 espressioni con 10 + 10 carte in una risposta.
     function card(c) {
       return c.size() == 7 && (c.name + c.img + c.back + c.sid + c.oid + c.set + c.cn).size() <= 1400;
     }

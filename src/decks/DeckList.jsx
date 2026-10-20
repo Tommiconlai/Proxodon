@@ -30,7 +30,7 @@ const COLORS = [['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G
 const NO_FILTERS = { format: '', colors: [], card: '' };
 
 // Aprendo un mazzo la lista si smonta: ricerca, filtri e scorrimento (per scheda) restano qui, in memoria
-// per la sessione della pagina, e tornano al rientro. ponytail: niente sessionStorage, una ricarica azzera.
+// per la sessione della pagina, e tornano al rientro. Niente sessionStorage, una ricarica azzera.
 const memory = { q: '', filters: NO_FILTERS, scroll: {} };
 const scrollParent = (el) => { // l'elemento stesso o il primo antenato che scorre (telefono: .decks-root)
   for (let p = el; p; p = p.parentElement) {

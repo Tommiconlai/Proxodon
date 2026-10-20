@@ -43,7 +43,7 @@ export const changedMs = (d) => ms(d.changedAt ?? d.updatedAt);
 const publicCol = collection(db, 'publicDecks');
 // Copia pubblica letta: la scrive chiunque abbia un account, quindi ripulita (cleanPublicDeck); null = ritirata o rotta.
 const publicOf = (s) => cleanPublicDeck({ ...s.data({ serverTimestamps: 'estimate' }), id: s.id });
-// ponytail: nickname del profilo aperto (lo aggiorna listenProfile, attivo finché si è nell'area mazzi), di ownerUid
+// Nickname del profilo aperto (lo aggiorna listenProfile, attivo finché si è nell'area mazzi), di ownerUid
 // (cambiando account si rilegge). undefined finché il profilo non è arrivato (o dopo una ricarica del modulo, in sviluppo).
 let ownerName;
 let ownerUid;
@@ -83,7 +83,7 @@ const publish = async (uid, d, f) => {
   return writeIndex(uid, d, owner, common);
 };
 // Mazzi pubblici di prima dell'indice (o di prima del bracket nell'indice): il proprietario aprendo My decks scrive la
-// voce che manca o è vecchia (una lettura per mazzo pubblico, una volta per sessione). ponytail: i mazzi di chi non
+// voce che manca o è vecchia (una lettura per mazzo pubblico, una volta per sessione). I mazzi di chi non
 // riapre l'app restano fuori dall'indice (o senza bracket sul riquadro).
 const indexed = new Set();
 export function ensureIndexed(uid, decks) {
@@ -103,7 +103,7 @@ export const unpublishDeck = (uid, id) => Promise.all([
   deleteDilemmasOf(id), deleteHelpsOf(id), deleteLikesOf(id),
 ]);
 
-// ponytail: ordinamento lato client (niente indice); legge i documenti interi, va bene per
+// Ordinamento lato client (niente indice); legge i documenti interi, va bene per
 // decine di mazzi. Se la lista rallenta: una collezione di riepiloghi.
 export function listenDecks(uid, onChange, onError) {
   return onSnapshot(decksCol(uid), (qs) => onChange(qs.docs.map(fromDoc).sort((a, b) => changedMs(b) - changedMs(a))), onError);
@@ -155,7 +155,7 @@ export const deleteDeck = (uid, deck) => Promise.all([deleteDoc(doc(decksCol(uid
 
 // Gli ultimi creati, o quelli con una parola che inizia per word; i più recenti prima. Solo dall'indice leggero (non più
 // dalle copie piene se la prima lettura falliva: 60 copie fino a 1 MiB l'una; un errore arriva a onError).
-// ponytail: niente indici composti, quindi filtri e altre parole li applica la lista su questi 60.
+// Niente indici composti, quindi filtri e altre parole li applica la lista su questi 60.
 // Se la community cresce: indici su format / words + createdAt e filtri nella query.
 export function listenCommunity(word, onChange, onError) {
   const q = word ? query(indexCol, where('words', 'array-contains', word), limit(60)) : query(indexCol, orderBy('createdAt', 'desc'), limit(60));
@@ -218,7 +218,7 @@ export const listenDilemma = (deckId, dId, onChange, onError) => onSnapshot(doc(
 }, onError);
 // Nome, formato, autore e copertina del mazzo pubblico per i feed (dilemmi, help request), dalla sua voce dell'indice
 // (piccola, ogni campo con un tetto): non la copia piena, che chi la scrive può gonfiare fino a 1 MiB, per 40 mazzi a
-// ogni apertura del feed. Una volta per mazzo. ponytail: cache per la sessione, un nome cambiato si vede ricaricando.
+// ogni apertura del feed. Una volta per mazzo. Cache per la sessione, un nome cambiato si vede ricaricando.
 // null = non è (più) nella Community, come per la sua lista; errore = undefined, resta "…" e non resta in cache.
 const publicDecks = new Map();
 export const deckOnce = (id) => {
@@ -271,7 +271,7 @@ const helpOf = (s) => cleanHelp(plainDoc(s)); // dati ripuliti (cleanHelp, clean
 export const listenHelps = (deckId, onChange, onError) =>
   onSnapshot(query(helpsCol(deckId), orderBy('createdAt', 'desc')), (qs) => onChange(qs.docs.map(helpOf)), onError);
 // Feed della scheda Help: le ultime 60 di tutti i mazzi pubblici (serve l'indice collection group su
-// helps.createdAt, come per i dilemmi). ponytail: aperte / risolte le separa la lista.
+// helps.createdAt, come per i dilemmi). Aperte / risolte le separa la lista.
 export const listenHelpFeed = (onChange, onError) =>
   onSnapshot(query(collectionGroup(db, 'helps'), orderBy('createdAt', 'desc'), limit(60)),
     (qs) => onChange(qs.docs.map((s) => ({ ...helpOf(s), deckId: s.ref.parent.parent.id }))), onError);
@@ -280,7 +280,7 @@ export const countOpenHelps = (deckId) =>
   getCountFromServer(query(helpsCol(deckId), where('status', '==', 'open'))).then((s) => s.data().count);
 export const listenHelp = (deckId, id, onChange, onError) =>
   onSnapshot(doc(helpsCol(deckId), id), (s) => onChange(s.exists() ? helpOf(s) : null), onError);
-// deck = il mazzo com'è adesso: nome, firma, formato e copertina restano sulla richiesta per il feed (ponytail: un
+// deck = il mazzo com'è adesso: nome, firma, formato e copertina restano sulla richiesta per il feed (un
 // nome cambiato dopo non si aggiorna lì; la pagina della richiesta legge il mazzo vero).
 export async function createHelp(uid, deck, kind, text, cards) {
   const owner = await ownerOf(uid);
@@ -436,7 +436,7 @@ export async function deleteUserData(uid) {
   await settle((await docsOf(repliedCol(uid))).map((r) => deleteReply(uid, r.data().deck, r.data().help, uid)));
   await settle((await docsOf(likedCol(uid))).map((l) => pair(likeDoc(l.id, uid), l.ref)));
   // Like di prima delle tracce (senza users/{uid}/liked): si tolgono a tappeto da ogni copia pubblica, 60 alla volta.
-  // ponytail: una scrittura per copia pubblica, va bene finché la Community è piccola.
+  // Una scrittura per copia pubblica, va bene finché la Community è piccola.
   for (let page = await docsOf(query(publicCol, orderBy('createdAt'), limit(60))); page.length;) {
     const batch = writeBatch(db);
     page.forEach((p) => batch.delete(likeDoc(p.id, uid)));

@@ -8,7 +8,7 @@ import { IconX } from './icons';
 // Mazzi ("Change edition"): `name` e `title` espliciti, `current` = { set, cn } evidenziata,
 // `onPickPrint(print)` riceve la stampa invece del file scaricato.
 export default function ArtPickerModal({ card, name: nameProp, title, current, count = 1, onClose, onPick, onPickPrint }) {
-    // ponytail: nome dedotto dal filename; DFC / caratteri speciali -> niente stampe.
+    // Nome dedotto dal filename; DFC / caratteri speciali -> niente stampe.
     const name = nameProp || artName(card);
     const [prints, setPrints] = useState(null); // null = caricamento, [] = nessuna
     const [error, setError] = useState(null);

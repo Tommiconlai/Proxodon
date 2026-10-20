@@ -122,7 +122,7 @@ export function imageFaces(card) {
 
 /**
  * Tutte le stampe (printings) di una carta, per scambiare l'art. `unique = 'art'` = una per
- * illustrazione (foto profilo). ponytail: solo prima pagina (175 max); +paginazione se serve.
+ * illustrazione (foto profilo). Solo prima pagina (175 max); +paginazione se serve.
  * @returns {Promise<{id,set,setName,thumb,png,art}[]>}
  */
 // Nome con cui "Cambia art" cerca le stampe: il filename senza estensione.
@@ -208,7 +208,7 @@ export async function lookupCards(list) {
   }
   // /cards/collection conosce solo il nome oracle; /cards/named?exact trova anche i nomi alternativi
   // e dà proprio quella stampa. Errori e 404: la carta resta tra le non trovate.
-  // ponytail: una richiesta per nome mancante al ritmo di slot(), ~0,1 s ciascuno con tanti nomi sbagliati.
+  // Una richiesta per nome mancante al ritmo di slot(), ~0,1 s ciascuno con tanti nomi sbagliati.
   for (const i of missed) {
     await slot();
     try {

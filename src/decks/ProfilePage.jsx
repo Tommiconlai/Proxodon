@@ -25,7 +25,7 @@ const SHOWN_DILEMMAS = 5;
 const at = (d) => d.createdAt?.toMillis?.() ?? 0;
 
 // Un ascolto per mazzo pubblico (dilemmi): id -> lista; errore = lista vuota.
-// ponytail: un ascolto per mazzo; con molti mazzi pubblici, una query collection group per uid (con il suo indice).
+// Un ascolto per mazzo; con molti mazzi pubblici, una query collection group per uid (con il suo indice).
 function usePerDeck(ids, listen) {
   const [map, setMap] = useState({});
   const key = ids.join(',');

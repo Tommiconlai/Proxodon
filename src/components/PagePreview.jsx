@@ -350,7 +350,7 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
 
     // Riordino (solo desktop, `!touch`): trascina una carta su un'altra → le due si scambiano di posto,
     // le altre restano ferme. Alt+frecce = scambio col vicino, alternativa da tastiera.
-    // ponytail: solo dentro la pagina visibile; tra pagine si passa da Alt+frecce.
+    // Solo dentro la pagina visibile; tra pagine si passa da Alt+frecce.
     const [drag, setDrag] = useState(null); // { id, over: indice globale bersaglio | null }
     const wrapRef = useRef(null);
     const refocusRef = useRef(null);
@@ -592,7 +592,7 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                                 const gi = page * perPage + i; // indice globale (= ordine di stampa)
                                 const name = cardName(img, gi);
                                 // Bassa risoluzione: la sorgente non copre metà dei px richiesti al DPI
-                                // scelto → stampa sgranata. ponytail: soglia 0.5× fissa; le PNG Scryfall
+                                // scelto → stampa sgranata. Soglia 0.5× fissa; le PNG Scryfall
                                 // (~300 DPI a misura carta) non avvisano fino a >600 DPI.
                                 const lowRes = img.w && img.w < dpi * 0.5 * (cardW / 25.4);
                                 const isSel = selected.has(img.id);

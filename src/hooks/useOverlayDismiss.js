@@ -13,7 +13,7 @@ const layers = [];
 // `if (!open) return null`: passa il flag, non si possono chiamare hook dopo il return).
 // `focusContainer` = false per non rubare un autoFocus interno (es. ConfirmDialog
 // mette il focus su Annulla, l'azione meno distruttiva).
-// ponytail: niente focus-trap completo sul Tab; Esc + focus-in + restore coprono
+// Niente focus-trap completo sul Tab; Esc + focus-in + restore coprono
 // il grosso. Aggiungere il trap se un audit lo richiede.
 export function useOverlayDismiss(onClose, active = true, { focusContainer = true } = {}) {
     const ref = useRef(null);

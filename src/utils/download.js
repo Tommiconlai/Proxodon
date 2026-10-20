@@ -11,7 +11,7 @@ const toBase64 = (blob) => new Promise((resolve, reject) => {
 
 // Salva un file. Web: link temporaneo con download. App Android (dove <a download> non salva nulla): lo
 // scrive a pezzi nella cache dell'app e apre il foglio di condivisione (apri, salva in File o Drive, invia).
-// ponytail: i file restano nella cache, Android la svuota da solo quando serve spazio.
+// I file restano nella cache, Android la svuota da solo quando serve spazio.
 export async function saveFile(filename, blob) {
   if (!Capacitor.isNativePlatform()) {
     const a = document.createElement('a');

@@ -12,7 +12,7 @@ const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 // scende e sparisce (animazione card-play, poi esce dalla mano) e, se è una terra, conta in "Lands
 // on battlefield". Le non terra con costo di mana più alto delle terre in campo sono sbiadite.
 // Draw pesca la successiva, New hand ricomincia da zero.
-// ponytail: giocabile = costo di mana <= terre in campo, senza guardare i colori né le terre già
+// Giocabile = costo di mana <= terre in campo, senza guardare i colori né le terre già
 // usate nel turno. Le carte messe in fondo contano nel grimorio ma non si ripescano.
 export default function SampleHand({ deck }) {
   const lib = useMemo(() => libraryCards(deck), [deck]);

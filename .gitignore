@@ -23,9 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# Claude Code local tooling (preview launch config, etc.)
-.claude/
-
 # Secrets and signing material (the repo is public)
 .env
 .env.*

@@ -22,7 +22,7 @@ const ms = (t) => t?.toMillis?.() ?? 0;
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const noop = () => {};
 // Risposta applicata: uid di chi ha risposto @ ora della risposta. Se la risposta cambia (o è nuova, della stessa
-// persona) il segno Applied sparisce: quello applicato era un'altra versione. ponytail: le chiavi delle versioni
+// persona) il segno Applied sparisce: quello applicato era un'altra versione. Le chiavi delle versioni
 // vecchie restano in applied (le regole ne tengono 200 per richiesta); se mai servisse, toglierle all'Apply.
 const appliedKey = (r) => `${r.id}@${ms(r.at)}`;
 const Spinner = () => <span className="import-spinner" role="status" aria-label="Loading" />;

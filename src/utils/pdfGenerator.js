@@ -213,7 +213,7 @@ export function drawCardWithBleed(ctx, img, x, y, cellW, cellH, bleedPx, mode = 
     return;
   }
 
-  // ponytail: scarta la frangia esterna del PNG (1-3 px di antialias, più scura) dal
+  // Scarta la frangia esterna del PNG (1-3 px di antialias, più scura) dal
   // trim E dalle fasce. Su full-art chiare lasciava una riga scura sul taglio (mirror/
   // stretch); su bordi scuri si confondeva. Inset in px sorgente (~2 su 745).
   const inset = Math.min(3, Math.max(1, Math.round(iw / 370)));

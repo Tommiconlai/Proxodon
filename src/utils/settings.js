@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 // Impostazioni dell'utente (pagina Settings), salvate su questo dispositivo in localStorage.
-// ponytail: non si sincronizzano tra dispositivi; per farlo serve un campo nel profilo Firestore
+// Non si sincronizzano tra dispositivi; per farlo serve un campo nel profilo Firestore
 // (users/{uid}) e una regola che lo accetti.
 export const DEFAULTS = {
   deckFormat: 'commander', // nuovo mazzo e import

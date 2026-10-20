@@ -299,7 +299,7 @@ export function placeRows(deck, ids, board, section, { one = false } = {}) {
     return [moved(r)];
   });
   const merged = mergeSame(cards);
-  // ponytail: oltre MAX_ROWS lo spostamento non avviene (servirebbe un messaggio, caso rarissimo).
+  // Oltre MAX_ROWS lo spostamento non avviene (servirebbe un messaggio, caso rarissimo).
   return merged.length > MAX_ROWS ? deck : { ...deck, cards: merged };
 }
 export function moveToSection(deck, ids, section) {
