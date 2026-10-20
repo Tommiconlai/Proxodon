@@ -10,7 +10,7 @@ import {
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
   splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies, packPiles, splitPiles,
   libraryCards, shuffle, mulliganBottom, hyperAtLeast, deckPrice, addEntries, searchTerms, deckMatches, contentSig,
-  scryfallImg, cleanPublicDeck, cleanIndex, indexFields, deckTags, MAX_TAGS, splitSlices, applySuggestion, revertSuggestion, cleanCards, cleanHelp, cleanReply,
+  scryfallImg, cleanPublicDeck, cleanIndex, indexFields, deckTags, deckBracket, MAX_TAGS, splitSlices, applySuggestion, revertSuggestion, cleanCards, cleanHelp, cleanReply,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
 
@@ -378,6 +378,21 @@ eq([advancedQuery({ name: 'Fire/Ice' }), advancedQuery({ name: 'Delver of Secret
 eq([withLegal('t:elf', 'modern'), withLegal('t:elf', 'casual'), withLegal('', 'pauper')], ['t:elf legal:modern', 't:elf', 'legal:pauper'], 'legalità del formato');
 eq([withLegal('t:elf', 'commander', ['U', 'G']), withLegal('', 'commander', [])], ['t:elf legal:commander id<=ug', 'legal:commander id:c'], 'identità del comandante');
 eq([snapshotFromCard({ ...sc({ id: 'gc1', name: 'Rhystic Study' }), game_changer: true }).gc, snap({ id: 'gc0', name: 'Sol Ring' }).gc], [true, false], 'game changer');
+// Commander bracket: 0 Game Changer = 2, da 1 a 3 = 3, 4 o più = 4; side e maybeboard non contano, copie della stessa carta una volta.
+const gcDeck = (n, extra = {}) => ({ format: 'commander', cards: [
+  ...Array.from({ length: n }, (_, i) => ({ board: 'main', qty: 1, card: { gc: true, oid: `g${i}` } })),
+  { board: 'main', qty: 1, card: { gc: true, oid: 'g0' } }, { board: 'maybe', qty: 1, card: { gc: true, oid: 'gm' } },
+  { board: 'side', qty: 1, card: { gc: true, oid: 'gs' } }, { board: 'main', qty: 1, card: { gc: false, oid: 'x' } }], ...extra });
+eq([1, 3, 4, 7].map((n) => deckBracket(gcDeck(n))), [3, 3, 4, 4], 'bracket automatico');
+eq(deckBracket({ format: 'commander', cards: [{ board: 'maybe', qty: 1, card: { gc: true, oid: 'gm' } }] }), 2, 'bracket automatico senza Game Changer');
+eq([deckBracket(gcDeck(1, { bracket: 5 })), deckBracket(gcDeck(5, { bracket: 1 })), deckBracket(gcDeck(2, { bracket: 0 })),
+  deckBracket(gcDeck(2, { bracket: 9 })), deckBracket(gcDeck(2, { format: 'modern' }))], [5, 1, null, 3, null],
+'bracket a mano, spento, non valido = automatico, fuori da Commander nessuno');
+eq([cleanIndex({ name: 'x', bracket: 3 }).bracket, cleanIndex({ name: 'x', bracket: 0 }).bracket, cleanIndex({ name: 'x', bracket: '4' }).bracket],
+  [3, null, null], 'indice: bracket solo 1-5');
+eq([duplicateDeck({ ...newDeck({ name: 'b', format: 'commander' }), bracket: 0 }).bracket,
+  fromBackup(toBackup([{ ...newDeck({ name: 'b' }), bracket: 4 }]))[0].bracket, cleanPublicDeck({ name: 'p', cards: [], bracket: 2.5 }).bracket],
+[0, 4, undefined], 'bracket in copia, backup e copia pubblica');
 
 // Stack: colonne alte al massimo quanto la pila più alta, ogni pila nella prima colonna dove ci sta.
 eq(packPiles([300, 500, 150, 400, 100], 20), [[0, 2], [1], [3], [4]], 'pile: la 3a sotto la 1a, le altre non ci stanno');
@@ -411,7 +426,7 @@ eq([deckMatches(sd, [], { ...none, card: ' lightning ' }), deckMatches(sd, [], {
   deckMatches(maybeOnly, [], { ...none, card: 'bolt' })], [true, false, false], 'filtri: contiene carta, maybeboard esclusa');
 // Indice della Community: campi dal mazzo, voce ripulita, stessi filtri senza righe.
 const withMaybe = addCard(sd, forest, { board: 'maybe' }).deck;
-eq(indexFields(withMaybe), { ci: 'R', art: '', names: 'Lightning Bolt' }, 'indice: identità, copertina non Scryfall = vuota, nomi senza maybeboard');
+eq(indexFields(withMaybe), { ci: 'R', art: '', names: 'Lightning Bolt', bracket: null }, 'indice: identità, copertina non Scryfall = vuota, nomi senza maybeboard, niente bracket fuori da Commander');
 const entry = cleanIndex({ id: 'x', uid: 'u', name: 'Mono-Red Burn', format: 'modern', ci: 'RXW', art: 'https://evil.test/a.jpg',
   names: 'Lightning Bolt\nGoblin Guide', tags: ['Burn', 'Nope'], owner: 7 });
 eq([entry.ci, entry.art, entry.tags, entry.owner, entry.public, cleanIndex({ name: 3 })], [['W', 'R'], '', ['Burn'], null, true, null], 'indice: voce ripulita');

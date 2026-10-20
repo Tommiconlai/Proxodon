@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { boardCounts, countTarget, countOk, deckTags } from './deckModel';
+import { boardCounts, countTarget, countOk, deckTags, BRACKETS, gameChangers, autoBracket, deckBracket } from './deckModel';
 import { IconArrowUp, IconDeckFilter } from '../components/icons';
 
 const TABS = [['deck', 'Deck'], ['stats', 'Stats'], ['dilemmas', 'Dilemmas'], ['help', 'Help']];
@@ -89,6 +89,30 @@ export function DeckBand({ tab, onTab, format }) {
 // sfumata che a destra sale con uno scalino verso il bordo.
 export function ListBand({ items, current }) {
   return <div className="list-band"><TabStrip items={items} current={current} label="Decks" /></div>;
+}
+
+// Commander bracket accanto al nome (solo mazzi Commander). Con update (mazzo proprio) sopra la pillola c'è un select
+// trasparente: Auto (dai Game Changer), 1-5 a mano, Off; spento resta qui sbiadito, per riaccenderlo. Senza update
+// (mazzo altrui) solo la pillola, niente se è spento.
+export function DeckBracket({ deck, update }) {
+  if (deck.format !== 'commander') return null;
+  const b = deckBracket(deck);
+  const n = gameChangers(deck);
+  const gcs = `${n} Game Changer${n === 1 ? '' : 's'}`;
+  const how = deck.bracket == null ? `auto, ${gcs}` : 'set by hand';
+  const title = b ? `Bracket ${b}: ${BRACKETS[b - 1]} (${how})` : 'Bracket off';
+  if (!update) return b && <span className="deck-bracket" title={title}>Bracket {b}</span>;
+  const set = (v) => update((d) => ({ ...d, bracket: v === 'auto' ? undefined : Number(v) }));
+  return (
+    <span className={`deck-bracket${b ? '' : ' off'}`} title={`${title}. Click to change`}>
+      {b ? `Bracket ${b}` : 'No bracket'}
+      <select value={deck.bracket ?? 'auto'} onChange={(e) => set(e.target.value)} aria-label={`Commander bracket: ${title}`}>
+        <option value="auto">Auto: bracket {autoBracket(deck)} ({gcs})</option>
+        {BRACKETS.map((name, i) => <option key={name} value={i + 1}>Bracket {i + 1}: {name}</option>)}
+        <option value="0">Off</option>
+      </select>
+    </span>
+  );
 }
 
 // Nome del mazzo da desktop (barra in alto): nome e cuore sulla stessa riga, sotto "by" l'autore (se c'è).

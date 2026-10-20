@@ -5,7 +5,7 @@ import { cardsByIds } from './scryfallSearch';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { navigate } from '../hooks/useHashRoute';
 import DeckSections from './DeckSections';
-import { DeckBand, DeckTitle, DeckCount, DeckTopBar, DeckTagList } from './DeckTabs';
+import { DeckBand, DeckTitle, DeckCount, DeckTopBar, DeckTagList, DeckBracket } from './DeckTabs';
 import { DeckDilemmas } from './Dilemmas';
 import { DeckHelps, HelpQuestion, HelpReply } from './HelpRequests';
 import { ExportDeckDialog } from './dialogs';
@@ -97,7 +97,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
         {!mobile && !helpId && (
           <div className="deck-sticky">
             <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`}>
-              <DeckTitle by={by}><h2 className="deck-name deck-name-static">{deck.name}</h2>{like}</DeckTitle>
+              <DeckTitle by={by}><h2 className="deck-name deck-name-static">{deck.name}</h2><DeckBracket deck={deck} />{like}</DeckTitle>
             </div>
           </div>
         )}
@@ -114,6 +114,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
             {inHero && (
               <div className="deck-hero-title">
                 <h2 className="deck-name deck-name-static">{deck.name}</h2>
+                <DeckBracket deck={deck} />
                 {like}
               </div>
             )}

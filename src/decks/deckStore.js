@@ -5,11 +5,11 @@
  */
 import {
   collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, getDoc, getDocs, writeBatch, runTransaction,
-  query, where, orderBy, limit, startAfter, getCountFromServer, collectionGroup, arrayUnion, arrayRemove, Timestamp, increment,
+  query, where, orderBy, limit, startAfter, getCountFromServer, collectionGroup, arrayUnion, arrayRemove, Timestamp, increment, deleteField,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import {
-  searchTerms, contentSig, deckTags, deckCover, cleanCards, cleanHelp, cleanReply, cleanPublicDeck, cleanIndex, indexFields, rid,
+  searchTerms, contentSig, deckTags, deckCover, cleanCards, cleanHelp, cleanReply, cleanPublicDeck, cleanIndex, indexFields, rid, bracketField,
 } from './deckModel';
 
 const decksCol = (uid) => collection(db, 'users', uid, 'decks');
@@ -21,9 +21,11 @@ const fromDoc = (s) => {
   return d.sig || !Array.isArray(d.cards) ? d : { ...d, sig: contentSig(d.cards) };
 };
 const ms = (t) => t?.toMillis?.() ?? 0;
-const payload = (d) => ({
+// bracket solo se scelto a mano o spento (in automatico manca); merge = scrittura con merge, dove va tolto esplicitamente.
+const payload = (d, merge = true) => ({
   v: 1, name: d.name, format: d.format, groupBy: d.groupBy, sections: d.sections, cover: d.cover ?? null, cards: d.cards,
   tags: deckTags(d), public: !!d.public, updatedAt: serverTimestamp(),
+  ...(d.bracket == null && merge ? { bracket: deleteField() } : bracketField(d.bracket)),
 });
 // "Updated" (riquadri dei mazzi) = changedAt, che si sposta solo quando cambia contentSig (carte aggiunte, tolte, quantità,
 // zone, sezioni, comandante). Nome, formato, raggruppamento, copertina, Public, cambi di edizione e
@@ -80,14 +82,15 @@ const publish = async (uid, d, f) => {
   await setDoc(doc(publicCol, d.id), { ...payload(d), ...f, uid, ...(owner !== undefined && { owner }), ...common }, { merge: true });
   return writeIndex(uid, d, owner, common);
 };
-// Mazzi pubblici di prima dell'indice: il proprietario aprendo My decks scrive la voce che manca (una lettura per mazzo
-// pubblico, una volta per sessione). ponytail: i mazzi di chi non riapre l'app restano fuori dall'indice.
+// Mazzi pubblici di prima dell'indice (o di prima del bracket nell'indice): il proprietario aprendo My decks scrive la
+// voce che manca o è vecchia (una lettura per mazzo pubblico, una volta per sessione). ponytail: i mazzi di chi non
+// riapre l'app restano fuori dall'indice (o senza bracket sul riquadro).
 const indexed = new Set();
 export function ensureIndexed(uid, decks) {
   decks.filter((d) => d.public && !indexed.has(d.id)).forEach((d) => {
     indexed.add(d.id);
     getDoc(doc(indexCol, d.id))
-      .then(async (s) => { if (!s.exists()) await writeIndex(uid, d, await ownerOf(uid), commonOf(d)); })
+      .then(async (s) => { if (!s.exists() || !('bracket' in s.data())) await writeIndex(uid, d, await ownerOf(uid), commonOf(d)); })
       .catch(() => {}); // offline o regole vecchie: si riprova alla prossima sessione (non a ogni aggiornamento)
   });
 }
@@ -117,7 +120,7 @@ export function listenDeck(uid, id, onChange, onError) {
 export function createDeck(uid, deck) {
   const ref = doc(decksCol(uid));
   const f = changes(deck);
-  const done = setDoc(ref, { ...payload(deck), ...f, rev: 1, folder: deck.folder ?? null, createdAt: serverTimestamp() });
+  const done = setDoc(ref, { ...payload(deck, false), ...f, rev: 1, folder: deck.folder ?? null, createdAt: serverTimestamp() });
   return { id: ref.id, done: deck.public ? Promise.all([done, publish(uid, { ...deck, id: ref.id }, f)]) : done };
 }
 // Cartelle di My decks: folder = { id, name } sul mazzo (solo quello privato), null = fuori. Una cartella

@@ -4,7 +4,7 @@ import {
   ensureIndexed,
 } from './deckStore';
 import {
-  FORMATS, duplicateDeck, deckIdentity, deckCover, deckTags, scryfallImg, formatLabel, searchTerms, deckMatches, rid,
+  FORMATS, duplicateDeck, deckIdentity, deckCover, deckTags, scryfallImg, formatLabel, deckBracket, searchTerms, deckMatches, rid,
   MAX_ROWS, MAX_QTY,
 } from './deckModel';
 import { navigate } from '../hooks/useHashRoute';
@@ -87,6 +87,7 @@ export function DeckTile({ deck: d, by, stats, ...props }) {
   const identity = d.ci ?? deckIdentity(d);
   const n = Math.max(1, identity.length);
   const format = formatLabel(d.format);
+  const bracket = Array.isArray(d.cards) ? deckBracket(d) : d.bracket; // voce dell'indice: già calcolato
   // Pillola dei simboli: 13.5 l'uno a passi di 18.5, 7 di margine; tasca = pillola + 4 di vuoto.
   const cuts = { tl: [18.5 * n + 13, 26], br: [48, 26], ...(helping ? { tr: [32, 32] } : {}) };
   return (
@@ -95,7 +96,10 @@ export function DeckTile({ deck: d, by, stats, ...props }) {
         {cover && <span className="deck-tile-art" style={{ backgroundImage: `url("${cover}")` }} />}
       </TileFrame>
       <span className="deck-tile-pips"><ManaPips colors={identity} /></span>
-      <span className="deck-tile-callout"><span className="deck-tile-dot" aria-hidden="true" />{format}</span>
+      <span className="deck-tile-callout">
+        <span className="deck-tile-dot" aria-hidden="true" />{format}
+        {bracket && <span className="deck-tile-bracket"><span className="sr-only">, </span>Bracket {bracket}</span>}
+      </span>
       <span className="deck-tile-body">
         <span className="deck-tile-name">{d.name}</span>
         {tags && <span className="deck-tile-tags" title={tags}>{tags}</span>}

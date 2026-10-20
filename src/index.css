@@ -2654,6 +2654,9 @@ button.decks-tab { padding: 4px 2px; background: none; border: 0; cursor: pointe
   font-family: var(--font-mono); font-size: calc(9 * var(--u)); letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255, 255, 255, 0.78);
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9); pointer-events: none;
 }
+/* Bracket sotto il formato: a capo dentro lo stesso richiamo, ciano. */
+.deck-tile-callout:has(.deck-tile-bracket) { flex-wrap: wrap; row-gap: calc(4 * var(--u)); }
+.deck-tile-bracket { order: 2; flex-basis: 100%; color: var(--cyan); }
 .deck-tile-dot { order: 1; flex: none; width: calc(5 * var(--u)); height: calc(5 * var(--u)); border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
 /* In basso il nome grande (2 righe), i tag, autore e ultima modifica; a destra resta la tasca dei like. */
 .deck-tile-body {
@@ -3545,7 +3548,8 @@ span.deck-hero-art { cursor: default; }
    spazio. Desktop: il gruppo non c'è (display: contents), i pulsanti restano nella riga in basso. */
 .deck-hero-actions { display: contents; }
 .deck-editor.is-mobile .deck-hero-actions { position: absolute; top: 0; right: 0; display: flex; gap: 8px; }
-.deck-editor.is-mobile .deck-hero-title { padding-right: 156px; }
+.deck-editor.is-mobile .deck-hero-title { padding-right: 156px; flex-wrap: wrap; row-gap: 2px; } /* bracket a capo sotto il nome */
+.deck-editor.is-mobile .deck-bracket select { inset: 0 0 -18px; } /* tocco alto 44 px verso il basso, non sopra il nome */
 /* Editor: quattro pulsanti (Tags in più), 4 x 44 + 3 x 8. */
 .deck-editor.is-mobile .deck-hero-content:has(.deck-hero-actions > :nth-child(4)) .deck-hero-title { padding-right: 208px; }
 /* Ordina / Vista / Raggruppa (+ nuova sezione) in una riga: etichetta piccola sopra, menu stretti. */
@@ -4007,6 +4011,21 @@ span.deck-hero-art { cursor: default; }
 .deck-sticky-bar.stuck .deck-by { display: none; }
 .deck-likes { flex: none; display: inline-flex; align-items: center; gap: 6px; color: var(--accent); font-family: var(--font-mono); font-size: 12px; }
 .deck-likes span { color: rgba(255, 255, 255, 0.75); }
+/* Commander bracket accanto al nome: pillola mono ciano; sul mazzo proprio un select trasparente sopra (menu nativo,
+   area di tocco alta 44 px). Spento = tratteggiata e grigia, solo sul mazzo proprio. */
+.deck-bracket {
+  position: relative; flex: none; display: inline-flex; align-items: center; height: 26px; padding: 0 10px;
+  border: 1px solid rgba(0, 229, 255, 0.35); border-radius: 999px; background: rgba(0, 0, 0, 0.25);
+  color: var(--cyan); font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap;
+  text-shadow: none;
+}
+.deck-bracket.off { color: rgba(255, 255, 255, 0.5); border: 1px dashed rgba(255, 255, 255, 0.28); }
+.deck-bracket select {
+  position: absolute; inset: -10px 0; width: 100%; height: auto; min-height: 0; padding: 0; margin: 0; opacity: 0; cursor: pointer; font-size: 16px;
+}
+.deck-bracket:has(select):hover { border-color: var(--cyan); }
+.deck-bracket.off:has(select):hover { border-color: rgba(255, 255, 255, 0.6); }
+.deck-bracket:has(select:focus-visible) { box-shadow: var(--focus-ring); }
 :is(.deck-sticky-bar, .deck-editor:not(.is-mobile) .deck-hero-title) .deck-like { padding: 4px; gap: 6px; background: none; border: 0; border-radius: 6px; color: var(--accent); font-size: 12px; box-shadow: none; }
 :is(.deck-sticky-bar, .deck-editor:not(.is-mobile) .deck-hero-title) .deck-like:is(:hover, :focus-visible) { box-shadow: var(--focus-ring); }
 :is(.deck-sticky-bar, .deck-editor:not(.is-mobile) .deck-hero-title) .deck-like span { color: rgba(255, 255, 255, 0.75); }

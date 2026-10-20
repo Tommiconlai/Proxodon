@@ -8,7 +8,7 @@ import { cardsByIds } from './scryfallSearch';
 import { navigate, replaceRoute } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
-import { DeckBand, DeckTitle, DeckCount, DeckTopBar, DeckTagList } from './DeckTabs';
+import { DeckBand, DeckTitle, DeckCount, DeckTopBar, DeckTagList, DeckBracket } from './DeckTabs';
 import { DeckDilemmas } from './Dilemmas';
 import { DeckHelps } from './HelpRequests';
 import CardSearch from './CardSearch';
@@ -153,6 +153,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
           <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`}>
             <DeckTitle by={owner}>
               {name}
+              <DeckBracket deck={deck} update={update} />
               {deck.public && <span className="deck-likes" role="img" aria-label={`${likes} ${likes === 1 ? 'like' : 'likes'}`} title={`${likes} ${likes === 1 ? 'like' : 'likes'}`}><IconDeckHeart />{likes > 0 && <span>{likes}</span>}</span>}
             </DeckTitle>
             <div className="deck-hero-search">
@@ -172,7 +173,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
           )}
         </button>
         <div className="deck-hero-content">
-          {mobile && <div className="deck-hero-title">{name}</div>}
+          {mobile && <div className="deck-hero-title">{name}<DeckBracket deck={deck} update={update} /></div>}
           <DeckTagList deck={deck} />
           <div className="deck-hero-meta">
             {mobile && format}

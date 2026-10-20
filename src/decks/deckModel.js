@@ -422,6 +422,18 @@ export const VIEWS = [
 const sorter = (sort) => (sort === 'name' ? byName : byMvName);
 
 export const commanderRows = (deck) => deck.cards.filter((r) => r.board === 'main' && r.commander);
+
+// Commander bracket. Sul mazzo: 1-5 = scelto a mano, 0 = spento, assente = automatico; altri valori (file, copie
+// altrui) contano come assente. Automatico: nessun Game Changer = 2, da 1 a 3 = 3, 4 o più = 4 (1 e 5 solo a mano).
+export const BRACKETS = ['Exhibition', 'Core', 'Upgraded', 'Optimized', 'cEDH'];
+const okBracket = (b) => Number.isInteger(b) && b >= 0 && b <= 5;
+export const bracketField = (b) => (okBracket(b) ? { bracket: b } : {});
+// Game Changer distinti tra mazzo e comandante: side e maybeboard non contano.
+export const gameChangers = (d) => new Set(d.cards.filter((r) => r.board === 'main' && r.card.gc).map((r) => r.card.oid)).size;
+export const autoBracket = (d) => { const n = gameChangers(d); return n === 0 ? 2 : n <= 3 ? 3 : 4; };
+// Bracket da mostrare: solo nei mazzi Commander, null se spento.
+export const deckBracket = (d) => (d.format !== 'commander' || d.bracket === 0 ? null
+  : okBracket(d.bracket) ? d.bracket : autoBracket(d));
 export const boardRows = (deck, board, sort) => deck.cards.filter((r) => r.board === board).sort(sorter(sort));
 
 const bucket = (rows, keyOf) => {
@@ -519,6 +531,7 @@ export const deckCover = (deck) => coverRow(deck)?.card.art || '';
 export const indexFields = (d) => ({
   ci: deckIdentity(d).join(''), art: scryfallImg(deckCover(d)),
   names: [...new Set(d.cards.filter((r) => r.board !== 'maybe').map((r) => r.card.name))].join('\n').slice(0, 16000),
+  bracket: deckBracket(d), // quello da mostrare sul riquadro (l'indice non ha le righe), null = nessuno
 });
 
 // Immagini dei mazzi solo da Scryfall (https, cards/svgs.scryfall.io), sennò '' (= segnaposto): i mazzi
@@ -600,7 +613,7 @@ export function toBackup(decks, now = new Date()) {
     app: 'proxodon', kind: 'decks', v: 1, exportedAt: now.toISOString(),
     decks: decks.map((d) => ({
       v: 1, name: d.name, format: d.format, groupBy: d.groupBy, sections: d.sections, cover: d.cover ?? null, cards: d.cards, tags: deckTags(d),
-      createdAt: iso(d.createdAt), updatedAt: iso(d.updatedAt),
+      ...bracketField(d.bracket), createdAt: iso(d.createdAt), updatedAt: iso(d.updatedAt),
     })),
   };
 }
@@ -649,6 +662,7 @@ export function cleanPublicDeck(d) {
     cover: typeof d.cover === 'string' ? d.cover.slice(0, 64) : null, tags: deckTags(d), sections: cleanSections(d.sections),
     cards: d.cards.slice(0, MAX_ROWS).map(cleanRow).filter(Boolean),
     sig: str(d.sig, 32), createdAt: stamp(d.createdAt), changedAt: stamp(d.changedAt), updatedAt: stamp(d.updatedAt),
+    ...bracketField(d.bracket),
   };
 }
 // Voce dell'indice della Community (publicIndex): la scrive chiunque abbia un account, quindi ripulita come le copie.
@@ -659,6 +673,7 @@ export function cleanIndex(d) {
     id: d.id, uid: str(d.uid, 128), owner: str(d.owner, 24) || null, public: true, name: d.name.slice(0, 80),
     format: FORMATS.some((x) => x.id === d.format) ? d.format : 'casual', tags: deckTags(d),
     ci: WUBRG.filter((c) => str(d.ci, 5).includes(c)), art: scryfallImg(d.art), names: str(d.names, 16000),
+    bracket: Number.isInteger(d.bracket) && d.bracket >= 1 && d.bracket <= 5 ? d.bracket : null,
     createdAt: stamp(d.createdAt), changedAt: stamp(d.changedAt),
   };
 }
@@ -682,6 +697,7 @@ export function fromBackup(json) {
     sections: cleanSections(d?.sections),
     cards: (Array.isArray(d?.cards) ? d.cards : []).filter(validRow).slice(0, MAX_ROWS).map(cleanRow).filter(Boolean)
       .map((r) => ({ ...r, id: rid(), commander: r.board === 'main' && !!r.commander })),
+    ...bracketField(d?.bracket),
   }));
 }
 
@@ -693,6 +709,7 @@ export function duplicateDeck(deck) {
     tags: deckTags(deck),
     sections: deck.sections.map((s) => ({ ...s })),
     cards: deck.cards.map((r) => ({ ...r, id: rid() })),
+    ...bracketField(deck.bracket),
   };
 }
 

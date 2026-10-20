@@ -31,6 +31,7 @@ export default function DeckHelp({ editor }) {
             <li><b>Options</b>. Long-press a card, or the selection: change edition, split, set as commander, move to a board or a section, remove.</li>
             <li><b>Organize</b>. <b>Group</b>, <b>Sort</b> and <b>View</b> above the cards. <b>New section</b>, the last option of <b>Group by</b>, makes your own groups.</li>
             <li><b>Cover</b>. Tap the art behind the deck name to pick another card.</li>
+            <li><b>Bracket</b> (Commander). Worked out from the Game Changers: none = 2, 1 to 3 = 3, 4 or more = 4. Tap it to set it by hand or turn it off.</li>
             <li><b>More</b>. <b>Stats</b>, <b>Dilemmas</b> and <b>Help</b> follow the cards, further down.</li>
           </ol>
         ) : (
@@ -41,6 +42,7 @@ export default function DeckHelp({ editor }) {
             <li><b>Options</b>. Right-click a card, or the selection: change edition, split, set as commander, move, remove. Hover a card for <b>+</b> and <b>−</b>.</li>
             <li><b>Organize</b>. <b>Group</b>, <b>Sort</b> and <b>View</b> above the cards. <b>New section</b> makes your own groups.</li>
             <li><b>Cover</b>. Click the art behind the deck name to pick another card.</li>
+            <li><b>Bracket</b> (Commander), next to the name. Worked out from the Game Changers: none = 2, 1 to 3 = 3, 4 or more = 4. Click it to set it by hand or turn it off.</li>
           </ol>
         )}
         {editor && <p className="help-controls">
