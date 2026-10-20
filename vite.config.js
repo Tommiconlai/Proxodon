@@ -4,7 +4,9 @@ import react from '@vitejs/plugin-react'
 // Content-Security-Policy del sito: GitHub Pages non manda header, quindi un meta, e solo nel build (in dev il
 // plugin React inietta uno script inline e l'HMR usa un websocket). Host = quelli che l'app usa davvero:
 // Scryfall (dati, immagini, simboli), le immagini Drive degli import MPC e le foto Google (googleusercontent),
-// Firebase (googleapis), il login Google (apis.google.com e l'iframe di authDomain), reCAPTCHA di App Check.
+// Firebase (solo i suoi host googleapis: Auth identitytoolkit + securetoken, Firestore, lo scambio del token di App Check,
+// che c'è anche con App Check spento così accenderlo non rompe niente; mai *.googleapis.com, che comprende anche bucket
+// di Storage di chiunque), il login Google (apis.google.com e l'iframe di authDomain), reCAPTCHA di App Check.
 // 'wasm-unsafe-eval' per lcms (stampa CMYK). Nell'app Android lo script di Capacitor è iniettato prima del meta,
 // e una CSP via meta vale solo per ciò che viene dopo. Un host nuovo (fetch, immagine, script) va aggiunto qui.
 const CSP = [
@@ -13,7 +15,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data: https://cards.scryfall.io https://svgs.scryfall.io https://*.googleusercontent.com",
   "font-src 'self' data:",
-  "connect-src 'self' blob: data: https://api.scryfall.com https://cards.scryfall.io https://svgs.scryfall.io https://lh3.googleusercontent.com https://*.googleapis.com https://www.google.com/recaptcha/",
+  "connect-src 'self' blob: data: https://api.scryfall.com https://cards.scryfall.io https://svgs.scryfall.io https://lh3.googleusercontent.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.google.com/recaptcha/",
   "frame-src https://proxoteca.firebaseapp.com https://accounts.google.com https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/",
   "worker-src 'self' blob:",
   "object-src 'none'",

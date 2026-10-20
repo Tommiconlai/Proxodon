@@ -201,7 +201,17 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
 
 ## Done recently
 
-- **Security review and fixes (most recent, 2026-10-20):** user: "fai un check sulla sicurezza del codice, usa le
+- **Security follow-ups (most recent, 2026-10-20):** side session started by the security review session, to finish
+  what it left open in code. Each step is its own commit.
+  - CSP: `connect-src` lists the exact Google hosts instead of `https://*.googleapis.com` (which also covers anyone's
+    Storage bucket): `identitytoolkit` and `securetoken` (Auth), `firestore`, and `content-firebaseappcheck` (the
+    only host the App Check SDK calls, kept with App Check off so turning it on breaks nothing; the bundle has no
+    App Check code while `appCheckSiteKey` is empty). `www.googleapis.com/oauth2/v3/tokeninfo` in the bundle belongs
+    to the web side of the social login plugin, never used (the app signs in natively). Checked on `vite preview`
+    (1440x900): My decks and a Community deck load, the page reaches exactly securetoken, identitytoolkit,
+    firestore, lh3, Scryfall; no CSP violation; a fetch to `storage.googleapis.com` is blocked; the sign-in page on a
+    signed-out origin loads with an empty console. Not tested: the Google popup (needs the user).
+- **Security review and fixes (2026-10-20):** user: "fai un check sulla sicurezza del codice, usa le
   skill o agenti necessari. Sii scrupoloso, non tralasciare niente", then "Sistema il gruppo 1 e prepara anche le
   regole Firestore del gruppo 2". Three `ecc:security-reviewer` agents (rules and data layer, with ~150 probes on
   the local emulator; client code; platform, deps and secrets) found no CRITICAL or HIGH issue: no authorization
