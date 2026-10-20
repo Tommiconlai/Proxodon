@@ -222,6 +222,17 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
     a 214-character name (rules allow 200) stays with "Not saved" and Retry (Retry refused again, toast again), the
     original name then saves; two tabs, tab A renames while tab B keeps editing, B's save is refused and B shows A's
     name with the conflict toast; the original name was restored and saved from B.
+  - Unverified email accounts (they only see `VerifyEmailPanel`, Settings is out of reach) can delete themselves: a
+    red trash icon button ("Delete this account", 36 px, 44 px on phones, `settings-delete` look) next to "Use another
+    account", `ConfirmDialog` ("Delete the account x? It has no decks yet."), then `deleteUnverifiedAccount`: reloads
+    the user and refuses if it is verified by now (it could have decks, so Settings with the data), else plain
+    `deleteUser` (no Firestore data: the rules give unverified accounts nothing). A stale sign-in gets
+    `auth/requires-recent-login`, now mapped to "For safety, sign out, sign in again and repeat within 5 minutes." On
+    success the toast says "Account deleted" and the sign-in panel comes back. Checked in the dev server with a
+    temporary switch that showed the panel for my signed-in Google account (removed before the commit): 1440x900 and
+    375x812, button red and centred, confirm in the body with Cancel focused, Cancel and Esc close it. Confirm was not
+    pressed (it would have hit the verified guard, but an account deletion is not something to test on a real one):
+    the deletion itself is untested.
 - **Security review and fixes (2026-10-20):** user: "fai un check sulla sicurezza del codice, usa le
   skill o agenti necessari. Sii scrupoloso, non tralasciare niente", then "Sistema il gruppo 1 e prepara anche le
   regole Firestore del gruppo 2". Three `ecc:security-reviewer` agents (rules and data layer, with ~150 probes on

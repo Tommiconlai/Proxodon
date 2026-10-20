@@ -2291,7 +2291,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .signin-form { display: flex; flex-direction: column; gap: 10px; }
 .signin-form .import-link-input { flex: none; font-size: 0.9rem; }
 .signin-submit { justify-content: center; padding: 10px 16px; }
-.signin-links { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.signin-links { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .signin-link {
   padding: 2px 0;
   background: none; border: 0;
@@ -2302,6 +2302,9 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 .signin-link:hover:not(:disabled), .signin-link:focus-visible { text-decoration: underline; color: var(--cyan); }
 .signin-link:disabled { opacity: 0.5; cursor: default; }
+/* Delete this account (VerifyEmailPanel): cestino rosso come Delete account di Settings, 44 px da telefono. */
+.signin-delete { width: 36px; height: 36px; padding: 0; justify-content: center; }
+.mobile .signin-delete { width: 44px; height: 44px; }
 /* Testata desktop, area mazzi: ? e avatar a destra (DecksView li mette qui col portale). */
 .header-slot { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .header-slot .help { margin-left: 0; position: relative; }

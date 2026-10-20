@@ -2,8 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   signIn, signInEmail, signUpEmail, resetPassword, authMessage, signOut,
-  needsVerification, sendVerification, checkVerified,
+  needsVerification, sendVerification, checkVerified, deleteUnverifiedAccount,
 } from './firebase';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { IconTrash } from '../components/icons';
 import AccountMenu from './AccountMenu';
 import { useAccount } from './useAccount';
 import DeckList from './DeckList';
@@ -22,7 +24,7 @@ export default function DecksView({ route, notify, printQueueCount, onPrintDeck,
   const { user, profile, photo, rerender } = useAccount();
   if (user === undefined) return <div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>;
   if (!user) return <SignInPanel />;
-  if (needsVerification(user)) return <VerifyEmailPanel email={user.email} onVerified={rerender} />;
+  if (needsVerification(user)) return <VerifyEmailPanel email={user.email} onVerified={rerender} notify={notify} />;
   const [, area, id, sub] = route.split('/');
   const community = area === 'community';
   return (
@@ -105,11 +107,13 @@ function SignInPanel() {
   );
 }
 
-// Account email appena creato: niente mazzi finché l'indirizzo non è confermato dal link.
-function VerifyEmailPanel({ email, onVerified }) {
-  const [busy, setBusy] = useState(null); // 'check' | 'send'
+// Account email appena creato: niente mazzi finché l'indirizzo non è confermato dal link. Chi non lo vuole più (email
+// sbagliata, account di prova) lo cancella da qui: Settings non la vede.
+function VerifyEmailPanel({ email, onVerified, notify }) {
+  const [busy, setBusy] = useState(null); // 'check' | 'send' | 'delete'
   const [error, setError] = useState(null);
   const [info, setInfo] = useState(null);
+  const [confirmDel, setConfirmDel] = useState(false);
 
   const check = useCallback(async (quiet) => {
     try {
@@ -150,8 +154,21 @@ function VerifyEmailPanel({ email, onVerified }) {
         <p className="field-hint">Nothing in the inbox? Check the spam folder.</p>
         <div className="signin-links">
           <button type="button" className="signin-link" onClick={() => signOut()} disabled={!!busy}>Use another account</button>
+          <button type="button" className="btn-secondary settings-delete signin-delete" disabled={!!busy}
+            aria-label="Delete this account" title="Delete this account" onClick={() => setConfirmDel(true)}>
+            {busy === 'delete' ? <span className="import-spinner" /> : <IconTrash size={16} />}
+          </button>
         </div>
       </div>
+      {createPortal(
+        <ConfirmDialog open={confirmDel} message={`Delete the account ${email}? It has no decks yet. This can’t be undone.`}
+          confirmLabel="Delete account" onCancel={() => setConfirmDel(false)}
+          onConfirm={() => {
+            setConfirmDel(false);
+            run('delete', async () => { await deleteUnverifiedAccount(); notify('Account deleted'); });
+          }} />,
+        document.body,
+      )}
     </div>
   );
 }

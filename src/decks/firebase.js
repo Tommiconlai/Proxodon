@@ -99,6 +99,16 @@ export async function checkVerified() {
   if (u.emailVerified) await u.getIdToken(true);
   return u.emailVerified;
 }
+// Account email mai confermato (VerifyEmailPanel): niente dati da cancellare, le regole non gli fanno leggere né scrivere
+// nulla (verified()), quindi solo l'account. Prima rilegge l'utente: confermato intanto da un'altra scheda potrebbe avere
+// mazzi, e allora si cancella da Settings, con i dati. Firebase vuole un accesso recente (5 minuti), se no lo dice.
+export async function deleteUnverifiedAccount() {
+  const u = auth.currentUser;
+  if (!u) return;
+  await u.reload();
+  if (!needsVerification(u)) throw new Error('This account is verified now. Reload the page and delete it from Settings.');
+  await deleteUser(u);
+}
 // Con la protezione anti-enumerazione Firebase non dice se l'email esiste: nessun errore in quel caso.
 export const resetPassword = (email) => sendPasswordResetEmail(auth, email);
 
@@ -118,6 +128,7 @@ const AUTH_MESSAGES = {
   'auth/cancelled-popup-request': 'The Google window was closed.',
   'auth/user-disabled': 'Wrong email or password.', // come gli altri: non dice se l'account esiste
   'auth/user-mismatch': 'That is a different Google account. Use the one you are signed in with.',
+  'auth/requires-recent-login': 'For safety, sign out, sign in again and repeat within 5 minutes.',
 };
 // Codici sconosciuti dell'SDK: un messaggio generico col codice (utile per un aiuto), mai il suo testo grezzo; gli errori
 // dell'app (senza codice) tengono il loro testo.
