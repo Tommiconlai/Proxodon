@@ -35,10 +35,13 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   // Errori di sync del mazzo, anche dopo la chiusura dell'editor (notify è dell'app, resta vivo).
   const syncError = useCallback((e) => notify(e.code === 'resource-exhausted'
     ? 'Daily sync limit reached. Your changes stay on this device and sync after the reset.'
+    // Salvataggio rifiutato ma il mazzo sul server è quello di partenza (useDeck, kept): le modifiche restano, Retry
+    // (solo a editor aperto) riprova subito.
+    : e.kept ? (e.retry ? 'Your last change was not saved. It is still here: retry now, or it is tried again with your next change.' : 'Your last change to this deck could not be saved.')
     // Versione rifiutata dalle regole (useDeck): il mazzo è cambiato altrove, qui torna la versione salvata.
     : e.code === 'permission-denied' && !e.publish ? 'This deck changed on another device or tab: your last change was not saved. You now see the saved version.'
-      : e.publish ? `Community copy not updated: ${e.message}` : `Sync error: ${e.message}`, 'error'), [notify]);
-  const { deck, update, saving, synced } = useDeck(uid, id, syncError);
+      : e.publish ? `Community copy not updated: ${e.message}` : `Sync error: ${e.message}`, 'error', e.retry && { label: 'Retry', onClick: e.retry }), [notify]);
+  const { deck, update, saving, unsaved, synced } = useDeck(uid, id, syncError);
   const mobile = useIsMobile();
   const likes = useCount(countLikes, id, undefined, !!deck?.public);
   const settings = useSettings(); // stampa (aggiungi o sostituisci, sideboard), valuta dei prezzi
@@ -122,7 +125,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   };
   const cover = coverRow(deck);
   const savedAt = changedMs(deck); // ultimo cambio di carte (changedAt): Public, edizioni, prezzi non contano
-  const syncState = !online ? (saving ? 'Offline, saved on this device' : 'Offline') : saving ? 'Saving…' : 'Saved';
+  const syncState = unsaved ? 'Not saved' : !online ? (saving ? 'Offline, saved on this device' : 'Offline') : saving ? 'Saving…' : 'Saved';
   const sync = syncState === 'Saved' && savedAt ? `Saved ${timeAgo(savedAt)}` : syncState;
   const name = (
     <input className="deck-name" value={deck.name} maxLength={80} aria-label="Deck name" spellCheck={false}

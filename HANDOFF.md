@@ -211,6 +211,17 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
     (1440x900): My decks and a Community deck load, the page reaches exactly securetoken, identitytoolkit,
     firestore, lh3, Scryfall; no CSP violation; a fetch to `storage.googleapis.com` is blocked; the sign-in page on a
     signed-out origin loads with an empty console. Not tested: the Google popup (needs the user).
+  - `useDeck` no longer treats every refused save (`permission-denied`, not of the public copy) as a conflict: it
+    re-reads the deck with `deckFromServer` (`getDocFromServer`) and compares rev / ver with `base`, the server version
+    the save started from (one object shared by queued saves, advanced when one is confirmed, reset when a snapshot
+    without pending writes is adopted). Different (or deck gone) = conflict, as before: back to the server version,
+    "This deck changed on another device or tab". Same, or the re-read fails (offline, App Check) = the refusal was
+    something else: the edits stay, rebased on the server rev / ver, snapshots do not overwrite them (`held`), the sync
+    label says "Not saved" and the toast offers Retry (only while the editor is open); the next edit, hiding the tab or
+    closing the editor saves again. Only the newest save decides (`seq`). Checked on `vite preview` with a public deck:
+    a 214-character name (rules allow 200) stays with "Not saved" and Retry (Retry refused again, toast again), the
+    original name then saves; two tabs, tab A renames while tab B keeps editing, B's save is refused and B shows A's
+    name with the conflict toast; the original name was restored and saved from B.
 - **Security review and fixes (2026-10-20):** user: "fai un check sulla sicurezza del codice, usa le
   skill o agenti necessari. Sii scrupoloso, non tralasciare niente", then "Sistema il gruppo 1 e prepara anche le
   regole Firestore del gruppo 2". Three `ecc:security-reviewer` agents (rules and data layer, with ~150 probes on

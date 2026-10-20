@@ -4,7 +4,7 @@
  * offline restano in coda nella cache locale.
  */
 import {
-  collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, getDoc, getDocs, writeBatch, runTransaction,
+  collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, getDoc, getDocFromServer, getDocs, writeBatch, runTransaction,
   query, where, orderBy, limit, startAfter, getCountFromServer, collectionGroup, arrayUnion, arrayRemove, Timestamp, increment, deleteField,
 } from 'firebase/firestore';
 import { db } from './firebase';
@@ -114,6 +114,8 @@ export function listenDeck(uid, id, onChange, onError) {
   return onSnapshot(doc(decksCol(uid), id), { includeMetadataChanges: true },
     (s) => onChange(s.exists() ? fromDoc(s) : null, s.metadata.hasPendingWrites, s.metadata.fromCache), onError);
 }
+// Il mazzo com'è sul server, mai dalla cache (useDeck: un salvataggio rifiutato era un conflitto?). null = non c'è.
+export const deckFromServer = (uid, id) => getDocFromServer(doc(decksCol(uid), id)).then((s) => (s.exists() ? fromDoc(s) : null));
 
 // Nuovo mazzo; public (dal pannello New deck) scrive subito anche la copia in Community. folder = la
 // cartella in cui nasce (aperta in My decks), fuori dal payload perché la copia pubblica non la porta.
