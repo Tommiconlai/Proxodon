@@ -181,6 +181,19 @@ export async function lookupCards(list) {
   );
   const cardByKey = new Map(); // "nome|set|collector" (e varianti) -> card
   const reg = (k, card) => { if (!cardByKey.has(k)) cardByKey.set(k, card); };
+  // Registra sotto ogni chiave con cui potremmo cercarla: nome, faccia DFC, nome alternativo
+  // (flavor_name, es. "Newfound Adventure" = Farseek) e il nome con cui l'abbiamo chiesta.
+  const add = (card, asked) => {
+    const s = (card.set || '').toLowerCase();
+    const c = (card.collector_number || '').toLowerCase();
+    for (const n of [card.name, card.card_faces?.[0]?.name, card.flavor_name, card.card_faces?.[0]?.flavor_name, asked].filter(Boolean)) {
+      const nl = n.toLowerCase();
+      reg(`${nl}||`, card);
+      reg(`${nl}|${s}|`, card);
+      reg(`${nl}|${s}|${c}`, card);
+    }
+  };
+  const missed = [];
   const parts = chunk(identifiers, CHUNK);
   for (let p = 0; p < parts.length; p++) {
     const res = await scryfallFetch(COLLECTION_URL, {
@@ -189,18 +202,19 @@ export async function lookupCards(list) {
       body: JSON.stringify({ identifiers: parts[p] }),
     });
     const json = await res.json();
-    for (const card of json.data || []) {
-      const s = (card.set || '').toLowerCase();
-      const c = (card.collector_number || '').toLowerCase();
-      // Registra sotto ogni chiave con cui potremmo cercarla (nome + faccia DFC).
-      for (const n of [card.name, card.card_faces?.[0]?.name].filter(Boolean)) {
-        const nl = n.toLowerCase();
-        reg(`${nl}||`, card);
-        reg(`${nl}|${s}|`, card);
-        reg(`${nl}|${s}|${c}`, card);
-      }
-    }
+    for (const card of json.data || []) add(card);
+    missed.push(...(json.not_found || []).filter((i) => i.name));
     if (p < parts.length - 1) await sleep(100); // gentile con l'API
+  }
+  // /cards/collection conosce solo il nome oracle; /cards/named?exact trova anche i nomi alternativi
+  // e dà proprio quella stampa. Errori e 404: la carta resta tra le non trovate.
+  // ponytail: una richiesta per nome mancante al ritmo di slot(), ~0,1 s ciascuno con tanti nomi sbagliati.
+  for (const i of missed) {
+    await slot();
+    try {
+      const res = await scryfallFetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(i.name)}${i.set ? `&set=${encodeURIComponent(i.set)}` : ''}`);
+      add(await res.json(), i.name);
+    } catch { /* non trovata */ }
   }
   return (e) => {
     const nl = e.name.toLowerCase();

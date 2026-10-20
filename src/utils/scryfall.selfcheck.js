@@ -1,6 +1,6 @@
 // Self-check del parser. Esegui: node src/utils/scryfall.selfcheck.js
 // ponytail: niente framework, un file, assert via throw, copre i rami di parseCardList.
-import { parseCardList, deckLine } from './scryfall.js';
+import { parseCardList, deckLine, lookupCards } from './scryfall.js';
 
 const eq = (a, b, msg) => {
   if (JSON.stringify(a) !== JSON.stringify(b)) {
@@ -32,4 +32,20 @@ eq(parseCardList(deckLine(2, 'Sol Ring', 'c21', '263')),
 eq(deckLine(1, 'Lightning Bolt', '', ''), '1 Lightning Bolt', 'deckLine senza stampa → solo nome');
 eq(deckLine(1, ''), '', 'deckLine senza nome → vuoto');
 
-console.log('parseCardList + deckLine: tutti i check passati');
+// lookupCards: un nome alternativo (flavor_name) manca da /cards/collection, lo trova /cards/named.
+const farseek = { name: 'Farseek', flavor_name: 'Newfound Adventure', set: 'fca', collector_number: '45' };
+const json = (body, status = 200) => ({ ok: status === 200, status, json: async () => body });
+globalThis.fetch = async (url, opts) => {
+  if (url.endsWith('/cards/collection')) {
+    const ids = JSON.parse(opts.body).identifiers;
+    const hit = (i) => i.collector_number === '45' || i.name === 'Farseek';
+    return json({ data: ids.filter(hit).map(() => farseek), not_found: ids.filter((i) => !hit(i)) });
+  }
+  return url.includes('exact=Newfound%20Adventure') ? json(farseek) : json({}, 404);
+};
+const find = await lookupCards([{ name: 'Newfound Adventure' }, { name: 'Newfound Adventure', set: 'fca', collector: '45' }, { name: 'Nope' }]);
+eq(find({ name: 'Newfound Adventure' })?.name, 'Farseek', 'nome alternativo senza stampa → /cards/named');
+eq(find({ name: 'newfound adventure', set: 'fca', collector: '45' })?.name, 'Farseek', 'nome alternativo con set+collector');
+eq(find({ name: 'Nope' }), undefined, 'nome inesistente resta non trovato');
+
+console.log('parseCardList + deckLine + lookupCards: tutti i check passati');
