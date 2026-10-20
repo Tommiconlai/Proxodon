@@ -1,6 +1,6 @@
 // Self-check del parser. Esegui: node src/utils/scryfall.selfcheck.js
 // ponytail: niente framework, un file, assert via throw, copre i rami di parseCardList.
-import { parseCardList, deckLine, lookupCards } from './scryfall.js';
+import { parseCardList, deckLine, lookupCards, localizedCard } from './scryfall.js';
 
 const eq = (a, b, msg) => {
   if (JSON.stringify(a) !== JSON.stringify(b)) {
@@ -48,4 +48,10 @@ eq(find({ name: 'Newfound Adventure' })?.name, 'Farseek', 'nome alternativo senz
 eq(find({ name: 'newfound adventure', set: 'fca', collector: '45' })?.name, 'Farseek', 'nome alternativo con set+collector');
 eq(find({ name: 'Nope' }), undefined, 'nome inesistente resta non trovato');
 
-console.log('parseCardList + deckLine + lookupCards: tutti i check passati');
+// localizedCard: set, numero o lingua strani (mazzi altrui) non diventano una richiesta, risposta null subito.
+const asked = [];
+globalThis.fetch = async (url) => { asked.push(url); return json({}, 404); };
+eq(await Promise.all([localizedCard('..', '..', 'ja'), localizedCard('c21', '1/../x', 'ja'), localizedCard('c21', '263', '../x')]), [null, null, null], 'stampa localizzata: percorsi strani');
+eq(asked, [], 'stampa localizzata: nessuna richiesta per i percorsi strani');
+
+console.log('parseCardList + deckLine + lookupCards + localizedCard: tutti i check passati');

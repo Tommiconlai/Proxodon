@@ -242,7 +242,10 @@ const slot = () => {
   nextSlot = at + 110;
   return sleep(at - now);
 };
+// Set, numero e lingua vengono anche da mazzi altrui: solo forme vere (niente "..", "/" o altro nel percorso), sennò null.
+const LOC_OK = (set, cn, lang) => /^[a-z0-9]{2,6}$/i.test(set) && /^[0-9a-z★†-]{1,12}$/i.test(cn) && /^[a-z]{2,3}$/.test(lang);
 export function localizedCard(set, cn, lang) {
+  if (!LOC_OK(set, cn, lang)) return Promise.resolve(null);
   const k = `${set}/${cn}/${lang}`;
   if (!LOC.has(k)) {
     LOC.set(k, (async () => {

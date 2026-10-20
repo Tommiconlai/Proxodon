@@ -12,6 +12,7 @@ import {
   splitRow, changeEdition, snapshotFromCard, validateDeck, packPiles, splitPiles, maxCopies, MAX_DILEMMA_CARDS, MAX_HELP_CARDS, DRAG_ROWS,
 } from './deckModel';
 import DeckStats from './DeckStats';
+import ErrorBoundary from '../components/ErrorBoundary';
 import SampleHand from './SampleHand';
 import CardImg from './CardImg';
 import { CardFrame, CardFrameDefs } from '../components/CardFrame';
@@ -145,7 +146,8 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   const pick = (ids) => {
     setSel(new Set(ids));
     onTab?.('deck');
-    setTimeout(() => document.querySelector(`.deck-row[data-row-id="${ids[0]}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
+    // CSS.escape: gli id delle righe di un mazzo altrui sono testo libero (una " romperebbe il selettore).
+    setTimeout(() => document.querySelector(`.deck-row[data-row-id="${CSS.escape(ids[0])}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
   };
 
   // Larghezza utile dell'area del mazzo (senza padding): decide quanto si allargano le pile.
@@ -584,7 +586,10 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
       {tab !== 'deck' && <div className="deck-analysis">
         <section aria-labelledby="deck-stats-head">
           <h3 className="deck-analysis-head" id="deck-stats-head">Stats</h3>
-          <DeckStats deck={deck} onSelect={pick} />
+          {/* Un dato strano in un mazzo altrui spegne solo le statistiche, non tutta la pagina. */}
+          <ErrorBoundary fallback={<p className="field-hint">Stats could not be computed for this deck.</p>}>
+            <DeckStats deck={deck} onSelect={pick} />
+          </ErrorBoundary>
         </section>
         {/* La mano di prova solo da desktop: da telefono non è pratica (scelta dell'utente). */}
         {tab === 'stats' && (

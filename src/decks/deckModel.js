@@ -103,14 +103,17 @@ export function revertSuggestion(deck, { added, cut }) {
 }
 // Dati delle help request e dei dilemmi letti da Firestore: li scrive chiunque abbia un account (le regole contano
 // solo le carte, non le guardano), quindi prima di mostrarli si tengono solo le carte ben fatte, con stringhe corte.
-const str = (v, n) => (typeof v === 'string' ? v.slice(0, n) : '');
+// Senza i caratteri di controllo bidirezionali (U+202A-202E, U+2066-2069): un nome non può rovesciare il testo vicino.
+const BIDI = /[‪-‮⁦-⁩]/g;
+const str = (v, n) => (typeof v === 'string' ? v.replace(BIDI, '').slice(0, n) : '');
+// Immagini solo Scryfall già qui (scryfallImg), non solo dove si mostrano: un componente nuovo non può dimenticarlo.
 export const cleanCards = (list, max = MAX_HELP_CARDS) => (Array.isArray(list) ? list : [])
   .filter((c) => c && typeof c === 'object' && typeof c.name === 'string' && typeof c.oid === 'string' && typeof c.sid === 'string')
   .slice(0, max)
-  .map((c) => ({ name: str(c.name, 200), img: str(c.img, 500), back: str(c.back, 500), sid: str(c.sid, 64), oid: str(c.oid, 64), set: str(c.set, 12), cn: str(c.cn, 12) }));
+  .map((c) => ({ name: str(c.name, 200), img: scryfallImg(str(c.img, 500)), back: scryfallImg(str(c.back, 500)), sid: str(c.sid, 64), oid: str(c.oid, 64), set: str(c.set, 12), cn: str(c.cn, 12) }));
 // Il mazzo copiato sulla richiesta quando nasce (nome, autore, formato, copertina): il feed non deve leggere i mazzi.
 const cleanDeckInfo = (d) => (d && typeof d === 'object' && typeof d.name === 'string'
-  ? { name: str(d.name, 80), owner: str(d.owner, 24) || null, format: str(d.format, 20), cover: str(d.cover, 500) } : null);
+  ? { name: str(d.name, 80), owner: str(d.owner, 24) || null, format: str(d.format, 20), cover: scryfallImg(str(d.cover, 500)) } : null);
 export const cleanHelp = (h) => ({
   ...h, kind: str(h.kind, 20), text: str(h.text, 500), status: h.status === 'solved' ? 'solved' : 'open',
   cards: cleanCards(h.cards), applied: Array.isArray(h.applied) ? h.applied.filter((x) => typeof x === 'string') : [], deck: cleanDeckInfo(h.deck),
@@ -172,6 +175,8 @@ export function snapshotFromCard(c) {
 }
 
 export const isLand = (s) => /\bLand\b/.test(s.type);
+// Fascia della curva (0-7, 7 = 7+) di un valore di mana: mai fuori dall'elenco, anche con un valore strano.
+const mvBin = (mv) => Math.max(0, Math.min(7, Math.floor(mv) || 0));
 export const isBasicLand = (s) => /\bBasic\b/.test(s.type) && isLand(s);
 
 export function newDeck({ name, format = 'commander', groupBy = 'type' }) {
@@ -462,7 +467,7 @@ export function groupMain(deck, sort = 'mv') {
     ];
   }
   if (deck.groupBy === 'mv') {
-    const by = bucket(main, (r) => (isLand(r.card) ? 'land' : Math.min(7, Math.floor(r.card.mv))));
+    const by = bucket(main, (r) => (isLand(r.card) ? 'land' : mvBin(r.card.mv)));
     return [0, 1, 2, 3, 4, 5, 6, 7, 'land'].filter((k) => by.has(k))
       .map((k) => groupOf(`mv${k}`, k === 'land' ? 'Lands' : `${k}${k === 7 ? '+' : ''} mana`, by.get(k), sort));
   }
@@ -541,7 +546,7 @@ const IMG_HOSTS = ['cards.scryfall.io', 'svgs.scryfall.io'];
 export function scryfallImg(url) {
   try {
     const u = new URL(url);
-    return u.protocol === 'https:' && IMG_HOSTS.includes(u.hostname) ? u.href : '';
+    return u.protocol === 'https:' && IMG_HOSTS.includes(u.hostname) && !u.username && !u.password && !u.port ? u.href : '';
   } catch {
     return '';
   }
@@ -632,7 +637,9 @@ function cleanSnap(c) {
   if (!c || typeof c !== 'object' || typeof c.name !== 'string' || typeof c.sid !== 'string') return null;
   const type = str(c.type, 200);
   return {
-    sid: str(c.sid, 64), oid: str(c.oid, 64) || str(c.sid, 64), name: str(c.name, 200), mana: str(c.mana, 100), mv: num(c.mv) ?? 0,
+    // mv tra 0 e 1000: un valore negativo scritto a mano mandava in errore Stats (fascia della curva inesistente).
+    sid: str(c.sid, 64), oid: str(c.oid, 64) || str(c.sid, 64), name: str(c.name, 200), mana: str(c.mana, 100),
+    mv: Math.min(1000, Math.max(0, num(c.mv) ?? 0)),
     type, colors: strs(c.colors, 6, 1), ci: strs(c.ci, 6, 1), produced: strs(c.produced, 7, 1),
     legal: Object.fromEntries(LEGAL_FORMATS.map((f) => [f, str(c.legal?.[f], 20) || 'not_legal'])),
     set: str(c.set, 12), cn: str(c.cn, 12), img: scryfallImg(c.img), back: scryfallImg(c.back), art: scryfallImg(c.art),
@@ -656,7 +663,7 @@ const stamp = (t) => (typeof t?.toMillis === 'function' ? t : null);
 export function cleanPublicDeck(d) {
   if (!d || typeof d.name !== 'string' || !Array.isArray(d.cards)) return null;
   return {
-    id: d.id, v: 1, uid: str(d.uid, 128), owner: str(d.owner, 24) || null, public: true, name: d.name.slice(0, 80),
+    id: d.id, v: 1, uid: str(d.uid, 128), owner: str(d.owner, 24) || null, public: true, name: str(d.name, 80),
     format: FORMATS.some((f) => f.id === d.format) ? d.format : 'casual',
     groupBy: GROUP_MODES.some((m) => m.id === d.groupBy) ? d.groupBy : 'type',
     cover: typeof d.cover === 'string' ? d.cover.slice(0, 64) : null, tags: deckTags(d), sections: cleanSections(d.sections),
@@ -670,7 +677,7 @@ export function cleanPublicDeck(d) {
 export function cleanIndex(d) {
   if (!d || typeof d.name !== 'string') return null;
   return {
-    id: d.id, uid: str(d.uid, 128), owner: str(d.owner, 24) || null, public: true, name: d.name.slice(0, 80),
+    id: d.id, uid: str(d.uid, 128), owner: str(d.owner, 24) || null, public: true, name: str(d.name, 80),
     format: FORMATS.some((x) => x.id === d.format) ? d.format : 'casual', tags: deckTags(d),
     ci: WUBRG.filter((c) => str(d.ci, 5).includes(c)), art: scryfallImg(d.art), names: str(d.names, 16000),
     bracket: Number.isInteger(d.bracket) && d.bracket >= 1 && d.bracket <= 5 ? d.bracket : null,
@@ -769,7 +776,7 @@ export function deckStats(deck) {
   const spells = main.filter((r) => !isLand(r.card));
   const curve = Array.from({ length: 8 }, (_, mv) => ({ mv, count: 0, perm: 0, spell: 0, ids: [], groups: [] }));
   for (const r of spells) {
-    const b = curve[Math.min(7, Math.floor(r.card.mv))];
+    const b = curve[mvBin(r.card.mv)];
     b.count += r.qty;
     b[PERMANENT.test(r.card.type) ? 'perm' : 'spell'] += r.qty;
     b.ids.push(r.id);
@@ -785,7 +792,7 @@ export function deckStats(deck) {
   const makers = main.filter((r) => r.card.produced?.length);
   const colors = PIP_COLORS.map((c) => {
     const byMv = Array(8).fill(0);
-    for (const r of main) byMv[Math.min(7, Math.floor(r.card.mv))] += manaPips(r.card.mana)[c] * r.qty;
+    for (const r of main) byMv[mvBin(r.card.mv)] += manaPips(r.card.mana)[c] * r.qty;
     const src = makers.filter((r) => r.card.produced.includes(c));
     return { c, pips: byMv.reduce((n, x) => n + x, 0), byMv, sources: sum(src), landSources: sum(src.filter((r) => isLand(r.card))) };
   });

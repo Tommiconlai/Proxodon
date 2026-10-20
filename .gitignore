@@ -25,3 +25,17 @@ dist-ssr
 
 # Claude Code local tooling (preview launch config, etc.)
 .claude/
+
+# Secrets and signing material (the repo is public)
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+keystore.properties
+google-services.json
+GoogleService-Info.plist
+service-account*.json
+*.pem
+*.p12
+local.properties

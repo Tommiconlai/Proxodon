@@ -443,6 +443,15 @@ eq(['http://cards.scryfall.io/a.jpg', 'https://evil.test/a.jpg', 'https://cards.
 ['', '', '', '', '', '', '', ''], 'immagini: altri host, http, data e vuote rifiutate');
 eq(scryfallImg('https://cards.scryfall.io/a.jpg"),url("https://evil.test/t.png').includes('"'), false,
   'immagini: niente virgolette, non si esce da url("...")');
+eq(['https://user:pw@cards.scryfall.io/a.jpg', 'https://cards.scryfall.io:8443/a.jpg'].map(scryfallImg), ['', ''], 'immagini: credenziali e porte rifiutate');
+// Sicurezza (mazzi altrui): mv fuori scala non manda in errore Stats, niente bidi nei nomi, immagini delle carte filtrate.
+{
+  const odd = (mv) => cleanPublicDeck({ ...sd, cards: [{ ...sd.cards[0], board: 'main', card: { ...sd.cards[0].card, type: 'Creature', mv } }] });
+  eq([-1, -0.5, 1e308, 3].map((mv) => odd(mv).cards[0].card.mv), [0, 0, 1000, 3], 'mv tra 0 e 1000');
+  eq([-1, 1e308].map((mv) => typeof deckStats(odd(mv)).curve), ['object', 'object'], 'Stats con mv strano: niente errore');
+  eq(cleanPublicDeck({ ...sd, name: 'a‮b⁦c' }).name, 'abc', 'nome senza caratteri bidi');
+  eq(cleanCards([{ name: 'x', oid: 'o', sid: 's', img: 'https://evil.test/p.png', back: sfImg }]).map((c) => [c.img, c.back]), [['', sfImg]], 'carte: immagini solo Scryfall');
+}
 const foreign = { ...sd, cards: [{ ...sd.cards[0], card: { ...sd.cards[0].card, img: sfImg, back: 'https://evil.test/b.jpg', art: 'x' } }] };
 const clean = cleanPublicDeck(foreign).cards[0].card;
 eq([clean.img, clean.back, clean.art, clean.name, clean.oid, clean.legal.modern, foreign.cards[0].card.back],
@@ -520,8 +529,8 @@ eq(fromBackup({ app: 'proxodon', kind: 'decks', v: 1, decks: [{ name: { a: 1 }, 
 
 // help request da Firestore: carte malformate scartate, stringhe accorciate, campi mancanti con valori sicuri
 {
-  const ok = { name: 'A', oid: 'o', sid: 's', img: 'i' };
-  eq(cleanCards([null, 5, { name: 1, oid: 'x', sid: 'y' }, { ...ok, img: { x: 1 } }, ok]).map((c) => c.img), ['', 'i'], 'clean: carte valide');
+  const ok = { name: 'A', oid: 'o', sid: 's', img: 'https://cards.scryfall.io/i.jpg' };
+  eq(cleanCards([null, 5, { name: 1, oid: 'x', sid: 'y' }, { ...ok, img: { x: 1 } }, ok]).map((c) => c.img), ['', 'https://cards.scryfall.io/i.jpg'], 'clean: carte valide');
   eq(cleanCards('nope'), [], 'clean: non lista');
   const h = cleanHelp({ id: 'h', text: 7, cards: [null], applied: [1, 'u'], status: 'weird', deck: { name: 'D', owner: 3 } });
   eq([h.text, h.cards, h.applied, h.status, h.deck], ['', [], ['u'], 'open', { name: 'D', owner: null, format: '', cover: '' }], 'clean: richiesta');

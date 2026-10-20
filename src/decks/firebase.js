@@ -37,6 +37,8 @@ try {
 } catch { /* altre schede aperte */ }
 
 const provider = new GoogleAuthProvider();
+// Sempre la scelta dell'account: su un computer condiviso, dopo l'uscita di A, B non entra come A senza volerlo.
+provider.setCustomParameters({ prompt: 'select_account' });
 
 // App Android: popup e redirect non funzionano nella WebView. Login Google nativo (Credential Manager,
 // plugin caricato solo nell'app) e il suo idToken passa all'SDK web: Firestore e watchUser restano uguali.
@@ -114,8 +116,13 @@ const AUTH_MESSAGES = {
   'auth/network-request-failed': 'No connection. Check your network and try again.',
   'auth/popup-closed-by-user': 'The Google window was closed.',
   'auth/cancelled-popup-request': 'The Google window was closed.',
+  'auth/user-disabled': 'Wrong email or password.', // come gli altri: non dice se l'account esiste
+  'auth/user-mismatch': 'That is a different Google account. Use the one you are signed in with.',
 };
-export const authMessage = (e) => AUTH_MESSAGES[e?.code] || e?.message || 'Sign-in failed.';
+// Codici sconosciuti dell'SDK: un messaggio generico col codice (utile per un aiuto), mai il suo testo grezzo; gli errori
+// dell'app (senza codice) tengono il loro testo.
+export const authMessage = (e) => AUTH_MESSAGES[e?.code]
+  || (e?.code ? `Something went wrong (${e.code}). Try again.` : e?.message) || 'Sign-in failed.';
 
 // Nickname = displayName di Firebase Auth; vuoto = nessuno (si vede l'email).
 export const updateNickname = (name) => updateProfile(auth.currentUser, { displayName: name || null });
@@ -139,11 +146,26 @@ export async function signOut() {
 }
 export const watchUser = (cb) => onAuthStateChanged(auth, cb);
 
-// Prima i dati (servono ancora i permessi), poi l'account. Firebase può chiedere un login recente:
-// con Google si rifà col popup, con email + password serve un nuovo accesso (i mazzi sono già via).
+// Prima un accesso recente (meno di 5 minuti, quello che Firebase chiede per cancellare l'account), poi i dati (servono
+// ancora i permessi), poi l'account: chi trova la sessione aperta su un dispositivo non cancella tutto con due click.
+// Con Google si rifà l'accesso (popup o nativo), con email + password si esce e si rientra; i dati restano finché non va.
+const RECENT_LOGIN = 5 * 60 * 1000;
 export async function deleteAccount(deleteData) {
   const user = auth.currentUser;
   if (!user) return;
+  // Ultimo accesso letto subito (niente await prima del popup: i browser lo bloccano se non segue il click). Dopo un
+  // riaccesso l'ora può restare quella vecchia: al massimo si chiede di nuovo.
+  if (!(Date.now() - Date.parse(user.metadata.lastSignInTime) < RECENT_LOGIN)) {
+    if (!user.providerData.some((p) => p.providerId === 'google.com')) {
+      throw new Error('For safety, sign out, sign in again and repeat Delete account within 5 minutes. Nothing was deleted.');
+    }
+    try {
+      if (isApp) await reauthenticateWithCredential(user, await googleCredential());
+      else await reauthenticateWithPopup(user, provider);
+    } catch (e) {
+      throw new Error(`${authMessage(e)} Nothing was deleted.`);
+    }
+  }
   await deleteData(user.uid);
   clearLater();
   // Da qui i dati non ci sono più: un errore lo dice, invece del messaggio grezzo (es. finestra di Google chiusa).

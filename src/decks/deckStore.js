@@ -17,7 +17,7 @@ const decksCol = (uid) => collection(db, 'users', uid, 'decks');
 // sig mancante (mazzi di prima di changedAt): la firma delle carte appena lette fa da base, così il primo
 // cambio vero si riconosce.
 const fromDoc = (s) => {
-  const d = { id: s.id, ...s.data({ serverTimestamps: 'estimate' }) };
+  const d = { ...s.data({ serverTimestamps: 'estimate' }), id: s.id }; // l'id del documento vince su un campo "id"
   return d.sig || !Array.isArray(d.cards) ? d : { ...d, sig: contentSig(d.cards) };
 };
 const ms = (t) => t?.toMillis?.() ?? 0;
@@ -42,7 +42,7 @@ export const changedMs = (d) => ms(d.changedAt ?? d.updatedAt);
 // prefissi delle parole del nome e dei tag (max 200, come le regole), fino a 20 lettere, per cercare con un array-contains senza indici.
 const publicCol = collection(db, 'publicDecks');
 // Copia pubblica letta: la scrive chiunque abbia un account, quindi ripulita (cleanPublicDeck); null = ritirata o rotta.
-const publicOf = (s) => cleanPublicDeck({ id: s.id, ...s.data({ serverTimestamps: 'estimate' }) });
+const publicOf = (s) => cleanPublicDeck({ ...s.data({ serverTimestamps: 'estimate' }), id: s.id });
 // ponytail: nickname del profilo aperto (lo aggiorna listenProfile, attivo finché si è nell'area mazzi), di ownerUid
 // (cambiando account si rilegge). undefined finché il profilo non è arrivato (o dopo una ricarica del modulo, in sviluppo).
 let ownerName;
@@ -63,7 +63,7 @@ const searchWords = (name) => [...new Set(searchTerms(name)
 // (nome, formato, firma, tag, words, identità, copertina, nomi delle carte), ogni campo con un tetto nelle regole.
 // Il feed legge 60 voci piccole invece di 60 copie piene, le cui righe le regole non possono controllare.
 const indexCol = collection(db, 'publicIndex');
-const indexOf = (s) => cleanIndex({ id: s.id, ...s.data({ serverTimestamps: 'estimate' }) });
+const indexOf = (s) => cleanIndex({ ...s.data({ serverTimestamps: 'estimate' }), id: s.id });
 // Le regole dell'indice non ancora pubblicate (o mazzo appena tornato privato): permission-denied, la copia vale lo stesso.
 const indexDenied = (e) => { if (e.code !== 'permission-denied') throw e; };
 const writeIndex = (uid, d, owner, common) => setDoc(doc(indexCol, d.id), {
@@ -151,23 +151,14 @@ export const setDeckPublic = (uid, deck, on) => Promise.all([
 // Pulizia anche per un mazzo già privato: dilemmi o richieste rimasti da prima (unpublishDeck non fallisce per una copia che non c'è).
 export const deleteDeck = (uid, deck) => Promise.all([deleteDoc(doc(decksCol(uid), deck.id)), unpublishDeck(uid, deck.id)]);
 
-// Gli ultimi creati, o quelli con una parola che inizia per word; i più recenti prima. Dall'indice; finché è vuoto o le
-// sue regole non sono pubblicate (deciso una volta per sessione), dalle copie piene come prima.
+// Gli ultimi creati, o quelli con una parola che inizia per word; i più recenti prima. Solo dall'indice leggero (non più
+// dalle copie piene se la prima lettura falliva: 60 copie fino a 1 MiB l'una; un errore arriva a onError).
 // ponytail: niente indici composti, quindi filtri e altre parole li applica la lista su questi 60.
 // Se la community cresce: indici su format / words + createdAt e filtri nella query.
-let fromIndex;
 export function listenCommunity(word, onChange, onError) {
-  fromIndex ??= getDocs(query(indexCol, limit(1))).then((qs) => !qs.empty, () => false);
-  let stop = false;
-  let un = () => {};
-  fromIndex.then((idx) => {
-    if (stop) return;
-    const col = idx ? indexCol : publicCol;
-    const q = word ? query(col, where('words', 'array-contains', word), limit(60)) : query(col, orderBy('createdAt', 'desc'), limit(60));
-    un = onSnapshot(q, (qs) => onChange(qs.docs.map(idx ? indexOf : publicOf).filter(Boolean)
-      .sort((a, b) => ms(b.createdAt) - ms(a.createdAt))), onError);
-  });
-  return () => { stop = true; un(); };
+  const q = word ? query(indexCol, where('words', 'array-contains', word), limit(60)) : query(indexCol, orderBy('createdAt', 'desc'), limit(60));
+  return onSnapshot(q, (qs) => onChange(qs.docs.map(indexOf).filter(Boolean)
+    .sort((a, b) => ms(b.createdAt) - ms(a.createdAt))), onError);
 }
 export const listenPublicDeck = (id, onChange, onError) =>
   onSnapshot(doc(publicCol, id), (s) => onChange(s.exists() ? publicOf(s) : null), onError);
@@ -204,7 +195,7 @@ export function setLiked(id, uid, on) {
 // voti in .../votes/{uid} = { pick: indice della carta (0-3), why, owner (nickname di chi vota), at }, uno per account, mai del
 // proprietario. Ogni voto ha anche users/{uid}/answered/{deck}_{id} = { deck, dilemma, at }: il contatore
 // del profilo e la cancellazione dei propri voti con l'account.
-const plainDoc = (s) => ({ id: s.id, ...s.data({ serverTimestamps: 'estimate' }) });
+const plainDoc = (s) => ({ ...s.data({ serverTimestamps: 'estimate' }), id: s.id });
 const dilemmasCol = (deckId) => collection(publicCol, deckId, 'dilemmas');
 const votesCol = (deckId, dId) => collection(dilemmasCol(deckId), dId, 'votes');
 const answeredCol = (uid) => collection(db, 'users', uid, 'answered');
@@ -223,13 +214,17 @@ export const listenDilemma = (deckId, dId, onChange, onError) => onSnapshot(doc(
   const d = s.exists() && cleanDilemma(plainDoc(s));
   onChange(d && okDilemma(d) ? d : null);
 }, onError);
-export const getPublicDeck = (id) => getDoc(doc(publicCol, id)).then((s) => (s.exists() ? publicOf(s) : null));
-// Nome, formato e autore del mazzo pubblico per i feed (dilemmi, help request), letto una volta per mazzo. ponytail: cache
-// per la sessione, un nome cambiato si vede ricaricando. null = mazzo non più pubblico; errore = undefined, resta "…"
-// e non resta in cache (la chiamata dopo riprova).
+// Nome, formato, autore e copertina del mazzo pubblico per i feed (dilemmi, help request), dalla sua voce dell'indice
+// (piccola, ogni campo con un tetto): non la copia piena, che chi la scrive può gonfiare fino a 1 MiB, per 40 mazzi a
+// ogni apertura del feed. Una volta per mazzo. ponytail: cache per la sessione, un nome cambiato si vede ricaricando.
+// null = non è (più) nella Community, come per la sua lista; errore = undefined, resta "…" e non resta in cache.
 const publicDecks = new Map();
 export const deckOnce = (id) => {
-  if (!publicDecks.has(id)) publicDecks.set(id, getPublicDeck(id).catch(() => { publicDecks.delete(id); return undefined; }));
+  if (!publicDecks.has(id)) {
+    publicDecks.set(id, getDoc(doc(indexCol, id))
+      .then((s) => { const d = s.exists() && indexOf(s); return d ? { ...d, cover: d.art } : null; })
+      .catch(() => { publicDecks.delete(id); return undefined; }));
+  }
   return publicDecks.get(id);
 };
 // Id {deck}_{dilemma} dei dilemmi a cui l'account ha risposto.
@@ -404,9 +399,9 @@ export async function deleteUserData(uid) {
     await settle([batch.commit()]);
     page = page.length < 60 ? [] : await docsOf(query(publicCol, orderBy('createdAt'), startAfter(page.at(-1)), limit(60)));
   }
-  // Voci dell'indice della Community (regole vecchie: l'elenco è negato e non c'è niente da cancellare).
-  await settle((await getDocs(query(indexCol, where('uid', '==', uid))).then((qs) => qs.docs, () => []))
-    .map((i) => deleteDoc(i.ref)));
+  // Voci dell'indice della Community. Un errore nell'elenco conta (docsOf): sennò l'account sparirebbe lasciando riquadri
+  // che nessuno può più togliere, firmati col nickname appena liberato.
+  await settle((await docsOf(query(indexCol, where('uid', '==', uid)))).map((i) => deleteDoc(i.ref)));
   const [mine, decks] = await Promise.all([docsOf(query(publicCol, where('uid', '==', uid))), docsOf(decksCol(uid))]);
   // Copie proprie: prima dilemmi, richieste e like, poi la copia (se la pulizia fallisce resta, e si ritrova riprovando).
   await settle(mine.map((p) => Promise.all([deleteDilemmasOf(p.id), deleteHelpsOf(p.id), deleteLikesOf(p.id)]).then(() => deleteDoc(p.ref))));

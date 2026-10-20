@@ -19,6 +19,7 @@ service cloud.firestore {
     }
     function validProfile(uid, d) {
       return d.keys().hasOnly(['photo', 'banner', 'nickname', 'updatedAt'])
+        && d.get('updatedAt', request.time) is timestamp
         && (d.get('photo', null) == null || image(d.photo, 200000))
         && (d.get('banner', null) == null || image(d.banner, 600000))
         && (d.get('nickname', null) == null || (d.nickname is string
@@ -80,7 +81,7 @@ service cloud.firestore {
     function validDeck(d) {
       return d.keys().hasOnly(['v', 'name', 'format', 'groupBy', 'sections', 'cover', 'cards', 'tags', 'public',
           'updatedAt', 'sig', 'changedAt', 'createdAt', 'folder', 'rev', 'ver', 'base', 'bracket'])
-        && bracket(d)
+        && bracket(d) && d.get('v', 1) == 1 && d.get('createdAt', request.time) is timestamp
         && d.cards is list && d.cards.size() <= 500
         && d.get('sections', []) is list && d.get('sections', []).size() <= 100
         && d.get('tags', []) is list && d.get('tags', []).size() <= 10
@@ -129,7 +130,7 @@ service cloud.firestore {
       return d.uid == request.auth.uid
         && d.keys().hasOnly(['v', 'name', 'format', 'groupBy', 'sections', 'cover', 'cards', 'tags', 'public',
           'updatedAt', 'sig', 'changedAt', 'uid', 'owner', 'words', 'createdAt', 'bracket'])
-        && bracket(d)
+        && bracket(d) && d.get('v', 1) == 1
         && d.name is string && d.name.size() <= 200
         && d.format is string && d.format.size() <= 20
         && d.get('groupBy', '') is string && d.get('groupBy', '').size() <= 20
@@ -214,16 +215,22 @@ service cloud.firestore {
         && (d.get('owner', null) == null || (d.owner is string
           && get(/databases/$(db)/documents/usernames/$(d.owner.lower())).data.uid == request.auth.uid));
     }
+    // Copia vera (con le carte), non il segnaposto { uid } di un mazzo ritirato: niente riquadri senza mazzo dietro.
     function ownCopy(deckId) {
-      return getAfter(/databases/$(db)/documents/publicDecks/$(deckId)).data.uid == request.auth.uid;
+      let c = getAfter(/databases/$(db)/documents/publicDecks/$(deckId)).data;
+      return c.uid == request.auth.uid && 'cards' in c;
+    }
+    // Id nuovi solo come quelli di Firestore (20 lettere e cifre): un id scritto a mano romperebbe link e percorsi.
+    function autoId(id) {
+      return id.matches('[A-Za-z0-9]{20}');
     }
     match /publicIndex/{deckId} {
       allow get: if verified();
       allow list: if verified() && ((request.query.limit != null && request.query.limit <= 60)
         || resource.data.uid == request.auth.uid);
-      allow create: if verified() && validIndex(request.resource.data) && stillPublic(deckId) && ownCopy(deckId);
+      allow create: if verified() && autoId(deckId) && validIndex(request.resource.data) && stillPublic(deckId) && ownCopy(deckId);
       allow update: if verified() && resource.data.uid == request.auth.uid && validIndex(request.resource.data)
-        && stillPublic(deckId) && request.resource.data.createdAt <= resource.data.createdAt;
+        && stillPublic(deckId) && ownCopy(deckId) && request.resource.data.createdAt <= resource.data.createdAt;
       allow delete: if verified() && (resource == null || resource.data.uid == request.auth.uid);
     }
     // applied cresce di una chiave alla volta (uid@ora, corta): la richiesta nasce vuota, così nessun elemento è grosso.
@@ -235,7 +242,8 @@ service cloud.firestore {
       // Elenchi: al massimo 60 alla volta (la Community), oppure solo le proprie copie (firma nuova, cancellazione dell'account).
       allow list: if verified() && ((request.query.limit != null && request.query.limit <= 60)
         || resource.data.uid == request.auth.uid);
-      allow create: if verified() && ((validPublic(request.resource.data) && stillPublic(deckId)) || retired(request.resource.data));
+      allow create: if verified() && autoId(deckId)
+        && ((validPublic(request.resource.data) && stillPublic(deckId)) || retired(request.resource.data));
       // createdAt non si sposta in avanti (resterebbe in cima alla Community): uguale o prima (la data del mazzo
       // privato, che nasce un attimo prima della copia).
       allow update: if verified() && resource.data.uid == request.auth.uid
@@ -262,7 +270,7 @@ service cloud.firestore {
       // proprietario del dilemma (quando lo cancella).
       match /dilemmas/{dId} {
         allow read: if verified();
-        allow create: if verified() && request.resource.data.uid == request.auth.uid
+        allow create: if verified() && autoId(dId) && request.resource.data.uid == request.auth.uid
           && get(/databases/$(db)/documents/publicDecks/$(deckId)).data.uid == request.auth.uid
           && 'cards' in get(/databases/$(db)/documents/publicDecks/$(deckId)).data
           && request.resource.data.createdAt == request.time
@@ -289,7 +297,7 @@ service cloud.firestore {
       match /helps/{hId} {
         allow read: if verified();
         // Date del server (createdAt, seenAt): una data futura terrebbe la richiesta in cima al feed.
-        allow create: if verified() && request.resource.data.uid == request.auth.uid
+        allow create: if verified() && autoId(hId) && request.resource.data.uid == request.auth.uid
           && get(/databases/$(db)/documents/publicDecks/$(deckId)).data.uid == request.auth.uid
           && 'cards' in get(/databases/$(db)/documents/publicDecks/$(deckId)).data
           && request.resource.data.status == 'open' && request.resource.data.applied.size() == 0
