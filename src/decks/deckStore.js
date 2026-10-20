@@ -9,7 +9,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import {
-  searchTerms, contentSig, deckTags, deckCover, cleanCards, cleanHelp, cleanReply, cleanPublicDeck, cleanIndex, indexFields, rid, bracketField,
+  searchTerms, contentSig, deckTags, deckCover, cleanCards, cleanHelp, cleanReply, cleanPublicDeck, cleanIndex, indexFields, rid, bracketField, cleanProfile,
 } from './deckModel';
 
 const decksCol = (uid) => collection(db, 'users', uid, 'decks');
@@ -337,14 +337,56 @@ export function deleteReply(uid, deckId, hId, rUid) {
 }
 
 // Profilo in users/{uid}: photo e banner (data URL), nickname (come scritto; il nome mostrato resta il
-// displayName di Firebase Auth). followers / following arriveranno con i profili pubblici.
+// displayName di Firebase Auth), since (iscrizione, per la pagina pubblica). Lo legge chiunque abbia un account
+// (pagina pubblica, ripulita da cleanProfile), lo scrive solo il proprietario.
 const profileDoc = (uid) => doc(db, 'users', uid);
+export const getPublicProfile = (uid) => getDoc(profileDoc(uid)).then((s) => cleanProfile(s.exists() ? s.data() : null));
+// Mazzi pubblici di un utente (pagina pubblica del profilo): le sue voci dell'indice, i più recenti prima.
+export const listenUserDecks = (uid, onChange, onError) =>
+  onSnapshot(query(indexCol, where('uid', '==', uid), limit(60)), (qs) => onChange(qs.docs.map(indexOf).filter(Boolean)
+    .sort((a, b) => ms(b.createdAt) - ms(a.createdAt))), onError);
+
+// Follow: users/{me}/following/{lui} = { at } e users/{lui}/followers/{me} = { at }, nello stesso batch (come i like
+// con la traccia): le regole vogliono le due metà insieme, così nessuno gonfia i conteggi. Smette chi segue; chi è
+// seguito può togliersi dai seguiti degli altri (cancellazione dell'account). I numeri sono conteggi sul server.
+const followingCol = (uid) => collection(db, 'users', uid, 'following');
+const followersCol = (uid) => collection(db, 'users', uid, 'followers');
+export function setFollowing(me, them, on) {
+  const batch = writeBatch(db);
+  const a = doc(followingCol(me), them);
+  const b = doc(followersCol(them), me);
+  if (on) {
+    batch.set(a, { at: serverTimestamp() });
+    batch.set(b, { at: serverTimestamp() });
+  } else {
+    batch.delete(a);
+    batch.delete(b);
+  }
+  return batch.commit();
+}
+export const listenFollowing = (me, them, onChange, onError) =>
+  onSnapshot(doc(followingCol(me), them), (s) => onChange(s.exists()), onError);
+// Secondo argomento ignorato: useCount lo usa per rileggere il numero dopo Segui / Smetti di seguire.
+export const countFollowers = (uid) => getCountFromServer(followersCol(uid)).then((s) => s.data().count);
+export const countFollowing = (uid) => getCountFromServer(followingCol(uid)).then((s) => s.data().count);
 export const listenProfile = (uid, onChange, onError) => onSnapshot(profileDoc(uid), (s) => {
   const p = s.exists() ? s.data() : null;
   ownerName = p?.nickname || null;
   ownerUid = uid;
   onChange(p);
 }, onError);
+// Iscrizione per la pagina pubblica (since): la data dell'account, scritta se manca (profili di prima) quando il
+// proprietario apre il suo profilo. Letto dal server, solo su un profilo che c'è (dopo la cancellazione dell'account
+// non lo ricrea); un tentativo per sessione, anche se fallisce.
+let sinceFor = null;
+export function ensureSince(uid, created) {
+  if (!created || sinceFor === uid) return;
+  sinceFor = uid;
+  getDocFromServer(profileDoc(uid))
+    .then((s) => (s.exists() && !s.data().since
+      ? setDoc(profileDoc(uid), { since: new Date(created), updatedAt: serverTimestamp() }, { merge: true }) : null))
+    .catch(() => {});
+}
 // fields: { photo } o { banner }; null = rimuovi.
 export const saveProfile = (uid, fields) =>
   setDoc(profileDoc(uid), { ...fields, updatedAt: serverTimestamp() }, { merge: true });
@@ -417,6 +459,11 @@ export async function deleteUserData(uid) {
     batches.push(batch.commit());
   }
   await settle(batches);
+  // Follow nei due sensi: chi seguo (con il mio posto tra i suoi follower) e chi mi segue (con me tra i suoi seguiti).
+  // Regole di prima del follow (elenco negato): nessun follow può esistere, niente da togliere, non è un errore.
+  const follows = (ref) => getDocs(ref).then((qs) => qs.docs, (e) => { if (e.code !== 'permission-denied') errors.push(e); return []; });
+  await settle((await follows(followingCol(uid))).map((f) => pair(doc(followersCol(f.id), uid), f.ref)));
+  await settle((await follows(followersCol(uid))).map((f) => pair(doc(followingCol(f.id), uid), f.ref)));
   await settle([getDoc(profileDoc(uid)).then((s) => {
     const nick = s.data()?.nickname;
     const batch = writeBatch(db);

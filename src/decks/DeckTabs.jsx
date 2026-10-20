@@ -124,11 +124,12 @@ export function DeckBracket({ deck, update }) {
 }
 
 // Nome del mazzo da desktop (barra in alto): nome e cuore sulla stessa riga, sotto "by" l'autore (se c'è).
-export function DeckTitle({ children, by }) {
+// byHref = la pagina pubblica dell'autore (mazzo altrui): il nome diventa un link.
+export function DeckTitle({ children, by, byHref }) {
   return (
     <div className="deck-title">
       <div className="deck-title-row">{children}</div>
-      {by && <span className="deck-by">by {by}</span>}
+      {by && <span className="deck-by">by {byHref ? <a className="deck-by-link" href={byHref}>{by}</a> : by}</span>}
     </div>
   );
 }

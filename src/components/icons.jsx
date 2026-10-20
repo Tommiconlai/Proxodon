@@ -216,6 +216,27 @@ export function IconUser(props) {
   );
 }
 
+// Segui (persona con +) e Seguito (persona con la spunta): il pulsante della pagina pubblica di un profilo.
+export function IconUserPlus(props) {
+  return (
+    <Svg {...props}>
+      <circle cx="10" cy="8" r="4" />
+      <path d="M17 21a7 7 0 0 0-14 0" />
+      <path d="M19 8v6" />
+      <path d="M16 11h6" />
+    </Svg>
+  );
+}
+export function IconUserCheck(props) {
+  return (
+    <Svg {...props}>
+      <circle cx="10" cy="8" r="4" />
+      <path d="M17 21a7 7 0 0 0-14 0" />
+      <path d="m16 11 2 2 4-4" />
+    </Svg>
+  );
+}
+
 export function IconInfo(props) {
   return (
     <Svg {...props}>

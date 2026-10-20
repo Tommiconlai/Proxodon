@@ -17,9 +17,11 @@ service cloud.firestore {
     function image(s, max) {
       return s is string && s.size() <= max && s.matches('data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+');
     }
+    // since = iscrizione (dall'account, la scrive il proprietario aprendo il suo profilo): la mostra la pagina pubblica.
     function validProfile(uid, d) {
-      return d.keys().hasOnly(['photo', 'banner', 'nickname', 'updatedAt'])
+      return d.keys().hasOnly(['photo', 'banner', 'nickname', 'updatedAt', 'since'])
         && d.get('updatedAt', request.time) is timestamp
+        && d.get('since', request.time) is timestamp && d.get('since', request.time) <= request.time
         && (d.get('photo', null) == null || image(d.photo, 200000))
         && (d.get('banner', null) == null || image(d.banner, 600000))
         && (d.get('nickname', null) == null || (d.nickname is string
@@ -34,8 +36,10 @@ service cloud.firestore {
     }
     // Cancellare il profilo libera anche il nickname (stessa scrittura, deleteUserData): sennò, ricreato il profilo con
     // un altro nome, l'account firmerebbe ancora col vecchio.
+    // Il profilo (nickname, foto, sfondo, iscrizione: niente email) lo legge chi ha un account, per la pagina pubblica;
+    // l'elenco degli utenti no.
     match /users/{uid} {
-      allow read: if owner(uid);
+      allow get: if verified();
       allow delete: if owner(uid) && (resource == null || resource.data.get('nickname', null) == null
         || !existsAfter(/databases/$(db)/documents/usernames/$(resource.data.nickname.lower())));
       allow create: if owner(uid) && validProfile(uid, request.resource.data);
@@ -58,6 +62,26 @@ service cloud.firestore {
         && request.resource.data.at == request.time
         && id == request.resource.data.deck + '_' + request.resource.data.help
         && existsAfter(/databases/$(db)/documents/publicDecks/$(request.resource.data.deck)/helps/$(request.resource.data.help)/replies/$(uid));
+    }
+    // Follow: users/{uid}/following/{them} e users/{them}/followers/{uid}, sempre insieme (existsAfter, stesso batch),
+    // id = gli account, mai sé stessi, data del server. Li legge chi ha un account (conteggi della pagina pubblica). Li
+    // toglie chi segue, oppure chi è seguito (si toglie dai seguiti degli altri cancellando l'account).
+    function account(id) {
+      return id.matches('[A-Za-z0-9]{20,128}');
+    }
+    match /users/{uid}/following/{them} {
+      allow read: if verified();
+      allow create: if owner(uid) && them != uid && account(them)
+        && request.resource.data.keys().hasOnly(['at']) && request.resource.data.at == request.time
+        && existsAfter(/databases/$(db)/documents/users/$(them)/followers/$(uid));
+      allow delete: if owner(uid) || owner(them);
+    }
+    match /users/{uid}/followers/{who} {
+      allow read: if verified();
+      allow create: if owner(who) && who != uid && account(uid)
+        && request.resource.data.keys().hasOnly(['at']) && request.resource.data.at == request.time
+        && existsAfter(/databases/$(db)/documents/users/$(who)/following/$(uid));
+      allow delete: if owner(who) || owner(uid);
     }
     // Like dati dall'account: la traccia per toglierli cancellando l'account, solo insieme al like (stesso batch).
     match /users/{uid}/liked/{deckId} {

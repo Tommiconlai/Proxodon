@@ -12,13 +12,13 @@ import DeckList from './DeckList';
 import DeckEditor from './DeckEditor';
 import CommunityDeck from './CommunityDeck';
 import DeckHelp from './DeckHelp';
-import ProfilePage from './ProfilePage';
+import ProfilePage, { PublicProfilePage } from './ProfilePage';
 import SettingsPage from './SettingsPage';
 
 // Radice dell'area mazzi (lazy): attende lo stato di login, poi lista (#/decks, #/community, #/dilemmas con
 // #/dilemmas/:mazzo/:dilemma per quello aperto e #/dilemmas/play per il gioco, #/help con #/help/:mazzo/:richiesta),
 // editor (#/decks/:id, #/decks/:id/help sulla scheda Help), mazzo della Community
-// (#/community/:id), profilo o impostazioni. Avatar e ? (con il tutorial della pagina; nell'editor anche tasti e gesti)
+// (#/community/:id), profilo (#/profile, o #/profile/:uid per la pagina pubblica di un altro) o impostazioni. Avatar e ? (con il tutorial della pagina; nell'editor anche tasti e gesti)
 // vanno nell'header dell'app, in headerSlot.
 export default function DecksView({ route, notify, printQueueCount, onPrintDeck, headerSlot }) {
   const { user, profile, photo, rerender } = useAccount();
@@ -33,7 +33,8 @@ export default function DecksView({ route, notify, printQueueCount, onPrintDeck,
         <><DeckHelp editor={area === 'decks' && !!id && id !== 'folder'} /><AccountMenu user={user} photo={photo} notify={notify} /></>,
         headerSlot,
       )}
-      {route === '/profile' ? <ProfilePage user={user} profile={profile} notify={notify} onChange={rerender} />
+      {route === '/profile' || (area === 'profile' && id === user.uid) ? <ProfilePage user={user} profile={profile} notify={notify} onChange={rerender} />
+        : area === 'profile' && id ? <PublicProfilePage key={id} uid={id} viewer={user.uid} notify={notify} />
         : route === '/settings' ? <SettingsPage user={user} notify={notify} />
         : area === 'dilemmas' ? <DeckList uid={user.uid} notify={notify} tab="dilemmas" open={id && sub ? { deckId: id, id: sub } : null} play={id === 'play'} />
         : area === 'help' && id && sub ? <CommunityDeck key={`${id}/${sub}`} uid={user.uid} id={id} helpId={sub} notify={notify} />

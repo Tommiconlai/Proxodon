@@ -770,7 +770,7 @@ const MAKE = {
 };
 function tourFor(route, mobile) {
   const [, area, id, sub] = route.split('/');
-  const kind = route === '/profile' ? 'profile' : route === '/settings' ? 'settings'
+  const kind = area === 'profile' ? 'profile' : route === '/settings' ? 'settings'
     : area === 'dilemmas' ? 'dilemmas' : area === 'help' ? (id && sub ? 'reply' : 'help')
       : area === 'community' ? (id ? 'communityDeck' : 'community') : area === 'decks' && id && id !== 'folder' ? 'editor' : 'mine';
   const key = `${kind}:${mobile}`;

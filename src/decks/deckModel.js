@@ -659,6 +659,14 @@ const cleanSections = (list) => (Array.isArray(list) ? list : [])
   .filter((s) => s && typeof s.id === 'string' && typeof s.name === 'string').slice(0, 50)
   .map((s) => ({ id: s.id.slice(0, 64), name: s.name.slice(0, 40) }));
 const stamp = (t) => (typeof t?.toMillis === 'function' ? t : null);
+// Profilo di un altro (pagina pubblica, users/{uid}): lo scrive il suo proprietario, quindi ripulito. Immagini solo come
+// le accettano le regole (data URL JPEG / PNG / WebP in base64, sennò null): niente URL di altri host.
+const PROFILE_IMG = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+const profileImg = (v, max) => (typeof v === 'string' && v.length <= max && PROFILE_IMG.test(v) ? v : null);
+export const cleanProfile = (p) => ({
+  nickname: str(p?.nickname, 24) || null,
+  photo: profileImg(p?.photo, 200000), banner: profileImg(p?.banner, 600000), since: stamp(p?.since),
+});
 // Copia pubblica letta da Firestore. null = da non mostrare: ritirata (resta solo { uid }, vedi unpublishDeck) o malformata.
 export function cleanPublicDeck(d) {
   if (!d || typeof d.name !== 'string' || !Array.isArray(d.cards)) return null;

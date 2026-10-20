@@ -1,16 +1,20 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import { listenDecks, saveProfile, claimNickname, countAnswered, listenDilemmas, deleteDilemma } from './deckStore';
+import {
+  listenDecks, saveProfile, claimNickname, countAnswered, listenDilemmas, deleteDilemma,
+  getPublicProfile, listenUserDecks, setFollowing, listenFollowing, countFollowers, countFollowing, listenAnswered, ensureSince,
+} from './deckStore';
 import { updateNickname, authMessage } from './firebase';
 import { deckCover } from './deckModel';
 import { navigate } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { useCount } from './useCount';
 import { Avatar } from './AccountMenu';
 import { DeckTile, GhostTile } from './DeckList';
 import { DilemmaTile } from './Dilemmas';
 import PhotoDialog from './PhotoDialog';
 import { CutFrame } from './CutFrame';
 import ConfirmDialog from '../components/ConfirmDialog';
-import { IconImage, IconPencil, IconArrowRight, IconTrash } from '../components/icons';
+import { IconImage, IconPencil, IconArrowRight, IconTrash, IconUserPlus, IconUserCheck } from '../components/icons';
 
 const day = (s) => (s ? new Date(s).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 const LABEL = { photo: 'photo', banner: 'background' };
@@ -33,14 +37,42 @@ function usePerDeck(ids, listen) {
   return map;
 }
 
-// Foto profilo e sfondo: JPEG da PhotoDialog salvati come data URL nel documento users/{uid}.
-// ponytail: niente Firebase Storage (sui progetti nuovi richiede il piano a pagamento); se servono
-// immagini più grandi, Storage + URL.
+// Testata del profilo (il mio e quello pubblico): un pannello con le tasche (CutFrame) grande quanto la sezione,
+// misurata, così gli angoli restano tondi a ogni larghezza. Largo: foto nella tasca in basso a sinistra, stretto (< 600):
+// in alto. avatar = foto (pulsante nel mio), action = il tondo in alto a destra (cambia sfondo nel mio, Segui nel pubblico).
+function ProfileHero({ banner, avatar, action, since, stats, children }) {
+  const heroRef = useRef(null);
+  const [hero, setHero] = useState([1240, 280]);
+  useLayoutEffect(() => {
+    const el = heroRef.current;
+    if (!el) return undefined;
+    const ro = new ResizeObserver(() => setHero([el.offsetWidth, el.offsetHeight]));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const small = hero[0] < 600;
+  const cuts = small ? { tl: [96, 96], tr: [44, 44] } : { bl: [136, 136], tr: [44, 44] };
+  return (
+    <section className={`profile-hero${small ? ' small' : ''}`} aria-label="Profile" ref={heroRef}>
+      <CutFrame w={hero[0]} h={hero[1]} cuts={cuts}>
+        <span className={`profile-banner${banner ? ' art' : ''}`} style={banner ? { backgroundImage: `url("${banner}")` } : undefined} />
+      </CutFrame>
+      {avatar}
+      {action}
+      {since && <p className="profile-callout">Member since {since}<span className="deck-tile-dot" aria-hidden="true" /></p>}
+      <div className="profile-hero-body">
+        {children}
+        <dl className="profile-stats">
+          {stats.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
+        </dl>
+      </div>
+    </section>
+  );
+}
 
 // Profilo: testata (sfondo personalizzato o l'arte del mazzo modificato per ultimo; foto e sfondo si
-// cambiano cliccandoli), nickname, iscrizione, ultimo accesso, mazzi, followers e following (per ora
-// sempre 0, arriveranno con i profili pubblici); sotto, i mazzi e i
-// dilemmi dei mazzi pubblici, ognuno con il suo See all. Email, accesso e password: Settings.
+// cambiano cliccandoli), nickname, iscrizione, ultimo accesso, mazzi, follower e seguiti (conteggi sul server);
+// sotto, i mazzi e i dilemmi dei mazzi pubblici, ognuno con il suo See all. Email, accesso e password: Settings.
 export default function ProfilePage({ user, profile, notify, onChange }) {
   const [decks, setDecks] = useState(null); // null = caricamento
   const [dialog, setDialog] = useState(null); // 'photo' | 'banner'
@@ -62,6 +94,10 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
   // Dilemmi a cui ha risposto (users/{uid}/answered, conteggio sul server); senza permesso o offline: 0.
   const [answered, setAnswered] = useState(null);
   useEffect(() => { countAnswered(user.uid).then(setAnswered).catch(() => setAnswered(0)); }, [user.uid]);
+  const followers = useCount(countFollowers, user.uid);
+  const following = useCount(countFollowing, user.uid);
+  // "Member since" per la pagina pubblica: la data dell'account nel profilo, se manca (una volta per sessione).
+  useEffect(() => { ensureSince(user.uid, user.metadata.creationTime); }, [user.uid, user.metadata.creationTime]);
   const photo = profile?.photo || null;
   const custom = { photo, banner: profile?.banner || null };
   const banner = custom.banner || decks?.map(deckCover).find(Boolean);
@@ -69,22 +105,9 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
     ['Last sign-in', day(user.metadata.lastSignInTime)],
     ['Decks', decks ? decks.length : '…'],
     ['Dilemmas answered', answered ?? '…'],
-    ['Followers', profile?.followers ?? 0],
-    ['Following', profile?.following ?? 0],
+    ['Followers', followers],
+    ['Following', following],
   ];
-  // Testata come i riquadri dei mazzi: un pannello con le tasche (CutFrame) grande quanto la sezione, misurata, così
-  // gli angoli restano tondi a ogni larghezza. Largo: foto nella tasca in basso a sinistra, stretto (< 600): in alto.
-  const heroRef = useRef(null);
-  const [hero, setHero] = useState([1240, 280]);
-  useLayoutEffect(() => {
-    const el = heroRef.current;
-    if (!el) return undefined;
-    const ro = new ResizeObserver(() => setHero([el.offsetWidth, el.offsetHeight]));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  const small = hero[0] < 600;
-  const cuts = small ? { tl: [96, 96], tr: [44, 44] } : { bl: [136, 136], tr: [44, 44] };
   // Delete all: ogni dilemma con i suoi voti (deleteDilemma); gli ascolti per mazzo svuotano la lista da soli.
   const deleteAll = () => {
     setConfirmAll(false);
@@ -104,25 +127,20 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
   return (
     <div className="decks-root profile-page">
       {mobile && <header className="decks-head"><h1 className="decks-title">Profile</h1></header>}
-      <section className={`profile-hero${small ? ' small' : ''}`} aria-label="Profile" ref={heroRef}>
-        <CutFrame w={hero[0]} h={hero[1]} cuts={cuts}>
-          <span className={`profile-banner${banner ? ' art' : ''}`} style={banner ? { backgroundImage: `url("${banner}")` } : undefined} />
-        </CutFrame>
-        <button type="button" className="profile-avatar" onClick={() => setDialog('photo')} aria-label="Change photo" title="Change photo">
-          <Avatar user={user} photo={photo} />
-          <span className="profile-avatar-hover" aria-hidden="true"><IconImage size={22} /></span>
-        </button>
-        <button type="button" className="profile-bg-btn" onClick={() => setDialog('banner')} aria-label="Change background" title="Change background">
-          <IconImage size={16} />
-        </button>
-        <p className="profile-callout">Member since {day(user.metadata.creationTime)}<span className="deck-tile-dot" aria-hidden="true" /></p>
-        <div className="profile-hero-body">
-          <Nickname user={user} nick={profile?.nickname || ''} notify={notify} onChange={onChange} />
-          <dl className="profile-stats">
-            {stats.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
-          </dl>
-        </div>
-      </section>
+      <ProfileHero banner={banner} since={day(user.metadata.creationTime)} stats={stats}
+        avatar={(
+          <button type="button" className="profile-avatar" onClick={() => setDialog('photo')} aria-label="Change photo" title="Change photo">
+            <Avatar user={user} photo={photo} />
+            <span className="profile-avatar-hover" aria-hidden="true"><IconImage size={22} /></span>
+          </button>
+        )}
+        action={(
+          <button type="button" className="profile-bg-btn" onClick={() => setDialog('banner')} aria-label="Change background" title="Change background">
+            <IconImage size={16} />
+          </button>
+        )}>
+        <Nickname user={user} nick={profile?.nickname || ''} notify={notify} onChange={onChange} />
+      </ProfileHero>
 
       <header className="decks-head">
         <h2 className="decks-title">Decks</h2>
@@ -169,22 +187,7 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
         </div>
       )}
       {dilemmasReady && myDilemmas.length > 0 && (
-        <ul className="dilemma-list" ref={dilemmaList}>
-          {(moreDilemmas ? myDilemmas.slice(0, SHOWN_DILEMMAS) : myDilemmas).map((x) => (
-            <DilemmaTile key={`${x.deck.id}/${x.id}`} deckId={x.deck.id} d={x} uid={user.uid} solved={false}
-              href={`#/dilemmas/${x.deck.id}/${x.id}`} meta={<b>{x.deck.name}</b>} />
-          ))}
-          {moreDilemmas && (
-            <li>
-              <button type="button" className="dilemma-tile dilemma-add" onClick={() => setAllDilemmas(true)}
-                aria-label={`See all ${myDilemmas.length} dilemmas`} title={`See all ${myDilemmas.length} dilemmas`}>
-                <span className="dilemma-split" aria-hidden="true">
-                  <span className="deck-all"><IconArrowRight size={34} />See all<span className="deck-all-n">{myDilemmas.length} dilemmas</span></span>
-                </span>
-              </button>
-            </li>
-          )}
-        </ul>
+        <DilemmaGrid list={myDilemmas} uid={user.uid} more={moreDilemmas} onAll={() => setAllDilemmas(true)} listRef={dilemmaList} />
       )}
 
       <ConfirmDialog open={confirmAll} confirmLabel="Delete all"
@@ -193,6 +196,126 @@ export default function ProfilePage({ user, profile, notify, onChange }) {
       {dialog && (
         <PhotoDialog kind={dialog} onClose={() => setDialog(null)} onSave={(data) => save(dialog, data)}
           onRemove={custom[dialog] ? () => save(dialog, null) : undefined} />
+      )}
+    </div>
+  );
+}
+
+// Dilemmi del profilo (mio e pubblico): i primi SHOWN_DILEMMAS e See all, che li mostra tutti qui. solved = già risposto.
+function DilemmaGrid({ list, uid, more, onAll, listRef, solved }) {
+  return (
+    <ul className="dilemma-list" ref={listRef}>
+      {(more ? list.slice(0, SHOWN_DILEMMAS) : list).map((x) => (
+        <DilemmaTile key={`${x.deck.id}/${x.id}`} deckId={x.deck.id} d={x} uid={uid} solved={!!solved?.has(`${x.deck.id}_${x.id}`)}
+          href={`#/dilemmas/${x.deck.id}/${x.id}`} meta={<b>{x.deck.name}</b>} />
+      ))}
+      {more && (
+        <li>
+          <button type="button" className="dilemma-tile dilemma-add" onClick={onAll}
+            aria-label={`See all ${list.length} dilemmas`} title={`See all ${list.length} dilemmas`}>
+            <span className="dilemma-split" aria-hidden="true">
+              <span className="deck-all"><IconArrowRight size={34} />See all<span className="deck-all-n">{list.length} dilemmas</span></span>
+            </span>
+          </button>
+        </li>
+      )}
+    </ul>
+  );
+}
+
+// Pagina pubblica di un altro utente (#/profile/:uid, dal nome dell'autore nella vista di un mazzo): come il proprio
+// profilo, ma foto e sfondo non si cambiano e il tondo in alto a destra è Segui / Seguito. Numeri: iscrizione (se il
+// profilo la porta), mazzi pubblici, follower, seguiti; niente ultimo accesso né dilemmi risposti (dati privati).
+// Sotto, i suoi mazzi pubblici (le voci dell'indice) e i dilemmi su quei mazzi.
+export function PublicProfilePage({ uid, viewer, notify }) {
+  const [profile, setProfile] = useState(undefined); // undefined = caricamento
+  const [decks, setDecks] = useState(null);
+  const [followed, setFollowed] = useState(undefined); // undefined = non ancora noto
+  const [busy, setBusy] = useState(false);
+  const [allDilemmas, setAllDilemmas] = useState(false);
+  const mobile = useIsMobile();
+  const dilemmaList = useRef(null);
+  useEffect(() => {
+    let alive = true;
+    getPublicProfile(uid).then((p) => alive && setProfile(p), () => alive && setProfile(null));
+    return () => { alive = false; };
+  }, [uid]);
+  useEffect(() => listenUserDecks(uid, setDecks, () => setDecks([])), [uid]);
+  useEffect(() => listenFollowing(viewer, uid, setFollowed, () => setFollowed(false)), [viewer, uid]);
+  // Il secondo argomento (followed) rilegge i numeri dopo Segui / Smetti di seguire.
+  const followers = useCount(countFollowers, uid, followed);
+  const following = useCount(countFollowing, uid);
+  const ids = (decks || []).map((d) => d.id);
+  const dilemmas = usePerDeck(ids, listenDilemmas);
+  const [answered, setAnswered] = useState(null); // dilemmi a cui chi guarda ha già risposto (Voted sui riquadri)
+  useEffect(() => listenAnswered(viewer, setAnswered, () => setAnswered(new Set())), [viewer]);
+  const list = (decks || []).flatMap((d) => (dilemmas[d.id] || []).map((x) => ({ ...x, deck: d }))).sort((a, b) => at(b) - at(a));
+  const dilemmasReady = decks && ids.every((id) => dilemmas[id]);
+  const moreDilemmas = !allDilemmas && list.length > SHOWN_DILEMMAS;
+  useEffect(() => { if (allDilemmas) dilemmaList.current?.children[SHOWN_DILEMMAS]?.querySelector('a')?.focus(); }, [allDilemmas]);
+  if (profile === undefined) return <div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>;
+  // Senza profilo leggibile (niente documento, o regole vecchie) il nickname firmato sui suoi mazzi pubblici.
+  const name = profile?.nickname || decks?.find((d) => d.owner)?.owner || 'a player';
+  const banner = profile?.banner || decks?.map((d) => d.art).find(Boolean);
+  const toggle = () => {
+    const on = !followed;
+    setBusy(true);
+    setFollowing(viewer, uid, on)
+      .then(() => notify(on ? `You follow ${name}` : `You no longer follow ${name}`))
+      .catch((e) => notify(`Could not ${on ? 'follow' : 'unfollow'}: ${e.message}`, 'error'))
+      .finally(() => setBusy(false));
+  };
+  const stats = [
+    ['Decks', decks ? decks.length : '…'],
+    ['Followers', followers],
+    ['Following', following],
+  ];
+  const label = followed ? `Unfollow ${name}` : `Follow ${name}`;
+  return (
+    <div className="decks-root profile-page">
+      {mobile && <header className="decks-head"><h1 className="decks-title">Profile</h1></header>}
+      <ProfileHero banner={banner} since={profile?.since ? day(profile.since.toMillis()) : ''} stats={stats}
+        avatar={<span className="profile-avatar"><Avatar user={{ displayName: name }} photo={profile?.photo} /></span>}
+        action={followed !== undefined && (
+          <button type="button" className={`profile-bg-btn profile-follow${followed ? ' on' : ''}`} onClick={toggle} disabled={busy}
+            aria-pressed={followed} aria-label={label} title={label}>
+            {followed ? <IconUserCheck size={16} /> : <IconUserPlus size={16} />}
+          </button>
+        )}>
+        <div className="profile-who profile-name-row"><h2 className="profile-name">{name}</h2></div>
+      </ProfileHero>
+
+      <header className="decks-head">
+        <h2 className="decks-title">Decks</h2>
+      </header>
+      {decks === null && <span className="import-spinner" aria-label="Loading" />}
+      {decks?.length === 0 && (
+        <div className="decks-empty">
+          <p className="decks-empty-title">No public decks</p>
+          <p className="field-hint">{name === 'a player' ? 'This player has' : `${name} has`} not shared a deck in Community yet.</p>
+        </div>
+      )}
+      {decks?.length > 0 && (
+        <ul className="deck-grid">
+          {decks.map((d) => (
+            <li key={d.id} className="deck-tile-wrap">
+              <DeckTile deck={d} onClick={() => navigate(`/community/${d.id}`)} />
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <header className="decks-head profile-next">
+        <h2 className="decks-title">Dilemmas</h2>
+      </header>
+      {!dilemmasReady && <span className="import-spinner" aria-label="Loading" />}
+      {dilemmasReady && list.length === 0 && (
+        <div className="decks-empty">
+          <p className="decks-empty-title">No dilemmas yet</p>
+        </div>
+      )}
+      {dilemmasReady && list.length > 0 && (
+        <DilemmaGrid list={list} uid={viewer} more={moreDilemmas} onAll={() => setAllDilemmas(true)} listRef={dilemmaList} solved={answered} />
       )}
     </div>
   );

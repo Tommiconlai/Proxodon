@@ -78,6 +78,10 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
     navigate(`/decks/${nid}`);
   };
   const by = deck.owner || 'a player';
+  // Nome dell'autore = link alla sua pagina pubblica (Segui, i suoi mazzi pubblici); uid della copia, stabile anche se
+  // cambia il nickname.
+  const byHref = deck.uid ? `#/profile/${encodeURIComponent(deck.uid)}` : undefined;
+  const byLink = byHref ? <a className="deck-by-link" href={byHref}>{by}</a> : by;
   const like = (
     <button type="button" className={`deck-like${liked ? ' on' : ''}`} aria-pressed={liked} onClick={toggleLike}
       aria-label={`Like, ${likes} ${likes === 1 ? 'like' : 'likes'}`} title={liked ? 'Unlike' : 'Like'}>
@@ -97,7 +101,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
         {!mobile && !helpId && (
           <div className="deck-sticky">
             <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`}>
-              <DeckTitle by={by}><h2 className="deck-name deck-name-static">{deck.name}</h2><DeckBracket deck={deck} />{like}</DeckTitle>
+              <DeckTitle by={by} byHref={byHref}><h2 className="deck-name deck-name-static">{deck.name}</h2><DeckBracket deck={deck} />{like}</DeckTitle>
             </div>
           </div>
         )}
@@ -128,7 +132,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
                 <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setExportOpen(true)} disabled={!deck.cards.length}
                   aria-label="Export" title="Export"><IconDeckExport /></button>
               </span>
-              {inHero && <span className="deck-sync">by {by}</span>}
+              {inHero && <span className="deck-sync">by {byLink}</span>}
             </div>
           </div>
         </header>

@@ -10,7 +10,7 @@ import {
   addSection, renameSection, deleteSection, moveToSection, overLimit, placeRows, illegalIn, legalityLabel,
   splitRow, changeEdition, manaPips, deckStats, validateDeck, maxCopies, packPiles, splitPiles,
   libraryCards, shuffle, mulliganBottom, hyperAtLeast, deckPrice, addEntries, searchTerms, deckMatches, contentSig,
-  scryfallImg, cleanPublicDeck, cleanIndex, indexFields, deckTags, deckBracket, MAX_TAGS, splitSlices, applySuggestion, revertSuggestion, cleanCards, cleanHelp, cleanReply,
+  scryfallImg, cleanPublicDeck, cleanIndex, indexFields, deckTags, deckBracket, cleanProfile, MAX_TAGS, splitSlices, applySuggestion, revertSuggestion, cleanCards, cleanHelp, cleanReply,
 } from './deckModel.js';
 import { autocompleteUrl, namedUrl, searchUrl, advancedQuery, withLegal } from './scryfallSearch.js';
 
@@ -444,6 +444,14 @@ eq(['http://cards.scryfall.io/a.jpg', 'https://evil.test/a.jpg', 'https://cards.
 eq(scryfallImg('https://cards.scryfall.io/a.jpg"),url("https://evil.test/t.png').includes('"'), false,
   'immagini: niente virgolette, non si esce da url("...")');
 eq(['https://user:pw@cards.scryfall.io/a.jpg', 'https://cards.scryfall.io:8443/a.jpg'].map(scryfallImg), ['', ''], 'immagini: credenziali e porte rifiutate');
+// Profilo pubblico (users/{uid} di un altro): solo data URL d'immagine, nickname corto, since solo se è una data.
+{
+  const jpg = 'data:image/jpeg;base64,/9j/4AAQ';
+  const p = cleanProfile({ nickname: 'a‮bcdefghijklmnopqrstuvwxyz0123', photo: jpg, banner: 'https://evil.test/b.png', since: 'ieri', followers: 99 });
+  eq([p.nickname, p.photo, p.banner, p.since, 'followers' in p], ['abcdefghijklmnopqrstuvwx', jpg, null, null, false], 'profilo pubblico ripulito');
+  eq(cleanProfile(null), { nickname: null, photo: null, banner: null, since: null }, 'profilo che non c\'è');
+  eq(cleanProfile({ photo: 'data:image/svg+xml;base64,PHN2Zz4=' }).photo, null, 'profilo: svg rifiutato');
+}
 // Sicurezza (mazzi altrui): mv fuori scala non manda in errore Stats, niente bidi nei nomi, immagini delle carte filtrate.
 {
   const odd = (mv) => cleanPublicDeck({ ...sd, cards: [{ ...sd.cards[0], board: 'main', card: { ...sd.cards[0].card, type: 'Creature', mv } }] });

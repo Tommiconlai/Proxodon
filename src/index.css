@@ -2403,6 +2403,13 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 .profile-bg-btn:hover, .profile-bg-btn:focus-visible { color: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 12px rgba(0, 229, 255, 0.3); outline: none; }
 .mobile .profile-bg-btn::after { content: ''; position: absolute; inset: -4px; } /* 36 + 4 per lato = 44 */
+/* Pagina pubblica: lo stesso tondo è Segui; acceso (segui già) ciano pieno. La foto non si cambia: niente puntatore. */
+.profile-bg-btn.profile-follow.on { color: var(--cyan); border-color: var(--cyan); background: rgba(0, 229, 255, 0.14); }
+.profile-bg-btn.profile-follow:disabled { opacity: 0.6; cursor: wait; }
+span.profile-avatar { cursor: default; }
+/* Nome dell'autore nella vista di un mazzo altrui: link alla sua pagina pubblica. */
+.deck-by-link { color: inherit; text-decoration: underline; text-decoration-color: rgba(0, 229, 255, 0.45); text-underline-offset: 2px; }
+.deck-by-link:hover, .deck-by-link:focus-visible { color: var(--cyan); text-decoration-color: var(--cyan); }
 /* Il richiamo in alto, come il formato dei mazzi: testo mono maiuscolo e il punto ciano sfocato. */
 .profile-callout {
   position: absolute; z-index: 1; top: 22px; left: 28px; margin: 0;

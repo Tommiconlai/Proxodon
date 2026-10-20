@@ -425,7 +425,7 @@ export default function App() {
   // Tutorial: si chiude se si cambia pagina (link, back); key = layout, passando da telefono a desktop riparte.
   const tutorial = useTutorial();
   useEffect(() => { if (tutorial && tutorial !== route) stopTutorial(); }, [tutorial, route]);
-  const inDecks = route.startsWith('/decks') || route.startsWith('/community') || route.startsWith('/dilemmas') || route.startsWith('/help') || route === '/profile' || route === '/settings';
+  const inDecks = route.startsWith('/decks') || route.startsWith('/community') || route.startsWith('/dilemmas') || route.startsWith('/help') || route === '/profile' || route.startsWith('/profile/') || route === '/settings';
   // Feedback dai mazzi (stabile: i listener Firestore lo hanno tra le dipendenze). action = { label,
   // onClick } per un pulsante nel toast (es. Undo); il click esegue l'azione e chiude il toast.
   const notify = useCallback((msg, kind = 'success', action) => setToast({
