@@ -233,6 +233,17 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
     375x812, button red and centred, confirm in the body with Cancel focused, Cancel and Esc close it. Confirm was not
     pressed (it would have hit the verified guard, but an account deletion is not something to test on a real one):
     the deletion itself is untested.
+  - Split view ("Stacks, every copy") renders one element per copy, so a hostile public deck (500 rows x 99) could
+    freeze the tab (and the pairwise frame pass after it). Above `SPLIT_MAX` = 300 copies (all zones) it shows as
+    Stacks, one card per row with its count, under a cyan note ("N cards: above 300, Split shows each card once with
+    its count.") with an eye icon button "Show all N copies" (36 px, 44 px on phones) that switches to every copy for
+    that page. No real deck reaches 300 (Commander 100, Constructed 60 + 15), cubes do. Checked in the dev server with
+    the cap set to 50 for the test (back to 300 before the commit): a 75-card Pauper deck showed 25 rows with counts
+    in real stack piles (`layout` stays `stacks` for Split either way) and the note, the eye showed all 75; 375x812 note wraps, no sideways scroll; at 300 the same deck is full Split
+    with no note.
+  With these four, the code items the review left open are closed; what stays is console work for the user (custom
+  domain, App Check, API key restrictions, budget, password policy, Dependabot, GitHub security toggles, Android
+  release signing) and rate limits on dilemmas / helps.
 - **Security review and fixes (2026-10-20):** user: "fai un check sulla sicurezza del codice, usa le
   skill o agenti necessari. Sii scrupoloso, non tralasciare niente", then "Sistema il gruppo 1 e prepara anche le
   regole Firestore del gruppo 2". Three `ecc:security-reviewer` agents (rules and data layer, with ~150 probes on

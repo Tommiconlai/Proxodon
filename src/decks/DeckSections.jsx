@@ -70,6 +70,10 @@ const TOUCH_STRIP = 36;
 const TOUCH_MIN = 170;
 const pileHeight = (n, w, strip = w * (680 / 488 - 1.253)) => PILE_HEAD + (n ? (w * 680) / 488 + (n - 1) * strip : 26); // 0 carte = "No commander yet."
 const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
+// Split: un elemento per copia (e cornici ricalcolate a coppie), quindi un mazzo altrui da 500 righe x 99 bloccherebbe
+// la scheda. Sopra SPLIT_MAX copie (tutte le zone) si vede come Stacks, una carta per riga col numero, finché non si
+// chiede di vederle tutte. Nessun mazzo vero ci arriva: Commander 100, Constructed 60 + 15; i cube sì.
+const SPLIT_MAX = 300;
 // Corpo dell'editor: barra (ordina, vista, raggruppa, + nuova sezione), comandante, gruppi, sideboard, maybeboard,
 // poi statistiche e mano di prova sotto tutto.
 // Viste: lista (righe), griglia (immagini), stack (immagini sovrapposte, si vede la riga del nome;
@@ -116,6 +120,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   const setView = (v) => setSetting('deckView', v);
   const setSort = (v) => setSetting('deckSort', v);
   const previewW = PREVIEW[settings.preview] ?? PREVIEW.medium;
+  const [allCopies, setAllCopies] = useState(false); // Split oltre SPLIT_MAX copie, chiesto da chi guarda
   const [dialog, setDialog] = useState(null); // { id?, name?, moveIds? } nuova sezione o rinomina
   const [edition, setEdition] = useState(null); // { ids, name, current } righe a cui cambiare edizione
   const [viewing, setViewing] = useState(null); // carta aperta con View card
@@ -131,8 +136,10 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   const press = useLongPress();
   const closeMenu = useCallback(() => setMenu(null), []);
   const custom = deck.groupBy === 'custom';
-  const split = view === 'split';
-  const layout = split ? 'stacks' : view; // classi CSS: lo split è uno stack
+  const copies = sum(deck.cards);
+  const capped = view === 'split' && copies > SPLIT_MAX && !allCopies;
+  const split = view === 'split' && !capped;
+  const layout = view === 'split' ? 'stacks' : view; // classi CSS: lo split è uno stack (anche oltre SPLIT_MAX)
   const over = useMemo(() => overLimit(deck), [deck]);
   const overBy = useMemo(() => new Map(over.map((e) => [e.oid, e])), [over]);
   // Avvisi solo dove le carte contano: main e (fuori da Commander) sideboard.
@@ -566,6 +573,14 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
             </li>
           ))}
         </ul>
+      )}
+      {capped && (
+        <p className="deck-split-cap" role="status">
+          <IconCopy size={14} />
+          <span>{copies} cards: above {SPLIT_MAX}, Split shows each card once with its count.</span>
+          <button type="button" className="btn-secondary deck-icon-btn" aria-label={`Show all ${copies} copies`} title={`Show all ${copies} copies (slow on big lists)`}
+            onClick={() => setAllCopies(true)}><IconEye size={16} /></button>
+        </p>
       )}
       {/* Negli stack comandante e sideboard sono pile come le altre: il mazzo è un unico blocco centrato. */}
       {blocks.commander && layout !== 'stacks' && group(blocks.commander, 'deck-block')}

@@ -3408,6 +3408,18 @@ span.deck-hero-art { cursor: default; }
   transition: background var(--transition), box-shadow var(--transition);
 }
 .deck-issue svg { flex: none; margin-top: 2px; }
+/* Split oltre 300 copie (DeckSections, SPLIT_MAX): avviso ciano con l'occhio che le mostra tutte. */
+.deck-split-cap {
+  display: flex; align-items: center; gap: 8px;
+  margin: -4px 0 16px; padding: 4px 4px 4px 10px;
+  border: 1px solid rgba(0, 229, 255, 0.35); border-radius: var(--radius-sm);
+  background: rgba(0, 229, 255, 0.06);
+  font-size: 0.78rem; line-height: 1.4; color: var(--cyan-soft);
+}
+.deck-split-cap > svg { flex: none; }
+.deck-split-cap span { flex: 1; min-width: 0; }
+.deck-split-cap .deck-icon-btn { flex: none; width: 36px; height: 36px; padding: 0; justify-content: center; }
+.mobile .deck-split-cap .deck-icon-btn { width: 44px; height: 44px; }
 .deck-issue.error { border-color: rgba(255, 77, 109, 0.5); background: rgba(255, 77, 109, 0.08); color: var(--danger); }
 .deck-issue:hover:not(:disabled) { background: rgba(245, 158, 11, 0.16); }
 .deck-issue.error:hover:not(:disabled) { background: rgba(255, 77, 109, 0.16); }
