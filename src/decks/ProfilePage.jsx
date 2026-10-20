@@ -242,8 +242,10 @@ export function PublicProfilePage({ uid, viewer, notify }) {
   }, [uid]);
   useEffect(() => listenUserDecks(uid, setDecks, () => setDecks([])), [uid]);
   useEffect(() => listenFollowing(viewer, uid, setFollowed, () => setFollowed(false)), [viewer, uid]);
-  // Il secondo argomento (followed) rilegge i numeri dopo Segui / Smetti di seguire.
-  const followers = useCount(countFollowers, uid, followed);
+  // saved cresce quando il server ha confermato Segui / Smetti di seguire: rilegge i follower (followed cambia prima,
+  // sulla scrittura locale, e il conteggio sul server non la vedrebbe ancora).
+  const [saved, setSaved] = useState(0);
+  const followers = useCount(countFollowers, uid, saved);
   const following = useCount(countFollowing, uid);
   const ids = (decks || []).map((d) => d.id);
   const dilemmas = usePerDeck(ids, listenDilemmas);
@@ -261,7 +263,7 @@ export function PublicProfilePage({ uid, viewer, notify }) {
     const on = !followed;
     setBusy(true);
     setFollowing(viewer, uid, on)
-      .then(() => notify(on ? `You follow ${name}` : `You no longer follow ${name}`))
+      .then(() => { setSaved((n) => n + 1); notify(on ? `You follow ${name}` : `You no longer follow ${name}`); })
       .catch((e) => notify(`Could not ${on ? 'follow' : 'unfollow'}: ${e.message}`, 'error'))
       .finally(() => setBusy(false));
   };

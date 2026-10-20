@@ -220,6 +220,12 @@ was session-scratch). **Replaced** the earlier warm-gold OLED theme. Don't resto
   the dev server at 1440x900 and on the pane plus 375x812: author link in a Community deck, the public page of
   another player (name from the index while the old rules hide the profile, Follow shown, not pressed: a real
   user), own profile with Change photo / background and the counts (0 until the rules are published).
+  Then, with the rules published and on the user's request, a live test between their two accounts (blazedfoot follows
+  tommiconlai, then stops): the public page read the real profile (photo, background, nickname, 10 decks, 5
+  dilemmas); Follow wrote both halves on the server, toast "You follow tommiconlai", button "Unfollow", after a reload
+  Followers 1 on tommiconlai and Following 1 on blazedfoot; Unfollow removed both, count back to 0 at once, button
+  "Follow". Fix found by it: the Followers count re-read on `followed`, which flips on the local write before the
+  server has it, so it showed 0 after Follow; it now re-reads when `setFollowing` resolves (`saved` counter).
 - **Security follow-ups (most recent, 2026-10-20):** side session started by the security review session, to finish
   what it left open in code. Each step is its own commit.
   - CSP: `connect-src` lists the exact Google hosts instead of `https://*.googleapis.com` (which also covers anyone's
