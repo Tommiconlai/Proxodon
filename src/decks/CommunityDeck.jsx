@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { listenPublicDeck, listenHelp, createDeck, countLikes, hasLiked, setLiked } from './deckStore';
+import { listenPublicDeck, listenHelp, createDeck, countLikes, hasLiked, setLiked, listenFollowing } from './deckStore';
 import { duplicateDeck, coverRow, formatLabel, refreshSnapshots } from './deckModel';
 import { cardsByIds } from './scryfallSearch';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { navigate } from '../hooks/useHashRoute';
 import DeckSections from './DeckSections';
-import { DeckBand, DeckTitle, DeckCount, DeckTopBar, DeckTagList, DeckBracket } from './DeckTabs';
+import { DeckBand, DeckTitle, DeckCount, DeckTopBar, DeckTagList, DeckBracket, ByLink } from './DeckTabs';
 import { DeckDilemmas } from './Dilemmas';
 import { DeckHelps, HelpQuestion, HelpReply } from './HelpRequests';
 import { ExportDeckDialog } from './dialogs';
@@ -49,6 +49,11 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
       notify(`Could not save the like: ${e.message}`, 'error');
     });
   };
+  // Segui già l'autore: il suo nickname prende il gradiente della selezione (ByLink).
+  const owner = deck?.uid;
+  const [followedNow, setFollowed] = useState(false);
+  useEffect(() => (owner && owner !== uid ? listenFollowing(uid, owner, setFollowed, () => setFollowed(false)) : undefined), [uid, owner]);
+  const followed = followedNow && owner !== uid; // il proprio mazzo: mai, anche se prima la vista era su un altro
   // Snapshot aggiornati da Scryfall solo sullo schermo (es. il retro delle carte a due facce nelle copie
   // pubblicate prima che esistesse), come fa l'editor all'apertura.
   const refreshed = useRef(false);
@@ -81,7 +86,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
   // Nome dell'autore = link alla sua pagina pubblica (Segui, i suoi mazzi pubblici); uid della copia, stabile anche se
   // cambia il nickname.
   const byHref = deck.uid ? `#/profile/${encodeURIComponent(deck.uid)}` : undefined;
-  const byLink = byHref ? <a className="deck-by-link" href={byHref}>{by}</a> : by;
+  const byLink = <ByLink by={by} href={byHref} followed={followed} />;
   const like = (
     <button type="button" className={`deck-like${liked ? ' on' : ''}`} aria-pressed={liked} onClick={toggleLike}
       aria-label={`Like, ${likes} ${likes === 1 ? 'like' : 'likes'}`} title={liked ? 'Unlike' : 'Like'}>
@@ -101,7 +106,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
         {!mobile && !helpId && (
           <div className="deck-sticky">
             <div className={`deck-sticky-bar${stuck ? ' stuck' : ''}`}>
-              <DeckTitle by={by} byHref={byHref}><h2 className="deck-name deck-name-static">{deck.name}</h2><DeckBracket deck={deck} />{like}</DeckTitle>
+              <DeckTitle by={by} byHref={byHref} followed={followed}><h2 className="deck-name deck-name-static">{deck.name}</h2><DeckBracket deck={deck} />{like}</DeckTitle>
             </div>
           </div>
         )}
@@ -132,7 +137,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
                 <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setExportOpen(true)} disabled={!deck.cards.length}
                   aria-label="Export" title="Export"><IconDeckExport /></button>
               </span>
-              {inHero && <span className="deck-sync">by {byLink}</span>}
+              {inHero && <span className="deck-sync deck-hero-by">by {byLink}</span>}
             </div>
           </div>
         </header>

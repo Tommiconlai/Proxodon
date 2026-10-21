@@ -19,9 +19,12 @@ export const withLegal = (q, format, identity) =>
   `${format === 'casual' ? q : `${q} legal:${format}`} ${identity ? idQuery(identity) : ''}`.trim();
 
 // Filtri della ricerca avanzata → sintassi Scryfall. Campi vuoti ignorati; le virgolette dentro i
-// testi si tolgono (Scryfall non ha escape). Incolore vince sui colori; identity usa id: invece di c:.
+// testi si tolgono (Scryfall non ha escape). Colori della carta (c:) e identità (id:) a parte; in tutti e due
+// incolore vince sui colori.
 const phrase = (s) => `"${s.trim().replace(/"/g, '').replace(/\s+/g, ' ')}"`;
 const filled = (v) => v != null && String(v).trim() !== '';
+const colorQuery = (k, colors, colorless, mode) => (colorless ? `${k}:c`
+  : colors?.length ? `${k}${mode || '>='}${colors.join('').toLowerCase()}` : '');
 export function advancedQuery(f) {
   const out = [];
   // Il nome pieno delle carte a due facce su Scryfall usa " // ": "Fire/Ice" diventa "Fire // Ice".
@@ -29,9 +32,7 @@ export function advancedQuery(f) {
   if (filled(f.oracle)) out.push(`o:${phrase(f.oracle)}`);
   if (filled(f.manaCost)) out.push(`m:${f.manaCost.replace(/\s+/g, '')}`);
   if (filled(f.mv)) out.push(`mv${f.mvOp || '='}${Number(f.mv)}`);
-  const col = f.identity ? 'id' : 'c';
-  if (f.colorless) out.push(`${col}:c`);
-  else if (f.colors?.length) out.push(`${col}${f.colorMode || '>='}${f.colors.join('').toLowerCase()}`);
+  out.push(colorQuery('c', f.colors, f.colorless, f.colorMode), colorQuery('id', f.idColors, f.idColorless, f.idMode));
   if (filled(f.type)) f.type.trim().split(/\s+/).forEach((t) => out.push(`t:${t}`));
   if (f.rarity) out.push(`r:${f.rarity}`);
   if (filled(f.set)) out.push(`s:${f.set.trim().toLowerCase()}`);
@@ -41,7 +42,7 @@ export function advancedQuery(f) {
   if (filled(f.artist)) out.push(`a:${phrase(f.artist)}`);
   if (f.isCommander) out.push('is:commander');
   if (filled(f.extra)) out.push(f.extra.trim());
-  return out.join(' ');
+  return out.filter(Boolean).join(' ');
 }
 
 export async function autocomplete(q, signal) {

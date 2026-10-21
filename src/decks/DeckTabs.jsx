@@ -131,12 +131,23 @@ export function DeckBracket({ deck, update }) {
 
 // Nome del mazzo da desktop (barra in alto): nome e cuore sulla stessa riga, sotto "by" l'autore (se c'è).
 // byHref = la pagina pubblica dell'autore (mazzo altrui): il nome diventa un link.
-export function DeckTitle({ children, by, byHref }) {
+export function DeckTitle({ children, by, byHref, followed }) {
   return (
     <div className="deck-title">
       <div className="deck-title-row">{children}</div>
-      {by && <span className="deck-by">by {byHref ? <a className="deck-by-link" href={byHref}>{by}</a> : by}</span>}
+      {by && <span className="deck-by">by <ByLink by={by} href={byHref} followed={followed} /></span>}
     </div>
+  );
+}
+
+// Nickname dell'autore: link alla sua pagina (senza href, testo e basta); followed = lo segui già, col gradiente
+// della carta selezionata (CardFrame).
+export function ByLink({ by, href, followed }) {
+  if (!href) return by;
+  return (
+    <a className={`deck-by-link${followed ? ' followed' : ''}`} href={href}>
+      {by}{followed && <span className="sr-only">, following</span>}
+    </a>
   );
 }
 

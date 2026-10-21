@@ -9,7 +9,7 @@ import { IconSearch, IconPlus } from '../components/icons';
 
 const EMPTY = {
   name: '', oracle: '', type: '', manaCost: '', mvOp: '=', mv: '', colors: [], colorless: false, colorMode: '>=',
-  identity: false, rarity: '', set: '', powOp: '=', pow: '', touOp: '=', tou: '', keyword: '', artist: '', isCommander: false, extra: '',
+  idColors: [], idColorless: false, idMode: '<=', rarity: '', set: '', powOp: '=', pow: '', touOp: '=', tou: '', keyword: '', artist: '', isCommander: false, extra: '',
 };
 const COLORS = ['W', 'U', 'B', 'R', 'G'];
 const COLOR_NAME = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green', C: 'Colorless' };
@@ -36,10 +36,34 @@ export default function AdvancedSearch({ format, identity, onAdd, notify, deckCa
   const inDeck = useMemo(() => new Set((deckCards || []).map((r) => r.card.oid)), [deckCards]);
   const field = (k) => ({ id: `${id}-${k}`, value: f[k], onChange: (e) => setF((x) => ({ ...x, [k]: e.target.value })) });
   const check = (k) => ({ checked: f[k], onChange: (e) => setF((x) => ({ ...x, [k]: e.target.checked })) });
+  // Pips e confronto di una riga: colori della carta (colors, colorless, colorMode) o identità (idColors, ...).
   // Incolore esclude i colori e viceversa.
-  const toggleColor = (c) => setF((x) => (c === 'C'
-    ? { ...x, colorless: !x.colorless, colors: [] }
-    : { ...x, colorless: false, colors: x.colors.includes(c) ? x.colors.filter((y) => y !== c) : [...x.colors, c] }));
+  const colorSet = (legend, cs, cl, mk) => {
+    const toggle = (c) => setF((x) => (c === 'C'
+      ? { ...x, [cl]: !x[cl], [cs]: [] }
+      : { ...x, [cl]: false, [cs]: x[cs].includes(c) ? x[cs].filter((y) => y !== c) : [...x[cs], c] }));
+    return (
+      <fieldset className="adv-field adv-colors">
+        <legend>{legend}</legend>
+        <div className="adv-pips">
+          {[...COLORS, 'C'].map((c) => {
+            const on = c === 'C' ? f[cl] : f[cs].includes(c);
+            return (
+              <label key={c} className={`adv-pip${on ? ' on' : ''}`} title={COLOR_NAME[c]}>
+                <input type="checkbox" checked={on} onChange={() => toggle(c)} aria-label={COLOR_NAME[c]} />
+                <ManaCost cost={`{${c}}`} />
+              </label>
+            );
+          })}
+        </div>
+        <select aria-label={`${legend} match`} value={f[mk]} disabled={f[cl]} onChange={(e) => setF((x) => ({ ...x, [mk]: e.target.value }))}>
+          <option value=">=">Including these</option>
+          <option value="=">Exactly these</option>
+          <option value="<=">At most these</option>
+        </select>
+      </fieldset>
+    );
+  };
 
   const run = async (pageUrl) => {
     const q = advancedQuery(f);
@@ -91,25 +115,8 @@ export default function AdvancedSearch({ format, identity, onAdd, notify, deckCa
           </select>
         </label>
 
-        <fieldset className="adv-field adv-colors">
-          <legend>Colors</legend>
-          <div className="adv-pips">
-            {[...COLORS, 'C'].map((c) => (
-              <label key={c} className={`adv-pip${(c === 'C' ? f.colorless : f.colors.includes(c)) ? ' on' : ''}`} title={COLOR_NAME[c]}>
-                <input type="checkbox" checked={c === 'C' ? f.colorless : f.colors.includes(c)} onChange={() => toggleColor(c)} aria-label={COLOR_NAME[c]} />
-                <ManaCost cost={`{${c}}`} />
-              </label>
-            ))}
-          </div>
-          <div className="adv-row">
-            <select aria-label="Color match" value={f.colorMode} disabled={f.colorless} onChange={(e) => setF((x) => ({ ...x, colorMode: e.target.value }))}>
-              <option value=">=">Including these</option>
-              <option value="=">Exactly these</option>
-              <option value="<=">At most these</option>
-            </select>
-            <label className="adv-check"><input type="checkbox" {...check('identity')} /> Color identity</label>
-          </div>
-        </fieldset>
+        {colorSet('Colors', 'colors', 'colorless', 'colorMode')}
+        {colorSet('Color identity', 'idColors', 'idColorless', 'idMode')}
 
         <div className="adv-field"><span>Power</span>
           <div className="adv-row">{opSelect('powOp', 'Power')}<input className="import-link-input" type="number" min="0" aria-label="Power" {...field('pow')} /></div>

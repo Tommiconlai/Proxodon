@@ -2412,6 +2412,12 @@ span.profile-avatar { cursor: default; }
 /* Nome dell'autore nella vista di un mazzo altrui: link alla sua pagina pubblica. */
 .deck-by-link { color: inherit; text-decoration: underline; text-decoration-color: rgba(0, 229, 255, 0.45); text-underline-offset: 2px; }
 .deck-by-link:hover, .deck-by-link:focus-visible { color: var(--cyan); text-decoration-color: var(--cyan); }
+/* Autore che segui già: il gradiente della carta selezionata (CardFrame) sul testo. */
+.deck-by-link.followed {
+  background: linear-gradient(90deg, #ff2e96, #ab61ed 50%, #00e5ff); -webkit-background-clip: text; background-clip: text;
+  color: transparent; text-decoration-color: rgba(171, 97, 237, 0.6);
+}
+.deck-by-link.followed:hover, .deck-by-link.followed:focus-visible { text-decoration-color: var(--cyan); }
 /* Il richiamo in alto, come il formato dei mazzi: testo mono maiuscolo e il punto ciano sfocato. */
 .profile-callout {
   position: absolute; z-index: 1; top: 22px; left: 28px; margin: 0;
@@ -3654,6 +3660,7 @@ span.deck-hero-art { cursor: default; }
 /* Testo mai sotto i 12 px. */
 .deck-editor.is-mobile .deck-sync, .mobile-page-body .sidebar-section h2,
 .mobile .profile-stats dt { font-size: 0.75rem; }
+.deck-hero .deck-sync.deck-hero-by { font-size: 0.9rem; } /* il nickname nella testata, più grande dello stato */
 .mobile .range-value, .mobile .field-hint { font-size: 0.78rem; }
 /* Barra della selezione (DeckSections, touch): − numero + della carta selezionata, sopra la barra in basso. */
 .deck-sel-bar {
@@ -3743,6 +3750,10 @@ span.deck-hero-art { cursor: default; }
 .adv-row .import-link-input { flex: 1; min-width: 0; }
 .adv-op, .adv-row select { width: auto; }
 .adv-colors, .adv-wide, .adv-actions { grid-column: 1 / -1; }
+/* Pallini e confronto sulla stessa riga, il confronto va sotto se non c'è posto. */
+.adv-colors { flex-flow: row wrap; align-items: center; column-gap: 12px; }
+.adv-colors .adv-pips { margin-bottom: 0; }
+.adv-colors select { width: auto; }
 .adv-pips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
 .adv-pip {
   position: relative;
@@ -3806,6 +3817,8 @@ span.deck-hero-art { cursor: default; }
 }
 .deck-adv-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .deck-adv-panel .adv-form { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+/* Colori e identità affiancati, due colonne ciascuno (il pannello da desktop ne ha almeno quattro). */
+.deck-adv-panel .adv-colors { grid-column: span 2; }
 .deck-adv-panel .search-results { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); max-height: 60vh; overflow-y: auto; }
 
 /* ============================================================
@@ -4037,7 +4050,7 @@ span.deck-hero-art { cursor: default; }
 }
 .deck-editor:not(.is-mobile) .deck-sticky-bar.stuck .deck-name { font-size: 18px; line-height: 26px; }
 .deck-editor:not(.is-mobile) .deck-sticky-bar .deck-name-static { margin-left: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.deck-by { margin-top: -5px; font-family: var(--font-display); font-size: 10px; font-weight: 400; line-height: 13px; color: #b2b2b2; }
+.deck-by { margin-top: -3px; font-family: var(--font-display); font-size: 14px; font-weight: 400; line-height: 18px; color: #b2b2b2; }
 .deck-sticky-bar.stuck .deck-by { display: none; }
 .deck-likes { flex: none; display: inline-flex; align-items: center; gap: 6px; color: var(--accent); font-family: var(--font-mono); font-size: 12px; }
 .deck-likes span { color: rgba(255, 255, 255, 0.75); }
