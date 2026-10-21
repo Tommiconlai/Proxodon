@@ -12,5 +12,5 @@ export const firebaseConfig = {
 };
 
 // App Check: chiave del sito reCAPTCHA (pubblica anche lei), da Google Cloud > Security > reCAPTCHA, con i domini
-// tommiconlai.github.io e localhost (dev). Vuota = App Check spento.
+// proxodon.com, www.proxodon.com, tommiconlai.github.io e localhost (dev). Vuota = App Check spento.
 export const appCheckSiteKey = '';
