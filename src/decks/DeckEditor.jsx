@@ -217,7 +217,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
                 <h2 className="decks-title">Advanced search</h2>
                 <button type="button" className="modal-close" onClick={() => setAdvOpen(false)} aria-label="Close advanced search" title="Close advanced search"><IconX size={18} /></button>
               </div>
-              <AdvancedSearch format={deck.format} identity={searchIdentity(deck)} onAdd={add} notify={notify} />
+              <AdvancedSearch format={deck.format} identity={searchIdentity(deck)} onAdd={add} notify={notify} deckCards={deck.cards} />
             </section>
           )}
           {/* Print dal menu delle carte: si aggiungono alla coda di stampa (mai la sostituiscono), anche dal maybeboard. */}
@@ -234,7 +234,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
       )}
       {mobile && advOpen && (
         <MobilePage title="Advanced search" onClose={() => setAdvOpen(false)}>
-          <AdvancedSearch format={deck.format} identity={searchIdentity(deck)} onAdd={add} notify={notify} />
+          <AdvancedSearch format={deck.format} identity={searchIdentity(deck)} onAdd={add} notify={notify} deckCards={deck.cards} />
         </MobilePage>
       )}
       {tagsOpen && <TagsDialog tags={deckTags(deck)} onChange={(tags) => update((d) => ({ ...d, tags }))} onClose={() => setTagsOpen(false)} />}
