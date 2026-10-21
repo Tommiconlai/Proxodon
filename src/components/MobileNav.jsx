@@ -3,6 +3,7 @@ import { Wordmark } from './icons';
 import { useBackClose } from '../hooks/useBackClose';
 import { navigate } from '../hooks/useHashRoute';
 import { navItems } from './navItems';
+import { useBadges, badgeText } from '../hooks/useBadges';
 
 // Arco sopra la X (Figma 57:116), più largo e piatto da quando le voci hanno il nome sotto (tondi da 48): k = posto
 // dal centro (-2..2, la x la fa il CSS col passo --step, che segue la larghezza dello schermo), y = altezza sopra la X,
@@ -17,27 +18,33 @@ function arc(n) {
 
 // Il menu da telefono e tablet: la X del logo sempre in basso al centro; premuta fa il flip delle V (quello
 // dell'hover del logo) e apre l'arco delle voci, con il ? a sinistra e il profilo a destra (children); premuta di
-// nuovo, l'inverso. Chiuso, voci e angoli sono inert. Anche nel tutorial (copia con lo stato suo).
-export function NavMenu({ items, current, onItem, open, onToggle, children }) {
+// nuovo, l'inverso. Chiuso, voci e angoli sono inert. Anche nel tutorial (copia con lo stato suo). counts = le notifiche
+// (useBadges, per chiave): il tondo sulla voce, e sulla X chiusa un puntino finché ce n'è almeno una.
+export function NavMenu({ items, current, onItem, open, onToggle, counts = {}, children }) {
   const pos = arc(items.length);
+  const waiting = items.reduce((s, [key]) => s + (counts[key] || 0), 0);
+  const xLabel = open ? 'Close menu' : waiting ? `Menu, ${waiting} to answer from players you follow` : 'Menu';
   return (
     <nav className={`mnav${open ? ' open' : ''}`} aria-label="Main">
       <ul className="mnav-items" inert={!open}>
         {items.map((item, i) => {
           const [key, label, href, Icon] = item;
+          const n = counts[key] || 0;
           return (
             <li key={key}>
               <a href={href} className="mnav-item" aria-current={key === current ? 'page' : undefined}
                 onClick={(e) => onItem(href, e)} style={{ '--k': pos[i][0], '--y': `${pos[i][1]}px`, '--i': i }}>
-                <Icon size={22} /><span className="mnav-label">{label}</span>
+                <Icon size={22} /><span className="mnav-label">{label}{n > 0 && <span className="sr-only">, {n} to answer</span>}</span>
+                {n > 0 && <span className="mnav-n" aria-hidden="true">{badgeText(n)}</span>}
               </a>
             </li>
           );
         })}
       </ul>
       <div className="mnav-extras" inert={!open}>{children}</div>
-      <button type="button" className="mnav-x" aria-expanded={open} aria-label={open ? 'Close menu' : 'Menu'} title={open ? 'Close menu' : 'Menu'} onClick={onToggle}>
+      <button type="button" className="mnav-x" aria-expanded={open} aria-label={xLabel} title={xLabel} onClick={onToggle}>
         <Wordmark height={26} mark className="wordmark" aria-hidden="true" />
+        {waiting > 0 && !open && <span className="mnav-dot" aria-hidden="true" />}
       </button>
     </nav>
   );
@@ -59,6 +66,7 @@ export default function MobileNav({ route, children }) {
     return () => { document.removeEventListener('pointerdown', onDown); document.removeEventListener('keydown', onKey); };
   }, [open]);
   const { items, current } = navItems(route);
+  const counts = useBadges();
   // La pagina nuova prende il posto della voce del menu in cronologia (navigate). Col default del link la chiusura del
   // menu farebbe history.back() dopo il cambio di hash, e si tornerebbe alla pagina di prima.
   const onItem = (href, e) => {
@@ -68,7 +76,7 @@ export default function MobileNav({ route, children }) {
   };
   return (
     <div className="mnav-wrap" ref={ref}>
-      <NavMenu items={items} current={current} onItem={onItem} open={open} onToggle={() => setOpen((o) => !o)}>{children}</NavMenu>
+      <NavMenu items={items} current={current} onItem={onItem} open={open} onToggle={() => setOpen((o) => !o)} counts={counts}>{children}</NavMenu>
     </div>
   );
 }

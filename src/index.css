@@ -4113,6 +4113,15 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
 .deck-tabs.in-band .decks-tab:hover { color: rgba(255, 255, 255, 0.8); }
 .deck-tabs.in-band .decks-tab[aria-current] { color: #fff; }
 .deck-tabs.in-band .decks-tab:focus-visible { box-shadow: none; color: var(--cyan); text-decoration: underline; text-underline-offset: 3px; }
+/* Notifiche (useBadges): tondo magenta col numero (9+ oltre 9), testo scuro per il contrasto. Accanto al nome della
+   scheda il nome scende di corpo e di spaziatura, così DILEMMAS e il tondo stanno nel trapezio da 168 senza allargarlo. */
+.decks-tab-n, .mnav-n {
+  flex: none; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; display: inline-grid; place-items: center;
+  background: var(--accent); color: var(--bg-base); box-shadow: 0 0 8px rgba(255, 45, 149, 0.55);
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0; line-height: 1; text-transform: none;
+}
+.deck-tabs.in-band .decks-tab.has-n { gap: 6px; font-size: 12px; letter-spacing: 0.14em; }
+.deck-tabs.in-band .decks-tab[aria-current] .decks-tab-n { background: var(--bg-base); color: #fff; box-shadow: none; } /* sul gradiente */
 /* Sotto 980 px centrate coprirebbero il formato: partono dopo l'incavo (x 210); sotto 800 un po' più piccole. */
 @media (max-width: 980px) { .deck-band .deck-tabs.in-band { left: 210px; margin-left: 0; } }
 @media (max-width: 800px) { .deck-band .deck-tabs.in-band { transform: scale(0.92); transform-origin: 0 0; } }
@@ -4217,6 +4226,12 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
 }
 .mnav-item:hover, .mnav-item[aria-current] { border-color: var(--cyan); color: #b7f4ff; box-shadow: 0 0 16px rgba(0, 229, 255, 0.35), inset 0 0 8px rgba(0, 229, 255, 0.1); }
 .mnav-item:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+/* Notifiche sul menu della X: il tondo col numero in alto a destra della voce; sulla X chiusa un puntino magenta. */
+.mnav-n { position: absolute; top: -4px; right: -6px; }
+.mnav-dot {
+  position: absolute; top: 0; right: 0; width: 9px; height: 9px; border-radius: 50%; pointer-events: none;
+  background: var(--accent); box-shadow: 0 0 0 2px #05030c, 0 0 8px rgba(255, 45, 149, 0.7);
+}
 .mnav-extras {
   position: absolute; left: 16px; right: 16px; bottom: calc(53px + env(safe-area-inset-bottom, 0px)); translate: 0 50%;
   display: flex; align-items: center; justify-content: space-between; pointer-events: none;

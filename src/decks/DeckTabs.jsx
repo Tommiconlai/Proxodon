@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import CardMenu from '../components/CardMenu';
 import { boardCounts, countTarget, countOk, deckTags, BRACKETS, gameChangers, autoBracket, deckBracket } from './deckModel';
 import { IconArrowUp, IconDeckFilter } from '../components/icons';
+import { badgeText } from '../hooks/useBadges';
 
 const TABS = [['deck', 'Deck'], ['stats', 'Stats'], ['dilemmas', 'Dilemmas'], ['help', 'Help']];
 
@@ -9,7 +10,8 @@ const TABS = [['deck', 'Deck'], ['stats', 'Stats'], ['dilemmas', 'Dilemmas'], ['
 // sovrappongono e più una scheda è vicina a quella aperta più sta sopra (aperta = piena del gradiente, in cima;
 // le altre scure col bordo al 50%). Ogni scheda ha il suo gradiente spostato del suo passo: i colori sono quelli
 // del design (il gradiente della pagina preso nel punto della scheda) a ogni larghezza. Pulsanti (o link, href)
-// ritagliati a trapezio: dove due schede si toccano vince quella che si vede. items = [[chiave, etichetta, href?]].
+// ritagliati a trapezio: dove due schede si toccano vince quella che si vede. items = [[chiave, etichetta, href?, n?]]:
+// n = notifiche (useBadges), il tondo accanto al nome; con il tondo il nome è più piccolo, il trapezio resta 168.
 const SLOT = 132.667;
 const TAB_PATH = 'M35.0711 12.9289L10 38H178L152.929 12.9289C151.054 11.0536 148.51 10 145.858 10H42.1421C39.49 10 36.9464 11.0536 35.0711 12.9289Z';
 const STOPS = [['0.1', '#FF2E96'], ['0.5', '#AB61ED'], ['0.9', '#00E5FF']];
@@ -22,11 +24,15 @@ function TabStrip({ items, current, onTab, label }) {
   const order = items.map((_, i) => i).sort((a, b) => near(a) - near(b));
   return (
     <nav className="deck-tabs in-band" aria-label={label}>
-      {items.map(([t, text, href], i) => {
-        const props = { className: 'decks-tab', style: { left: i * SLOT, zIndex: near(i) } };
+      {items.map(([t, text, href, n], i) => {
+        const props = {
+          className: `decks-tab${n ? ' has-n' : ''}`, style: { left: i * SLOT, zIndex: near(i) },
+          'aria-label': n ? `${text}, ${n} to answer from players you follow` : undefined,
+        };
+        const body = <>{text}{n > 0 && <span className="decks-tab-n" aria-hidden="true">{badgeText(n)}</span>}</>;
         return href
-          ? <a key={t} href={href} aria-current={t === current ? 'page' : undefined} {...props}>{text}</a>
-          : <button key={t} type="button" aria-current={t === current ? 'true' : undefined} onClick={() => onTab(t)} {...props}>{text}</button>;
+          ? <a key={t} href={href} aria-current={t === current ? 'page' : undefined} {...props}>{body}</a>
+          : <button key={t} type="button" aria-current={t === current ? 'true' : undefined} onClick={() => onTab(t)} {...props}>{body}</button>;
       })}
       {/* Forme sotto i pulsanti (z-index nel CSS); dopo nel DOM, così .decks-tab:nth-child(n) resta la scheda n. */}
       <svg className="deck-tab-shapes" width={items.length * SLOT + 55.33} height="48" fill="none" aria-hidden="true" focusable="false">

@@ -121,6 +121,10 @@ export const cleanHelp = (h) => ({
   cards: cleanCards(h.cards), applied: Array.isArray(h.applied) ? h.applied.filter((x) => typeof x === 'string') : [], deck: cleanDeckInfo(h.deck),
 });
 export const cleanReply = (r) => ({ ...r, text: str(r.text, 1000), owner: str(r.owner, 24) || null, add: cleanCards(r.add, MAX_REPLY_CARDS), cut: cleanCards(r.cut, MAX_REPLY_CARDS) });
+// Notifiche delle schede: dilemmi o richieste (dai feed, con deckId) dei giocatori seguiti (uid) a cui l'account non ha
+// ancora risposto (done = id {deck}_{id}, le tracce answered / replied).
+export const countUnanswered = (list, following, done) =>
+  list.filter((x) => following.has(x.uid) && !done.has(`${x.deckId}_${x.id}`)).length;
 
 export const MAX_ROWS = 500;
 export const MAX_QTY = 99;

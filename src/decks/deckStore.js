@@ -366,6 +366,9 @@ export function setFollowing(me, them, on) {
 }
 export const listenFollowing = (me, them, onChange, onError) =>
   onSnapshot(doc(followingCol(me), them), (s) => onChange(s.exists()), onError);
+// Tutti gli account che me segue (id), per le notifiche delle schede.
+export const listenFollowingIds = (me, onChange, onError) =>
+  onSnapshot(followingCol(me), (qs) => onChange(new Set(qs.docs.map((d) => d.id))), onError);
 // Secondo argomento ignorato: useCount lo usa per rileggere il numero dopo Segui / Smetti di seguire.
 export const countFollowers = (uid) => getCountFromServer(followersCol(uid)).then((s) => s.data().count);
 export const countFollowing = (uid) => getCountFromServer(followingCol(uid)).then((s) => s.data().count);

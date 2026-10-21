@@ -19,6 +19,7 @@ import { timeAgo } from '../utils/timeAgo';
 import NewDeckDialog from './NewDeckDialog';
 import { useCount } from './useCount';
 import { ListBand } from './DeckTabs';
+import { useBadges } from '../hooks/useBadges';
 import { DilemmaFeed } from './Dilemmas';
 import { HelpFeed } from './HelpRequests';
 import {
@@ -226,6 +227,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
   const dilemmas = tab === 'dilemmas';
   const help = tab === 'help';
   const feed = dilemmas || help; // ricerca nei testi e solo il formato accanto
+  const badges = useBadges(); // notifiche accanto a Dilemmas e Help (desktop)
   const searchLabel = dilemmas ? 'Search dilemmas' : help ? 'Search requests' : 'Search decks by name or tag';
   const [decks, setDecks] = useState(null); // null = caricamento
   const [dialog, setDialog] = useState(null); // 'new' | 'import' | { rename: deck } | { del: deck } | { exp: deck }
@@ -325,7 +327,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
             <button type="button" className="decks-filter-btn decks-play" onClick={() => navigate('/dilemmas/play')} aria-label="Play dilemmas" title="Play dilemmas"><IconPlay size={18} /></button>
           )}
         </header>
-      ) : <ListBand items={LIST_TABS.map(([t, label]) => [t, label, listHref(t)])} current={tab} />}
+      ) : <ListBand items={LIST_TABS.map(([t, label]) => [t, label, listHref(t), badges[t]])} current={tab} />}
 
       {!open && !play && <>
       <div className="decks-search" role="search">

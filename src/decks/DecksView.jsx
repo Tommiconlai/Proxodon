@@ -14,6 +14,38 @@ import CommunityDeck from './CommunityDeck';
 import DeckHelp from './DeckHelp';
 import ProfilePage, { PublicProfilePage } from './ProfilePage';
 import SettingsPage from './SettingsPage';
+import { listenFollowingIds, listenAnswered, listenReplied, listenDilemmaFeed, listenHelpFeed } from './deckStore';
+import { countUnanswered } from './deckModel';
+import { setBadges } from '../hooks/useBadges';
+
+// Notifiche delle schede Dilemmas e Help (useBadges): dilemmi e richieste aperte dei giocatori seguiti a cui
+// l'account non ha ancora risposto, contati sui feed delle due schede (stesse query: Firestore le ascolta una volta).
+// I feed hanno gli ultimi 40 dilemmi e le ultime 60 richieste della Community, quindi quelle più vecchie non contano;
+// per contarle tutte servirebbe una query per autore (where uid in, con il suo indice collection group). Senza
+// nessuno seguito i feed non si ascoltano. Nessuna interfaccia; uscendo dall'area mazzi i numeri spariscono.
+function Badges({ uid }) {
+  const [following, setFollowing] = useState(null);
+  const [answered, setAnswered] = useState(null);
+  const [replied, setReplied] = useState(null);
+  const [dilemmas, setDilemmas] = useState(null);
+  const [helps, setHelps] = useState(null);
+  const none = () => new Set();
+  useEffect(() => listenFollowingIds(uid, setFollowing, () => setFollowing(none())), [uid]);
+  useEffect(() => listenAnswered(uid, setAnswered, () => setAnswered(none())), [uid]);
+  useEffect(() => listenReplied(uid, setReplied, () => setReplied(none())), [uid]);
+  const any = following?.size > 0;
+  useEffect(() => (any ? listenDilemmaFeed(setDilemmas, () => setDilemmas([])) : undefined), [any]);
+  useEffect(() => (any ? listenHelpFeed(setHelps, () => setHelps([])) : undefined), [any]);
+  useEffect(() => {
+    const ok = any && answered && replied;
+    setBadges({
+      dilemmas: ok && dilemmas ? countUnanswered(dilemmas, following, answered) : 0,
+      help: ok && helps ? countUnanswered(helps.filter((h) => h.status === 'open'), following, replied) : 0,
+    });
+  }, [any, following, answered, replied, dilemmas, helps]);
+  useEffect(() => () => setBadges({}), []);
+  return null;
+}
 
 // Radice dell'area mazzi (lazy): attende lo stato di login, poi lista (#/decks, #/community, #/dilemmas con
 // #/dilemmas/:mazzo/:dilemma per quello aperto e #/dilemmas/play per il gioco, #/help con #/help/:mazzo/:richiesta),
@@ -29,6 +61,7 @@ export default function DecksView({ route, notify, printQueueCount, onPrintDeck,
   const community = area === 'community';
   return (
     <>
+      <Badges uid={user.uid} />
       {headerSlot && createPortal(
         <><DeckHelp editor={area === 'decks' && !!id && id !== 'folder'} /><AccountMenu user={user} photo={photo} notify={notify} /></>,
         headerSlot,
