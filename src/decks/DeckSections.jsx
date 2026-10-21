@@ -100,7 +100,7 @@ const SPLIT_MAX = 300;
 // Telefono (touch): − / + della carta selezionata (una sola) in una barra sopra quella in basso, a 44 px.
 const NEW_SECTION = 'new-section'; // voce di Group by da telefono: apre New section, non è un raggruppamento
 
-export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab, onPrint, onDilemma, onHelp, onCut, notify }) {
+export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab, onPrint, onDilemma, onHelp, onCut, inCuts, notify }) {
   const [sel, setSel] = useState(() => new Set());
   const [anchor, setAnchor] = useState(null);
   const [menu, setMenu] = useState(null); // { ids, x, y }
@@ -416,11 +416,12 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     const banText = ban && legalityLabel(ban, deck.format);
     const gc = deck.format === 'commander' && r.card.gc; // game changer, solo nei mazzi Commander
     const turns = (r.card.back && flipped.get(r.id)) || 0;
+    const cutHere = inCuts?.has(r.card.oid); // già nei Cuts della risposta: la cornice della selezione, fissa
     return (
-      <li key={copy ? `${r.id}:${copy}` : r.id} data-row-id={r.id} className={`deck-row${sel.has(r.id) ? ' selected' : ''}${warn ? ' over' : ''}`} {...dragProps(r)}
+      <li key={copy ? `${r.id}:${copy}` : r.id} data-row-id={r.id} className={`deck-row${sel.has(r.id) ? ' selected' : ''}${cutHere ? ' marked' : ''}${warn ? ' over' : ''}`} {...dragProps(r)}
         onMouseEnter={touch ? undefined : (e) => showPreview(e, r)} onMouseLeave={touch ? undefined : () => setHover(null)}>
         <button type="button" className="deck-row-main" aria-pressed={sel.has(r.id)}
-          aria-label={view === 'list' ? undefined : `${split ? `${r.card.name}, copy ${copy + 1} of ${r.qty}` : `${r.qty} ${r.card.name}`}${ban ? `, ${banText}` : ''}${warn ? `, ${warnText}` : ''}${gc ? ', game changer' : ''}`}
+          aria-label={view === 'list' ? undefined : `${split ? `${r.card.name}, copy ${copy + 1} of ${r.qty}` : `${r.qty} ${r.card.name}`}${ban ? `, ${banText}` : ''}${warn ? `, ${warnText}` : ''}${gc ? ', game changer' : ''}${cutHere ? ', in Cuts' : ''}`}
           onClick={(e) => onRowClick(e, r.id)}
           onContextMenu={(e) => { e.preventDefault(); const p = menuPoint(e); openMenu(r.id, p.x, p.y); }}
           onKeyDown={(e) => {
@@ -434,7 +435,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
           {view === 'list' ? (
             <>
               <span className="deck-qty">{r.qty}</span>
-              <span className="deck-name-cell">{r.card.name}</span>
+              <span className="deck-name-cell">{r.card.name}{cutHere && <span className="sr-only">, in Cuts</span>}</span>
               {ban && <span className="deck-ban-icon" title={banText}><IconBan size={13} /><span className="sr-only">{banText}</span></span>}
             {warn && <span className="deck-warn-icon" title={warnText}><IconAlert size={13} /><span className="sr-only">{warnText}</span></span>}
               {gc && <span className="deck-gc-icon" title="Game changer"><IconZap size={13} /><span className="sr-only">Game changer</span></span>}

@@ -11,7 +11,7 @@ import { DeckTile, GhostTile, FolderTile } from '../decks/DeckList';
 import { DilemmaTile } from '../decks/Dilemmas';
 import { HelpItem, HelpQuestion, CardChips } from '../decks/HelpRequests';
 import { CardFrame, CardFrameDefs } from '../components/CardFrame';
-import { FORMATS, formatLabel, coverRow, searchTerms, deckMatches, MAX_HELP_CARDS } from '../decks/deckModel';
+import { FORMATS, formatLabel, coverRow, searchTerms, deckMatches } from '../decks/deckModel';
 import {
   IconPlus, IconMinus, IconCopy, IconTrash, IconPencil, IconExport, IconGlobe, IconPlay, IconFolder, IconArrowLeft,
   IconPrinter, IconEye, IconScale, IconLifebuoy, IconImage, IconList, IconCheck,
@@ -193,12 +193,12 @@ function HelpReplyDemo({ deck, update, mobile, cut, add, q, why, over }) {
       <div className="help-zones-bar">
         <div className="help-zones">
           <section className={`help-zone cut${over ? ' over' : ''}`} aria-label="Cuts: cards to take out">
-            <h4>Cuts <span className="n">{cut.length} of {MAX_HELP_CARDS}</span></h4>
+            <h4>Cuts <span className="n">{cut.length}</span></h4>
             {cut.length > 0 ? <CardChips cards={cut} label="Cards to cut" sign="−" className="cut" onRemove={noop} />
               : <p className="help-zone-hint">{mobile ? 'Long press a card in the deck below, then Suggest cut.' : 'Drag cards here from the deck below, or open a card’s menu (right click or Shift+F10): Suggest cut.'}</p>}
           </section>
           <section className="help-zone add" aria-label="Suggestions: cards to add">
-            <h4>Suggestions <span className="n">{add.length} of {MAX_HELP_CARDS}</span></h4>
+            <h4>Suggestions <span className="n">{add.length}</span></h4>
             <FakeSearch q={q} adv={false} />
             {add.length > 0 && <CardChips cards={add} label="Cards to add" sign="+" className="add" onRemove={noop} />}
           </section>
@@ -213,7 +213,7 @@ function HelpReplyDemo({ deck, update, mobile, cut, add, q, why, over }) {
           </div>
         </div>
       </div>
-      <DeckSections deck={deck} update={update} touch={mobile} readOnly tab="deck" onTab={noop} notify={noop} onCut={noop} />
+      <DeckSections deck={deck} update={update} touch={mobile} readOnly tab="deck" onTab={noop} notify={noop} onCut={noop} inCuts={new Set(cut.map((c) => c.oid))} />
     </div>
   );
 }

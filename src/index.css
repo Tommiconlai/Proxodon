@@ -1768,8 +1768,8 @@ input[type="range"]::-webkit-slider-thumb:hover {
 @media (hover: hover) {
   .preview-card-hotspot:hover .card-frame, .deck-row:hover .card-frame, .dilemma-card:hover .card-frame { opacity: 0.6; }
 }
-.preview-card-hotspot.selected .card-frame, .deck-row.selected .card-frame, .dilemma-card.selected .card-frame { opacity: 1; }
-.preview-card-hotspot.selected .card-frame rect, .deck-row.selected .card-frame rect, .dilemma-card.selected .card-frame rect {
+.preview-card-hotspot.selected .card-frame, .deck-row:is(.selected, .marked) .card-frame, .dilemma-card.selected .card-frame { opacity: 1; }
+.preview-card-hotspot.selected .card-frame rect, .deck-row:is(.selected, .marked) .card-frame rect, .dilemma-card.selected .card-frame rect {
   filter: url(#px-frame-glow);
 }
 
@@ -3106,7 +3106,7 @@ button.dilemma-list-name:focus-visible { outline: 2px solid var(--cyan); outline
    ciano con la ricerca; sotto la spiegazione e l'invio, poi le altre risposte in un details. */
 .help-page { padding: 22px 13% 0; }
 .deck-editor.is-mobile .help-page { padding: 14px 14px 0; }
-.help-zones { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: stretch; }
+.help-zones { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; } /* ognuna alta quanto le sue carte */
 .deck-editor.is-mobile .help-zones { grid-template-columns: 1fr; gap: 12px; }
 .deck-editor.is-mobile .help-zone { min-height: 112px; }
 .help-zone {
@@ -3121,8 +3121,9 @@ button.dilemma-list-name:focus-visible { outline: 2px solid var(--cyan); outline
 .help-zone.add { border-color: rgba(0, 229, 255, 0.4); background: rgba(0, 229, 255, 0.03); }
 .help-zone:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 /* Desktop: le zone restano ferme in alto (sticky in .deck-scroll; il genitore .help-reply-body contiene anche la
-   lista del mazzo, così restano fino in fondo) su una fascia scura come la barra delle schede; zone più basse e le
-   carte scelte scorrono dentro la loro zona. Telefono: al loro posto, niente trascinamento (Suggest cut + toast). */
+   lista del mazzo, così restano fino in fondo) su una fascia scura come la barra delle schede, finché la fascia è bassa
+   (.loose da useLooseBar oltre il 40% dell'area: scorre con la pagina). Le zone crescono con le carte scelte, senza
+   barre interne. Telefono: al loro posto, niente trascinamento (Suggest cut + toast). */
 .help-zones-bar { padding: 14px 13% 0; }
 .deck-editor:not(.is-mobile) .help-zones-bar {
   position: sticky; top: 0; z-index: 5; padding-bottom: 12px;
@@ -3130,7 +3131,7 @@ button.dilemma-list-name:focus-visible { outline: 2px solid var(--cyan); outline
   border-bottom: 1px solid rgba(124, 92, 255, 0.16); box-shadow: var(--shadow-md);
 }
 .deck-editor:not(.is-mobile) .help-zones-bar .help-zone { min-height: 128px; }
-.deck-editor:not(.is-mobile) .help-zones-bar .help-chips { max-height: 72px; overflow-y: auto; }
+.deck-editor:not(.is-mobile) .help-zones-bar.loose { position: static; }
 .deck-editor.is-mobile .help-zones-bar { padding: 12px 14px 0; }
 .help-zone-hint { flex: 1; display: flex; align-items: center; justify-content: center; margin: 0; padding: 0 8%; text-align: center; font-size: 0.85rem; color: var(--text-muted); }
 .help-why { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
@@ -3244,8 +3245,9 @@ span.deck-hero-art { cursor: default; }
 .deck-name-cell { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .deck-set { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); }
 .deck-row .mana img { width: 16px; height: 16px; }
-/* Riga selezionata: velo magenta + barretta a sinistra (come il frame delle carte selezionate). */
-.deck-row.selected { background: rgba(255, 45, 149, 0.08); box-shadow: inset 2px 0 0 var(--accent); }
+/* Riga selezionata (o già nei Cuts di una risposta, .marked): velo magenta + barretta a sinistra (come il frame delle
+   carte selezionate). */
+.deck-row:is(.selected, .marked) { background: rgba(255, 45, 149, 0.08); box-shadow: inset 2px 0 0 var(--accent); }
 .deck-row-qty { display: flex; gap: 2px; opacity: 0; transition: opacity var(--transition); }
 /* Solo hover (il focus della carta dopo un click non li mostra); visibili anche quando il
    focus da tastiera è proprio su + o -, per non avere pulsanti invisibili. */
@@ -3347,7 +3349,7 @@ span.deck-hero-art { cursor: default; }
 .deck-rows.view-stacks { width: var(--stack-w, 200px); display: flex; flex-direction: column; }
 .deck-rows.view-stacks .deck-row + .deck-row { margin-top: -125.3%; }
 .deck-rows.view-grid .deck-row, .deck-rows.view-stacks .deck-row { position: relative; display: block; border: 0; }
-.deck-rows.view-grid .deck-row.selected, .deck-rows.view-stacks .deck-row.selected { background: none; box-shadow: none; }
+.deck-rows:is(.view-grid, .view-stacks) .deck-row:is(.selected, .marked) { background: none; box-shadow: none; }
 .deck-rows.view-grid .deck-row-main, .deck-rows.view-stacks .deck-row-main {
   position: relative; display: block; width: 100%;
   padding: 0;

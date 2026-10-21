@@ -60,12 +60,14 @@ export function splitSlices(n) {
   };
 }
 
-// Help request: il tipo (stessi id delle regole Firestore) e fino a MAX_HELP_CARDS carte su cui concentrarsi; nelle
-// risposte fino a MAX_HELP_CARDS carte da aggiungere e altrettante da togliere.
+// Help request: il tipo (stessi id delle regole Firestore) e fino a MAX_HELP_CARDS carte su cui concentrarsi. Nelle
+// risposte le carte da aggiungere e da togliere non hanno un limite per chi risponde: MAX_REPLY_CARDS (le righe di un
+// mazzo) è solo il tetto di sicurezza, lo stesso delle regole.
 export const HELP_KINDS = [
   ['cuts', 'Cuts'], ['upgrades', 'Upgrades'], ['budget', 'Budget'], ['mana', 'Mana base'], ['synergy', 'Synergy'], ['other', 'Other'],
 ];
 export const MAX_HELP_CARDS = 10;
+export const MAX_REPLY_CARDS = 500;
 // Tipo del trascinamento delle carte del mazzo verso fuori (la zona Cuts delle help request): gli id delle righe in JSON.
 export const DRAG_ROWS = 'application/x-proxodon-rows';
 export const helpKindLabel = (id) => HELP_KINDS.find(([k]) => k === id)?.[1] || 'Other';
@@ -118,7 +120,7 @@ export const cleanHelp = (h) => ({
   ...h, kind: str(h.kind, 20), text: str(h.text, 500), status: h.status === 'solved' ? 'solved' : 'open',
   cards: cleanCards(h.cards), applied: Array.isArray(h.applied) ? h.applied.filter((x) => typeof x === 'string') : [], deck: cleanDeckInfo(h.deck),
 });
-export const cleanReply = (r) => ({ ...r, text: str(r.text, 1000), owner: str(r.owner, 24) || null, add: cleanCards(r.add), cut: cleanCards(r.cut) });
+export const cleanReply = (r) => ({ ...r, text: str(r.text, 1000), owner: str(r.owner, 24) || null, add: cleanCards(r.add, MAX_REPLY_CARDS), cut: cleanCards(r.cut, MAX_REPLY_CARDS) });
 
 export const MAX_ROWS = 500;
 export const MAX_QTY = 99;

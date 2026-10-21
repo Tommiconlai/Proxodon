@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 import ConfirmDialog from '../components/ConfirmDialog';
 import CardSearch from './CardSearch';
@@ -11,7 +11,7 @@ import { cardsByIds } from './scryfallSearch';
 import { useBackClose } from '../hooks/useBackClose';
 import { useCount } from './useCount';
 import {
-  HELP_KINDS, MAX_HELP_CARDS, DRAG_ROWS, searchIdentity, helpKindLabel, applySuggestion, revertSuggestion, snapshotFromCard, scryfallImg, artCrop, deckCover,
+  HELP_KINDS, MAX_HELP_CARDS, MAX_REPLY_CARDS, DRAG_ROWS, searchIdentity, helpKindLabel, applySuggestion, revertSuggestion, snapshotFromCard, scryfallImg, artCrop, deckCover,
 } from './deckModel';
 import { timeAgo } from '../utils/timeAgo';
 import { IconPlus, IconArrowLeft, IconArrowRight, IconTrash, IconCheck, IconX, IconLifebuoy, IconMerge } from '../components/icons';
@@ -284,14 +284,14 @@ export function HelpReply({ deck, help, uid, notify, update, touch }) {
   );
 }
 
-// Aggiunge carte (diverse, fino a MAX_HELP_CARDS) a una delle zone: → { next, added, dup, full }.
+// Aggiunge carte diverse a una delle zone (senza limite; MAX_REPLY_CARDS è il tetto delle regole): → { next, added, dup, full }.
 function addTo(list, cards) {
   const next = [...list];
   let dup = 0;
   let full = 0;
   for (const c of cards) {
     if (next.some((x) => x.oid === c.oid)) dup += 1;
-    else if (next.length >= MAX_HELP_CARDS) full += 1;
+    else if (next.length >= MAX_REPLY_CARDS) full += 1;
     else next.push(c);
   }
   return { next, added: next.slice(list.length), dup, full };
@@ -299,16 +299,33 @@ function addTo(list, cards) {
 
 // Esito di un'aggiunta a una zona: errori sempre, il successo solo se richiesto (dal menu; trascinando si vede la carta).
 function report(notify, r, zone, sayOk) {
-  if (r.full) notify(`${zone} is full: ${MAX_HELP_CARDS} cards at most`, 'error');
+  if (r.full) notify(`${zone} is full: ${MAX_REPLY_CARDS} cards at most`, 'error');
   else if (r.dup && !r.added.length) notify(r.dup === 1 ? `Already in ${zone}` : `Already in ${zone}: ${r.dup} cards`);
   else if (sayOk && r.added.length) notify(r.added.length === 1 ? `${r.added[0].name} added to ${zone}` : `${r.added.length} cards added to ${zone}`);
 }
 
-// Due zone affiancate, ferme in alto mentre si scorre la lista del mazzo (desktop): Cuts (carte trascinate dalla
-// lista, o Suggest cut dal menu della carta, anche da tastiera e su telefono; solo main, mai il comandante) e
-// Suggestions (ricerca Scryfall per nome, carte legali nel formato), fino a MAX_HELP_CARDS ciascuna; sotto la
-// spiegazione facoltativa e l'invio, le altre risposte (chiuse in un details) e la lista del mazzo. Ogni aggiunta
-// dal menu è annunciata in un toast; doppioni e zona piena sempre. Richiesta risolta: niente zone, le risposte restano.
+// Fascia delle zone ferma in alto (desktop) solo finché è bassa: oltre il 40% dell'area che scorre coprirebbe la
+// lista del mazzo, quindi scorre con la pagina (classe loose). Le zone crescono con le carte, senza barre interne.
+function useLooseBar(ref, on) {
+  const [loose, setLoose] = useState(false);
+  useLayoutEffect(() => {
+    const bar = ref.current;
+    const box = bar?.closest('.deck-scroll');
+    if (!on || !bar || !box) return undefined;
+    const ro = new ResizeObserver(() => setLoose(bar.offsetHeight > box.clientHeight * 0.4));
+    ro.observe(bar);
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [ref, on]);
+  return loose;
+}
+
+// Due zone affiancate, ferme in alto mentre si scorre la lista del mazzo (desktop, finché sono basse): Cuts (carte
+// trascinate dalla lista, o Suggest cut dal menu della carta, anche da tastiera e su telefono; solo main, mai il
+// comandante) e Suggestions (ricerca Scryfall per nome, carte legali nel formato), senza limite, con il totale; le
+// carte già nei Cuts hanno nella lista la cornice della selezione. Sotto la spiegazione facoltativa e l'invio, le
+// altre risposte (chiuse in un details) e la lista del mazzo. Ogni aggiunta dal menu è annunciata in un toast;
+// doppioni sempre. Richiesta risolta: niente zone, le risposte restano.
 function ReplyDraft({ deck, help, uid, reply, others, notify, update, touch }) {
   const open = help.status === 'open';
   const [text, setText] = useState(reply?.text || '');
@@ -360,10 +377,13 @@ function ReplyDraft({ deck, help, uid, reply, others, notify, update, touch }) {
   };
   const drop1 = (set) => (i) => set((l) => l.filter((_, j) => j !== i));
   const shown = open ? others : [...(reply ? [reply] : []), ...others];
+  const inCuts = useMemo(() => (open ? new Set(cut.map((c) => c.oid)) : undefined), [open, cut]);
+  const barRef = useRef(null);
+  const loose = useLooseBar(barRef, open);
   // La lista del mazzo non si ridisegna a ogni tasto nella spiegazione (solo quando cambiano mazzo o tagli).
   const list = useMemo(() => (
-    <DeckSections deck={deck} update={update} touch={touch} readOnly tab="deck" onTab={noop} notify={notify} onCut={open ? onCut : undefined} />
-  ), [deck, update, touch, notify, open, onCut]);
+    <DeckSections deck={deck} update={update} touch={touch} readOnly tab="deck" onTab={noop} notify={notify} onCut={open ? onCut : undefined} inCuts={inCuts} />
+  ), [deck, update, touch, notify, open, onCut, inCuts]);
   return (
     <>
       {/* Contenitore di zone e lista: le zone (sticky, desktop) restano in alto finché si scorre la lista del mazzo. */}
@@ -376,16 +396,16 @@ function ReplyDraft({ deck, help, uid, reply, others, notify, update, touch }) {
           {!open && <p className="field-hint">This request is solved: no new suggestions.</p>}
         </div>
         {open && (
-          <div className="help-zones-bar">
+          <div className={`help-zones-bar${loose ? ' loose' : ''}`} ref={barRef}>
             <div className="help-zones">
               <section className={`help-zone cut${over ? ' over' : ''}`} aria-label="Cuts: cards to take out" tabIndex={-1} data-focus-zone {...drop}>
-                <h4>Cuts <span className="n">{cut.length} of {MAX_HELP_CARDS}</span></h4>
+                <h4>Cuts <span className="n">{cut.length}</span></h4>
                 {cut.length > 0
                   ? <CardChips cards={cut} label="Cards to cut" sign="−" className="cut" onRemove={drop1(setCut)} />
                   : <p className="help-zone-hint">{touch ? 'Long press a card in the deck below, then Suggest cut.' : 'Drag cards here from the deck below, or open a card’s menu (right click or Shift+F10): Suggest cut.'}</p>}
               </section>
               <section className="help-zone add" aria-label="Suggestions: cards to add" tabIndex={-1} data-focus-zone>
-                <h4>Suggestions <span className="n">{add.length} of {MAX_HELP_CARDS}</span></h4>
+                <h4>Suggestions <span className="n">{add.length}</span></h4>
                 <CardSearch format={deck.format} identity={searchIdentity(deck)} onAdd={suggest} notify={quiet} noAdvanced />
                 {add.length > 0 && <CardChips cards={add} label="Cards to add" sign="+" className="add" onRemove={drop1(setAdd)} />}
               </section>

@@ -138,9 +138,9 @@ service cloud.firestore {
       return l is list && l.size() <= 10 && str(l, 0, max) && str(l, 1, max) && str(l, 2, max) && str(l, 3, max)
         && str(l, 4, max) && str(l, 5, max) && str(l, 6, max) && str(l, 7, max) && str(l, 8, max) && str(l, 9, max);
     }
-    // Carta di dilemmi, help request e risposte (dilemmaCard nel client): solo questi 7 campi (7 chiavi, e il + di un
-    // campo che manca o non è una stringa è un errore, quindi un rifiuto), insieme al massimo 1400 caratteri.
-    // Un controllo per campo supera il tetto di 1000 espressioni con 10 + 10 carte in una risposta.
+    // Carta dei dilemmi (dilemmaCard nel client): solo questi 7 campi (7 chiavi, e il + di un campo che manca o non è
+    // una stringa è un errore, quindi un rifiuto), insieme al massimo 1400 caratteri. Le carte delle help request e
+    // delle risposte non si controllano una per una: le ripulisce chi legge (cleanHelp, cleanReply).
     function card(c) {
       return c.size() == 7 && (c.name + c.img + c.back + c.sid + c.oid + c.set + c.cn).size() <= 1400;
     }
@@ -205,11 +205,12 @@ service cloud.firestore {
         && d.status in ['open', 'solved']
         && d.applied is list && d.applied.size() <= 200;
     }
-    // Risposta: testo (max 1000) e/o carte da aggiungere e da togliere (max 10 + 10); la firma come nei voti.
+    // Risposta: testo (max 1000) e/o carte da aggiungere e da togliere, senza limite per chi risponde (500 + 500, le
+    // righe di un mazzo, solo come tetto; il documento resta sotto 1 MiB); la firma come nei voti.
     function validReply(d) {
       return d.keys().hasOnly(['text', 'add', 'cut', 'owner', 'at'])
         && d.text is string && d.text.size() <= 1000
-        && cards(d.add, 10) && cards(d.cut, 10)
+        && d.add is list && d.add.size() <= 500 && d.cut is list && d.cut.size() <= 500
         && (d.text.size() > 0 || d.add.size() > 0 || d.cut.size() > 0)
         && (d.get('owner', null) == null || (d.owner is string
           && get(/databases/$(db)/documents/usernames/$(d.owner.lower())).data.uid == request.auth.uid));
