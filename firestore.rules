@@ -138,9 +138,9 @@ service cloud.firestore {
       return l is list && l.size() <= 10 && str(l, 0, max) && str(l, 1, max) && str(l, 2, max) && str(l, 3, max)
         && str(l, 4, max) && str(l, 5, max) && str(l, 6, max) && str(l, 7, max) && str(l, 8, max) && str(l, 9, max);
     }
-    // Carta dei dilemmi (dilemmaCard nel client): solo questi 7 campi (7 chiavi, e il + di un campo che manca o non è
-    // una stringa è un errore, quindi un rifiuto), insieme al massimo 1400 caratteri. Le carte delle help request e
-    // delle risposte non si controllano una per una: le ripulisce chi legge (cleanHelp, cleanReply).
+    // Carta di dilemmi e help request (dilemmaCard nel client): solo questi 7 campi (7 chiavi, e il + di un campo che
+    // manca o non è una stringa è un errore, quindi un rifiuto), insieme al massimo 1400 caratteri. Le carte delle
+    // risposte (fino a 500 + 500) non si controllano una per una: le ripulisce chi legge (cleanReply).
     function card(c) {
       return c.size() == 7 && (c.name + c.img + c.back + c.sid + c.oid + c.set + c.cn).size() <= 1400;
     }
