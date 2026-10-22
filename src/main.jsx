@@ -17,6 +17,22 @@ import './utils/settings' // applica subito le impostazioni globali (Reduce moti
 import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary'
 
+// Dopo un aggiornamento i file della versione di prima (nomi con l'hash) non ci sono più: una pagina rimasta aperta
+// che ne chiede uno (import dinamico: PDF, area mazzi, tutorial) fallisce. Si ricarica, al massimo una volta ogni
+// 30 s (se il file manca anche dopo, o lo blocca la rete, resta l'errore); storage bloccato = niente ricarica, per non
+// girare in tondo. Con carte da stampare il browser chiede prima (beforeunload in App): le immagini non sono salvate,
+// ma la versione vecchia il PDF non lo può più generare.
+window.addEventListener('vite:preloadError', () => {
+  let last
+  try {
+    last = Number(sessionStorage.getItem('px-reloaded-at')) || 0
+    sessionStorage.setItem('px-reloaded-at', String(Date.now()))
+  } catch {
+    return
+  }
+  if (Date.now() - last > 30000) window.location.reload()
+})
+
 // Dentro un iframe di un altro sito l'app non parte (clickjacking: click "rubati" su Delete o Like sotto un'esca).
 // GitHub Pages non manda header, e frame-ancestors non vale in una CSP via meta: questo è il solo freno possibile.
 // Gli iframe di Firebase (pagine loro) non c'entrano: lì questa pagina è in cima.
