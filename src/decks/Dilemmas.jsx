@@ -222,9 +222,19 @@ function DilemmaPlay({ list, decks, answered, uid, notify }) {
   const [queue] = useState(() => shuffle(list.filter((d) => d.uid !== uid && !answered.has(`${d.deckId}_${d.id}`))));
   const [pos, setPos] = useState(0);
   const exit = () => goBack('/dilemmas');
+  // decks ha solo le voci dell'indice (nome, autore, formato, niente righe): il mazzo intero del dilemma in gioco,
+  // per la decklist, si ascolta qui come in FeedDilemma. Sparito o illeggibile = gone, si salta.
+  const [full, setFull] = useState(null);
+  const [gone, setGone] = useState(() => new Set());
   // Salta i mazzi tornati privati (null) e quelli che non si sono caricati (false): niente spinner senza uscita.
-  const at = queue.findIndex((d, i) => i >= pos && decks[d.deckId] !== null && decks[d.deckId] !== false);
+  const at = queue.findIndex((d, i) => i >= pos && decks[d.deckId] !== null && decks[d.deckId] !== false && !gone.has(d.deckId));
   const d = queue[at];
+  const deckId = d?.deckId;
+  useEffect(() => {
+    if (!deckId) return undefined;
+    const drop = () => setGone((s) => new Set(s).add(deckId));
+    return listenPublicDeck(deckId, (x) => (x ? setFull(x) : drop()), drop);
+  }, [deckId]);
   if (!d) {
     return (
       <div className="decks-empty">
@@ -237,7 +247,8 @@ function DilemmaPlay({ list, decks, answered, uid, notify }) {
       </div>
     );
   }
-  const deck = decks[d.deckId];
+  // Solo il mazzo di questo dilemma: quello del precedente, finché il nuovo non arriva, porterebbe il voto altrove.
+  const deck = full?.id === d.deckId ? full : null;
   if (!deck) return <span className="import-spinner" aria-label="Loading" />;
   return (
     <div className="dilemma-play" key={`${d.deckId}/${d.id}`}>
