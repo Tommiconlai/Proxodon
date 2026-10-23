@@ -462,7 +462,7 @@ export default function App() {
   const tokensNode = (
     <ErrorBoundary message="Couldn’t load Tokens. Check your connection, then retry.">
       <Suspense fallback={<div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>}>
-        <TokensPage onAdd={addItems} notify={notify} mobile={isMobile} />
+        <TokensPage onAdd={addItems} notify={notify} mobile={isMobile} bleedMm={bleedMm} setBleedMm={setBleedMm} />
       </Suspense>
     </ErrorBoundary>
   );

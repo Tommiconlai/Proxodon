@@ -4295,7 +4295,7 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
 .token-stage.drop { outline: 2px dashed var(--cyan); outline-offset: -2px; }
 .token-card { position: relative; }
 .token-canvas {
-  position: absolute; inset: 0; display: block; border-radius: 4.75% / 3.4%; outline: none; touch-action: auto;
+  position: absolute; inset: 0; display: block; outline: none; touch-action: auto; /* bordi vivi: c'è il bleed */
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(124, 92, 255, 0.28);
 }
 .token-canvas.has-art { cursor: grab; touch-action: none; } /* con un'immagine il dito la sposta, non scorre la pagina */
@@ -4312,8 +4312,18 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
 .token-frame-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .token-row { display: flex; align-items: flex-end; gap: 10px; }
 .token-row .field { flex: 1; min-width: 0; }
-.token-actions { display: flex; gap: 10px; }
-.token-actions .btn-add { flex: 1; justify-content: center; }
+/* Sei pulsanti uguali in griglia: Print, Download, New, poi Upload, Reset, Remove. */
+.token-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.token-actions .deck-icon-btn { width: 100%; height: 44px; justify-content: center; }
+.token-actions .token-primary { border-color: rgba(0, 229, 255, 0.55); color: var(--cyan); }
+.token-actions .token-primary:hover:not(:disabled) { box-shadow: 0 0 14px rgba(0, 229, 255, 0.35); }
+/* Overlay e Sync: pulsanti con il nome (scelta dell'utente), Sync acceso = ciano. */
+.token-text-btn { height: 40px; padding: 0 14px; font-family: var(--font-display); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+:is(.token-text-btn, .deck-icon-btn).on { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 10px rgba(0, 229, 255, 0.25); }
+.token-overlay-row { flex-wrap: wrap; }
+.token-range-label { display: flex; justify-content: space-between; gap: 8px; }
+.token-range-label span { font-family: var(--font-mono); color: var(--text-muted); }
+.tokens-mobile > .token-actions { margin-top: -4px; }
 .tokens-mobile { display: flex; flex-direction: column; gap: 18px; padding: calc(16px + env(safe-area-inset-top, 0px)) 14px 140px; }
 .tokens-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .tokens-mobile .token-stage { flex: none; }

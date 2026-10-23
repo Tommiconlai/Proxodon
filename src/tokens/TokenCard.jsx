@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { templateById } from './templates';
-import { clampPos, fitSize, layoutRules, parseRules, CARD_TYPES } from './tokenModel';
+import { fitSize, layoutRules, parseRules, CARD_TYPES, artWindow, moveLayers, layerDims } from './tokenModel';
 import { prepare, renderToken, fontOf, ptBox, CREDIT_ICON } from './renderToken';
 import { loadSubtypes } from './typeCatalog';
 import { IconImage } from '../components/icons';
@@ -8,8 +8,9 @@ import { IconImage } from '../components/icons';
 // Il token in modifica: il canvas (lo stesso disegno del PNG) e sopra, a filo delle zone della cornice, i campi da
 // scrivere direttamente sulla carta, con un contorno leggero che esiste solo qui (il PNG non lo ha). Il campo che si sta
 // scrivendo mostra il suo testo e il canvas lo salta; gli altri sono trasparenti sopra il testo disegnato. La riga del
-// tipo è a tendine (tipi e sottotipi, + per aggiungerne). Si trascina l'immagine, rotella o due dita la ingrandiscono,
-// frecce e +/- da tastiera; senza immagine la finestra dell'arte è un pulsante per sceglierne una.
+// tipo è a tendine (tipi e sottotipi, + per aggiungerne). Si trascina l'immagine (con Sync anche l'overlay, senza solo il
+// livello scelto), rotella o due dita la ingrandiscono, frecce e +/- da tastiera; senza immagine la finestra dell'arte è
+// un pulsante per sceglierne una. Il canvas ha il bleed attorno, con il bordo vero della carta in rosso.
 
 const CSS_FAMILY = { display: 'var(--font-display)', body: "'Space Grotesk', system-ui, sans-serif", mono: 'var(--font-mono)' };
 const pct = (v, of) => `${(v / of) * 100}%`;
@@ -120,49 +121,60 @@ function TypeLine({ z, k, types, subtypes, set, indent }) {
   );
 }
 
-export default function TokenCard({ state, art, set, onPick, onFile, mobile }) {
+export default function TokenCard({ state, art, overlay, set, onPick, onFile, mobile, bleedMm }) {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const [cssW, setCssW] = useState(0);
   const [over, setOver] = useState(false);
   const [focus, setFocus] = useState(null);
   const { zones } = templateById(state.template);
-  const win = zones.art;
-  const k = cssW / 630;
-  const onPos = (pos) => art && set({ pos: clampPos(art.width, art.height, win, pos) });
+  const B = bleedMm * 10; // bleed in unità attorno alla carta
+  const W = 630 + 2 * B;
+  const H = 880 + 2 * B;
+  const win = artWindow(zones.art, B);
+  const k = cssW / W; // pixel dello schermo per unità
+  const movable = !!(art || overlay);
+  // Spostamento di immagine e overlay (Sync: insieme) da start di change = { dx, dy, k }.
+  const move = (start, change) => {
+    const r = moveLayers(start, { dx: 0, dy: 0, k: 1, ...change }, { sync: state.sync, target: state.target, dims: layerDims(art, overlay), win });
+    set({ pos: r.art, overlayPos: r.overlay });
+  };
 
   useEffect(() => {
     const el = wrapRef.current;
     const ro = new ResizeObserver(() => {
       const maxH = mobile ? window.innerHeight * 0.62 : el.clientHeight;
-      setCssW(Math.floor(Math.min(el.clientWidth, mobile ? 460 : 600, (maxH * 630) / 880)));
+      setCssW(Math.floor(Math.min(el.clientWidth, mobile ? 460 : 600, (maxH * W) / H)));
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, [mobile]);
+  }, [mobile, W, H]);
 
-  // Il canvas salta il campo in scrittura (si vede il suo testo) e la riga del tipo (a tendine).
+  // Il canvas salta il campo in scrittura (si vede il suo testo) e la riga del tipo (a tendine); il bordo vero della carta
+  // in rosso sottile, solo qui.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !cssW) return undefined;
     let on = true;
     const dpr = window.devicePixelRatio || 1;
-    prepare(state).then((parts) => {
+    prepare(state, B).then((parts) => {
       if (!on) return;
       canvas.width = Math.round(cssW * dpr);
-      canvas.height = Math.round(((cssW * 880) / 630) * dpr);
-      renderToken(canvas.getContext('2d'), state, { scale: (cssW * dpr) / 630, art, ...parts, skip: new Set(['type', focus]), editor: true });
+      canvas.height = Math.round(((cssW * H) / W) * dpr);
+      renderToken(canvas.getContext('2d'), state, {
+        scale: (cssW * dpr) / W, b: B, art, overlay, ...parts, skip: new Set(['type', focus]), editor: true, trim: 1.5 / (cssW / W),
+      });
     }).catch(() => {});
     return () => { on = false; };
-  }, [state, art, cssW, focus]);
+  }, [state, art, overlay, cssW, focus, B, W, H]);
 
   // Trascinamento e pinch: i puntatori attivi; delta in pixel dello schermo → unità della carta.
   const drag = useRef(null);
   const down = (e) => {
-    if (!art) return;
+    if (!movable) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     const ptrs = { ...(drag.current?.ptrs || {}), [e.pointerId]: { x: e.clientX, y: e.clientY } };
-    drag.current = { ptrs, start: ptrs, pos: state.pos };
+    drag.current = { ptrs, start: ptrs, from: { art: state.pos, overlay: state.overlayPos } };
   };
   const moveP = (e) => {
     const d = drag.current;
@@ -171,61 +183,61 @@ export default function TokenCard({ state, art, set, onPick, onFile, mobile }) {
     const ids = Object.keys(d.ptrs);
     if (ids.length === 1) {
       const [id] = ids;
-      onPos({ ...d.pos, x: d.pos.x + (d.ptrs[id].x - d.start[id].x) / k, y: d.pos.y + (d.ptrs[id].y - d.start[id].y) / k });
+      move(d.from, { dx: (d.ptrs[id].x - d.start[id].x) / k, dy: (d.ptrs[id].y - d.start[id].y) / k });
     } else if (ids.length === 2 && d.start[ids[0]] && d.start[ids[1]]) {
       const dist = (p) => Math.hypot(p[ids[0]].x - p[ids[1]].x, p[ids[0]].y - p[ids[1]].y);
-      onPos({ ...d.pos, zoom: d.pos.zoom * (dist(d.ptrs) / (dist(d.start) || 1)) });
+      move(d.from, { k: dist(d.ptrs) / (dist(d.start) || 1) });
     }
   };
   const up = (e) => {
     const d = drag.current;
     if (!d) return;
     const { [e.pointerId]: _, ...ptrs } = d.ptrs;
-    drag.current = Object.keys(ptrs).length ? { ptrs, start: ptrs, pos: state.pos } : null;
+    drag.current = Object.keys(ptrs).length ? { ptrs, start: ptrs, from: { art: state.pos, overlay: state.overlayPos } } : null;
   };
   // Rotella: listener non passivo, così la pagina non scorre mentre si ingrandisce.
-  const posRef = useRef(null);
-  useEffect(() => { posRef.current = { pos: state.pos, onPos }; });
+  const live = useRef(null);
+  useEffect(() => { live.current = { from: { art: state.pos, overlay: state.overlayPos }, move }; });
   const ready = cssW > 0; // il canvas c'è solo dopo la prima misura della colonna
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !art) return undefined;
+    if (!canvas || !movable) return undefined;
     const onWheel = (e) => {
       e.preventDefault();
-      const { pos, onPos: move } = posRef.current;
-      move({ ...pos, zoom: pos.zoom * Math.exp(-e.deltaY * 0.0015) });
+      live.current.move(live.current.from, { k: Math.exp(-e.deltaY * 0.0015) });
     };
     canvas.addEventListener('wheel', onWheel, { passive: false });
     return () => canvas.removeEventListener('wheel', onWheel);
-  }, [art, ready]);
+  }, [movable, ready]);
   const key = (e) => {
-    if (!art) return;
+    if (!movable) return;
     const step = e.shiftKey ? 40 : 10;
-    const p = state.pos;
-    const next = { ArrowLeft: { x: p.x - step }, ArrowRight: { x: p.x + step }, ArrowUp: { y: p.y - step }, ArrowDown: { y: p.y + step },
-      '+': { zoom: p.zoom * 1.1 }, '=': { zoom: p.zoom * 1.1 }, '-': { zoom: p.zoom / 1.1 } }[e.key];
-    if (!next) return;
+    const change = { ArrowLeft: { dx: -step }, ArrowRight: { dx: step }, ArrowUp: { dy: -step }, ArrowDown: { dy: step },
+      '+': { k: 1.1 }, '=': { k: 1.1 }, '-': { k: 1 / 1.1 } }[e.key];
+    if (!change) return;
     e.preventDefault();
-    onPos({ ...p, ...next });
+    move({ art: state.pos, overlay: state.overlayPos }, change);
   };
 
   const field = (name, label, placeholder, maxLength, z = zones[name], dx = 0) => (
     <Line z={z} k={k} name={name} value={state[name]} onChange={(v) => set({ [name]: v })} label={label} placeholder={placeholder}
       focus={focus} setFocus={setFocus} dx={dx} maxLength={maxLength} />
   );
-  const cssH = (cssW * 880) / 630;
+  const cssH = (cssW * H) / W;
+  // I campi stanno sull'area della carta (dentro il bleed), con le coordinate di sempre.
+  const trimBox = { left: pct(B, W), top: pct(B, H), width: pct(630, W), height: pct(880, H) };
   return (
     <div ref={wrapRef} className={`token-stage${over ? ' drop' : ''}`}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); if (e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]); }}>
       {cssW > 0 && (
         <div className="token-card" style={{ width: cssW, height: cssH }}>
-          <canvas ref={canvasRef} className={`token-canvas${art ? ' has-art' : ''}`} tabIndex={art ? 0 : -1} role="img"
-            aria-label={art ? 'Token image. Drag or use the arrow keys to move it, plus and minus to zoom.' : 'Token preview'}
+          <canvas ref={canvasRef} className={`token-canvas${movable ? ' has-art' : ''}`} tabIndex={movable ? 0 : -1} role="img"
+            aria-label={movable ? 'Token image. Drag or use the arrow keys to move it, plus and minus to zoom.' : 'Token preview'}
             style={{ width: cssW, height: cssH }} onPointerDown={down} onPointerMove={moveP} onPointerUp={up} onPointerCancel={up} onKeyDown={key} />
-          <div className="token-edit-layer">
+          <div className="token-edit-layer" style={trimBox}>
             {!art && (
-              <button type="button" className="token-art-pick" style={box(win)} onClick={onPick}
+              <button type="button" className="token-art-pick" style={box(zones.art)} onClick={onPick}
                 aria-label="Add an image (or drop or paste one here)" title="Add an image (or drop or paste one here)"><IconImage size={Math.max(24, 44 * k)} /></button>
             )}
             {field('name', 'Name', 'Name', 60)}

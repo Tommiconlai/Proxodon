@@ -37,6 +37,43 @@ export function clampPos(natW, natH, win, pos) {
   return { x: clamp(pos.x, -mx, mx) || 0, y: clamp(pos.y, -my, my) || 0, zoom };
 }
 
+// Bleed di b unità attorno alla carta: la finestra dell'arte che tocca un bordo della carta continua nel bleed (l'arte a
+// tutta carta lo riempie), quella interna a una cornice resta dov'è.
+export function artWindow(a, b) {
+  const x0 = a.x <= 0 ? -b : a.x;
+  const y0 = a.y <= 0 ? -b : a.y;
+  const x1 = a.x + a.w >= 630 ? 630 + b : a.x + a.w;
+  const y1 = a.y + a.h >= 880 ? 880 + b : a.y + a.h;
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
+// L'overlay (l'immagine scontornata sopra la cornice) non deve coprire la finestra: zoom da 0.2 a MAX_ZOOM, spostamento
+// libero entro una carta abbondante.
+export const clampOverlay = (p) => ({ x: clamp(p.x, -1000, 1000), y: clamp(p.y, -1000, 1000), zoom: clamp(p.zoom, 0.2, MAX_ZOOM) });
+
+// Dimensioni naturali [w, h] delle due immagini per moveLayers (null se manca).
+export const layerDims = (art, overlay) => ({ art: art ? [art.width, art.height] : null, overlay: overlay ? [overlay.width, overlay.height] : null });
+
+// Spostamento dei due livelli dai punti di partenza (start = { art, overlay }) di change = { dx, dy, k } (k = fattore di
+// zoom). Con sync l'immagine si muove nei suoi limiti e l'overlay la segue come un pezzo solo (stesso spostamento vero,
+// stesso fattore, la distanza tra i due scalata); senza, si muove solo target ('art' o 'overlay'). dims = dimensioni
+// naturali [w, h] delle due immagini (null se manca); senza immagine di fondo si muove l'overlay.
+export function moveLayers(start, change, { sync, target, dims, win }) {
+  const out = { art: start.art, overlay: start.overlay };
+  const ov = (p) => clampOverlay(p);
+  if (dims.art && (sync || target === 'art' || !dims.overlay)) {
+    const a = clampPos(dims.art[0], dims.art[1], win, { x: start.art.x + change.dx, y: start.art.y + change.dy, zoom: start.art.zoom * change.k });
+    out.art = a;
+    if (sync && dims.overlay) {
+      const ak = a.zoom / start.art.zoom;
+      out.overlay = ov({ x: a.x + (start.overlay.x - start.art.x) * ak, y: a.y + (start.overlay.y - start.art.y) * ak, zoom: start.overlay.zoom * ak });
+    }
+  } else if (dims.overlay) {
+    out.overlay = ov({ x: start.overlay.x + change.dx, y: start.overlay.y + change.dy, zoom: start.overlay.zoom * change.k });
+  }
+  return out;
+}
+
 // Testo delle regole → pezzi: testo, simbolo ({T}, {2/W}: solo quelli validi, al massimo 40) e a capo.
 const MAX_SYMBOLS = 40;
 export function parseRules(text) {

@@ -1,13 +1,14 @@
-import { frameColors, TOKEN_COLORS, coverRect, parseRules, fitSize, ellipsize, layoutRules, tokenFileName, typeLine, isCreature } from './tokenModel.js';
+import { frameColors, TOKEN_COLORS, coverRect, parseRules, fitSize, ellipsize, layoutRules, tokenFileName, typeLine, isCreature, artWindow } from './tokenModel.js';
 import { templateById } from './templates.js';
 import { symUrl } from '../utils/manaSymbols.js';
 
 // Disegno del token su un canvas, lo stesso per l'anteprima e per il PNG a 600 DPI: livelli dal basso, fondo, arte
-// (nella finestra della cornice, coverRect di state.pos), cornice SVG, testi. scale = pixel per unità (630 di larghezza).
-// state = { template, colors, name, types, subtypes, rules, power, toughness, credit, pos: { x, y, zoom } }.
+// (nella finestra della cornice, coverRect di state.pos), cornice SVG, overlay (l'immagine scontornata, sopra la cornice
+// e non tagliata dalla finestra, coverRect di state.overlayPos), testi. scale = pixel per unità (630 = la larghezza della
+// carta); b = bleed in unità attorno alla carta (1 mm = 10): il disegno continua fuori, le zone restano dove sono.
+// state = { template, colors, name, types, subtypes, rules, power, toughness, credit, pos, overlayPos, sync, target }.
 
-export const EXPORT_W = 1488; // 63 mm a 600 DPI
-export const EXPORT_H = Math.round(EXPORT_W * 880 / 630);
+export const PX_PER_UNIT = 1488 / 630; // 63 mm a 600 DPI
 
 const FAMILY = { display: '"Chakra Petch"', body: '"Space Grotesk"', mono: '"JetBrains Mono"' };
 export const fontOf = (z, size) => `${z.weight} ${size}px ${FAMILY[z.font]}`;
@@ -34,10 +35,10 @@ const ptText = (s) => (ptBox(s) && (s.power.trim() || s.toughness.trim()) ? `${s
 
 // Cornice colorata come immagine (URL blob dell'SVG, stessa origine: il canvas resta esportabile), una per combinazione.
 const frames = new Map();
-export function loadFrame(template, colors, pt) {
-  const key = `${template.id}|${colors.join('')}|${pt}`;
+export function loadFrame(template, colors, pt, b) {
+  const key = `${template.id}|${colors.join('')}|${pt}|${b}`;
   if (!frames.has(key)) {
-    const url = URL.createObjectURL(new Blob([template.svg(frameColors(colors), { pt })], { type: 'image/svg+xml' }));
+    const url = URL.createObjectURL(new Blob([template.svg(frameColors(colors), { pt, b })], { type: 'image/svg+xml' }));
     frames.set(key, loadImage(url).catch((e) => { frames.delete(key); throw e; }));
   }
   return frames.get(key);
@@ -134,15 +135,16 @@ function drawRules(ctx, z, text, syms) {
 }
 
 // skip = i campi da non disegnare (nell'editor: quello che si sta scrivendo sulla carta e la riga del tipo, che lì è a
-// tendine); editor = il pennello del credito c'è anche a campo vuoto, per dire cosa va lì.
-export function renderToken(ctx, state, { scale, art, frame, symbols: syms, skip = new Set(), editor = false }) {
+// tendine); editor = il pennello del credito c'è anche a campo vuoto, per dire cosa va lì; trim = spessore (in unità)
+// del contorno rosso sul bordo vero della carta, solo nell'editor.
+export function renderToken(ctx, state, { scale, b = 0, art, overlay, frame, symbols: syms, skip = new Set(), editor = false, trim = 0 }) {
   const { zones } = templateById(state.template);
   ctx.save();
-  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.setTransform(scale, 0, 0, scale, b * scale, b * scale);
   ctx.fillStyle = '#0b0b14';
-  ctx.fillRect(0, 0, 630, 880);
+  ctx.fillRect(-b, -b, 630 + 2 * b, 880 + 2 * b);
+  const a = artWindow(zones.art, b);
   if (art) {
-    const a = zones.art;
     const r = coverRect(art.width, art.height, a, state.pos);
     ctx.save();
     ctx.beginPath();
@@ -151,7 +153,11 @@ export function renderToken(ctx, state, { scale, art, frame, symbols: syms, skip
     ctx.drawImage(art, r.x, r.y, r.w, r.h);
     ctx.restore();
   }
-  if (frame) ctx.drawImage(frame, 0, 0, 630, 880);
+  if (frame) ctx.drawImage(frame, -b, -b, 630 + 2 * b, 880 + 2 * b);
+  if (overlay) {
+    const r = coverRect(overlay.width, overlay.height, a, state.overlayPos);
+    ctx.drawImage(overlay, r.x, r.y, r.w, r.h);
+  }
   ctx.fillStyle = '#ffffff';
   ctx.textBaseline = 'alphabetic';
   const draw = (k, v) => v && !skip.has(k);
@@ -168,26 +174,33 @@ export function renderToken(ctx, state, { scale, art, frame, symbols: syms, skip
   ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
   if (state.credit.trim() || editor) drawBrush(ctx, z.x, z.y + z.h * 0.1, z.h * 0.8);
   if (draw('credit', state.credit.trim())) drawLine(ctx, z, state.credit.trim(), { dx: CREDIT_ICON });
+  if (trim) {
+    ctx.strokeStyle = '#ff3b3b';
+    ctx.lineWidth = trim;
+    ctx.strokeRect(0, 0, 630, 880);
+  }
   ctx.restore();
 }
 
 // Tutto quello che serve a disegnare: cornice e simboli (in cache dopo la prima volta) e font.
-export async function prepare(state) {
+export async function prepare(state, b) {
   const [frame, syms] = await Promise.all([
-    loadFrame(templateById(state.template), state.colors, ptBox(state)),
+    loadFrame(templateById(state.template), state.colors, ptBox(state), b),
     loadSymbols(parseRules(state.rules)),
     ensureFonts(),
   ]);
   return { frame, symbols: syms };
 }
 
-// Il PNG da stampare: 1488x2079 (63x88 mm a 600 DPI), chiamato come il token.
-export async function renderTokenFile(state, art) {
-  const parts = await prepare(state);
+// Il PNG da stampare a 600 DPI, con il bleed dentro (in Print è "Bleed in art": riempie la cella così com'è): 63x88 mm
+// più bleedMm per lato, 1488x2079 senza bleed. Chiamato come il token.
+export async function renderTokenFile(state, { art, overlay, bleedMm }) {
+  const b = bleedMm * 10;
+  const parts = await prepare(state, b);
   const canvas = document.createElement('canvas');
-  canvas.width = EXPORT_W;
-  canvas.height = EXPORT_H;
-  renderToken(canvas.getContext('2d'), state, { scale: EXPORT_W / 630, art, ...parts });
+  canvas.width = Math.round((630 + 2 * b) * PX_PER_UNIT);
+  canvas.height = Math.round((880 + 2 * b) * PX_PER_UNIT);
+  renderToken(canvas.getContext('2d'), state, { scale: PX_PER_UNIT, b, art, overlay, ...parts });
   const blob = await new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not create the image.'))), 'image/png'));
   return new File([blob], tokenFileName(state.name), { type: 'image/png' });
 }

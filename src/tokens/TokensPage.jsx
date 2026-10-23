@@ -1,44 +1,52 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { TEMPLATES, templateById } from './templates';
-import { frameColors } from './tokenModel';
+import { frameColors, artWindow, moveLayers, layerDims, MAX_ZOOM } from './tokenModel';
 import { renderTokenFile } from './renderToken';
 import TokenCard from './TokenCard';
 import { ManaCost } from '../decks/Mana';
 import { saveFile } from '../utils/download';
 import { navigate } from '../hooks/useHashRoute';
-import { IconUpload, IconTrash, IconReplay, IconDownload, IconNavPrint, IconPlus } from '../components/icons';
+import { IconUpload, IconTrash, IconReplay, IconDownload, IconNavPrint, IconPlus, IconImage, IconCopy, IconX } from '../components/icons';
 
 const COLORS = [['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green']];
+const P0 = { x: 0, y: 0, zoom: 1 };
 const EMPTY = {
   template: 'classic', colors: [], name: '', types: [], subtypes: [], rules: '', power: '', toughness: '', credit: '',
-  pos: { x: 0, y: 0, zoom: 1 },
+  pos: P0, overlayPos: P0, sync: true, target: 'overlay',
 };
 // Il token in lavorazione resta finché la scheda è aperta (andando su Print e tornando c'è ancora); niente salvataggio.
-const memory = { state: EMPTY, art: null };
+const memory = { state: EMPTY, art: null, overlay: null };
 
 const thumb = (t, colors) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(t.svg(frameColors(colors), { pt: true }))}`;
+const readImage = async (file, notify) => {
+  if (!file?.type?.startsWith('image/')) { notify('That file is not an image.', 'error'); return null; }
+  try { return await createImageBitmap(file); } catch { notify('Could not read that image.', 'error'); return null; }
+};
 
-// Pagina Tokens (#/tokens): a sinistra (telefono: sotto la carta) la cornice con i colori, i pulsanti dell'immagine e
-// quelli per creare; i testi si scrivono sulla carta (TokenCard). Add to Print manda il PNG alla coda di stampa
-// (onAdd = addItems di App), Download lo salva.
-export default function TokensPage({ onAdd, notify, mobile }) {
+// Pagina Tokens (#/tokens): a sinistra (telefono: sotto la carta) la cornice con i colori, zoom, bleed e l'overlay (la
+// seconda immagine, scontornata, sopra la cornice: con Sync si muove con quella di fondo), in basso i pulsanti; i testi
+// si scrivono sulla carta (TokenCard). Il bleed è quello di Print (bleedMm, setBleedMm di App): il PNG lo contiene e in
+// Print entra come "Bleed in art" (bleedMode full). Add to Print = addItems di App, Download lo salva.
+export default function TokensPage({ onAdd, notify, mobile, bleedMm, setBleedMm }) {
   const [state, setState] = useState(memory.state);
   const [art, setArtNow] = useState(memory.art);
+  const [overlay, setOverlayNow] = useState(memory.overlay);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef(null);
-  useEffect(() => { memory.state = state; memory.art = art; }, [state, art]);
+  const overlayRef = useRef(null);
+  const id = useId();
+  useEffect(() => { memory.state = state; memory.art = art; memory.overlay = overlay; }, [state, art, overlay]);
   const set = (patch) => setState((s) => ({ ...s, ...patch }));
-  const template = templateById(state.template);
+  const win = artWindow(templateById(state.template).zones.art, bleedMm * 10);
 
   const setArt = async (file) => {
-    if (!file?.type?.startsWith('image/')) { notify('That file is not an image.', 'error'); return; }
-    try {
-      const bmp = await createImageBitmap(file);
-      setArtNow(bmp);
-      set({ pos: { x: 0, y: 0, zoom: 1 } });
-    } catch {
-      notify('Could not read that image.', 'error');
-    }
+    const bmp = await readImage(file, notify);
+    if (bmp) { setArtNow(bmp); set({ pos: P0, overlayPos: P0 }); }
+  };
+  // L'overlay di solito ha le dimensioni dell'immagine di fondo: parte allineato a lei.
+  const setOverlay = async (file) => {
+    const bmp = await readImage(file, notify);
+    if (bmp) { setOverlayNow(bmp); setState((s) => ({ ...s, overlayPos: s.pos })); }
   };
   // Incolla (Ctrl+V, "Copia immagine" da un altro sito): un'immagine negli appunti diventa l'arte; il testo resta ai campi.
   const setArtRef = useRef(setArt);
@@ -56,10 +64,19 @@ export default function TokensPage({ onAdd, notify, mobile }) {
   const toggleColor = (c) => set({ colors: state.colors.includes(c) ? state.colors.filter((x) => x !== c) : [...state.colors, c] });
   const pick = () => fileRef.current?.click();
 
+  // Zoom del livello che si muove: con Sync (o senza overlay) l'immagine di fondo e l'overlay insieme, altrimenti quello scelto.
+  const onOverlay = !!overlay && (!art || (!state.sync && state.target === 'overlay'));
+  const zoomNow = onOverlay ? state.overlayPos.zoom : state.pos.zoom;
+  const setZoom = (z) => {
+    const r = moveLayers({ art: state.pos, overlay: state.overlayPos }, { dx: 0, dy: 0, k: z / zoomNow },
+      { sync: state.sync, target: state.target, dims: layerDims(art, overlay), win });
+    set({ pos: r.art, overlayPos: r.overlay });
+  };
+
   const create = async (then) => {
     setBusy(true);
     try {
-      then(await renderTokenFile(state, art));
+      then(await renderTokenFile(state, { art, overlay, bleedMm }));
     } catch (e) {
       notify(e.message || 'Could not create the token.', 'error');
     } finally {
@@ -67,17 +84,23 @@ export default function TokensPage({ onAdd, notify, mobile }) {
     }
   };
   const addToPrint = () => create((file) => {
-    onAdd([{ file, bleedMode: template.bleedMode }]);
+    onAdd([{ file, bleedMode: 'full' }]);
     notify('Token added to Print', 'success', { label: 'Open Print', onClick: () => navigate('/print') });
   });
   const download = () => create((file) => saveFile(file.name, file));
 
+  // Sei pulsanti uguali: crea (Print, Download, New) e immagine (Upload, Reset, Remove).
   const actions = (
     <div className="token-actions">
-      <button type="button" className="btn-add deck-icon-btn" onClick={addToPrint} disabled={busy} aria-label="Add to Print" title="Add to Print"><IconNavPrint size={20} /></button>
+      <button type="button" className="btn-secondary deck-icon-btn token-primary" onClick={addToPrint} disabled={busy} aria-label="Add to Print" title="Add to Print"><IconNavPrint size={20} /></button>
       <button type="button" className="btn-secondary deck-icon-btn" onClick={download} disabled={busy} aria-label="Download PNG" title="Download PNG"><IconDownload size={18} /></button>
-      <button type="button" className="btn-secondary deck-icon-btn" onClick={() => { setState(EMPTY); setArtNow(null); }} disabled={busy}
+      <button type="button" className="btn-secondary deck-icon-btn" onClick={() => { setState(EMPTY); setArtNow(null); setOverlayNow(null); }} disabled={busy}
         aria-label="New token" title="New token (clears this one)"><IconPlus size={18} /></button>
+      <button type="button" className="btn-secondary deck-icon-btn" onClick={pick} aria-label="Upload an image" title="Upload an image"><IconUpload size={18} /></button>
+      <button type="button" className="btn-secondary deck-icon-btn" onClick={() => set({ pos: P0, overlayPos: P0 })} disabled={!art && !overlay}
+        aria-label="Reset position and zoom" title="Reset position and zoom"><IconReplay size={18} /></button>
+      <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setArtNow(null)} disabled={!art}
+        aria-label="Remove the image" title="Remove the image"><IconTrash size={18} /></button>
     </div>
   );
   const controls = (
@@ -86,7 +109,7 @@ export default function TokensPage({ onAdd, notify, mobile }) {
       <div className="token-frames" role="radiogroup" aria-label="Frame">
         {TEMPLATES.map((t) => (
           <button key={t.id} type="button" role="radio" aria-checked={t.id === state.template} className="token-frame-btn"
-            aria-label={t.name} title={t.name} onClick={() => set({ template: t.id, pos: { x: 0, y: 0, zoom: 1 } })}>
+            aria-label={t.name} title={t.name} onClick={() => set({ template: t.id, pos: P0, overlayPos: P0 })}>
             <img src={thumb(t, state.colors)} alt="" />
           </button>
         ))}
@@ -99,28 +122,49 @@ export default function TokensPage({ onAdd, notify, mobile }) {
           </label>
         ))}
       </div>
-      {/* Pulsanti dell'immagine: un pulsante vero (raggiungibile da tastiera) apre il selettore nascosto. */}
+      <div className="field">
+        <label className="field-label token-range-label" htmlFor={`${id}-zoom`}>Zoom<span>{onOverlay ? 'overlay' : overlay && state.sync ? 'image + overlay' : 'image'}</span></label>
+        <input id={`${id}-zoom`} type="range" min={onOverlay ? 0.2 : 1} max={MAX_ZOOM} step="0.01" value={zoomNow} disabled={!art && !overlay}
+          onChange={(e) => setZoom(Number(e.target.value))} />
+      </div>
+      <div className="field">
+        <label className="field-label token-range-label" htmlFor={`${id}-bleed`} title="The same bleed as the Print page">Bleed<span>{bleedMm.toFixed(1)} mm</span></label>
+        <input id={`${id}-bleed`} type="range" min="0" max="3" step="0.5" value={bleedMm}
+          onChange={(e) => setBleedMm(Number(e.target.value))} aria-valuetext={`${bleedMm} mm`} />
+      </div>
+      {/* Overlay: la seconda immagine (scontornata) sopra la cornice. Sync = si muove e si ingrandisce con quella di fondo;
+          senza, si sceglie quale dei due livelli spostare. */}
+      <input ref={overlayRef} type="file" accept="image/*" hidden tabIndex={-1} aria-hidden="true"
+        onChange={(e) => { const f = e.target.files[0]; e.target.value = ''; if (f) setOverlay(f); }} />
+      <div className="token-row token-overlay-row">
+        <button type="button" className="btn-secondary token-text-btn" onClick={() => overlayRef.current?.click()}
+          title={overlay ? 'Replace the overlay (a cut-out image over the frame)' : 'Add an overlay (a cut-out image over the frame)'}>Overlay</button>
+        <button type="button" className={`btn-secondary token-text-btn${state.sync ? ' on' : ''}`} aria-pressed={state.sync} disabled={!overlay || !art}
+          onClick={() => set({ sync: !state.sync })} title="Sync: the overlay moves and zooms with the image">Sync</button>
+        {overlay && (
+          <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setOverlayNow(null)} aria-label="Remove the overlay" title="Remove the overlay"><IconX size={16} /></button>
+        )}
+      </div>
+      {overlay && art && !state.sync && (
+        <div className="token-row" role="radiogroup" aria-label="Layer to move">
+          <button type="button" role="radio" aria-checked={state.target === 'art'} className={`btn-secondary deck-icon-btn${state.target === 'art' ? ' on' : ''}`}
+            onClick={() => set({ target: 'art' })} aria-label="Move the image" title="Move the image"><IconImage size={18} /></button>
+          <button type="button" role="radio" aria-checked={state.target === 'overlay'} className={`btn-secondary deck-icon-btn${state.target === 'overlay' ? ' on' : ''}`}
+            onClick={() => set({ target: 'overlay' })} aria-label="Move the overlay" title="Move the overlay"><IconCopy size={18} /></button>
+        </div>
+      )}
       <input ref={fileRef} type="file" accept="image/*" hidden tabIndex={-1} aria-hidden="true"
         onChange={(e) => { const f = e.target.files[0]; e.target.value = ''; if (f) setArt(f); }} />
-      <div className="token-row">
-        <button type="button" className="btn-secondary deck-icon-btn" onClick={pick} aria-label="Upload an image" title="Upload an image"><IconUpload size={18} /></button>
-        <button type="button" className="btn-secondary deck-icon-btn" onClick={() => set({ pos: { x: 0, y: 0, zoom: 1 } })} disabled={!art}
-          aria-label="Reset position and zoom" title="Reset position and zoom"><IconReplay size={18} /></button>
-        <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setArtNow(null)} disabled={!art}
-          aria-label="Remove the image" title="Remove the image"><IconTrash size={18} /></button>
-      </div>
     </section>
   );
-  const card = <TokenCard state={state} art={art} set={set} onPick={pick} onFile={setArt} mobile={mobile} />;
+  const card = <TokenCard state={state} art={art} overlay={overlay} set={set} onPick={pick} onFile={setArt} mobile={mobile} bleedMm={bleedMm} />;
 
   if (mobile) {
     return (
       <div className="tokens-mobile">
-        <div className="tokens-head">
-          <h1 className="decks-title">Tokens</h1>
-          {actions}
-        </div>
+        <div className="tokens-head"><h1 className="decks-title">Tokens</h1></div>
         {card}
+        {actions}
         <div className="tokens-controls">{controls}</div>
       </div>
     );
