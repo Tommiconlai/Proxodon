@@ -3,18 +3,24 @@ import { SYMBOL } from '../utils/manaSymbols.js';
 // Logica dei token senza canvas (provata da tokenModel.selfcheck.js). Unità di disegno: la carta è 630x880 (0.1 mm);
 // measure(testo, corpo) = larghezza nelle stesse unità, la dà il canvas (o un finto nel self-check).
 
-// Colori della cornice per colore del token: main = linee e pallino, light = alone, dark = fondo dei riquadri colorati.
-// M = multicolore (oro), C = incolore.
+// Colori del token per il bordo sfumato del pannello: main = il colore, light = il suo riflesso.
 export const TOKEN_COLORS = {
-  W: { main: '#f2e6b8', light: '#fffbe6', dark: '#8a7c4e' },
-  U: { main: '#3b9be8', light: '#b5e0ff', dark: '#123d66' },
-  B: { main: '#9b7fc0', light: '#e0d2f2', dark: '#2a1f3a' },
-  R: { main: '#ff5a4a', light: '#ffc1b8', dark: '#6e1a12' },
-  G: { main: '#3fd37f', light: '#b9f5d2', dark: '#0f4a2b' },
-  M: { main: '#f0c24a', light: '#fff0bf', dark: '#6b4f10' },
-  C: { main: '#a9b4c0', light: '#e8eef4', dark: '#3b4350' },
+  W: { main: '#f2e6b8', light: '#fffbe6' },
+  U: { main: '#3b9be8', light: '#b5e0ff' },
+  B: { main: '#9b7fc0', light: '#e0d2f2' },
+  R: { main: '#ff5a4a', light: '#ffc1b8' },
+  G: { main: '#3fd37f', light: '#b9f5d2' },
 };
-export const frameColors = (colors) => TOKEN_COLORS[colors.length === 0 ? 'C' : colors.length === 1 ? colors[0] : 'M'];
+const WUBRG = ['W', 'U', 'B', 'R', 'G'];
+// Tappe [posizione, colore] del bordo del pannello nei colori del token, in ordine WUBRG e da 0.1 a 0.9 come il
+// gradiente del disegno: un colore = pieno, riflesso al centro, pieno; di più = uno per tappa. Nessun colore = null: resta
+// il gradiente del disegno, che fa da incolore (richiesta dell'utente).
+export function borderStops(colors) {
+  const list = WUBRG.filter((c) => colors.includes(c)).map((c) => TOKEN_COLORS[c]);
+  if (!list.length) return null;
+  if (list.length === 1) return [[0.1, list[0].main], [0.5, list[0].light], [0.9, list[0].main]];
+  return list.map((c, i) => [+(0.1 + (0.8 * i) / (list.length - 1)).toFixed(3), c.main]);
+}
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 export const MAX_ZOOM = 5;
@@ -194,7 +200,6 @@ export const typeLine = (types, subtypes) => [types.join(' '), subtypes.join(' '
 // Token di Scryfall (layout token, anche a due facce: conta quella davanti) → campi del generatore: la riga del tipo si
 // divide sul trattino lungo di Scryfall (U+2014) in tipi e sottotipi, i colori in ordine WUBRG, le cornici dell'utente:
 // Effect con il testo e Vanilla senza. Immagine e credito restano da mettere.
-const WUBRG = ['W', 'U', 'B', 'R', 'G'];
 export function tokenFromScryfall(card) {
   const face = card.card_faces?.[0] ?? card;
   const [left = '', right = ''] = (face.type_line || '').split(/\s+\u2014\s+/);

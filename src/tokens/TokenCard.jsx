@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { templateById } from './templates';
 import { fitSize, layoutRules, parseRules, CARD_TYPES, artWindow, moveLayers, layerDims, typeLine, typeSuggestions } from './tokenModel';
-import { prepare, renderToken, renderOverlay, fontOf, ptBox, typeIndent, typeRight, CREDIT_ICON } from './renderToken';
+import { prepare, renderToken, renderOverlay, fontOf, ptBox } from './renderToken';
 import { loadSubtypes } from './typeCatalog';
 import { IconImage } from '../components/icons';
 
@@ -63,39 +63,27 @@ function Rules({ z, k, value, onChange, focus, setFocus }) {
   );
 }
 
-// Con z.split (Vanilla dell'utente) ogni campo sta nel suo riquadro e la barra a metà, come nel PNG (drawPT).
+// Forza e costituzione: ogni campo nel suo riquadro (z.split) e la barra a metà, come nel PNG (drawPT).
 function PowerToughness({ z, k, power, toughness, set, focus, setFocus }) {
   const s = z.split;
-  const size = s
-    ? Math.min(fitSize(measurer(z), power, s.w, z.size, z.min), fitSize(measurer(z), toughness, s.w, z.size, z.min))
-    : fitSize(measurer(z), `${power}/${toughness}`, z.w - 16, z.size, z.min);
-  const st = scaled(k, size, z);
+  const st = scaled(k, Math.min(fitSize(measurer(z), power, s.w, z.size, z.min), fitSize(measurer(z), toughness, s.w, z.size, z.min)), z);
   const editing = focus === 'pt';
   const input = (key, value, label) => (
     <input className={`token-edit${editing ? ' editing' : ''}`} value={value} placeholder="0" aria-label={label} maxLength={3} inputMode="numeric"
       onFocus={() => setFocus('pt')} onBlur={() => setFocus(null)} onChange={(e) => set({ [key]: e.target.value })} />
   );
-  if (s) {
-    const cell = (x, w, child) => (
-      <div className="token-zone" style={box({ x, y: z.y, w, h: z.h })}>
-        <div className={`token-pt${editing ? ' editing' : ''}${power || toughness ? '' : ' empty'}`} style={st}>{child}</div>
-      </div>
-    );
-    return <>{cell(z.x, z.w, <span aria-hidden="true">/</span>)}{cell(s.p, s.w, input('power', power, 'Power'))}{cell(s.t, s.w, input('toughness', toughness, 'Toughness'))}</>;
-  }
-  return (
-    <div className="token-zone" style={box(z)}>
-      <div className={`token-pt${editing ? ' editing' : ''}${power || toughness ? '' : ' empty'}`} style={st}>
-        {input('power', power, 'Power')}<span aria-hidden="true">/</span>{input('toughness', toughness, 'Toughness')}
-      </div>
+  const cell = (x, w, child) => (
+    <div className="token-zone" style={box({ x, y: z.y, w, h: z.h })}>
+      <div className={`token-pt${editing ? ' editing' : ''}${power || toughness ? '' : ' empty'}`} style={st}>{child}</div>
     </div>
   );
+  return <>{cell(z.x, z.w, <span aria-hidden="true">/</span>)}{cell(s.p, s.w, input('power', power, 'Power'))}{cell(s.t, s.w, input('toughness', toughness, 'Toughness'))}</>;
 }
 
 // Riga del tipo: una tendina per ogni tipo e sottotipo scelto (cambiarlo, o Remove) e in fondo un campo di ricerca:
 // scrivendo, la tendina sotto propone i tipi di carta e i sottotipi dei tipi scelti (cataloghi di Scryfall); frecce per
 // scegliere, Invio per aggiungere, Esc per chiudere, Backspace a campo vuoto toglie l'ultimo.
-function TypeLine({ z, k, types, subtypes, set, indent, right }) {
+function TypeLine({ z, k, types, subtypes, set }) {
   const [subs, setSubs] = useState([]);
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
@@ -107,9 +95,9 @@ function TypeLine({ z, k, types, subtypes, set, indent, right }) {
     loadSubtypes(key ? key.split('|') : []).then((l) => { if (on) setSubs(l); });
     return () => { on = false; };
   }, [key]);
-  // Corpo come nel PNG: la riga intera rimpicciolisce per stare tra pallino e simbolo (meno lo spazio del campo).
+  // Corpo come nel PNG: la riga intera rimpicciolisce per stare nel suo riquadro (meno lo spazio del campo di ricerca).
   const line = typeLine(types, subtypes);
-  const room = z.w - 2 * z.pad - indent - right - z.size * 3;
+  const room = z.w - 2 * z.pad - z.size * 3;
   const st = scaled(k, line ? fitSize(measurer(z), line, room, z.size, z.min) : z.size, z);
   const edit = (list, i, v) => (v === '' ? list.filter((_, j) => j !== i) : list.map((x, j) => (j === i ? v : x)));
   const chip = (list, field, options, label) => list.map((v, i) => (
@@ -140,8 +128,8 @@ function TypeLine({ z, k, types, subtypes, set, indent, right }) {
   return (
     <div className="token-zone" style={box(z)}>
       <div className="token-edit token-typeline" role="group" aria-label="Type line"
-        style={{ ...st, paddingLeft: `calc(${z.pad + indent} * var(--u) * 1px)`, paddingRight: `calc(${z.pad + right} * var(--u) * 1px)` }}>
-        {/* La fila scorre dentro il suo riquadro: a destra resta libero il simbolo dell'edizione. */}
+        style={{ ...st, paddingLeft: `calc(${z.pad} * var(--u) * 1px)`, paddingRight: `calc(${z.pad} * var(--u) * 1px)` }}>
+        {/* La fila scorre dentro il suo riquadro (il simbolo dell'edizione ha il suo, accanto). */}
         <div className="token-typeline-row">
           {chip(types, 'types', CARD_TYPES, 'Type')}
           {subtypes.length > 0 && <>
@@ -210,7 +198,7 @@ export default function TokenCard({ state, art, overlay, set, onPick, onFile, mo
     let on = true;
     const dpr = window.devicePixelRatio || 1;
     const scale = (cssW * dpr) / W;
-    prepare(state, B).then((parts) => {
+    prepare(state).then((parts) => {
       if (!on) return;
       for (const c of [canvas, top]) {
         c.width = Math.round(cssW * dpr);
@@ -295,11 +283,10 @@ export default function TokenCard({ state, art, overlay, set, onPick, onFile, mo
                 aria-label="Add an image (or drop or paste one here)" title="Add an image (or drop or paste one here)"><IconImage size={Math.max(24, 44 * k)} /></button>
             )}
             {field('name', 'Name', 'Name', 60)}
-            <TypeLine z={zones.type} k={k} types={state.types} subtypes={state.subtypes} set={set}
-              indent={typeIndent(zones, state.colors)} right={typeRight(zones)} />
+            <TypeLine z={zones.type} k={k} types={state.types} subtypes={state.subtypes} set={set} />
             {zones.text && <Rules z={zones.text} k={k} value={state.rules} onChange={(v) => set({ rules: v })} focus={focus} setFocus={setFocus} />}
             {ptBox(state) && <PowerToughness z={zones.pt} k={k} power={state.power} toughness={state.toughness} set={set} focus={focus} setFocus={setFocus} />}
-            {field('credit', 'Image credit', 'Illustrator', 60, zones.credit, zones.credit.dx ?? CREDIT_ICON)}
+            {field('credit', 'Image credit', 'Illustrator', 60, zones.credit, zones.credit.dx)}
           </div>
           <canvas ref={topRef} className="token-overlay-canvas" aria-hidden="true" style={{ width: cssW, height: cssH }} />
         </div>

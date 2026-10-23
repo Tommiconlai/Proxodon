@@ -15,7 +15,7 @@ import { C } from './demo';
 // porta la zona del passo a metà schermo (i controlli stanno sotto la carta).
 const P0 = { x: 0, y: 0, zoom: 1 };
 const GOBLIN = {
-  template: 'classic', colors: ['R'], name: 'Goblin', types: ['Token', 'Creature'], subtypes: ['Goblin'], rules: 'Haste\n{T}: Add {R}.',
+  template: 'effect', colors: ['R'], name: 'Goblin', types: ['Token', 'Creature'], subtypes: ['Goblin'], rules: 'Haste\n{T}: Add {R}.',
   power: '1', toughness: '1', credit: 'Lie Setiawan', pos: P0, overlayPos: P0, sync: true, target: 'overlay',
 };
 const BLANK = { name: '', types: [], subtypes: [], rules: '', power: '', toughness: '', credit: '' };
@@ -57,13 +57,13 @@ function TokenStage({ apiRef, step, mobile }) {
 
 const CARD = '.token-card';
 const artGhost = () => Object.assign(document.createElement('img'), { src: C.krenko.art, className: 'tut-card-img tut-art' });
-const classicWin = () => artWindow(templateById('classic').zones.art, BLEED * 10);
+const artWin = () => artWindow(templateById(GOBLIN.template).zones.art, BLEED * 10);
 
 // Zoom dallo slider: l'arte si ingrandisce a passi fino a zoom.
 async function zoomTo(g, zoom) {
   const img = await loadArt();
   for (let k = 1; k <= 12; k += 1) {
-    g.api.set({ pos: clampPos(img.width, img.height, classicWin(), { x: 0, y: 0, zoom: 1 + ((zoom - 1) * k) / 12 }) });
+    g.api.set({ pos: clampPos(img.width, img.height, artWin(), { x: 0, y: 0, zoom: 1 + ((zoom - 1) * k) / 12 }) });
     await g.wait(45);
   }
 }
@@ -73,7 +73,7 @@ async function dragArt(g, zoom, [dx, dy], text) {
   const k = g.el(CARD).getBoundingClientRect().width / (630 + 2 * BLEED * 10); // pixel per unità della carta
   const a = g.at('.token-canvas', 0.5, 0.35); // dentro la finestra dell'arte
   await g.drag(a, { x: a.x + dx, y: a.y + dy }, {
-    text, during: (p) => g.api.set({ pos: clampPos(img.width, img.height, classicWin(), { x: (p.x - a.x) / k, y: (p.y - a.y) / k, zoom }) }),
+    text, during: (p) => g.api.set({ pos: clampPos(img.width, img.height, artWin(), { x: (p.x - a.x) / k, y: (p.y - a.y) / k, zoom }) }),
   });
 }
 // Riga del tipo: il campo di ricerca, poi i tipi uno alla volta (Creature porta forza e costituzione).
@@ -85,7 +85,7 @@ async function addTypes(g, text) {
   }
 }
 async function frameAndColors(g, mobile) {
-  await g.click('.token-frame-btn:nth-child(2)', 'Full art', () => g.api.set({ template: 'fullart', pos: P0 }));
+  await g.click('.token-frame-btn:nth-child(1)', 'Vanilla', () => g.api.set({ template: 'vanilla', pos: P0 }));
   if (mobile) g.spot('.adv-pips');
   await g.click('.adv-pip:nth-child(4)', 'Red', () => g.api.set({ colors: ['R'] }));
   await g.click('.adv-pip:nth-child(5)', 'Green', () => g.api.set({ colors: ['R', 'G'] }));
@@ -120,7 +120,7 @@ const DESKTOP = [
   },
   {
     target: '.tokens-body .sidebar-scroll', token: { colors: [] }, title: 'Frame and colors',
-    text: 'Pick a frame, then its colors: one color tints it, two or more make it gold, none leaves it gray.',
+    text: 'Pick a frame: Vanilla for tokens without rules text, Effect for the ones with it. Then the colors: the border around the art takes them, none keeps the Proxodon gradient.',
     play: (g) => frameAndColors(g, false),
   },
   {
@@ -180,7 +180,7 @@ const MOBILE = [
   },
   {
     target: '.token-frames', scroll: true, token: { colors: [] }, title: 'Frame and colors',
-    text: 'Under the buttons: pick a frame, then its colors. One color tints it, two or more make it gold, none leaves it gray.',
+    text: 'Under the buttons: pick a frame, Vanilla without rules text or Effect with it, then the colors. The border around the art takes them, none keeps the Proxodon gradient.',
     play: (g) => frameAndColors(g, true),
   },
   { target: '.token-bleed', scroll: true, title: 'Bleed', text: BLEED_TEXT, play: (g) => g.click('.token-bleed input', 'Tap', () => g.api.bleed(3)) },

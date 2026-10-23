@@ -2,7 +2,7 @@
 // Qui e non in TokensPage perché ci scrivono anche i mazzi (Make custom, sezione Tokens): la pagina lo legge quando si apre.
 export const P0 = { x: 0, y: 0, zoom: 1 };
 export const EMPTY = {
-  template: 'classic', colors: [], name: '', types: [], subtypes: [], rules: '', power: '', toughness: '', credit: '',
+  template: 'effect', colors: [], name: '', types: [], subtypes: [], rules: '', power: '', toughness: '', credit: '',
   pos: P0, overlayPos: P0, sync: true, target: 'overlay',
 };
 export const draft = { state: EMPTY, art: null, overlay: null };

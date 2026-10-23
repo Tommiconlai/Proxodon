@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { TEMPLATES, templateById } from './templates';
-import { frameColors, artWindow, moveLayers, layerDims, MAX_ZOOM } from './tokenModel';
+import { artWindow, moveLayers, layerDims, MAX_ZOOM } from './tokenModel';
 import { P0, EMPTY, draft } from './tokenDraft';
 import { renderTokenFile, frameLayers } from './renderToken';
 import TokenCard from './TokenCard';
@@ -11,12 +11,10 @@ import { IconUpload, IconTrash, IconReplay, IconDownload, IconNavPrint, IconPlus
 
 const COLORS = [['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green']];
 
-const thumb = (t, colors) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(t.svg(frameColors(colors), { pt: true }))}`;
 const pct = (v, of) => `${(v / of) * 100}%`;
-// Anteprima di una cornice: il suo SVG colorato, o i livelli di quella dell'utente uno sopra l'altro (come le altre, con
-// forza e costituzione): gli SVG come immagini, i rettangoli arrotondati come riquadri col loro colore.
-function FrameThumb({ t, colors }) {
-  if (!t.layers) return <img src={thumb(t, colors)} alt="" />;
+// Anteprima di una cornice: i suoi livelli uno sopra l'altro, con forza e costituzione e il bordo del disegno: gli SVG
+// come immagini, i rettangoli arrotondati come riquadri col loro colore.
+function FrameThumb({ t }) {
   return (
     <span className="token-frame-layers">
       {frameLayers(t, true).map((l, i) => {
@@ -129,7 +127,7 @@ export default function TokensPage({ onAdd, notify, mobile, bleedMm, setBleedMm,
         {TEMPLATES.map((t) => (
           <button key={t.id} type="button" role="radio" aria-checked={t.id === state.template} className="token-frame-btn"
             aria-label={t.name} title={t.name} onClick={() => set({ template: t.id, pos: P0, overlayPos: P0 })}>
-            <FrameThumb t={t} colors={state.colors} />
+            <FrameThumb t={t} />
           </button>
         ))}
       </div>
