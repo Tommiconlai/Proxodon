@@ -8,6 +8,7 @@ import { cardsByIds } from './scryfallSearch';
 import { navigate, replaceRoute } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
+import DeckTokens from './DeckTokens';
 import { DeckBand, DeckTitle, DeckCount, DeckTopBar, DeckTagList, DeckBracket } from './DeckTabs';
 import { DeckDilemmas } from './Dilemmas';
 import { DeckHelps } from './HelpRequests';
@@ -143,7 +144,8 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
     <DeckSections deck={deck} update={update} touch={mobile} tab={t} onTab={mobile ? undefined : setTab} notify={notify}
       onDilemma={(c) => { setAsk(c); setTab('dilemmas'); }}
       onHelp={(c) => { setHelpAsk(c); setTab('help'); if (mobile) toHelp(); }}
-      onPrint={(rows) => onPrintDeck(toPrintEntries({ cards: rows.map((r) => ({ ...r, board: 'main' })) }), true)} />
+      onPrint={(rows) => onPrintDeck(toPrintEntries({ cards: rows.map((r) => ({ ...r, board: 'main' })) }), true)}
+      tokens={<DeckTokens deck={deck} />} />
   );
   const dilemmas = <DeckDilemmas deck={deck} uid={uid} mine notify={notify} ask={ask} onAsked={() => setAsk(null)} />;
   const helps = <DeckHelps deck={deck} uid={uid} mine notify={notify} update={update} ask={helpAsk} onAsked={() => setHelpAsk(null)} />;

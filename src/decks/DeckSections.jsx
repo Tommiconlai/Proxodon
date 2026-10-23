@@ -98,9 +98,10 @@ const SPLIT_MAX = 300;
 // onDilemma(cards): Dilemma nel menu, attivo solo con 2-4 carte diverse selezionate e il mazzo pubblico.
 // onHelp(cards): Ask for help nel menu, le carte scelte (fino a MAX_HELP_CARDS diverse) in focus nella nuova richiesta.
 // Telefono (touch): − / + della carta selezionata (una sola) in una barra sopra quella in basso, a 44 px.
+// tokens: la sezione sotto il maybeboard con i token che creano le carte (DeckTokens), solo nei propri mazzi.
 const NEW_SECTION = 'new-section'; // voce di Group by da telefono: apre New section, non è un raggruppamento
 
-export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab, onPrint, onDilemma, onHelp, onCut, inCuts, notify }) {
+export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab, onPrint, onDilemma, onHelp, onCut, inCuts, notify, tokens }) {
   const [sel, setSel] = useState(() => new Set());
   const [anchor, setAnchor] = useState(null);
   const [menu, setMenu] = useState(null); // { ids, x, y }
@@ -318,7 +319,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   // Conta solo la parte visibile di una carta: negli stack e nella griglia (righe sovrapposte) la carta
   // successiva nella stessa colonna copre il resto.
   const onEmpty = (e) => e.currentTarget.contains(e.target)
-    && !e.target.closest('.deck-row, .deck-toolbar, .deck-group-actions, .deck-issues, .deck-analysis, .modal-overlay, button, select, input, summary, a');
+    && !e.target.closest('.deck-row, .deck-toolbar, .deck-group-actions, .deck-issues, .deck-analysis, .deck-tokens, .modal-overlay, button, select, input, summary, a');
   const marqueeHandlers = {
     onPointerDown: (e) => {
       swallowClick.current = false; // nuovo gesto
@@ -597,6 +598,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
           <ul className={`deck-rows view-${layout}`}>{cards(blocks.maybe.rows)}</ul>
         </details>
       )}
+      {tokens}
       </>}
       {/* Scheda Stats: statistiche e mano di prova; da telefono sotto le carte, solo le statistiche. */}
       {tab !== 'deck' && <div className="deck-analysis">

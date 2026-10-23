@@ -1,9 +1,10 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Tutorial from './Tutorial';
 import { touches, pointAt } from './control';
 import { Shell, ProfileStage, SettingsStage } from './AccountStages';
-import { C, demoDeck, myDecks, communityDecks, LIKES, dilemmas, DILEMMA_VOTES, helps, HELP_REPLIES } from './demo';
+import { C, demoDeck, myDecks, communityDecks, LIKES, dilemmas, DILEMMA_VOTES, helps, HELP_REPLIES, DEMO_TOKENS } from './demo';
 import DeckSections from '../decks/DeckSections';
+import DeckTokens from '../decks/DeckTokens';
 import { DeckBand, DeckTitle, DeckCount, DeckTopBar, DeckTagList, ListBand } from '../decks/DeckTabs';
 import { NavMenu } from '../components/MobileNav';
 import { navItems } from '../components/navItems';
@@ -53,7 +54,7 @@ const DemoNav = ({ items, current, open }) => (
 const HELP = { ...helps()[0], uid: 'glitchmage' }; // la richiesta della demo è di un altro giocatore
 const deckFor = (mode) => (mode === 'editor' ? demoDeck() : { ...demoDeck(), owner: 'glitchmage', public: true });
 
-function DeckStage({ apiRef, mobile, mode }) {
+function DeckStage({ apiRef, mobile, mode, step }) {
   const [deck, setDeck] = useState(() => deckFor(mode));
   const [tab, setTab] = useState('deck');
   const [q, setQ] = useState('');
@@ -73,6 +74,12 @@ function DeckStage({ apiRef, mobile, mode }) {
       cut: once(setCut), suggest: once(setAdd), why: setWhy, over: setOver,
     };
   }, [apiRef]);
+  // Passi su una parte in fondo al mazzo (step.scroll): la zona a metà schermo prima che la scheda del passo si fermi.
+  useEffect(() => {
+    if (!step?.scroll) return undefined;
+    const t = setTimeout(() => document.querySelector(`.tut-stage ${step.target}`)?.scrollIntoView({ block: 'center' }), 150);
+    return () => clearTimeout(t);
+  }, [step]);
   const update = (fn) => setDeck((d) => fn(d));
   const editor = mode === 'editor';
   const help = mode === 'help';
@@ -99,7 +106,8 @@ function DeckStage({ apiRef, mobile, mode }) {
   const inHero = mobile || help; // come nell'editor e nella Community: da desktop nome in alto, formato nella fascia
   const cards = (t) => (
     <DeckSections deck={deck} update={update} touch={mobile} readOnly={!editor} tab={t} onTab={mobile ? undefined : setTab} notify={noop}
-      onPrint={editor ? noop : undefined} onDilemma={editor ? noop : undefined} onHelp={editor ? noop : undefined} />
+      onPrint={editor ? noop : undefined} onDilemma={editor ? noop : undefined} onHelp={editor ? noop : undefined}
+      tokens={editor ? <DeckTokens deck={deck} demo={DEMO_TOKENS} /> : undefined} />
   );
   const btn = (Icon, label, extra = '') => (
     <button type="button" className={`btn-secondary deck-icon-btn${extra}`} aria-label={label} title={label}><Icon size={17} /></button>
@@ -519,7 +527,12 @@ function editorSteps(mobile) {
     tabStep(3, 'Dilemmas', 'Ask the community which card fits better: pick 2 to 4 cards (also from the card menu, Dilemma) and write the question. The deck must be public.'),
     tabStep(4, 'Help', 'Ask for help on the whole deck (cuts, upgrades, budget, mana base): players suggest cards to cut and to add, you apply them in one click.'),
   ];
-  if (mobile) return [hero, ...search, choose, menu, organize, ...tabs];
+  const tokens = {
+    target: '.deck-tokens', scroll: true, title: 'Tokens',
+    text: 'Under the maybeboard, the tokens your cards create, here the Beast of Beast Within. Make custom opens one in the Tokens page with its text already written: you add the art.',
+    play: (g) => pointAt(g, [['.deck-token .deck-icon-btn', 'Make custom']]),
+  };
+  if (mobile) return [hero, ...search, choose, menu, organize, tokens, ...tabs];
   return [hero, ...search, choose, {
     target: '.deck-sections', title: 'Select an area',
     text: 'Press on an empty spot and drag: every card the box touches joins the selection.',
@@ -550,7 +563,7 @@ function editorSteps(mobile) {
       await realDrag(g, 'r7', 'zone-tut-ramp');
       await g.wait(800);
     },
-  }, menu, organize, ...tabs];
+  }, menu, organize, tokens, ...tabs];
 }
 
 function communitySteps(mobile) {

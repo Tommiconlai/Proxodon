@@ -191,6 +191,22 @@ export function typeSuggestions(query, types, subtypes, subs, max = 8) {
 // Tipi, poi sottotipi dopo il trattino medio (U+2013: quello lungo delle carte vere qui non si usa).
 export const typeLine = (types, subtypes) => [types.join(' '), subtypes.join(' ')].filter(Boolean).join(' – ');
 
+// Token di Scryfall (layout token, anche a due facce: conta quella davanti) → campi del generatore: la riga del tipo si
+// divide sul trattino lungo di Scryfall (U+2014) in tipi e sottotipi, i colori in ordine WUBRG, cornice Classic con il
+// testo e Vanilla senza. Immagine e credito restano da mettere.
+const WUBRG = ['W', 'U', 'B', 'R', 'G'];
+export function tokenFromScryfall(card) {
+  const face = card.card_faces?.[0] ?? card;
+  const [left = '', right = ''] = (face.type_line || '').split(/\s+\u2014\s+/);
+  const colors = face.colors ?? card.colors ?? [];
+  const rules = (face.oracle_text || '').trim();
+  return {
+    template: rules ? 'classic' : 'vanilla', colors: WUBRG.filter((c) => colors.includes(c)), name: face.name || '',
+    types: left.split(/\s+/).filter(Boolean), subtypes: right.split(/\s+/).filter(Boolean), rules,
+    power: face.power ?? '', toughness: face.toughness ?? '', credit: '',
+  };
+}
+
 // Nome del PNG: niente caratteri vietati nei nomi di file né di controllo, spazi uniti, al massimo 60 caratteri.
 export function tokenFileName(name) {
   const s = [...(name || '')].filter((c) => c.charCodeAt(0) >= 32 && !'\\/:*?"<>|'.includes(c)).join('')

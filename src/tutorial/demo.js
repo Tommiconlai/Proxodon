@@ -56,6 +56,14 @@ export const demoDeck = () => deck('tut-deck', 'Tidal Bloom', 'commander', [
   row('r17', C.commandTower), row('r18', C.forest, 14), row('r19', C.island, 12),
   row('m1', C.rhysticStudy, 1, { board: 'maybe' }),
 ], { public: true, tags: ['Ramp', 'Lands Matter', 'Simic (GU)'] });
+// La sezione Tokens del mazzo dell'editor: il Beast 3/3 che crea Beast Within (all_parts di Scryfall), già pronto.
+export const DEMO_TOKENS = [{
+  key: 'tut-beast', from: ['Beast Within'],
+  card: {
+    name: 'Beast', type_line: 'Token Creature \u2014 Beast', oracle_text: '', power: '3', toughness: '3', colors: ['G'],
+    image_uris: { normal: 'https://cards.scryfall.io/normal/front/6/2/62facbb8-1a83-4731-b515-0f7759ee8c3b.jpg?1783902808' },
+  },
+}];
 
 // My decks: una cartella (Brews) con due mazzi e tre mazzi fuori.
 export const myDecks = () => [

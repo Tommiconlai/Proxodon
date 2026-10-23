@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { TEMPLATES, templateById } from './templates';
 import { frameColors, artWindow, moveLayers, layerDims, MAX_ZOOM } from './tokenModel';
+import { P0, EMPTY, draft } from './tokenDraft';
 import { renderTokenFile } from './renderToken';
 import TokenCard from './TokenCard';
 import { ManaCost } from '../decks/Mana';
@@ -9,13 +10,6 @@ import { navigate } from '../hooks/useHashRoute';
 import { IconUpload, IconTrash, IconReplay, IconDownload, IconNavPrint, IconPlus, IconImage, IconCopy, IconX } from '../components/icons';
 
 const COLORS = [['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green']];
-const P0 = { x: 0, y: 0, zoom: 1 };
-const EMPTY = {
-  template: 'classic', colors: [], name: '', types: [], subtypes: [], rules: '', power: '', toughness: '', credit: '',
-  pos: P0, overlayPos: P0, sync: true, target: 'overlay',
-};
-// Il token in lavorazione resta finché la scheda è aperta (andando su Print e tornando c'è ancora); niente salvataggio.
-const memory = { state: EMPTY, art: null, overlay: null };
 
 const thumb = (t, colors) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(t.svg(frameColors(colors), { pt: true }))}`;
 const readImage = async (file, notify) => {
@@ -27,17 +21,18 @@ const readImage = async (file, notify) => {
 // seconda immagine, scontornata, sopra la cornice e i testi: con Sync si muove con quella di fondo), in basso i
 // pulsanti; i testi si scrivono sulla carta (TokenCard). Il bleed è quello di Print (bleedMm, setBleedMm di App): il PNG
 // lo contiene e in Print entra come "Bleed in art" (bleedMode full). Add to Print = addItems di App, Download lo salva.
-// demo (tutorial) = { state, apiRef }: un token demo al posto di quello in lavorazione (memory resta com'è), niente
+// Il token in lavorazione è draft (tokenDraft): lo trova anche quello importato da un mazzo con Make custom.
+// demo (tutorial) = { state, apiRef }: un token demo al posto di quello in lavorazione (draft resta com'è), niente
 // incolla; in apiRef.current set e setArt per i gesti del tutorial.
 export default function TokensPage({ onAdd, notify, mobile, bleedMm, setBleedMm, demo }) {
-  const [state, setState] = useState(demo ? demo.state : memory.state);
-  const [art, setArtNow] = useState(demo ? null : memory.art);
-  const [overlay, setOverlayNow] = useState(demo ? null : memory.overlay);
+  const [state, setState] = useState(demo ? demo.state : draft.state);
+  const [art, setArtNow] = useState(demo ? null : draft.art);
+  const [overlay, setOverlayNow] = useState(demo ? null : draft.overlay);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef(null);
   const overlayRef = useRef(null);
   const id = useId();
-  useEffect(() => { if (!demo) Object.assign(memory, { state, art, overlay }); }, [demo, state, art, overlay]);
+  useEffect(() => { if (!demo) Object.assign(draft, { state, art, overlay }); }, [demo, state, art, overlay]);
   useLayoutEffect(() => {
     if (demo) demo.apiRef.current = { set: (patch) => setState((s) => ({ ...s, ...patch })), setArt: setArtNow };
   }, [demo]);
