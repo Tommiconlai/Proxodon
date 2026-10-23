@@ -1,0 +1,79 @@
+// Cornici dei token, originali nello stile di Proxodon (niente cornici ufficiali di Magic). Ogni cornice = un SVG
+// 630x880 che prende i colori del token (c = TOKEN_COLORS[...]: main, light, dark) e le sue zone, nelle stesse unità:
+// art = la finestra dell'immagine, name / type / text / pt / credit = i riquadri dei testi (con corpo massimo e minimo,
+// font: display Chakra Petch, body Space Grotesk, mono JetBrains Mono), indicator = il pallino del colore accanto al
+// tipo. bleedMode = come la stampa aggiunge l'abbondanza (stretch per le cornici, mirror per l'arte a tutta carta).
+// Le cornici dell'utente (da Figma) seguiranno lo stesso schema.
+
+// Due angoli tagliati, in alto a sinistra e in basso a destra, come i pannelli dell'app.
+const cut = ({ x, y, w, h }, k = 14) =>
+  `${x + k},${y} ${x + w},${y} ${x + w},${y + h - k} ${x + w - k},${y + h} ${x},${y + h} ${x},${y + k}`;
+
+const NAME = { x: 34, y: 34, w: 562, h: 64, pad: 20, size: 40, min: 24, font: 'display', weight: 700 };
+const BAR = { x: 34, w: 562, h: 54, pad: 20, size: 30, min: 18, font: 'display', weight: 600 };
+const BODY = { pad: 18, size: 30, min: 16, font: 'body', weight: 400, lineH: 1.28 };
+const PT = { size: 40, min: 26, font: 'display', weight: 700 };
+const CREDIT = { x: 44, w: 410, h: 26, size: 18, min: 12, font: 'mono', weight: 500 };
+
+function frame(c, pt, z, full) {
+  const a = z.art;
+  const bar = (r) => `<polygon points="${cut(r)}" fill="#12101c" fill-opacity="${full ? 0.72 : 0.92}" stroke="${c.main}" stroke-width="3"/>`;
+  const border = cut({ x: 10, y: 10, w: 610, h: 860 }, 22);
+  // Fondo della cornice (fuori dalla finestra dell'arte): scuro, con una velatura del colore che sfuma in basso.
+  const body = `M0 0H630V880H0Z M${a.x} ${a.y}h${a.w}v${a.h}h-${a.w}Z`;
+  // Angoli della finestra dell'arte, tratti chiari da HUD.
+  const ticks = [[a.x, a.y, 1, 1], [a.x + a.w, a.y, -1, 1], [a.x, a.y + a.h, 1, -1], [a.x + a.w, a.y + a.h, -1, -1]]
+    .map(([x, y, dx, dy]) => `<path d="M${x + 26 * dx} ${y}H${x}V${y + 26 * dy}" fill="none" stroke="${c.light}" stroke-width="3"/>`).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 630 880" width="630" height="880">`
+    + '<defs>'
+    + `<linearGradient id="tint" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.dark}" stop-opacity=".6"/><stop offset="1" stop-color="#0b0b14" stop-opacity="0"/></linearGradient>`
+    + '<linearGradient id="low" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b0b14" stop-opacity="0"/><stop offset="1" stop-color="#0b0b14" stop-opacity=".92"/></linearGradient>'
+    + '<linearGradient id="high" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b0b14" stop-opacity=".8"/><stop offset="1" stop-color="#0b0b14" stop-opacity="0"/></linearGradient>'
+    + '<filter id="glow" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="5"/></filter>'
+    + '</defs>'
+    + (full
+      ? '<rect x="0" y="0" width="630" height="170" fill="url(#high)"/><rect x="0" y="500" width="630" height="380" fill="url(#low)"/>'
+      : `<path fill-rule="evenodd" fill="#0b0b14" d="${body}"/><path fill-rule="evenodd" fill="url(#tint)" d="${body}"/>`
+        + `<rect x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" fill="none" stroke="${c.main}" stroke-width="2"/>${ticks}`)
+    + `<polygon points="${border}" fill="none" stroke="${c.light}" stroke-width="8" opacity=".35" filter="url(#glow)"/>`
+    + `<polygon points="${border}" fill="none" stroke="${c.main}" stroke-width="3"/>`
+    + bar(z.name) + bar(z.type)
+    + (z.text ? `<rect x="${z.text.x}" y="${z.text.y}" width="${z.text.w}" height="${z.text.h}" fill="#12101c" fill-opacity="${full ? 0.62 : 0.86}" stroke="${c.main}" stroke-opacity=".55" stroke-width="2"/>` : '')
+    + (pt ? `<polygon points="${cut(z.pt, 12)}" fill="${c.dark}" stroke="${c.main}" stroke-width="3"/><polygon points="${cut(z.pt, 12)}" fill="none" stroke="${c.light}" stroke-width="6" opacity=".3" filter="url(#glow)"/>` : '')
+    + '</svg>';
+}
+
+const template = (id, name, bleedMode, zones, full = false) => ({
+  id, name, bleedMode, zones, svg: (c, { pt }) => frame(c, pt, zones, full),
+});
+
+export const TEMPLATES = [
+  template('classic', 'Classic', 'stretch', {
+    art: { x: 40, y: 104, w: 550, h: 404 },
+    name: NAME,
+    type: { ...BAR, y: 512 },
+    text: { ...BODY, x: 44, y: 574, w: 542, h: 200 },
+    pt: { ...PT, x: 470, y: 778, w: 122, h: 60 },
+    credit: { ...CREDIT, y: 812 },
+    indicator: { x: 66, y: 539, r: 13 },
+  }),
+  template('fullart', 'Full art', 'mirror', {
+    art: { x: 0, y: 0, w: 630, h: 880 },
+    name: NAME,
+    type: { ...BAR, y: 596 },
+    text: { ...BODY, x: 44, y: 658, w: 542, h: 112, size: 28 },
+    pt: { ...PT, x: 470, y: 778, w: 122, h: 60 },
+    credit: { ...CREDIT, y: 812 },
+    indicator: { x: 66, y: 623, r: 13 },
+  }, true),
+  template('vanilla', 'Vanilla', 'stretch', {
+    art: { x: 40, y: 104, w: 550, h: 610 },
+    name: NAME,
+    type: { ...BAR, y: 720 },
+    pt: { ...PT, x: 470, y: 784, w: 122, h: 58 },
+    credit: { ...CREDIT, y: 808 },
+    indicator: { x: 66, y: 747, r: 13 },
+  }),
+];
+
+export const templateById = (id) => TEMPLATES.find((t) => t.id === id) || TEMPLATES[0];
