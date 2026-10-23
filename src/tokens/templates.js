@@ -55,10 +55,9 @@ const template = (id, name, zones, full = false) => ({
 // Livelli dal basso: il velo nero al 60% fuori dal pannello (l'arte riempie la carta; angoli retti, nel Figma erano tondi
 // per sbaglio dell'utente), il bordo sfumato del pannello con la tasca in basso a destra, la striscia nera in fondo, le
 // barre (il nome in alto, in fondo il tipo unito al riquadro di F/C), il contorno della pillola di F/C (nel Figma un
-// rettangolo col bordo). Senza forza e
-// costituzione (69:502, "Vanilla no creature") velo, pannello e barre non hanno la tasca e il riquadro di F/C, le barre
-// nemmeno il bordo. pt: true = solo sulle creature, false = solo sugli altri, senza = su tutti (frameLayers). I colori
-// del token non la tingono e non c'è il pallino: nel disegno non ci sono.
+// rettangolo col bordo). Senza forza e costituzione (69:502, "Vanilla no creature") velo, pannello e barre non hanno la
+// tasca e il riquadro di F/C, le barre nemmeno il bordo. pt: true = solo sulle creature, false = solo sugli altri, senza
+// = su tutti (frameLayers). I colori del token non la tingono e non c'è il pallino: nel disegno non ci sono.
 const VANILLA = [
   { src: new URL('./frames/vanilla/background.svg', import.meta.url).href, x: 0, y: 0, w: 630, h: 880, pt: true },
   { src: new URL('./frames/vanilla/background-noncreature.svg', import.meta.url).href, x: 0, y: 0, w: 630, h: 880, pt: false },
