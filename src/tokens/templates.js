@@ -52,7 +52,8 @@ const template = (id, name, zones, full = false) => ({
 });
 
 // Vanilla dell'utente (Figma "Proxodon": cornice 68:389, posizioni dei testi e del logo 68:428), unità = px del disegno.
-// Livelli dal basso: il velo nero al 60% fuori dal pannello (la carta ha gli angoli tondi, l'arte la riempie), il bordo
+// Livelli dal basso: il velo nero al 60% fuori dal pannello (l'arte riempie la carta; angoli retti, nel Figma erano tondi
+// per sbaglio dell'utente), il bordo
 // sfumato del pannello con la tasca in basso a destra, la striscia nera in fondo, le barre (il nome in alto, in fondo il
 // tipo unito al riquadro di F/C), il contorno della pillola di F/C (nel Figma un rettangolo col bordo). Senza forza e
 // costituzione (69:502, "Vanilla no creature") velo, pannello e barre non hanno la tasca e il riquadro di F/C, le barre
