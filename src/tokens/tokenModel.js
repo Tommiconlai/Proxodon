@@ -192,8 +192,8 @@ export function typeSuggestions(query, types, subtypes, subs, max = 8) {
 export const typeLine = (types, subtypes) => [types.join(' '), subtypes.join(' ')].filter(Boolean).join(' – ');
 
 // Token di Scryfall (layout token, anche a due facce: conta quella davanti) → campi del generatore: la riga del tipo si
-// divide sul trattino lungo di Scryfall (U+2014) in tipi e sottotipi, i colori in ordine WUBRG, cornice Classic con il
-// testo e Vanilla senza. Immagine e credito restano da mettere.
+// divide sul trattino lungo di Scryfall (U+2014) in tipi e sottotipi, i colori in ordine WUBRG, le cornici dell'utente:
+// Effect con il testo e Vanilla senza. Immagine e credito restano da mettere.
 const WUBRG = ['W', 'U', 'B', 'R', 'G'];
 export function tokenFromScryfall(card) {
   const face = card.card_faces?.[0] ?? card;
@@ -201,7 +201,7 @@ export function tokenFromScryfall(card) {
   const colors = face.colors ?? card.colors ?? [];
   const rules = (face.oracle_text || '').trim();
   return {
-    template: rules ? 'classic' : 'vanilla', colors: WUBRG.filter((c) => colors.includes(c)), name: face.name || '',
+    template: rules ? 'effect' : 'vanilla', colors: WUBRG.filter((c) => colors.includes(c)), name: face.name || '',
     types: left.split(/\s+/).filter(Boolean), subtypes: right.split(/\s+/).filter(Boolean), rules,
     power: face.power ?? '', toughness: face.toughness ?? '', credit: '',
   };

@@ -222,16 +222,19 @@ export function renderToken(ctx, state, { scale, b = 0, art, overlay, frame, sym
   }
   if (Array.isArray(frame)) { // livelli della cornice dell'utente, ognuno dov'è nel disegno (con il suo bleed)
     for (const l of frame) {
+      ctx.save();
       if (l.img) {
         l.bleed?.(ctx, b); // prima il suo seguito fuori dalla carta
+        if (l.flipY) { ctx.translate(0, 2 * l.y + l.h); ctx.scale(1, -1); } // capovolto sul posto, come nel Figma
         ctx.drawImage(l.img, l.x, l.y, l.w, l.h);
-      } else { // contorno arrotondato spesso 1, dentro il suo riquadro come il bordo nel Figma
-        ctx.strokeStyle = l.stroke;
-        ctx.lineWidth = 1;
+      } else { // rettangolo arrotondato del Figma: riempimento e bordo spesso 1 dentro il suo riquadro, con l'opacità
+        ctx.globalAlpha = l.opacity ?? 1;
         ctx.beginPath();
         ctx.roundRect(l.x + 0.5, l.y + 0.5, l.w - 1, l.h - 1, l.r - 0.5);
-        ctx.stroke();
+        if (l.fill) { ctx.fillStyle = l.fill; ctx.fill(); }
+        if (l.stroke) { ctx.strokeStyle = l.stroke; ctx.lineWidth = 1; ctx.stroke(); }
       }
+      ctx.restore();
     }
   } else if (frame) ctx.drawImage(frame, -b, -b, 630 + 2 * b, 880 + 2 * b);
   ctx.fillStyle = '#ffffff';

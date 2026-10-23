@@ -14,12 +14,18 @@ const COLORS = [['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G
 const thumb = (t, colors) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(t.svg(frameColors(colors), { pt: true }))}`;
 const pct = (v, of) => `${(v / of) * 100}%`;
 // Anteprima di una cornice: il suo SVG colorato, o i livelli di quella dell'utente uno sopra l'altro (come le altre, con
-// forza e costituzione).
+// forza e costituzione): gli SVG come immagini, i rettangoli arrotondati come riquadri col loro colore.
 function FrameThumb({ t, colors }) {
   if (!t.layers) return <img src={thumb(t, colors)} alt="" />;
   return (
     <span className="token-frame-layers">
-      {frameLayers(t, true).filter((l) => l.src).map((l) => <img key={l.src} src={l.src} alt="" style={{ left: pct(l.x, 630), top: pct(l.y, 880), width: pct(l.w, 630) }} />)}
+      {frameLayers(t, true).map((l, i) => {
+        const at = { left: pct(l.x, 630), top: pct(l.y, 880), width: pct(l.w, 630) };
+        return l.src
+          ? <img key={i} src={l.src} alt="" style={{ ...at, transform: l.flipY ? 'scaleY(-1)' : undefined }} />
+          : <span key={i} className="token-frame-rect" style={{ ...at, height: pct(l.h, 880), background: l.fill, borderColor: l.stroke,
+            opacity: l.opacity, borderRadius: `${(l.r / l.w) * 100}% / ${(l.r / l.h) * 100}%` }} />;
+      })}
     </span>
   );
 }

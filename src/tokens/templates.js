@@ -3,9 +3,10 @@
 // art = la finestra dell'immagine, name / type / text / pt / credit = i riquadri dei testi (con corpo massimo e minimo,
 // font: display Chakra Petch, body Space Grotesk, mono JetBrains Mono), indicator = il pallino del colore accanto al
 // tipo. b = bleed in unità: il disegno continua fuori dalla carta (fondo e sfumature), le zone restano dove sono.
-// Le cornici dell'utente (da Figma) sono invece livelli: gli SVG esportati, ognuno nella sua posizione (layers; senza
-// src = un contorno arrotondato, raggio r, colore stroke, disegnato qui; bleed = come il livello continua fuori dalla
-// carta), con set = il simbolo dell'edizione e pt.split = forza e costituzione in due riquadri.
+// Le cornici dell'utente (da Figma) sono invece livelli: gli SVG esportati, ognuno nella sua posizione (layers; flipY =
+// capovolto in verticale come nel Figma; senza src = un rettangolo arrotondato disegnato qui, raggio r, con fill e/o
+// stroke e la sua opacity; bleed = come il livello continua fuori dalla carta), con set = il simbolo dell'edizione e
+// pt.split = forza e costituzione in due riquadri.
 
 // Due angoli tagliati, in alto a sinistra e in basso a destra, come i pannelli dell'app.
 const cut = ({ x, y, w, h }, k = 14) =>
@@ -83,6 +84,23 @@ const VANILLA = [
   { src: new URL('./frames/vanilla/bars-noncreature.svg', import.meta.url).href, x: 20, y: 20, w: 590, h: 808, pt: false },
   { x: 497, y: 723, w: 113, h: 55, r: 25, stroke: '#5e5e5e', pt: true },
 ];
+// Effect dell'utente, per i token con il testo delle regole (Figma "Proxodon": creatura 75:528 con posizioni 75:602,
+// non creatura 75:566 con 75:637). Come la Vanilla, con il riquadro del testo in fondo: velo (angoli retti come chiesto
+// dall'utente, nel Figma erano tondi), bordo del pannello, pillola del nome (nel Figma un rettangolo: riempimento, bordo e
+// opacità, disegnato qui), la striscia nera della Vanilla, la barra del tipo (sulle creature unita al riquadro di F/C) e il
+// riquadro del testo, capovolti come nel Figma (flipY), il contorno della pillola di F/C.
+const EFFECT = [
+  { src: new URL('./frames/effect/background.svg', import.meta.url).href, x: 0, y: 0, w: 630, h: 880, pt: true, bleed: veilBleed },
+  { src: new URL('./frames/effect/background-noncreature.svg', import.meta.url).href, x: 0, y: 0, w: 630, h: 880, pt: false, bleed: veilBleed },
+  { src: new URL('./frames/effect/panel.svg', import.meta.url).href, x: 20, y: 20, w: 590, h: 658, pt: true },
+  { src: new URL('./frames/effect/panel-noncreature.svg', import.meta.url).href, x: 20, y: 20, w: 590, h: 658, pt: false },
+  { x: 20, y: 20, w: 418, h: 64, r: 25, fill: '#17161e', stroke: '#37373d', opacity: 0.8 },
+  { src: new URL('./frames/vanilla/bottom.svg', import.meta.url).href, x: 0, y: 817, w: 630, h: 63, bleed: stripBleed },
+  { src: new URL('./frames/effect/type-bar.svg', import.meta.url).href, x: 20, y: 633, w: 590, h: 105, flipY: true, pt: true },
+  { src: new URL('./frames/effect/type-bar-noncreature.svg', import.meta.url).href, x: 20, y: 688, w: 590, h: 50, flipY: true, pt: false },
+  { src: new URL('./frames/effect/text-box.svg', import.meta.url).href, x: 20, y: 748, w: 590, h: 90, flipY: true },
+  { x: 497, y: 633, w: 113, h: 55, r: 25, stroke: '#37373d', pt: true },
+];
 
 export const TEMPLATES = [
   template('classic', 'Classic', {
@@ -112,6 +130,18 @@ export const TEMPLATES = [
       pt: { ...PT, x: 512, y: 734, w: 84, h: 34, split: { p: 512, t: 563, w: 33 } },
       credit: { ...CREDIT, x: 40, y: 846, w: 191, h: 16, icon: 15, dx: 19 },
       set: { x: 563, y: 786, w: 33, h: 34 },
+    },
+  },
+  {
+    id: 'effect', name: 'Effect', layers: EFFECT,
+    zones: {
+      art: { x: 0, y: 0, w: 630, h: 880 },
+      name: { ...NAME, x: 37, y: 26, w: 385, h: 52, pad: 0 },
+      type: { ...BAR, x: 37, y: 696, w: 505, h: 34, pad: 0 },
+      text: { ...BODY, x: 37, y: 756, w: 556, h: 74, pad: 0 },
+      pt: { ...PT, x: 512, y: 644, w: 81, h: 34, split: { p: 512, t: 560, w: 33 } },
+      credit: { ...CREDIT, x: 40, y: 846, w: 191, h: 16, icon: 15, dx: 19 },
+      set: { x: 560, y: 696, w: 33, h: 34 },
     },
   },
 ];

@@ -4317,7 +4317,7 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
 .token-canvas:focus-visible { box-shadow: var(--focus-ring), 0 24px 60px rgba(0, 0, 0, 0.55); }
 /* L'overlay sopra i campi (come sopra i testi nel PNG), sotto la tendina dei tipi (z-index 20): il tocco passa. */
 .token-overlay-canvas { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
-.token-frames { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.token-frames { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .token-frame-btn {
   padding: 0; border: 1px solid var(--border); border-radius: 6px; background: none; overflow: hidden; cursor: pointer;
   transition: border-color var(--transition), box-shadow var(--transition);
@@ -4326,6 +4326,7 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
 /* Cornice dell'utente: i livelli SVG nelle loro posizioni (in %), alti quanto vuole ognuno. */
 .token-frame-layers { position: relative; display: block; aspect-ratio: 630 / 880; overflow: hidden; }
 .token-frame-layers img { position: absolute; height: auto; aspect-ratio: auto; }
+.token-frame-rect { position: absolute; box-sizing: border-box; border: 1px solid transparent; }
 .token-frame-btn:hover { border-color: rgba(0, 229, 255, 0.45); }
 .token-frame-btn[aria-checked="true"] { border-color: var(--cyan); box-shadow: 0 0 12px var(--cyan-glow); }
 .token-frame-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
