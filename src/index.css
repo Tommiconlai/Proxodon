@@ -4301,6 +4301,8 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
 .token-canvas.has-art { cursor: grab; touch-action: none; } /* con un'immagine il dito la sposta, non scorre la pagina */
 .token-canvas.has-art:active { cursor: grabbing; }
 .token-canvas:focus-visible { box-shadow: var(--focus-ring), 0 24px 60px rgba(0, 0, 0, 0.55); }
+/* L'overlay sopra i campi (come sopra i testi nel PNG), sotto la tendina dei tipi (z-index 20): il tocco passa. */
+.token-overlay-canvas { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
 .token-frames { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .token-frame-btn {
   padding: 0; border: 1px solid var(--border); border-radius: 6px; background: none; overflow: hidden; cursor: pointer;

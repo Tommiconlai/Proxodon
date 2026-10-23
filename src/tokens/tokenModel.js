@@ -47,7 +47,7 @@ export function artWindow(a, b) {
   return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
 }
 
-// L'overlay (l'immagine scontornata sopra la cornice) non deve coprire la finestra: zoom da 0.2 a MAX_ZOOM, spostamento
+// L'overlay (l'immagine scontornata sopra cornice e testi) non deve coprire la finestra: zoom da 0.2 a MAX_ZOOM, spostamento
 // libero entro una carta abbondante.
 export const clampOverlay = (p) => ({ x: clamp(p.x, -1000, 1000), y: clamp(p.y, -1000, 1000), zoom: clamp(p.zoom, 0.2, MAX_ZOOM) });
 

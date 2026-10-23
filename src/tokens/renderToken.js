@@ -4,9 +4,10 @@ import { symUrl } from '../utils/manaSymbols.js';
 import { WORDMARK_X_CORE, WORDMARK_X_V } from '../components/wordmarkPaths.js';
 
 // Disegno del token su un canvas, lo stesso per l'anteprima e per il PNG a 600 DPI: livelli dal basso, fondo, arte
-// (nella finestra della cornice, coverRect di state.pos), cornice SVG, overlay (l'immagine scontornata, sopra la cornice
-// e non tagliata dalla finestra, coverRect di state.overlayPos), testi. scale = pixel per unità (630 = la larghezza della
-// carta); b = bleed in unità attorno alla carta (1 mm = 10): il disegno continua fuori, le zone restano dove sono.
+// (nella finestra della cornice, coverRect di state.pos), cornice SVG, testi, overlay (l'immagine scontornata, sopra
+// cornice e testi e non tagliata dalla finestra, coverRect di state.overlayPos). scale = pixel per unità (630 = la
+// larghezza della carta); b = bleed in unità attorno alla carta (1 mm = 10): il disegno continua fuori, le zone restano
+// dove sono.
 // state = { template, colors, name, types, subtypes, rules, power, toughness, credit, pos, overlayPos, sync, target }.
 
 export const PX_PER_UNIT = 1488 / 630; // 63 mm a 600 DPI
@@ -155,10 +156,16 @@ function drawRules(ctx, z, text, syms) {
   }
 }
 
+// L'overlay dove lo mette state.overlayPos, a partire dalla finestra dell'arte (con il bleed b).
+function drawOverlay(ctx, state, overlay, b) {
+  const r = coverRect(overlay.width, overlay.height, artWindow(templateById(state.template).zones.art, b), state.overlayPos);
+  ctx.drawImage(overlay, r.x, r.y, r.w, r.h);
+}
+
 // skip = i campi da non disegnare (nell'editor: quello che si sta scrivendo sulla carta e la riga del tipo, che lì è a
-// tendine); editor = il pennello del credito c'è anche a campo vuoto, per dire cosa va lì; trim = spessore (in unità)
-// del contorno rosso sul bordo vero della carta, solo nell'editor.
-export function renderToken(ctx, state, { scale, b = 0, art, overlay, frame, symbols: syms, skip = new Set(), editor = false, trim = 0 }) {
+// tendine); editor = il pennello del credito c'è anche a campo vuoto, per dire cosa va lì. L'editor non passa overlay:
+// lo disegna renderOverlay, sul canvas sopra i campi.
+export function renderToken(ctx, state, { scale, b = 0, art, overlay, frame, symbols: syms, skip = new Set(), editor = false }) {
   const { zones } = templateById(state.template);
   ctx.save();
   ctx.setTransform(scale, 0, 0, scale, b * scale, b * scale);
@@ -175,10 +182,6 @@ export function renderToken(ctx, state, { scale, b = 0, art, overlay, frame, sym
     ctx.restore();
   }
   if (frame) ctx.drawImage(frame, -b, -b, 630 + 2 * b, 880 + 2 * b);
-  if (overlay) {
-    const r = coverRect(overlay.width, overlay.height, a, state.overlayPos);
-    ctx.drawImage(overlay, r.x, r.y, r.w, r.h);
-  }
   ctx.fillStyle = '#ffffff';
   ctx.textBaseline = 'alphabetic';
   const draw = (k, v) => v && !skip.has(k);
@@ -197,11 +200,19 @@ export function renderToken(ctx, state, { scale, b = 0, art, overlay, frame, sym
   ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
   if (state.credit.trim() || editor) drawBrush(ctx, z.x, z.y + z.h * 0.1, z.h * 0.8);
   if (draw('credit', state.credit.trim())) drawLine(ctx, z, state.credit.trim(), { dx: CREDIT_ICON });
-  if (trim) {
-    ctx.strokeStyle = '#ff3b3b';
-    ctx.lineWidth = trim;
-    ctx.strokeRect(0, 0, 630, 880);
-  }
+  if (overlay) drawOverlay(ctx, state, overlay, b);
+  ctx.restore();
+}
+
+// Editor: sul canvas sopra i campi della carta (che sono HTML) l'overlay, che li copre come copre i testi nel PNG, e
+// sopra tutto il contorno rosso del bordo vero della carta, spesso trim unità.
+export function renderOverlay(ctx, state, { scale, b, overlay, trim }) {
+  ctx.save();
+  ctx.setTransform(scale, 0, 0, scale, b * scale, b * scale);
+  if (overlay) drawOverlay(ctx, state, overlay, b);
+  ctx.strokeStyle = '#ff3b3b';
+  ctx.lineWidth = trim;
+  ctx.strokeRect(0, 0, 630, 880);
   ctx.restore();
 }
 

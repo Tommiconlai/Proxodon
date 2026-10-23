@@ -21,7 +21,7 @@ export default function TokenHelp() {
           <li><b>Move and zoom</b>. Drag the image, zoom with the wheel or the <b>Zoom</b> slider. Arrow keys and <b>+ −</b> work too.</li>
           <li><b>Write</b>. Click the name, type line, rules text, power and toughness or credit right on the card. In the type line, type to search types and subtypes, <b>Enter</b> adds one. <b>{'{T}'}</b> and <b>{'{R}'}</b> in the rules become symbols.</li>
           <li><b>Frame</b>. Pick a frame and its colors in the sidebar. <b>Bleed</b> is the same as in Print: the red line is the real edge of the card.</li>
-          <li><b>Overlay</b>. A cut-out image over the frame. <b>Sync</b> moves and zooms it with the image.</li>
+          <li><b>Overlay</b>. A cut-out image over the frame and the text. <b>Sync</b> moves and zooms it with the image.</li>
           <li><b>Done</b>. <b>Add to Print</b> puts the token in the print queue, <b>Download</b> saves the PNG. The token is not saved: it stays until you close the tab.</li>
         </ol>
       )}

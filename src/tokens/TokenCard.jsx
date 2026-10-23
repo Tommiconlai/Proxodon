@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { templateById } from './templates';
 import { fitSize, layoutRules, parseRules, CARD_TYPES, artWindow, moveLayers, layerDims, typeLine, typeSuggestions } from './tokenModel';
-import { prepare, renderToken, fontOf, ptBox, CREDIT_ICON, SET_ICON, SET_GAP } from './renderToken';
+import { prepare, renderToken, renderOverlay, fontOf, ptBox, CREDIT_ICON, SET_ICON, SET_GAP } from './renderToken';
 import { loadSubtypes } from './typeCatalog';
 import { IconImage } from '../components/icons';
 
@@ -10,7 +10,8 @@ import { IconImage } from '../components/icons';
 // scrivendo mostra il suo testo e il canvas lo salta; gli altri sono trasparenti sopra il testo disegnato. La riga del
 // tipo è a tendine (tipi e sottotipi, + per aggiungerne). Si trascina l'immagine (con Sync anche l'overlay, senza solo il
 // livello scelto), rotella o due dita la ingrandiscono, frecce e +/- da tastiera; senza immagine la finestra dell'arte è
-// un pulsante per sceglierne una. Il canvas ha il bleed attorno, con il bordo vero della carta in rosso.
+// un pulsante per sceglierne una. Il canvas ha il bleed attorno, con il bordo vero della carta in rosso. L'overlay sta su
+// un secondo canvas sopra i campi: copre anche loro, come copre i testi nel PNG, e il tocco gli passa attraverso.
 
 const CSS_FAMILY = { display: 'var(--font-display)', body: "'Space Grotesk', system-ui, sans-serif", mono: 'var(--font-mono)' };
 const pct = (v, of) => `${(v / of) * 100}%`;
@@ -161,6 +162,7 @@ function TypeLine({ z, k, types, subtypes, set, indent }) {
 export default function TokenCard({ state, art, overlay, set, onPick, onFile, mobile, bleedMm }) {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
+  const topRef = useRef(null); // l'overlay e il bordo rosso, sopra i campi
   const [cssW, setCssW] = useState(0);
   const [over, setOver] = useState(false);
   const [focus, setFocus] = useState(null);
@@ -187,20 +189,23 @@ export default function TokenCard({ state, art, overlay, set, onPick, onFile, mo
     return () => ro.disconnect();
   }, [mobile, W, H]);
 
-  // Il canvas salta il campo in scrittura (si vede il suo testo) e la riga del tipo (a tendine); il bordo vero della carta
-  // in rosso sottile, solo qui.
+  // Il canvas salta il campo in scrittura (si vede il suo testo) e la riga del tipo (a tendine); quello sopra ha l'overlay
+  // e il bordo vero della carta in rosso sottile, solo qui.
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !cssW) return undefined;
+    const top = topRef.current;
+    if (!canvas || !top || !cssW) return undefined;
     let on = true;
     const dpr = window.devicePixelRatio || 1;
+    const scale = (cssW * dpr) / W;
     prepare(state, B).then((parts) => {
       if (!on) return;
-      canvas.width = Math.round(cssW * dpr);
-      canvas.height = Math.round(((cssW * H) / W) * dpr);
-      renderToken(canvas.getContext('2d'), state, {
-        scale: (cssW * dpr) / W, b: B, art, overlay, ...parts, skip: new Set(['type', focus]), editor: true, trim: 1.5 / (cssW / W),
-      });
+      for (const c of [canvas, top]) {
+        c.width = Math.round(cssW * dpr);
+        c.height = Math.round(((cssW * H) / W) * dpr);
+      }
+      renderToken(canvas.getContext('2d'), state, { scale, b: B, art, ...parts, skip: new Set(['type', focus]), editor: true });
+      renderOverlay(top.getContext('2d'), state, { scale, b: B, overlay, trim: 1.5 / (cssW / W) });
     }).catch(() => {});
     return () => { on = false; };
   }, [state, art, overlay, cssW, focus, B, W, H]);
@@ -284,6 +289,7 @@ export default function TokenCard({ state, art, overlay, set, onPick, onFile, mo
             {ptBox(state) && <PowerToughness z={zones.pt} k={k} power={state.power} toughness={state.toughness} set={set} focus={focus} setFocus={setFocus} />}
             {field('credit', 'Image credit', 'Illustrator', 60, zones.credit, CREDIT_ICON)}
           </div>
+          <canvas ref={topRef} className="token-overlay-canvas" aria-hidden="true" style={{ width: cssW, height: cssH }} />
         </div>
       )}
     </div>

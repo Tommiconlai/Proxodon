@@ -99,7 +99,7 @@ const INTRO = {
   target: CARD, title: 'A demo token',
   text: 'This is a demo token. What you do in the tutorial never touches the token you are making, your settings or your files.',
 };
-const OVERLAY = 'Overlay puts a second image over the frame: a cut-out PNG with a transparent background, so the subject can step out of the art window. Sync moves and zooms it with the image; with Sync off you pick which one to move.';
+const OVERLAY = 'Overlay puts a second image over the frame and the text: a cut-out PNG with a transparent background, so the subject can step out of the art window. Sync moves and zooms it with the image; with Sync off you pick which one to move.';
 const BLEED_TEXT = 'The same bleed as in Print, up to 3 mm: the image runs past the thin red line, the real edge of the card. In Print the token goes in as Bleed in art.';
 
 const DESKTOP = [

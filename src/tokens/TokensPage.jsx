@@ -24,9 +24,9 @@ const readImage = async (file, notify) => {
 };
 
 // Pagina Tokens (#/tokens): a sinistra (telefono: sotto la carta) la cornice con i colori, zoom, bleed e l'overlay (la
-// seconda immagine, scontornata, sopra la cornice: con Sync si muove con quella di fondo), in basso i pulsanti; i testi
-// si scrivono sulla carta (TokenCard). Il bleed è quello di Print (bleedMm, setBleedMm di App): il PNG lo contiene e in
-// Print entra come "Bleed in art" (bleedMode full). Add to Print = addItems di App, Download lo salva.
+// seconda immagine, scontornata, sopra la cornice e i testi: con Sync si muove con quella di fondo), in basso i
+// pulsanti; i testi si scrivono sulla carta (TokenCard). Il bleed è quello di Print (bleedMm, setBleedMm di App): il PNG
+// lo contiene e in Print entra come "Bleed in art" (bleedMode full). Add to Print = addItems di App, Download lo salva.
 // demo (tutorial) = { state, apiRef }: un token demo al posto di quello in lavorazione (memory resta com'è), niente
 // incolla; in apiRef.current set e setArt per i gesti del tutorial.
 export default function TokensPage({ onAdd, notify, mobile, bleedMm, setBleedMm, demo }) {
@@ -140,13 +140,13 @@ export default function TokensPage({ onAdd, notify, mobile, bleedMm, setBleedMm,
         <input id={`${id}-bleed`} type="range" min="0" max="3" step="0.5" value={bleedMm} style={{ '--fill': `${(bleedMm / 3) * 100}%` }}
           onChange={(e) => setBleedMm(Number(e.target.value))} aria-valuetext={`${bleedMm} mm`} />
       </div>
-      {/* Overlay: la seconda immagine (scontornata) sopra la cornice. Sync = si muove e si ingrandisce con quella di fondo;
-          senza, si sceglie quale dei due livelli spostare. */}
+      {/* Overlay: la seconda immagine (scontornata) sopra la cornice e i testi. Sync = si muove e si ingrandisce con
+          quella di fondo; senza, si sceglie quale dei due livelli spostare. */}
       <input ref={overlayRef} type="file" accept="image/*" hidden tabIndex={-1} aria-hidden="true"
         onChange={(e) => { const f = e.target.files[0]; e.target.value = ''; if (f) setOverlay(f); }} />
       <div className="token-row token-overlay-row">
         <button type="button" className="btn-secondary token-text-btn" onClick={() => overlayRef.current?.click()}
-          title={overlay ? 'Replace the overlay (a cut-out image over the frame)' : 'Add an overlay (a cut-out image over the frame)'}>Overlay</button>
+          title={overlay ? 'Replace the overlay (a cut-out image over the frame and the text)' : 'Add an overlay (a cut-out image over the frame and the text)'}>Overlay</button>
         <button type="button" className={`btn-secondary token-text-btn${state.sync ? ' on' : ''}`} aria-pressed={state.sync} disabled={!overlay || !art}
           onClick={() => set({ sync: !state.sync })} title="Sync: the overlay moves and zooms with the image">Sync</button>
         {overlay && (
