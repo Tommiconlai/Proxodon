@@ -42,14 +42,17 @@ const loadImage = (src, cors) => new Promise((resolve, reject) => {
 export const ptBox = (s) => isCreature(s.types);
 const ptText = (s) => (ptBox(s) && (s.power.trim() || s.toughness.trim()) ? `${s.power.trim()}/${s.toughness.trim()}` : '');
 
+// Livelli di una cornice dell'utente con o senza forza e costituzione: l.pt true = solo con, false = solo senza.
+export const frameLayers = (t, pt) => t.layers.filter((l) => l.pt === undefined || l.pt === pt);
+
 // Cornice colorata come immagine (URL blob dell'SVG, stessa origine: il canvas resta esportabile), una per combinazione.
-// Una cornice a livelli (dell'utente) = i suoi livelli con l'immagine caricata, senza la pillola di F/C se non serve.
+// Una cornice a livelli (dell'utente) = i suoi livelli (frameLayers) con l'immagine caricata.
 const frames = new Map();
 export function loadFrame(template, colors, pt, b) {
   if (template.layers) {
     const key = `${template.id}|${pt}`;
     if (!frames.has(key)) {
-      const layers = template.layers.filter((l) => pt || !l.pt);
+      const layers = frameLayers(template, pt);
       frames.set(key, Promise.all(layers.map(async (l) => (l.src ? { ...l, img: await loadImage(l.src) } : l))).catch((e) => { frames.delete(key); throw e; }));
     }
     return frames.get(key);

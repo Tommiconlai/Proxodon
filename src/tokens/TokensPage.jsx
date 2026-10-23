@@ -2,7 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { TEMPLATES, templateById } from './templates';
 import { frameColors, artWindow, moveLayers, layerDims, MAX_ZOOM } from './tokenModel';
 import { P0, EMPTY, draft } from './tokenDraft';
-import { renderTokenFile } from './renderToken';
+import { renderTokenFile, frameLayers } from './renderToken';
 import TokenCard from './TokenCard';
 import { ManaCost } from '../decks/Mana';
 import { saveFile } from '../utils/download';
@@ -13,12 +13,13 @@ const COLORS = [['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G
 
 const thumb = (t, colors) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(t.svg(frameColors(colors), { pt: true }))}`;
 const pct = (v, of) => `${(v / of) * 100}%`;
-// Anteprima di una cornice: il suo SVG colorato, o i livelli di quella dell'utente uno sopra l'altro.
+// Anteprima di una cornice: il suo SVG colorato, o i livelli di quella dell'utente uno sopra l'altro (come le altre, con
+// forza e costituzione).
 function FrameThumb({ t, colors }) {
   if (!t.layers) return <img src={thumb(t, colors)} alt="" />;
   return (
     <span className="token-frame-layers">
-      {t.layers.filter((l) => l.src).map((l) => <img key={l.src} src={l.src} alt="" style={{ left: pct(l.x, 630), top: pct(l.y, 880), width: pct(l.w, 630) }} />)}
+      {frameLayers(t, true).filter((l) => l.src).map((l) => <img key={l.src} src={l.src} alt="" style={{ left: pct(l.x, 630), top: pct(l.y, 880), width: pct(l.w, 630) }} />)}
     </span>
   );
 }
