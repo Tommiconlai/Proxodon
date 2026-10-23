@@ -325,8 +325,9 @@ function makeKit({ stage, fx, pos, api, setMenu, focus, signal }) {
     },
     // Trascina: ghost = nodo da clonare sotto il cursore; da = punto di partenza (anche fuori dalla demo, i file).
     // over(true) alla presa (la demo può aprire le sue zone: si aspetta un frame), arrive(zona) all'arrivo,
-    // over(false) ed effect al rilascio.
-    async drag(from, to, { text = 'Drag', ghost, effect, over, arrive } = {}) {
+    // over(false) ed effect al rilascio; during(punto del cursore) a ogni frame del trascinamento (l'immagine di un token
+    // che segue il dito).
+    async drag(from, to, { text = 'Drag', ghost, effect, over, arrive, during } = {}) {
       say(text);
       await move(from);
       fx.cursor.classList.add('down');
@@ -334,7 +335,7 @@ function makeKit({ stage, fx, pos, api, setMenu, focus, signal }) {
       const g = fx.ghost;
       g.replaceChildren(...(ghost ? [ghost.cloneNode(true)] : []));
       g.hidden = false;
-      const follow = () => { g.style.transform = `translate(${pos.x}px, ${pos.y}px)`; };
+      const follow = () => { g.style.transform = `translate(${pos.x}px, ${pos.y}px)`; during?.(pos); };
       follow();
       over?.(true);
       await new Promise((r) => { requestAnimationFrame(r); });

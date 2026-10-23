@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import Tutorial from './Tutorial';
-import { touches } from './control';
+import { touches, pointAt } from './control';
 import { Shell, ProfileStage, SettingsStage } from './AccountStages';
 import { C, demoDeck, myDecks, communityDecks, LIKES, dilemmas, DILEMMA_VOTES, helps, HELP_REPLIES } from './demo';
 import DeckSections from '../decks/DeckSections';
@@ -392,15 +392,6 @@ const DECK_MENU = (name, pub) => ({
   title: name,
   items: [[IconPencil, 'Rename'], [IconGlobe, pub ? 'Make private' : 'Share in Community'], [IconCopy, 'Duplicate'], [IconFolder, 'Move to “Brews”'], [IconFolder, 'Move to a new folder'], [IconExport, 'Export…'], [IconTrash, 'Delete', true]],
 });
-// Il cursore passa sui pulsanti e ne dice il nome.
-async function pointAt(g, list) {
-  for (const [sel, text] of list) {
-    await g.move(sel);
-    g.say(text);
-    await g.wait(1000);
-  }
-}
-
 // Trascinamento vero nella demo: dragstart sulla riga (DeckSections apre le zone in basso a sinistra), dragover e drop
 // sulla zona, dragend; il cursore finto fa vedere il gesto. alt = una copia sola (Alt+drag).
 function realDrag(g, rowId, zone, { alt, text = alt ? 'Alt+drag' : 'Drag' } = {}) {

@@ -22,13 +22,15 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { useHashRoute, navigate } from './hooks/useHashRoute';
 import { stopTutorial, useTutorial } from './tutorial/control';
 import HelpTour from './tutorial/HelpTour';
+import TokenHelp from './tokens/TokenHelp';
 
 // Area mazzi caricata solo quando serve (porta con sé Firebase): la stampa resta leggera.
 const DecksView = lazy(() => import('./decks/DecksView'));
 const HeaderAccount = lazy(() => import('./decks/AccountMenu').then((m) => ({ default: m.HeaderAccount })));
-// Tutorial guidato (dal ? di ogni pagina): demo della stampa o della pagina mazzi aperta, caricato al primo avvio.
+// Tutorial guidato (dal ? di ogni pagina): demo della stampa, della pagina mazzi aperta o di Tokens, caricato al primo avvio.
 const PrintTour = lazy(() => import('./tutorial/PrintTour'));
 const DeckTour = lazy(() => import('./tutorial/DeckTour'));
+const TokenTour = lazy(() => import('./tutorial/TokenTour'));
 const TokensPage = lazy(() => import('./tokens/TokensPage'));
 
 // Lettura numerica da localStorage con default (null/NaN → default, 0 valido).
@@ -479,7 +481,8 @@ export default function App() {
     <ErrorBoundary fallback={null} onError={stopTutorial}>
       <Suspense fallback={null}>
         {inDecks ? <DeckTour key={String(isMobile)} route={tutorial} mobile={isMobile} onClose={stopTutorial} />
-          : <PrintTour key={String(isMobile)} mobile={isMobile} onClose={stopTutorial} />}
+          : inTokens ? <TokenTour key={String(isMobile)} mobile={isMobile} onClose={stopTutorial} />
+            : <PrintTour key={String(isMobile)} mobile={isMobile} onClose={stopTutorial} />}
       </Suspense>
     </ErrorBoundary>
   );
@@ -518,7 +521,7 @@ export default function App() {
           altBody={inDecks ? decksNode : inTokens ? tokensNode : null}
           headerSlot={setHeaderSlot}
           account={accountNode}
-          extras={inTokens ? accountNode : undefined}
+          extras={inTokens ? <><TokenHelp />{accountNode}</> : undefined}
         />
         <ScryfallImportModal open={importOpen} onClose={() => setImportOpen(false)} onImport={addItems} />
         <MpcImportModal open={mpcOpen} onClose={() => setMpcOpen(false)} onImport={addItems} />
@@ -536,7 +539,7 @@ export default function App() {
       <header className="app-header">
         <h1 className="brand"><Wordmark height={30} className="wordmark" /></h1>
         <NavTabs area={inDecks ? 'decks' : inTokens ? 'tokens' : 'print'} />
-        {inDecks ? <div className="header-slot" ref={setHeaderSlot} /> : inTokens ? <div className="header-slot">{accountNode}</div> : (
+        {inDecks ? <div className="header-slot" ref={setHeaderSlot} /> : inTokens ? <div className="header-slot"><TokenHelp />{accountNode}</div> : (
           <div className={`help${helpOpen ? ' open' : ''}`} ref={helpRef}>
             <button type="button" className="help-btn" aria-label="How it works" title="How it works"
               aria-expanded={helpOpen}

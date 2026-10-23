@@ -1,7 +1,7 @@
 import { IconPlay } from '../components/icons';
 import { startTutorial } from './control';
 
-// Riga in fondo ai popover ? (stampa e mazzi): il tutorial della pagina aperta, su dati demo. onStart chiude il popover.
+// Riga in fondo ai popover ? (stampa, mazzi e Tokens): il tutorial della pagina aperta, su dati demo. onStart chiude il popover.
 export default function HelpTour({ onStart }) {
   return (
     <div className="help-tour">

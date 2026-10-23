@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { TEMPLATES, templateById } from './templates';
 import { frameColors, artWindow, moveLayers, layerDims, MAX_ZOOM } from './tokenModel';
 import { renderTokenFile } from './renderToken';
@@ -27,15 +27,20 @@ const readImage = async (file, notify) => {
 // seconda immagine, scontornata, sopra la cornice: con Sync si muove con quella di fondo), in basso i pulsanti; i testi
 // si scrivono sulla carta (TokenCard). Il bleed è quello di Print (bleedMm, setBleedMm di App): il PNG lo contiene e in
 // Print entra come "Bleed in art" (bleedMode full). Add to Print = addItems di App, Download lo salva.
-export default function TokensPage({ onAdd, notify, mobile, bleedMm, setBleedMm }) {
-  const [state, setState] = useState(memory.state);
-  const [art, setArtNow] = useState(memory.art);
-  const [overlay, setOverlayNow] = useState(memory.overlay);
+// demo (tutorial) = { state, apiRef }: un token demo al posto di quello in lavorazione (memory resta com'è), niente
+// incolla; in apiRef.current set e setArt per i gesti del tutorial.
+export default function TokensPage({ onAdd, notify, mobile, bleedMm, setBleedMm, demo }) {
+  const [state, setState] = useState(demo ? demo.state : memory.state);
+  const [art, setArtNow] = useState(demo ? null : memory.art);
+  const [overlay, setOverlayNow] = useState(demo ? null : memory.overlay);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef(null);
   const overlayRef = useRef(null);
   const id = useId();
-  useEffect(() => { memory.state = state; memory.art = art; memory.overlay = overlay; }, [state, art, overlay]);
+  useEffect(() => { if (!demo) Object.assign(memory, { state, art, overlay }); }, [demo, state, art, overlay]);
+  useLayoutEffect(() => {
+    if (demo) demo.apiRef.current = { set: (patch) => setState((s) => ({ ...s, ...patch })), setArt: setArtNow };
+  }, [demo]);
   const set = (patch) => setState((s) => ({ ...s, ...patch }));
   const win = artWindow(templateById(state.template).zones.art, bleedMm * 10);
 
@@ -52,15 +57,16 @@ export default function TokensPage({ onAdd, notify, mobile, bleedMm, setBleedMm 
   const setArtRef = useRef(setArt);
   useEffect(() => { setArtRef.current = setArt; });
   useEffect(() => {
+    if (demo) return undefined;
     const onPaste = (e) => {
       const file = [...(e.clipboardData?.files || [])].find((f) => f.type.startsWith('image/'));
-      if (!file) return;
+      if (!file || document.getElementById('root')?.inert) return; // tutorial aperto: la pagina sotto non si tocca
       e.preventDefault();
       setArtRef.current(file);
     };
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
-  }, []);
+  }, [demo]);
   const toggleColor = (c) => set({ colors: state.colors.includes(c) ? state.colors.filter((x) => x !== c) : [...state.colors, c] });
   const pick = () => fileRef.current?.click();
 
@@ -123,13 +129,13 @@ export default function TokensPage({ onAdd, notify, mobile, bleedMm, setBleedMm 
           </label>
         ))}
       </div>
-      <div className="field">
+      <div className="field token-zoom">
         <label className="field-label token-range-label" htmlFor={`${id}-zoom`}>Zoom<span>{onOverlay ? 'overlay' : overlay && state.sync ? 'image + overlay' : 'image'}</span></label>
         <input id={`${id}-zoom`} type="range" min={zoomMin} max={MAX_ZOOM} step="0.01" value={zoomNow} disabled={!art && !overlay}
           style={{ '--fill': `${((zoomNow - zoomMin) / (MAX_ZOOM - zoomMin)) * 100}%` }}
           onChange={(e) => setZoom(Number(e.target.value))} />
       </div>
-      <div className="field">
+      <div className="field token-bleed">
         <label className="field-label token-range-label" htmlFor={`${id}-bleed`} title="The same bleed as the Print page">Bleed<span>{bleedMm.toFixed(1)} mm</span></label>
         <input id={`${id}-bleed`} type="range" min="0" max="3" step="0.5" value={bleedMm} style={{ '--fill': `${(bleedMm / 3) * 100}%` }}
           onChange={(e) => setBleedMm(Number(e.target.value))} aria-valuetext={`${bleedMm} mm`} />
