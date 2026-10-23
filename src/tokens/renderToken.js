@@ -189,6 +189,12 @@ function drawRules(ctx, z, text, syms) {
   }
 }
 
+// La carta a pixel interi (i bordi di taglio sul bordo di un pixel, scala e spostamento cambiano di meno di un pixel):
+// lì i livelli della cornice dell'utente incontrano il loro seguito nel bleed, e a metà pixel i due orli sfumati
+// lascerebbero una riga chiara.
+const placeCard = (ctx, scale, b) => ctx.setTransform(Math.round(630 * scale) / 630, 0, 0, Math.round(880 * scale) / 880,
+  Math.round(b * scale), Math.round(b * scale));
+
 // L'overlay dove lo mette state.overlayPos, a partire dalla finestra dell'arte (con il bleed b).
 function drawOverlay(ctx, state, overlay, b) {
   const r = coverRect(overlay.width, overlay.height, artWindow(templateById(state.template).zones.art, b), state.overlayPos);
@@ -199,10 +205,9 @@ function drawOverlay(ctx, state, overlay, b) {
 // tendine); editor = il pennello del credito c'è anche a campo vuoto, per dire cosa va lì. L'editor non passa overlay:
 // lo disegna renderOverlay, sul canvas sopra i campi.
 export function renderToken(ctx, state, { scale, b = 0, art, overlay, frame, symbols: syms, skip = new Set(), editor = false }) {
-  const t = templateById(state.template);
-  const { zones } = t;
+  const { zones } = templateById(state.template);
   ctx.save();
-  ctx.setTransform(scale, 0, 0, scale, b * scale, b * scale);
+  placeCard(ctx, scale, b);
   ctx.fillStyle = '#0b0b14';
   ctx.fillRect(-b, -b, 630 + 2 * b, 880 + 2 * b);
   const a = artWindow(zones.art, b);
@@ -215,11 +220,12 @@ export function renderToken(ctx, state, { scale, b = 0, art, overlay, frame, sym
     ctx.drawImage(art, r.x, r.y, r.w, r.h);
     ctx.restore();
   }
-  if (Array.isArray(frame)) { // livelli della cornice dell'utente, ognuno dov'è nel disegno; prima il bleed
-    t.bleed?.(ctx, b);
+  if (Array.isArray(frame)) { // livelli della cornice dell'utente, ognuno dov'è nel disegno (con il suo bleed)
     for (const l of frame) {
-      if (l.img) ctx.drawImage(l.img, l.x, l.y, l.w, l.h);
-      else { // contorno arrotondato spesso 1, dentro il suo riquadro come il bordo nel Figma
+      if (l.img) {
+        l.bleed?.(ctx, b); // prima il suo seguito fuori dalla carta
+        ctx.drawImage(l.img, l.x, l.y, l.w, l.h);
+      } else { // contorno arrotondato spesso 1, dentro il suo riquadro come il bordo nel Figma
         ctx.strokeStyle = l.stroke;
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -257,7 +263,7 @@ export function renderToken(ctx, state, { scale, b = 0, art, overlay, frame, sym
 // sopra tutto il contorno rosso del bordo vero della carta, spesso trim unità.
 export function renderOverlay(ctx, state, { scale, b, overlay, trim }) {
   ctx.save();
-  ctx.setTransform(scale, 0, 0, scale, b * scale, b * scale);
+  placeCard(ctx, scale, b);
   if (overlay) drawOverlay(ctx, state, overlay, b);
   ctx.strokeStyle = '#ff3b3b';
   ctx.lineWidth = trim;
