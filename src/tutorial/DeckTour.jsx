@@ -530,7 +530,7 @@ function editorSteps(mobile) {
   const tokens = {
     target: '.deck-tokens', scroll: true, title: 'Tokens',
     text: 'Under the maybeboard, the tokens your cards create, here the Beast of Beast Within. Make custom opens one in the Tokens page with its text already written: you add the art.',
-    play: (g) => pointAt(g, [['.deck-token .deck-icon-btn', 'Make custom']]),
+    play: (g) => pointAt(g, [['.deck-token-custom', 'Make custom']]),
   };
   if (mobile) return [hero, ...search, choose, menu, organize, tokens, ...tabs];
   return [hero, ...search, choose, {

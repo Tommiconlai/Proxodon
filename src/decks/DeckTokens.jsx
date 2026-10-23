@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { cardsByIds } from './scryfallSearch';
-import { tokenFromScryfall, typeLine } from '../tokens/tokenModel';
+import { tokenFromScryfall } from '../tokens/tokenModel';
 import { draftInUse, startDraft } from '../tokens/tokenDraft';
 import { navigate } from '../hooks/useHashRoute';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -8,10 +8,11 @@ import { IconNavTokens, IconReplay } from '../components/icons';
 
 // Sezione Tokens sotto il maybeboard, solo nei propri mazzi (DeckEditor): i token che creano le carte del mazzo (main,
 // comandante e sideboard, non il maybeboard), dagli all_parts di Scryfall, uno per oracle (un Treasure creato da tre
-// carte compare una volta) con le carte che lo creano. Chiusa come il maybeboard: Scryfall si interroga solo aprendola e
-// le risposte restano in cache per la sessione (aggiungendo una carta si chiede solo lei). Make custom porta quel token
-// nel generatore (Tokens) con i testi già scritti e l'immagine da caricare, uno alla volta: se lì ce n'è già uno in
-// lavorazione, prima si chiede. demo (tutorial) = la lista già pronta, aperta, niente Scryfall.
+// carte compare una volta): solo l'immagine, con Make custom sopra in alto a destra. Chiusa come il maybeboard:
+// Scryfall si interroga solo aprendola e le risposte restano in cache per la sessione (aggiungendo una carta si chiede
+// solo lei). Make custom porta quel token nel generatore (Tokens) con i testi già scritti e l'immagine da caricare, uno
+// alla volta: se lì ce n'è già uno in lavorazione, prima si chiede. demo (tutorial) = la lista già pronta, aperta,
+// niente Scryfall.
 const partsBySid = new Map(); // carta del mazzo (sid) → id dei token che crea
 const tokenById = new Map(); // id del token → la sua carta di Scryfall
 
@@ -73,19 +74,14 @@ export default function DeckTokens({ deck, demo }) {
           {list.map(({ key, card, from }) => {
             const t = tokenFromScryfall(card);
             const pt = t.power || t.toughness ? `${t.power}/${t.toughness}` : ''; // due Beast diversi: 3/3 e 4/4
+            const name = [t.name, pt].filter(Boolean).join(' ');
             return (
               <li key={key} className="deck-token">
-                <img src={imageOf(card)} alt="" loading="lazy" />
-                <div className="deck-token-meta">
-                  <span className="deck-token-text">
-                    <b>{t.name}</b>
-                    <span>{typeLine(t.types, t.subtypes)}{pt && ` · ${pt}`}</span>
-                    <span className="deck-token-from">From {from.join(', ')}</span>
-                  </span>
-                  <button type="button" className="btn-secondary deck-icon-btn" aria-label={`Make ${[t.name, pt].filter(Boolean).join(' ')} custom`}
-                    title="Make custom: open it in Tokens with its text, you add the art"
-                    onClick={() => (draftInUse() ? setReplace(card) : custom(card))}><IconNavTokens size={18} /></button>
-                </div>
+                {/* Solo l'immagine (nome, tipo e F/C sono sulla carta): le carte che lo creano nel suo testo e al passaggio. */}
+                <img src={imageOf(card)} alt={`${name} token, from ${from.join(', ')}`} title={`${name}, from ${from.join(', ')}`} loading="lazy" />
+                <button type="button" className="deck-token-custom" aria-label={`Make ${name} custom`}
+                  title="Make custom: open it in Tokens with its text, you add the art"
+                  onClick={() => (draftInUse() ? setReplace(card) : custom(card))}><IconNavTokens size={18} /></button>
               </li>
             );
           })}

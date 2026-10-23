@@ -3266,17 +3266,21 @@ span.deck-hero-art { cursor: default; }
 .deck-maybe, .deck-tokens { margin-top: 8px; }
 .deck-maybe summary, .deck-tokens summary { cursor: pointer; list-style: none; }
 .deck-maybe summary::-webkit-details-marker, .deck-tokens summary::-webkit-details-marker { display: none; }
-/* Tokens sotto il maybeboard (DeckTokens), aperti dal titolo come lui: in griglia l'immagine di Scryfall, nome, tipo,
-   le carte che li creano e Make custom. */
+/* Tokens sotto il maybeboard (DeckTokens), aperti dal titolo come lui: in griglia le immagini di Scryfall, nient'altro
+   sotto. */
 .deck-tokens-note { display: flex; align-items: center; gap: 10px; margin: 4px 0; font-size: 0.85rem; color: var(--text-muted); }
 .deck-token-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 18px 16px; }
-.deck-token { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.deck-token { position: relative; min-width: 0; }
 .deck-token img { display: block; width: 100%; aspect-ratio: 488 / 680; object-fit: cover; border-radius: 4.75% / 3.4%; background: var(--bg-elevated); }
-.deck-token-meta { display: flex; align-items: flex-start; gap: 8px; }
-.deck-token-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 0.8rem; color: var(--text-secondary); }
-.deck-token-text b { font-family: var(--font-display); font-size: 0.9rem; color: var(--text-primary); }
-.deck-token-from { font-size: 0.74rem; color: var(--text-muted); }
-.deck-editor.is-mobile .deck-token .deck-icon-btn { width: 44px; height: 44px; } /* da telefono, a misura di dito */
+/* Make custom sopra la carta, in alto a destra: tondo scuro come la chiave inglese dei mazzi, in ciano. */
+.deck-token-custom {
+  position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 34px; height: 34px; padding: 0;
+  border-radius: 50%; border: 1px solid rgba(0, 229, 255, 0.6); background: rgba(13, 12, 22, 0.88); color: var(--cyan);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.3); cursor: pointer; transition: box-shadow var(--transition), background var(--transition);
+}
+.deck-token-custom:hover { background: #0d0c16; box-shadow: 0 0 16px rgba(0, 229, 255, 0.6); }
+.deck-token-custom:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.deck-editor.is-mobile .deck-token-custom { width: 44px; height: 44px; } /* da telefono, a misura di dito */
 .deck-empty { margin: 4px 0; font-size: 0.8rem; color: var(--text-muted); }
 .deck-empty-big { padding: 40px 22px; font-size: 0.95rem; text-align: center; }
 /* Anteprima carta al passaggio (desktop): in basso a sinistra, sopra la colonna di ricerca. */
