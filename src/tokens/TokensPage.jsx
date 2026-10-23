@@ -11,7 +11,7 @@ import { IconUpload, IconTrash, IconReplay, IconDownload, IconNavPrint, IconPlus
 
 const COLORS = [['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green']];
 
-const thumb = (t, colors) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(t.svg(frameColors(colors), { pt: true }))}`;
+const thumb = (t, colors) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(t.svg(frameColors(colors), { pt: true, n: colors.length }))}`;
 const readImage = async (file, notify) => {
   if (!file?.type?.startsWith('image/')) { notify('That file is not an image.', 'error'); return null; }
   try { return await createImageBitmap(file); } catch { notify('Could not read that image.', 'error'); return null; }
