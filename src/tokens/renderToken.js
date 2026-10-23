@@ -1,16 +1,18 @@
-import { frameColors, TOKEN_COLORS, coverRect, parseRules, fitSize, ellipsize, layoutRules, tokenFileName } from './tokenModel.js';
+import { frameColors, TOKEN_COLORS, coverRect, parseRules, fitSize, ellipsize, layoutRules, tokenFileName, typeLine, isCreature } from './tokenModel.js';
 import { templateById } from './templates.js';
 import { symUrl } from '../utils/manaSymbols.js';
 
 // Disegno del token su un canvas, lo stesso per l'anteprima e per il PNG a 600 DPI: livelli dal basso, fondo, arte
 // (nella finestra della cornice, coverRect di state.pos), cornice SVG, testi. scale = pixel per unità (630 di larghezza).
-// state = { template, colors, name, type, rules, power, toughness, credit, pos: { x, y, zoom } }.
+// state = { template, colors, name, types, subtypes, rules, power, toughness, credit, pos: { x, y, zoom } }.
 
 export const EXPORT_W = 1488; // 63 mm a 600 DPI
 export const EXPORT_H = Math.round(EXPORT_W * 880 / 630);
 
 const FAMILY = { display: '"Chakra Petch"', body: '"Space Grotesk"', mono: '"JetBrains Mono"' };
-const fontOf = (z, size) => `${z.weight} ${size}px ${FAMILY[z.font]}`;
+export const fontOf = (z, size) => `${z.weight} ${size}px ${FAMILY[z.font]}`;
+// Spazio del pennello davanti al credito dell'immagine, in unità della carta (l'editor ci lascia lo stesso margine).
+export const CREDIT_ICON = 30;
 
 // I font del bundle si caricano solo quando servono: il canvas li vuole già pronti (altrimenti usa quello di sistema).
 let fontsP = null;
@@ -26,7 +28,9 @@ const loadImage = (src, cors) => new Promise((resolve, reject) => {
   img.src = src;
 });
 
-export const hasPt = (s) => !!(s.power.trim() || s.toughness.trim());
+// Forza e costituzione solo sulle creature: lì la cornice ha il riquadro anche vuoto.
+export const ptBox = (s) => isCreature(s.types);
+const ptText = (s) => (ptBox(s) && (s.power.trim() || s.toughness.trim()) ? `${s.power.trim()}/${s.toughness.trim()}` : '');
 
 // Cornice colorata come immagine (URL blob dell'SVG, stessa origine: il canvas resta esportabile), una per combinazione.
 const frames = new Map();
@@ -85,6 +89,30 @@ function drawIndicator(ctx, { x, y, r }, colors) {
   ctx.stroke();
 }
 
+// Pennello del credito (disegnato qui, non copiato da una carta): manico in diagonale e setole a goccia, in un quadrato
+// di lato s con l'angolo in alto a sinistra in x, y.
+function drawBrush(ctx, x, y, s) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(s / 100, s / 100);
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 13;
+  ctx.strokeStyle = ctx.fillStyle;
+  ctx.beginPath();
+  ctx.moveTo(92, 8);
+  ctx.lineTo(50, 50);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(52, 46);
+  ctx.bezierCurveTo(38, 38, 20, 44, 16, 62);
+  ctx.bezierCurveTo(12, 78, 8, 88, 4, 96);
+  ctx.bezierCurveTo(22, 92, 42, 86, 52, 72);
+  ctx.bezierCurveTo(60, 62, 60, 52, 52, 46);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
 // Testo delle regole: a capo, simboli come immagini, blocco centrato in verticale nel riquadro.
 function drawRules(ctx, z, text, syms) {
   const box = { w: z.w - 2 * z.pad, h: z.h - 2 * z.pad };
@@ -105,7 +133,9 @@ function drawRules(ctx, z, text, syms) {
   }
 }
 
-export function renderToken(ctx, state, { scale, art, frame, symbols: syms }) {
+// skip = i campi da non disegnare (nell'editor: quello che si sta scrivendo sulla carta e la riga del tipo, che lì è a
+// tendine); editor = il pennello del credito c'è anche a campo vuoto, per dire cosa va lì.
+export function renderToken(ctx, state, { scale, art, frame, symbols: syms, skip = new Set(), editor = false }) {
   const { zones } = templateById(state.template);
   ctx.save();
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
@@ -124,22 +154,27 @@ export function renderToken(ctx, state, { scale, art, frame, symbols: syms }) {
   if (frame) ctx.drawImage(frame, 0, 0, 630, 880);
   ctx.fillStyle = '#ffffff';
   ctx.textBaseline = 'alphabetic';
-  if (state.name.trim()) drawLine(ctx, zones.name, state.name.trim());
+  const draw = (k, v) => v && !skip.has(k);
+  if (draw('name', state.name.trim())) drawLine(ctx, zones.name, state.name.trim());
   const ind = state.colors.length > 0;
   if (ind) drawIndicator(ctx, zones.indicator, state.colors);
   ctx.fillStyle = '#ffffff';
-  if (state.type.trim()) drawLine(ctx, zones.type, state.type.trim(), { dx: ind ? zones.indicator.r * 2 + 10 : 0 });
-  if (zones.text && state.rules.trim()) { ctx.fillStyle = '#f1eefc'; drawRules(ctx, zones.text, state.rules.trim(), syms); }
+  const type = typeLine(state.types, state.subtypes);
+  if (draw('type', type)) drawLine(ctx, zones.type, type, { dx: ind ? zones.indicator.r * 2 + 10 : 0 });
+  if (zones.text && draw('rules', state.rules.trim())) { ctx.fillStyle = '#f1eefc'; drawRules(ctx, zones.text, state.rules.trim(), syms); }
   ctx.fillStyle = '#ffffff';
-  if (hasPt(state)) drawLine(ctx, zones.pt, `${state.power.trim()}/${state.toughness.trim()}`, { align: 'center' });
-  if (state.credit.trim()) { ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'; drawLine(ctx, zones.credit, state.credit.trim()); }
+  if (draw('pt', ptText(state))) drawLine(ctx, zones.pt, ptText(state), { align: 'center' });
+  const z = zones.credit;
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+  if (state.credit.trim() || editor) drawBrush(ctx, z.x, z.y + z.h * 0.1, z.h * 0.8);
+  if (draw('credit', state.credit.trim())) drawLine(ctx, z, state.credit.trim(), { dx: CREDIT_ICON });
   ctx.restore();
 }
 
 // Tutto quello che serve a disegnare: cornice e simboli (in cache dopo la prima volta) e font.
 export async function prepare(state) {
   const [frame, syms] = await Promise.all([
-    loadFrame(templateById(state.template), state.colors, hasPt(state)),
+    loadFrame(templateById(state.template), state.colors, ptBox(state)),
     loadSymbols(parseRules(state.rules)),
     ensureFonts(),
   ]);

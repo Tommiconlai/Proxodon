@@ -127,6 +127,18 @@ export function layoutRules(measure, runs, box, { size, min, lineH }) {
   return { size: min, lines: kept, cut: true };
 }
 
+// Tipi della riga del tipo, scelti da una tendina (non scritti): supertipi e tipi di carta, Token per primo.
+export const CARD_TYPES = ['Token', 'Legendary', 'Snow', 'Artifact', 'Creature', 'Enchantment', 'Land', 'Planeswalker', 'Battle', 'Kindred', 'Instant', 'Sorcery'];
+// Il catalogo dei sottotipi di Scryfall per ogni tipo (api.scryfall.com/catalog/<nome>); i supertipi non ne hanno.
+const SUBTYPE_CATALOG = {
+  Artifact: 'artifact-types', Creature: 'creature-types', Kindred: 'creature-types', Enchantment: 'enchantment-types',
+  Land: 'land-types', Planeswalker: 'planeswalker-types', Battle: 'battle-types', Instant: 'spell-types', Sorcery: 'spell-types',
+};
+export const subtypeCatalogs = (types) => [...new Set(types.map((t) => SUBTYPE_CATALOG[t]).filter(Boolean))];
+export const isCreature = (types) => types.includes('Creature');
+// Tipi, poi sottotipi dopo il trattino medio (U+2013: quello lungo delle carte vere qui non si usa).
+export const typeLine = (types, subtypes) => [types.join(' '), subtypes.join(' ')].filter(Boolean).join(' – ');
+
 // Nome del PNG: niente caratteri vietati nei nomi di file né di controllo, spazi uniti, al massimo 60 caratteri.
 export function tokenFileName(name) {
   const s = [...(name || '')].filter((c) => c.charCodeAt(0) >= 32 && !'\\/:*?"<>|'.includes(c)).join('')

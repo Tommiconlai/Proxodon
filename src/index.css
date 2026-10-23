@@ -3656,7 +3656,7 @@ span.deck-hero-art { cursor: default; }
 .mobile .field input[type="range"]::-webkit-slider-thumb { width: 24px; height: 24px; }
 .mobile .field input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; }
 /* Campi a 16 px: sotto, iOS Safari ingrandisce la pagina al tocco. Il nome del mazzo (20 px) resta com'è. */
-.mobile :is(select, textarea, input:is([type="text"], [type="search"], [type="email"], [type="password"], [type="number"], [type="url"], :not([type]))):not(.deck-name) { font-size: 16px !important; }
+.mobile :is(select, textarea, input:is([type="text"], [type="search"], [type="email"], [type="password"], [type="number"], [type="url"], :not([type]))):not(.deck-name, .token-edit, .token-chip, .token-chip-add) { font-size: 16px !important; } /* i campi del token: già 16+ e ridotti con scale */
 /* Testo mai sotto i 12 px. */
 .deck-editor.is-mobile .deck-sync, .mobile-page-body .sidebar-section h2,
 .mobile .profile-stats dt { font-size: 0.75rem; }
@@ -4293,8 +4293,9 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
 .tokens-main { align-items: center; justify-content: center; }
 .token-stage { flex: 1; min-height: 0; width: 100%; display: grid; place-items: center; border-radius: 12px; }
 .token-stage.drop { outline: 2px dashed var(--cyan); outline-offset: -2px; }
+.token-card { position: relative; }
 .token-canvas {
-  display: block; border-radius: 4.75% / 3.4%; outline: none; touch-action: auto;
+  position: absolute; inset: 0; display: block; border-radius: 4.75% / 3.4%; outline: none; touch-action: auto;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(124, 92, 255, 0.28);
 }
 .token-canvas.has-art { cursor: grab; touch-action: none; } /* con un'immagine il dito la sposta, non scorre la pagina */
@@ -4309,13 +4310,48 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
 .token-frame-btn:hover { border-color: rgba(0, 229, 255, 0.45); }
 .token-frame-btn[aria-checked="true"] { border-color: var(--cyan); box-shadow: 0 0 12px var(--cyan-glow); }
 .token-frame-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-:is(.tokens-body, .tokens-controls) .field .import-link-input { display: block; width: 100%; box-sizing: border-box; }
 .token-row { display: flex; align-items: flex-end; gap: 10px; }
 .token-row .field { flex: 1; min-width: 0; }
 .token-actions { display: flex; gap: 10px; }
 .token-actions .btn-add { flex: 1; justify-content: center; }
-.tokens-body textarea.import-link-input, .tokens-mobile textarea.import-link-input { resize: vertical; min-height: 96px; font-family: var(--font-body, inherit); }
 .tokens-mobile { display: flex; flex-direction: column; gap: 18px; padding: calc(16px + env(safe-area-inset-top, 0px)) 14px 140px; }
 .tokens-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .tokens-mobile .token-stage { flex: none; }
 .tokens-controls { display: flex; flex-direction: column; gap: 24px; }
+/* Campi scritti sulla carta (TokenCard), a filo delle zone della cornice: contorno tratteggiato leggero che esiste solo
+   qui (il PNG non lo ha); fermi sono trasparenti sopra il testo disegnato, in scrittura mostrano il loro testo. */
+.token-edit-layer { position: absolute; inset: 0; pointer-events: none; }
+.token-zone { position: absolute; }
+.token-edit, .token-art-pick { pointer-events: auto; }
+.token-edit {
+  box-sizing: border-box; margin: 0; border: 1px dashed rgba(0, 229, 255, 0.32); border-radius: 4px;
+  background: transparent; color: transparent; caret-color: #fff; outline: none; resize: none; overflow: hidden;
+  transition: border-color var(--transition), background var(--transition);
+}
+.token-edit::placeholder { color: rgba(255, 255, 255, 0.36); }
+.token-edit:hover { border-color: rgba(0, 229, 255, 0.6); }
+.token-edit.editing, .token-edit:focus-within { color: #fff; border-style: solid; border-color: var(--cyan); background: rgba(11, 11, 20, 0.45); }
+.token-pt { display: flex; align-items: center; justify-content: center; gap: 0.08em; color: transparent; }
+.token-pt.editing { color: #fff; }
+.token-pt .token-edit { width: 2.1em; height: 82%; padding: 0; font: inherit; text-align: center; }
+/* Riga del tipo: tendine larghe quanto la parola scelta, il + tondo come i pulsanti del menu. */
+.token-typeline { display: flex; align-items: center; gap: 0.3em; color: #fff; white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+.token-chip {
+  appearance: none; -webkit-appearance: none; flex: none; width: calc(var(--chars, 4) * 0.62em + 0.4em); margin: 0; padding: 0 0.1em;
+  border: none; border-bottom: 1px dashed rgba(0, 229, 255, 0.5); border-radius: 0; background: none; color: #fff; font: inherit; cursor: pointer;
+}
+@supports (field-sizing: content) { .token-chip { width: auto; field-sizing: content; } }
+.token-chip option, .token-chip-add option { background: #12101c; color: #fff; }
+.token-chip-add {
+  appearance: none; -webkit-appearance: none; flex: none; width: 1.35em; height: 1.35em; margin: 0; padding: 0;
+  border: 1px solid rgba(0, 229, 255, 0.55); border-radius: 50%; background: rgba(0, 229, 255, 0.08); color: var(--cyan);
+  font: inherit; font-size: 0.85em; line-height: 1; text-align: center; text-align-last: center; cursor: pointer;
+}
+.token-chip:focus-visible, .token-chip-add:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+.token-dash { flex: none; }
+/* Senza immagine la finestra dell'arte è un pulsante: click per sceglierne una (oppure trascinala o incollala). */
+.token-art-pick {
+  position: absolute; display: grid; place-items: center; padding: 0; border: 1px dashed rgba(0, 229, 255, 0.45);
+  background: rgba(0, 229, 255, 0.04); color: var(--cyan-soft); cursor: pointer; transition: background var(--transition), box-shadow var(--transition);
+}
+.token-art-pick:hover, .token-art-pick:focus-visible { background: rgba(0, 229, 255, 0.1); box-shadow: inset 0 0 24px rgba(0, 229, 255, 0.18); outline: none; }
