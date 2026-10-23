@@ -173,6 +173,21 @@ const SUBTYPE_CATALOG = {
 };
 export const subtypeCatalogs = (types) => [...new Set(types.map((t) => SUBTYPE_CATALOG[t]).filter(Boolean))];
 export const isCreature = (types) => types.includes('Creature');
+// Voci per la ricerca nella riga del tipo: i tipi di carta e i sottotipi dei tipi scelti (subs), tranne quelli già nella
+// riga; prima chi comincia con il testo, poi chi lo contiene (maiuscole indifferenti), i tipi prima dei sottotipi; testo
+// vuoto = tutte. Al massimo max voci { v, kind: 'type' | 'subtype' }.
+export function typeSuggestions(query, types, subtypes, subs, max = 8) {
+  const q = query.trim().toLowerCase();
+  const all = [
+    ...CARD_TYPES.filter((t) => !types.includes(t)).map((v) => ({ v, kind: 'type' })),
+    ...subs.filter((t) => !subtypes.includes(t)).map((v) => ({ v, kind: 'subtype' })),
+  ];
+  if (!q) return all.slice(0, max);
+  const starts = all.filter((o) => o.v.toLowerCase().startsWith(q));
+  const inside = all.filter((o) => !o.v.toLowerCase().startsWith(q) && o.v.toLowerCase().includes(q));
+  return [...starts, ...inside].slice(0, max);
+}
+
 // Tipi, poi sottotipi dopo il trattino medio (U+2013: quello lungo delle carte vere qui non si usa).
 export const typeLine = (types, subtypes) => [types.join(' '), subtypes.join(' ')].filter(Boolean).join(' – ');
 

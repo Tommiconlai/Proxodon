@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { templateById } from './templates';
-import { fitSize, layoutRules, parseRules, CARD_TYPES, artWindow, moveLayers, layerDims, typeLine } from './tokenModel';
+import { fitSize, layoutRules, parseRules, CARD_TYPES, artWindow, moveLayers, layerDims, typeLine, typeSuggestions } from './tokenModel';
 import { prepare, renderToken, fontOf, ptBox, CREDIT_ICON, SET_ICON, SET_GAP } from './renderToken';
 import { loadSubtypes } from './typeCatalog';
 import { IconImage } from '../components/icons';
@@ -79,17 +79,22 @@ function PowerToughness({ z, k, power, toughness, set, focus, setFocus }) {
   );
 }
 
-// Riga del tipo: una tendina per tipo (cambiarlo, o Remove), un + per aggiungerne; dopo il trattino i sottotipi dei tipi
-// scelti (dai cataloghi di Scryfall), con il loro +.
+// Riga del tipo: una tendina per ogni tipo e sottotipo scelto (cambiarlo, o Remove) e in fondo un campo di ricerca:
+// scrivendo, la tendina sotto propone i tipi di carta e i sottotipi dei tipi scelti (cataloghi di Scryfall); frecce per
+// scegliere, Invio per aggiungere, Esc per chiudere, Backspace a campo vuoto toglie l'ultimo.
 function TypeLine({ z, k, types, subtypes, set, indent }) {
   const [subs, setSubs] = useState([]);
+  const [q, setQ] = useState('');
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const listId = useId();
   const key = types.join('|');
   useEffect(() => {
     let on = true;
     loadSubtypes(key ? key.split('|') : []).then((l) => { if (on) setSubs(l); });
     return () => { on = false; };
   }, [key]);
-  // Corpo come nel PNG: la riga intera rimpicciolisce per stare tra pallino e simbolo (meno lo spazio dei due +).
+  // Corpo come nel PNG: la riga intera rimpicciolisce per stare tra pallino e simbolo (meno lo spazio del campo).
   const line = typeLine(types, subtypes);
   const room = z.w - 2 * z.pad - indent - SET_ICON - SET_GAP - z.size * 3;
   const st = scaled(k, line ? fitSize(measurer(z), line, room, z.size, z.min) : z.size, z);
@@ -101,13 +106,24 @@ function TypeLine({ z, k, types, subtypes, set, indent }) {
       <option value="">Remove</option>
     </select>
   ));
-  const add = (list, field, options, label) => (
-    <select className="token-chip-add" value="" aria-label={label} title={label}
-      onChange={(e) => { if (e.target.value) set({ [field]: [...list, e.target.value] }); }}>
-      <option value="" disabled hidden>+</option>
-      {options.filter((o) => !list.includes(o)).map((o) => <option key={o} value={o}>{o}</option>)}
-    </select>
-  );
+  const options = open ? typeSuggestions(q, types, subtypes, subs) : [];
+  const at = Math.min(active, Math.max(0, options.length - 1));
+  const pick = (o) => {
+    set(o.kind === 'type' ? { types: [...types, o.v] } : { subtypes: [...subtypes, o.v] });
+    setQ('');
+    setActive(0);
+  };
+  const onKey = (e) => {
+    if (e.key === 'ArrowDown' && options.length) { e.preventDefault(); setActive((at + 1) % options.length); }
+    else if (e.key === 'ArrowUp' && options.length) { e.preventDefault(); setActive((at - 1 + options.length) % options.length); }
+    else if (e.key === 'Enter' && options[at]) { e.preventDefault(); pick(options[at]); }
+    else if (e.key === 'Escape') { setOpen(false); setQ(''); } // il testo non aggiunto non resta nella riga
+    else if (e.key === 'Backspace' && !q) {
+      if (subtypes.length) set({ subtypes: subtypes.slice(0, -1) });
+      else if (types.length) set({ types: types.slice(0, -1) });
+    }
+  };
+  const empty = !types.length && !subtypes.length;
   return (
     <div className="token-zone" style={box(z)}>
       <div className="token-edit token-typeline" role="group" aria-label="Type line"
@@ -115,14 +131,29 @@ function TypeLine({ z, k, types, subtypes, set, indent }) {
         {/* La fila scorre dentro il suo riquadro: a destra resta libero il simbolo dell'edizione. */}
         <div className="token-typeline-row">
           {chip(types, 'types', CARD_TYPES, 'Type')}
-          {add(types, 'types', CARD_TYPES, 'Add a type')}
-          {(subs.length > 0 || subtypes.length > 0) && <>
+          {subtypes.length > 0 && <>
             <span className="token-dash" aria-hidden="true">{'–'}</span>
             {chip(subtypes, 'subtypes', subs, 'Subtype')}
-            {subs.length > 0 && add(subtypes, 'subtypes', subs, 'Add a subtype')}
           </>}
+          <input className="token-type-search" value={q} placeholder={empty ? 'Type' : '+'} spellCheck={false} autoComplete="off"
+            role="combobox" aria-autocomplete="list" aria-expanded={options.length > 0} aria-controls={listId}
+            aria-activedescendant={options[at] ? `${listId}-${at}` : undefined}
+            aria-label="Add a type or subtype" title="Add a type or subtype: type to search"
+            style={{ '--chars': Math.max(empty ? 4 : 1, q.length + 1) }}
+            onFocus={() => setOpen(true)} onBlur={() => { setOpen(false); setQ(''); }} onKeyDown={onKey}
+            onChange={(e) => { setQ(e.target.value); setOpen(true); setActive(0); }} />
         </div>
       </div>
+      {options.length > 0 && (
+        <ul id={listId} role="listbox" className="search-suggest token-type-suggest">
+          {options.map((o, i) => (
+            <li key={`${o.kind}-${o.v}`} id={`${listId}-${i}`} role="option" aria-selected={i === at} className={i === at ? 'active' : ''}
+              onMouseDown={(e) => { e.preventDefault(); pick(o); }} onMouseEnter={() => setActive(i)}>
+              {o.v}<span className="token-type-kind">{o.kind === 'type' ? 'type' : 'subtype'}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

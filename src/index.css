@@ -3656,7 +3656,7 @@ span.deck-hero-art { cursor: default; }
 .mobile .field input[type="range"]::-webkit-slider-thumb { width: 24px; height: 24px; }
 .mobile .field input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; }
 /* Campi a 16 px: sotto, iOS Safari ingrandisce la pagina al tocco. Il nome del mazzo (20 px) resta com'è. */
-.mobile :is(select, textarea, input:is([type="text"], [type="search"], [type="email"], [type="password"], [type="number"], [type="url"], :not([type]))):not(.deck-name, .token-edit, .token-chip, .token-chip-add) { font-size: 16px !important; } /* i campi del token: già 16+ e ridotti con scale */
+.mobile :is(select, textarea, input:is([type="text"], [type="search"], [type="email"], [type="password"], [type="number"], [type="url"], :not([type]))):not(.deck-name, .token-edit, .token-chip, .token-type-search) { font-size: 16px !important; } /* i campi del token: già 16+ e ridotti con scale */
 /* Testo mai sotto i 12 px. */
 .deck-editor.is-mobile .deck-sync, .mobile-page-body .sidebar-section h2,
 .mobile .profile-stats dt { font-size: 0.75rem; }
@@ -4353,13 +4353,17 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
   border: none; border-bottom: 1px dashed rgba(0, 229, 255, 0.5); border-radius: 0; background: none; color: #fff; font: inherit; cursor: pointer;
 }
 @supports (field-sizing: content) { .token-chip { width: auto; field-sizing: content; } }
-.token-chip option, .token-chip-add option { background: #12101c; color: #fff; }
-.token-chip-add {
-  appearance: none; -webkit-appearance: none; flex: none; width: 1.35em; height: 1.35em; margin: 0; padding: 0;
-  border: 1px solid rgba(0, 229, 255, 0.55); border-radius: 50%; background: rgba(0, 229, 255, 0.08); color: var(--cyan);
-  font: inherit; font-size: 0.85em; line-height: 1; text-align: center; text-align-last: center; cursor: pointer;
+.token-chip option { background: #12101c; color: #fff; }
+.token-chip:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+/* Campo di ricerca in fondo alla riga del tipo: largo quanto il testo, la tendina (stile della ricerca carte) sotto la riga. */
+.token-type-search {
+  flex: none; width: calc(var(--chars, 4) * 0.62em + 0.4em); min-width: 1.4em; margin: 0; padding: 0 0.15em;
+  border: none; border-bottom: 1px dashed rgba(0, 229, 255, 0.5); border-radius: 0; background: none; color: #fff; font: inherit; outline: none;
 }
-.token-chip:focus-visible, .token-chip-add:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+.token-type-search::placeholder { color: var(--cyan); opacity: 0.85; }
+.token-type-search:focus { border-bottom-style: solid; border-bottom-color: var(--cyan); }
+.token-type-suggest { right: auto; min-width: 220px; max-width: 100%; max-height: 260px; pointer-events: auto; }
+.token-type-kind { margin-left: auto; font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-muted); }
 .token-dash { flex: none; }
 /* Senza immagine la finestra dell'arte è un pulsante: click per sceglierne una (oppure trascinala o incollala). */
 .token-art-pick {
