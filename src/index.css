@@ -4317,7 +4317,7 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
 .token-canvas:focus-visible { box-shadow: var(--focus-ring), 0 24px 60px rgba(0, 0, 0, 0.55); }
 /* L'overlay sopra i campi (come sopra i testi nel PNG), sotto la tendina dei tipi (z-index 20): il tocco passa. */
 .token-overlay-canvas { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
-.token-frames { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.token-frames { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .token-frame-btn {
   padding: 0; border: 1px solid var(--border); border-radius: 6px; background: none; overflow: hidden; cursor: pointer;
   transition: border-color var(--transition), box-shadow var(--transition);
@@ -4369,16 +4369,15 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
 .token-typeline-row { display: flex; align-items: center; gap: 0.3em; flex: 1; min-width: 0; white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
 .token-chip {
   appearance: none; -webkit-appearance: none; flex: none; width: calc(var(--chars, 4) * 0.62em + 0.4em); margin: 0; padding: 0 0.1em;
-  border: none; border-bottom: 1px dashed rgba(0, 229, 255, 0.5); border-radius: 0; background: none; color: inherit; font: inherit; text-transform: inherit; cursor: pointer;
+  border: none; border-bottom: 1px dashed rgba(0, 229, 255, 0.5); border-radius: 0; background: none; color: #fff; font: inherit; cursor: pointer;
 }
-.token-chip.sub { color: var(--sub, inherit); } /* Glitch: i sottotipi in ciano */
 @supports (field-sizing: content) { .token-chip { width: auto; field-sizing: content; } }
 .token-chip option { background: #12101c; color: #fff; }
 .token-chip:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
 /* Campo di ricerca in fondo alla riga del tipo: largo quanto il testo, la tendina (stile della ricerca carte) sotto la riga. */
 .token-type-search {
   flex: none; width: calc(var(--chars, 4) * 0.62em + 0.4em); min-width: 1.4em; margin: 0; padding: 0 0.15em;
-  border: none; border-bottom: 1px dashed rgba(0, 229, 255, 0.5); border-radius: 0; background: none; color: #fff; font: inherit; text-transform: inherit; outline: none;
+  border: none; border-bottom: 1px dashed rgba(0, 229, 255, 0.5); border-radius: 0; background: none; color: #fff; font: inherit; outline: none;
 }
 .token-type-search::placeholder { color: var(--cyan); opacity: 0.85; }
 .token-type-search:focus { border-bottom-style: solid; border-bottom-color: var(--cyan); }

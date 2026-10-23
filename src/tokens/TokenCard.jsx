@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { templateById, zonesOf } from './templates';
+import { templateById } from './templates';
 import { fitSize, layoutRules, parseRules, CARD_TYPES, artWindow, moveLayers, layerDims, typeLine, typeSuggestions } from './tokenModel';
-import { prepare, renderToken, renderOverlay, fontOf, ptBox, typeIndent, typeRight, CREDIT_ICON } from './renderToken';
+import { prepare, renderToken, renderOverlay, fontOf, ptBox, CREDIT_ICON, SET_ICON, SET_GAP } from './renderToken';
 import { loadSubtypes } from './typeCatalog';
 import { IconImage } from '../components/icons';
 
@@ -37,9 +37,8 @@ function scaled(k, u, z) {
 }
 
 function Line({ z, k, value, onChange, placeholder, label, focus, setFocus, name, dx = 0, maxLength }) {
-  const shown = z.upper ? value.toUpperCase() : value; // come nel PNG (Glitch: nome in maiuscolo)
-  const size = value ? fitSize(measurer(z), shown, z.w - 2 * (z.pad || 0) - dx, z.size, z.min) : z.size;
-  const st = { ...scaled(k, size, z), textTransform: z.upper ? 'uppercase' : undefined };
+  const size = value ? fitSize(measurer(z), value, z.w - 2 * (z.pad || 0) - dx, z.size, z.min) : z.size;
+  const st = scaled(k, size, z);
   return (
     <div className="token-zone" style={box(z)}>
       <input className={`token-edit${focus === name ? ' editing' : ''}`} value={value} placeholder={placeholder} aria-label={label}
@@ -84,7 +83,7 @@ function PowerToughness({ z, k, power, toughness, set, focus, setFocus }) {
 // Riga del tipo: una tendina per ogni tipo e sottotipo scelto (cambiarlo, o Remove) e in fondo un campo di ricerca:
 // scrivendo, la tendina sotto propone i tipi di carta e i sottotipi dei tipi scelti (cataloghi di Scryfall); frecce per
 // scegliere, Invio per aggiungere, Esc per chiudere, Backspace a campo vuoto toglie l'ultimo.
-function TypeLine({ z, k, types, subtypes, set, indent, right }) {
+function TypeLine({ z, k, types, subtypes, set, indent }) {
   const [subs, setSubs] = useState([]);
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
@@ -96,14 +95,13 @@ function TypeLine({ z, k, types, subtypes, set, indent, right }) {
     loadSubtypes(key ? key.split('|') : []).then((l) => { if (on) setSubs(l); });
     return () => { on = false; };
   }, [key]);
-  // Corpo come nel PNG: la riga intera rimpicciolisce per stare tra pallino e simbolo (meno lo spazio del campo); colore,
-  // maiuscolo e sottotipi colorati dalla zona (Glitch).
+  // Corpo come nel PNG: la riga intera rimpicciolisce per stare tra pallino e simbolo (meno lo spazio del campo).
   const line = typeLine(types, subtypes);
-  const room = z.w - 2 * z.pad - indent - right - z.size * 3;
-  const st = scaled(k, line ? fitSize(measurer(z), z.upper ? line.toUpperCase() : line, room, z.size, z.min) : z.size, z);
+  const room = z.w - 2 * z.pad - indent - SET_ICON - SET_GAP - z.size * 3;
+  const st = scaled(k, line ? fitSize(measurer(z), line, room, z.size, z.min) : z.size, z);
   const edit = (list, i, v) => (v === '' ? list.filter((_, j) => j !== i) : list.map((x, j) => (j === i ? v : x)));
-  const chip = (list, field, options, label, cls = '') => list.map((v, i) => (
-    <select key={`${v}-${i}`} className={`token-chip${cls}`} value={v} aria-label={`${label} ${i + 1}`} title={`${label}: change or remove`} style={{ '--chars': v.length }}
+  const chip = (list, field, options, label) => list.map((v, i) => (
+    <select key={`${v}-${i}`} className="token-chip" value={v} aria-label={`${label} ${i + 1}`} title={`${label}: change or remove`} style={{ '--chars': v.length }}
       onChange={(e) => set({ [field]: edit(list, i, e.target.value) })}>
       {[...new Set([v, ...options])].map((o) => <option key={o} value={o}>{o}</option>)}
       <option value="">Remove</option>
@@ -130,16 +128,13 @@ function TypeLine({ z, k, types, subtypes, set, indent, right }) {
   return (
     <div className="token-zone" style={box(z)}>
       <div className="token-edit token-typeline" role="group" aria-label="Type line"
-        style={{
-          ...st, color: z.color, '--sub': z.subColor, textTransform: z.upper ? 'uppercase' : undefined,
-          paddingLeft: `calc(${z.pad + indent} * var(--u) * 1px)`, paddingRight: `calc(${z.pad + right} * var(--u) * 1px)`,
-        }}>
+        style={{ ...st, paddingLeft: `calc(${z.pad + indent} * var(--u) * 1px)`, paddingRight: `calc(${z.pad + SET_ICON + SET_GAP} * var(--u) * 1px)` }}>
         {/* La fila scorre dentro il suo riquadro: a destra resta libero il simbolo dell'edizione. */}
         <div className="token-typeline-row">
           {chip(types, 'types', CARD_TYPES, 'Type')}
           {subtypes.length > 0 && <>
             <span className="token-dash" aria-hidden="true">{'–'}</span>
-            {chip(subtypes, 'subtypes', subs, 'Subtype', ' sub')}
+            {chip(subtypes, 'subtypes', subs, 'Subtype')}
           </>}
           <input className="token-type-search" value={q} placeholder={empty ? 'Type' : '+'} spellCheck={false} autoComplete="off"
             role="combobox" aria-autocomplete="list" aria-expanded={options.length > 0} aria-controls={listId}
@@ -171,7 +166,7 @@ export default function TokenCard({ state, art, overlay, set, onPick, onFile, mo
   const [cssW, setCssW] = useState(0);
   const [over, setOver] = useState(false);
   const [focus, setFocus] = useState(null);
-  const zones = zonesOf(templateById(state.template), state.rules, measurer);
+  const { zones } = templateById(state.template);
   const B = bleedMm * 10; // bleed in unità attorno alla carta
   const W = 630 + 2 * B;
   const H = 880 + 2 * B;
@@ -289,7 +284,7 @@ export default function TokenCard({ state, art, overlay, set, onPick, onFile, mo
             )}
             {field('name', 'Name', 'Name', 60)}
             <TypeLine z={zones.type} k={k} types={state.types} subtypes={state.subtypes} set={set}
-              indent={typeIndent(zones, state.colors)} right={typeRight(zones)} />
+              indent={state.colors.length ? zones.indicator.r * 2 + 10 : 0} />
             {zones.text && <Rules z={zones.text} k={k} value={state.rules} onChange={(v) => set({ rules: v })} focus={focus} setFocus={setFocus} />}
             {ptBox(state) && <PowerToughness z={zones.pt} k={k} power={state.power} toughness={state.toughness} set={set} focus={focus} setFocus={setFocus} />}
             {field('credit', 'Image credit', 'Illustrator', 60, zones.credit, CREDIT_ICON)}

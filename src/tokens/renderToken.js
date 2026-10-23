@@ -1,5 +1,5 @@
 import { frameColors, TOKEN_COLORS, coverRect, parseRules, fitSize, ellipsize, layoutRules, tokenFileName, typeLine, isCreature, artWindow } from './tokenModel.js';
-import { templateById, zonesOf } from './templates.js';
+import { templateById } from './templates.js';
 import { symUrl } from '../utils/manaSymbols.js';
 import { WORDMARK_X_CORE, WORDMARK_X_V } from '../components/wordmarkPaths.js';
 
@@ -19,12 +19,6 @@ export const CREDIT_ICON = 30;
 // Simbolo dell'edizione a destra della riga del tipo: lato del quadrato e spazio che il tipo gli lascia, in unità.
 export const SET_ICON = 34;
 export const SET_GAP = 10;
-// Spazio prima del tipo: il pallino dei colori (se ce ne sono) o il punto fisso della cornice (Glitch); dopo, quello del
-// simbolo dell'edizione, se la cornice non lo mette altrove (Glitch: nel tondo in alto a destra).
-export const typeIndent = (zones, colors) => { const d = zones.dot || (colors.length > 0 && zones.indicator); return d ? d.r * 2 + 10 : 0; };
-export const typeRight = (zones) => (zones.set ? 0 : SET_ICON + SET_GAP);
-// Colori nella pillola della cornice Glitch: i simboli di Scryfall in ordine WUBRG, {C} senza colori.
-const pipColors = (colors) => { const l = ['W', 'U', 'B', 'R', 'G'].filter((c) => colors.includes(c)); return l.length ? l : ['C']; };
 
 // I font del bundle si caricano solo quando servono: il canvas li vuole già pronti (altrimenti usa quello di sistema).
 let fontsP = null;
@@ -49,7 +43,7 @@ const frames = new Map();
 export function loadFrame(template, colors, pt, b) {
   const key = `${template.id}|${colors.join('')}|${pt}|${b}`;
   if (!frames.has(key)) {
-    const url = URL.createObjectURL(new Blob([template.svg(frameColors(colors), { pt, b, n: colors.length })], { type: 'image/svg+xml' }));
+    const url = URL.createObjectURL(new Blob([template.svg(frameColors(colors), { pt, b })], { type: 'image/svg+xml' }));
     frames.set(key, loadImage(url).catch((e) => { frames.delete(key); throw e; }));
   }
   return frames.get(key);
@@ -70,35 +64,17 @@ export async function loadSymbols(runs) {
   return out;
 }
 
-// Una riga di testo nel suo riquadro: rimpicciolisce fino al minimo, poi i puntini. align left o center; z.upper = in
-// maiuscolo; tail = la fine della riga, in z.subColor se la riga ci sta intera (i sottotipi di Glitch).
-function drawLine(ctx, z, text, { dx = 0, dr = 0, align = 'left', tail = '' } = {}) {
-  const up = (s) => (z.upper ? s.toUpperCase() : s);
-  const full = up(text + tail);
+// Una riga di testo nel suo riquadro: rimpicciolisce fino al minimo, poi i puntini. align left o center.
+function drawLine(ctx, z, text, { dx = 0, dr = 0, align = 'left' } = {}) {
   const w = z.w - 2 * (z.pad || 0) - dx - dr;
   const measure = (t, s) => { ctx.font = fontOf(z, s); return ctx.measureText(t).width; };
-  const size = fitSize(measure, full, w, z.size, z.min);
-  const t = ellipsize(measure, full, w, size);
+  const size = fitSize(measure, text, w, z.size, z.min);
+  const t = ellipsize(measure, text, w, size);
   ctx.font = fontOf(z, size);
   ctx.textAlign = align;
   const x = align === 'center' ? z.x + z.w / 2 : z.x + (z.pad || 0) + dx;
-  const y = z.y + z.h / 2 + size * 0.36;
-  if (tail && t === full) {
-    const head = up(text);
-    ctx.fillText(head, x, y);
-    const color = ctx.fillStyle;
-    ctx.fillStyle = z.subColor;
-    ctx.fillText(up(tail), x + ctx.measureText(head).width, y);
-    ctx.fillStyle = color;
-  } else ctx.fillText(t, x, y);
+  ctx.fillText(t, x, z.y + z.h / 2 + size * 0.36);
   ctx.textAlign = 'left';
-}
-
-function drawPips(ctx, p, colors, syms) {
-  pipColors(colors).forEach((c, i) => {
-    const img = syms.get(c);
-    if (img) ctx.drawImage(img, p.x + p.pad + i * p.step, p.y + (p.h - p.size) / 2, p.size, p.size);
-  });
 }
 
 // Simbolo dell'edizione: la X del logo Proxodon tutta bianca, in un quadrato di lato s con l'angolo in alto a sinistra
@@ -190,8 +166,8 @@ function drawOverlay(ctx, state, overlay, b) {
 // tendine); editor = il pennello del credito c'è anche a campo vuoto, per dire cosa va lì. L'editor non passa overlay:
 // lo disegna renderOverlay, sul canvas sopra i campi.
 export function renderToken(ctx, state, { scale, b = 0, art, overlay, frame, symbols: syms, skip = new Set(), editor = false }) {
-  ctx.save(); // anche il font delle misure di zonesOf resta qui dentro
-  const zones = zonesOf(templateById(state.template), state.rules, (z) => (t, s) => { ctx.font = fontOf(z, s); return ctx.measureText(t).width; });
+  const { zones } = templateById(state.template);
+  ctx.save();
   ctx.setTransform(scale, 0, 0, scale, b * scale, b * scale);
   ctx.fillStyle = '#0b0b14';
   ctx.fillRect(-b, -b, 630 + 2 * b, 880 + 2 * b);
@@ -210,16 +186,13 @@ export function renderToken(ctx, state, { scale, b = 0, art, overlay, frame, sym
   ctx.textBaseline = 'alphabetic';
   const draw = (k, v) => v && !skip.has(k);
   if (draw('name', state.name.trim())) drawLine(ctx, zones.name, state.name.trim());
-  if (zones.indicator && state.colors.length) drawIndicator(ctx, zones.indicator, state.colors);
-  if (zones.pips) drawPips(ctx, zones.pips, state.colors, syms);
+  const ind = state.colors.length > 0;
+  if (ind) drawIndicator(ctx, zones.indicator, state.colors);
+  ctx.fillStyle = '#ffffff';
   const type = typeLine(state.types, state.subtypes);
   const tz = zones.type;
-  const st = zones.set;
-  if (st) drawSetSymbol(ctx, st.x - st.s / 2, st.y - st.s / 2, st.s);
-  else drawSetSymbol(ctx, tz.x + tz.w - tz.pad - SET_ICON, tz.y + (tz.h - SET_ICON) / 2, SET_ICON);
-  const tail = tz.subColor ? state.subtypes.join(' ') : ''; // la riga del tipo finisce con i sottotipi
-  ctx.fillStyle = tz.color || '#ffffff';
-  if (draw('type', type)) drawLine(ctx, tz, type.slice(0, type.length - tail.length), { dx: typeIndent(zones, state.colors), dr: typeRight(zones), tail });
+  drawSetSymbol(ctx, tz.x + tz.w - tz.pad - SET_ICON, tz.y + (tz.h - SET_ICON) / 2, SET_ICON);
+  if (draw('type', type)) drawLine(ctx, tz, type, { dx: ind ? zones.indicator.r * 2 + 10 : 0, dr: SET_ICON + SET_GAP });
   if (zones.text && draw('rules', state.rules.trim())) { ctx.fillStyle = '#f1eefc'; drawRules(ctx, zones.text, state.rules.trim(), syms); }
   ctx.fillStyle = '#ffffff';
   if (draw('pt', ptText(state))) drawLine(ctx, zones.pt, ptText(state), { align: 'center' });
@@ -245,11 +218,9 @@ export function renderOverlay(ctx, state, { scale, b, overlay, trim }) {
 
 // Tutto quello che serve a disegnare: cornice e simboli (in cache dopo la prima volta) e font.
 export async function prepare(state, b) {
-  const t = templateById(state.template);
-  const pips = t.zones.pips ? pipColors(state.colors).map((v) => ({ t: 'sym', v })) : [];
   const [frame, syms] = await Promise.all([
-    loadFrame(t, state.colors, ptBox(state), b),
-    loadSymbols([...parseRules(state.rules), ...pips]),
+    loadFrame(templateById(state.template), state.colors, ptBox(state), b),
+    loadSymbols(parseRules(state.rules)),
     ensureFonts(),
   ]);
   return { frame, symbols: syms };
