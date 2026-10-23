@@ -4200,6 +4200,8 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
 .mnav-wrap { display: contents; }
 .mnav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 70; height: calc(170px + env(safe-area-inset-bottom, 0px)); pointer-events: none;
   --step: min(70px, calc((100vw - 24px) / 5)); } /* passo orizzontale delle voci: a 320 px i nomi non si toccano */
+/* Sei voci (con Tokens): passo più stretto, così le due esterne restano dentro lo schermo, sopra il ? e il profilo. */
+.mnav.many { --step: min(64px, calc((100vw - 72px) / 5)); }
 .mnav::before {
   content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: calc(225px + env(safe-area-inset-bottom, 0px)); pointer-events: none;
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0), #000); opacity: 0.7; mix-blend-mode: multiply;
@@ -4254,6 +4256,7 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
 }
 .mnav.open .mnav-extras { opacity: 1; visibility: visible; }
 .mnav-extras .header-slot { display: contents; }
+.mnav-extras > .account-btn:only-child { margin-left: auto; } /* Tokens: niente ?, l'avatar resta a destra */
 .mnav.open .mnav-extras .help, .mnav.open .mnav-extras .account-btn { pointer-events: auto; }
 .mnav .help { position: relative; }
 .mnav .help-btn { position: relative; }
@@ -4306,6 +4309,7 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
 .token-frame-btn:hover { border-color: rgba(0, 229, 255, 0.45); }
 .token-frame-btn[aria-checked="true"] { border-color: var(--cyan); box-shadow: 0 0 12px var(--cyan-glow); }
 .token-frame-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+:is(.tokens-body, .tokens-controls) .field .import-link-input { display: block; width: 100%; box-sizing: border-box; }
 .token-row { display: flex; align-items: flex-end; gap: 10px; }
 .token-row .field { flex: 1; min-width: 0; }
 .token-row label.deck-icon-btn { cursor: pointer; }

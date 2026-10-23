@@ -29,6 +29,7 @@ const HeaderAccount = lazy(() => import('./decks/AccountMenu').then((m) => ({ de
 // Tutorial guidato (dal ? di ogni pagina): demo della stampa o della pagina mazzi aperta, caricato al primo avvio.
 const PrintTour = lazy(() => import('./tutorial/PrintTour'));
 const DeckTour = lazy(() => import('./tutorial/DeckTour'));
+const TokensPage = lazy(() => import('./tokens/TokensPage'));
 
 // Lettura numerica da localStorage con default (null/NaN → default, 0 valido).
 const readNum = (k, d) => {
@@ -417,6 +418,7 @@ export default function App() {
   const tutorial = useTutorial();
   useEffect(() => { if (tutorial && tutorial !== route) stopTutorial(); }, [tutorial, route]);
   const inDecks = route.startsWith('/decks') || route.startsWith('/community') || route.startsWith('/dilemmas') || route.startsWith('/help') || route === '/profile' || route.startsWith('/profile/') || route === '/settings';
+  const inTokens = route === '/tokens';
   // Feedback dai mazzi (stabile: i listener Firestore lo hanno tra le dipendenze). action = { label,
   // onClick } per un pulsante nel toast (es. Undo); il click esegue l'azione e chiude il toast.
   const notify = useCallback((msg, kind = 'success', action) => setToast({
@@ -453,6 +455,14 @@ export default function App() {
     <ErrorBoundary>
       <Suspense fallback={<div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>}>
         <DecksView route={route} notify={notify} printQueueCount={images.length} onPrintDeck={handlePrintDeck} headerSlot={headerSlot} />
+      </Suspense>
+    </ErrorBoundary>
+  );
+  // Tokens: il token creato entra nella coda di stampa come un'immagine caricata (addItems), con l'abbondanza della cornice.
+  const tokensNode = (
+    <ErrorBoundary message="Couldn’t load Tokens. Check your connection, then retry.">
+      <Suspense fallback={<div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>}>
+        <TokensPage onAdd={addItems} notify={notify} mobile={isMobile} />
       </Suspense>
     </ErrorBoundary>
   );
@@ -505,9 +515,10 @@ export default function App() {
           // reale → apre il picker su mobile, dove open() di react-dropzone è inaffidabile).
           addMenu={{ onFiles: handleImagesAdded, onImport: () => setImportOpen(true), onImportMpc: () => setMpcOpen(true) }}
           route={route}
-          altBody={inDecks ? decksNode : null}
+          altBody={inDecks ? decksNode : inTokens ? tokensNode : null}
           headerSlot={setHeaderSlot}
           account={accountNode}
+          extras={inTokens ? accountNode : undefined}
         />
         <ScryfallImportModal open={importOpen} onClose={() => setImportOpen(false)} onImport={addItems} />
         <MpcImportModal open={mpcOpen} onClose={() => setMpcOpen(false)} onImport={addItems} />
@@ -524,8 +535,8 @@ export default function App() {
       {/* ── Header ── */}
       <header className="app-header">
         <h1 className="brand"><Wordmark height={30} className="wordmark" /></h1>
-        <NavTabs decks={inDecks} />
-        {inDecks ? <div className="header-slot" ref={setHeaderSlot} /> : (
+        <NavTabs area={inDecks ? 'decks' : inTokens ? 'tokens' : 'print'} />
+        {inDecks ? <div className="header-slot" ref={setHeaderSlot} /> : inTokens ? <div className="header-slot">{accountNode}</div> : (
           <div className={`help${helpOpen ? ' open' : ''}`} ref={helpRef}>
             <button type="button" className="help-btn" aria-label="How it works" title="How it works"
               aria-expanded={helpOpen}
@@ -543,11 +554,11 @@ export default function App() {
             </div>
           </div>
         )}
-        {!inDecks && accountNode}
+        {!inDecks && !inTokens && accountNode}
       </header>
 
       {/* ── Body ── */}
-      {inDecks ? decksNode : (
+      {inDecks ? decksNode : inTokens ? tokensNode : (
         <div className="app-body">
 
           {/* Sidebar */}

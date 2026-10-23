@@ -25,7 +25,7 @@ export function NavMenu({ items, current, onItem, open, onToggle, counts = {}, c
   const waiting = items.reduce((s, [key]) => s + (counts[key] || 0), 0);
   const xLabel = open ? 'Close menu' : waiting ? `Menu, ${waiting} to answer from players you follow` : 'Menu';
   return (
-    <nav className={`mnav${open ? ' open' : ''}`} aria-label="Main">
+    <nav className={`mnav${open ? ' open' : ''}${items.length > 5 ? ' many' : ''}`} aria-label="Main">
       <ul className="mnav-items" inert={!open}>
         {items.map((item, i) => {
           const [key, label, href, Icon] = item;

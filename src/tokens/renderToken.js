@@ -40,12 +40,14 @@ export function loadFrame(template, colors, pt) {
 }
 
 // Simboli di Scryfall ({T}, {G}): quelli che non si caricano (offline) mancano dalla mappa e si scrivono come testo.
+// ?cors=1: Scryfall manda Access-Control-Allow-Origin (e Vary) solo alle richieste con Origin; le <img> dei pallini
+// (ManaCost) mettono in cache lo stesso file senza, e il canvas lo rifiuterebbe. Un indirizzo suo, una cache sua.
 const symbols = new Map();
 export async function loadSymbols(runs) {
   const codes = [...new Set(runs.filter((r) => r.t === 'sym').map((r) => r.v))];
   const out = new Map();
   await Promise.all(codes.map(async (v) => {
-    if (!symbols.has(v)) symbols.set(v, loadImage(symUrl(v), true).catch(() => { symbols.delete(v); return null; }));
+    if (!symbols.has(v)) symbols.set(v, loadImage(`${symUrl(v)}?cors=1`, true).catch(() => { symbols.delete(v); return null; }));
     const img = await symbols.get(v);
     if (img) out.set(v, img);
   }));

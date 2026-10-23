@@ -24,8 +24,9 @@ export function MobilePage({ title, onClose, children }) {
 
 // Telefono e tablet in verticale: niente testata; in basso il menu della X (MobileNav) con le pagine, il ? e il profilo.
 // Print: in cima il titolo e la barra Add cards / Settings / Export (lo stile della ricerca dei mazzi), poi il foglio.
-// Area mazzi (altBody): ? e avatar arrivano da DecksView nel portale headerSlot, dentro il menu.
-export default function MobileLayout({ settingsProps, previewProps, actions, addMenu, route, altBody, headerSlot, account }) {
+// Area mazzi (altBody): ? e avatar arrivano da DecksView nel portale headerSlot, dentro il menu. extras = gli angoli del
+// menu per un'altra pagina in altBody (Tokens: solo l'avatar).
+export default function MobileLayout({ settingsProps, previewProps, actions, addMenu, route, altBody, headerSlot, account, extras }) {
   const [addOpen, setAddOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [page, setPage] = useState(null); // null | 'settings' | 'export'
@@ -98,7 +99,7 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
           </main>
         )}
 
-      <MobileNav route={route}>{altBody ? <div className="header-slot" ref={headerSlot} /> : <>{help}{account}</>}</MobileNav>
+      <MobileNav route={route}>{extras ?? (altBody ? <div className="header-slot" ref={headerSlot} /> : <>{help}{account}</>)}</MobileNav>
 
       {page === 'settings' && (
         <MobilePage title="Settings" onClose={() => setPage(null)}>
