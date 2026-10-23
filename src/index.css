@@ -4324,7 +4324,10 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
 .token-range-label { display: flex; justify-content: space-between; gap: 8px; }
 .token-range-label span { font-family: var(--font-mono); color: var(--text-muted); }
 .tokens-mobile > .token-actions { margin-top: -4px; }
-.tokens-mobile { display: flex; flex-direction: column; gap: 18px; padding: calc(16px + env(safe-area-inset-top, 0px)) 14px 140px; }
+.tokens-mobile {
+  display: flex; flex-direction: column; gap: 18px; padding: calc(16px + env(safe-area-inset-top, 0px)) 14px 140px;
+  height: 100%; min-height: 0; overflow-y: auto; /* scorre lei, come .decks-root: .mobile-decks ha overflow hidden */
+}
 .tokens-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .tokens-mobile .token-stage { flex: none; }
 .tokens-controls { display: flex; flex-direction: column; gap: 24px; }
