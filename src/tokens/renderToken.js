@@ -1,6 +1,7 @@
 import { frameColors, TOKEN_COLORS, coverRect, parseRules, fitSize, ellipsize, layoutRules, tokenFileName, typeLine, isCreature, artWindow } from './tokenModel.js';
 import { templateById } from './templates.js';
 import { symUrl } from '../utils/manaSymbols.js';
+import { WORDMARK_X_CORE, WORDMARK_X_V } from '../components/wordmarkPaths.js';
 
 // Disegno del token su un canvas, lo stesso per l'anteprima e per il PNG a 600 DPI: livelli dal basso, fondo, arte
 // (nella finestra della cornice, coverRect di state.pos), cornice SVG, overlay (l'immagine scontornata, sopra la cornice
@@ -14,6 +15,9 @@ const FAMILY = { display: '"Chakra Petch"', body: '"Space Grotesk"', mono: '"Jet
 export const fontOf = (z, size) => `${z.weight} ${size}px ${FAMILY[z.font]}`;
 // Spazio del pennello davanti al credito dell'immagine, in unità della carta (l'editor ci lascia lo stesso margine).
 export const CREDIT_ICON = 30;
+// Simbolo dell'edizione a destra della riga del tipo: lato del quadrato e spazio che il tipo gli lascia, in unità.
+export const SET_ICON = 34;
+export const SET_GAP = 10;
 
 // I font del bundle si caricano solo quando servono: il canvas li vuole già pronti (altrimenti usa quello di sistema).
 let fontsP = null;
@@ -60,8 +64,8 @@ export async function loadSymbols(runs) {
 }
 
 // Una riga di testo nel suo riquadro: rimpicciolisce fino al minimo, poi i puntini. align left o center.
-function drawLine(ctx, z, text, { dx = 0, align = 'left' } = {}) {
-  const w = z.w - 2 * (z.pad || 0) - dx;
+function drawLine(ctx, z, text, { dx = 0, dr = 0, align = 'left' } = {}) {
+  const w = z.w - 2 * (z.pad || 0) - dx - dr;
   const measure = (t, s) => { ctx.font = fontOf(z, s); return ctx.measureText(t).width; };
   const size = fitSize(measure, text, w, z.size, z.min);
   const t = ellipsize(measure, text, w, size);
@@ -70,6 +74,23 @@ function drawLine(ctx, z, text, { dx = 0, align = 'left' } = {}) {
   const x = align === 'center' ? z.x + z.w / 2 : z.x + (z.pad || 0) + dx;
   ctx.fillText(t, x, z.y + z.h / 2 + size * 0.36);
   ctx.textAlign = 'left';
+}
+
+// Simbolo dell'edizione: la X del logo Proxodon tutta bianca, in un quadrato di lato s con l'angolo in alto a sinistra
+// in x, y (come il simbolo d'espansione dei token veri).
+function drawSetSymbol(ctx, x, y, s) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(s / 31, s / 31);
+  ctx.translate(-42, 0);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill(new Path2D(WORDMARK_X_CORE));
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for (const d of WORDMARK_X_V) ctx.stroke(new Path2D(d));
+  ctx.restore();
 }
 
 // Pallino del colore: uno spicchio per colore scelto, bordo scuro e anello chiaro.
@@ -166,7 +187,9 @@ export function renderToken(ctx, state, { scale, b = 0, art, overlay, frame, sym
   if (ind) drawIndicator(ctx, zones.indicator, state.colors);
   ctx.fillStyle = '#ffffff';
   const type = typeLine(state.types, state.subtypes);
-  if (draw('type', type)) drawLine(ctx, zones.type, type, { dx: ind ? zones.indicator.r * 2 + 10 : 0 });
+  const tz = zones.type;
+  drawSetSymbol(ctx, tz.x + tz.w - tz.pad - SET_ICON, tz.y + (tz.h - SET_ICON) / 2, SET_ICON);
+  if (draw('type', type)) drawLine(ctx, tz, type, { dx: ind ? zones.indicator.r * 2 + 10 : 0, dr: SET_ICON + SET_GAP });
   if (zones.text && draw('rules', state.rules.trim())) { ctx.fillStyle = '#f1eefc'; drawRules(ctx, zones.text, state.rules.trim(), syms); }
   ctx.fillStyle = '#ffffff';
   if (draw('pt', ptText(state))) drawLine(ctx, zones.pt, ptText(state), { align: 'center' });

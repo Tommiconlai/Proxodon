@@ -67,6 +67,7 @@ export default function TokensPage({ onAdd, notify, mobile, bleedMm, setBleedMm 
   // Zoom del livello che si muove: con Sync (o senza overlay) l'immagine di fondo e l'overlay insieme, altrimenti quello scelto.
   const onOverlay = !!overlay && (!art || (!state.sync && state.target === 'overlay'));
   const zoomNow = onOverlay ? state.overlayPos.zoom : state.pos.zoom;
+  const zoomMin = onOverlay ? 0.2 : 1;
   const setZoom = (z) => {
     const r = moveLayers({ art: state.pos, overlay: state.overlayPos }, { dx: 0, dy: 0, k: z / zoomNow },
       { sync: state.sync, target: state.target, dims: layerDims(art, overlay), win });
@@ -124,12 +125,13 @@ export default function TokensPage({ onAdd, notify, mobile, bleedMm, setBleedMm 
       </div>
       <div className="field">
         <label className="field-label token-range-label" htmlFor={`${id}-zoom`}>Zoom<span>{onOverlay ? 'overlay' : overlay && state.sync ? 'image + overlay' : 'image'}</span></label>
-        <input id={`${id}-zoom`} type="range" min={onOverlay ? 0.2 : 1} max={MAX_ZOOM} step="0.01" value={zoomNow} disabled={!art && !overlay}
+        <input id={`${id}-zoom`} type="range" min={zoomMin} max={MAX_ZOOM} step="0.01" value={zoomNow} disabled={!art && !overlay}
+          style={{ '--fill': `${((zoomNow - zoomMin) / (MAX_ZOOM - zoomMin)) * 100}%` }}
           onChange={(e) => setZoom(Number(e.target.value))} />
       </div>
       <div className="field">
         <label className="field-label token-range-label" htmlFor={`${id}-bleed`} title="The same bleed as the Print page">Bleed<span>{bleedMm.toFixed(1)} mm</span></label>
-        <input id={`${id}-bleed`} type="range" min="0" max="3" step="0.5" value={bleedMm}
+        <input id={`${id}-bleed`} type="range" min="0" max="3" step="0.5" value={bleedMm} style={{ '--fill': `${(bleedMm / 3) * 100}%` }}
           onChange={(e) => setBleedMm(Number(e.target.value))} aria-valuetext={`${bleedMm} mm`} />
       </div>
       {/* Overlay: la seconda immagine (scontornata) sopra la cornice. Sync = si muove e si ingrandisce con quella di fondo;

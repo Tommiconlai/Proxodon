@@ -4343,9 +4343,11 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
 .token-edit.editing, .token-edit:focus-within { color: #fff; border-style: solid; border-color: var(--cyan); background: rgba(11, 11, 20, 0.45); }
 .token-pt { display: flex; align-items: center; justify-content: center; gap: 0.08em; color: transparent; }
 .token-pt.editing { color: #fff; }
+.token-pt.empty:not(.editing) { color: rgba(255, 255, 255, 0.36); } /* vuoto: la barra tenue come i segnaposto */
 .token-pt .token-edit { width: 2.1em; height: 82%; padding: 0; font: inherit; text-align: center; }
 /* Riga del tipo: tendine larghe quanto la parola scelta, il + tondo come i pulsanti del menu. */
-.token-typeline { display: flex; align-items: center; gap: 0.3em; color: #fff; white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+.token-typeline { display: flex; align-items: center; color: #fff; }
+.token-typeline-row { display: flex; align-items: center; gap: 0.3em; flex: 1; min-width: 0; white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
 .token-chip {
   appearance: none; -webkit-appearance: none; flex: none; width: calc(var(--chars, 4) * 0.62em + 0.4em); margin: 0; padding: 0 0.1em;
   border: none; border-bottom: 1px dashed rgba(0, 229, 255, 0.5); border-radius: 0; background: none; color: #fff; font: inherit; cursor: pointer;

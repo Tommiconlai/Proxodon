@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { templateById } from './templates';
-import { fitSize, layoutRules, parseRules, CARD_TYPES, artWindow, moveLayers, layerDims } from './tokenModel';
-import { prepare, renderToken, fontOf, ptBox, CREDIT_ICON } from './renderToken';
+import { fitSize, layoutRules, parseRules, CARD_TYPES, artWindow, moveLayers, layerDims, typeLine } from './tokenModel';
+import { prepare, renderToken, fontOf, ptBox, CREDIT_ICON, SET_ICON, SET_GAP } from './renderToken';
 import { loadSubtypes } from './typeCatalog';
 import { IconImage } from '../components/icons';
 
@@ -72,7 +72,7 @@ function PowerToughness({ z, k, power, toughness, set, focus, setFocus }) {
   );
   return (
     <div className="token-zone" style={box(z)}>
-      <div className={`token-pt${editing ? ' editing' : ''}`} style={st}>
+      <div className={`token-pt${editing ? ' editing' : ''}${power || toughness ? '' : ' empty'}`} style={st}>
         {input('power', power, 'Power')}<span aria-hidden="true">/</span>{input('toughness', toughness, 'Toughness')}
       </div>
     </div>
@@ -89,7 +89,10 @@ function TypeLine({ z, k, types, subtypes, set, indent }) {
     loadSubtypes(key ? key.split('|') : []).then((l) => { if (on) setSubs(l); });
     return () => { on = false; };
   }, [key]);
-  const st = scaled(k, z.size, z);
+  // Corpo come nel PNG: la riga intera rimpicciolisce per stare tra pallino e simbolo (meno lo spazio dei due +).
+  const line = typeLine(types, subtypes);
+  const room = z.w - 2 * z.pad - indent - SET_ICON - SET_GAP - z.size * 3;
+  const st = scaled(k, line ? fitSize(measurer(z), line, room, z.size, z.min) : z.size, z);
   const edit = (list, i, v) => (v === '' ? list.filter((_, j) => j !== i) : list.map((x, j) => (j === i ? v : x)));
   const chip = (list, field, options, label) => list.map((v, i) => (
     <select key={`${v}-${i}`} className="token-chip" value={v} aria-label={`${label} ${i + 1}`} title={`${label}: change or remove`} style={{ '--chars': v.length }}
@@ -108,14 +111,17 @@ function TypeLine({ z, k, types, subtypes, set, indent }) {
   return (
     <div className="token-zone" style={box(z)}>
       <div className="token-edit token-typeline" role="group" aria-label="Type line"
-        style={{ ...st, paddingLeft: `calc(${z.pad + indent} * var(--u) * 1px)`, paddingRight: `calc(${z.pad} * var(--u) * 1px)` }}>
-        {chip(types, 'types', CARD_TYPES, 'Type')}
-        {add(types, 'types', CARD_TYPES, 'Add a type')}
-        {(subs.length > 0 || subtypes.length > 0) && <>
-          <span className="token-dash" aria-hidden="true">{'–'}</span>
-          {chip(subtypes, 'subtypes', subs, 'Subtype')}
-          {subs.length > 0 && add(subtypes, 'subtypes', subs, 'Add a subtype')}
-        </>}
+        style={{ ...st, paddingLeft: `calc(${z.pad + indent} * var(--u) * 1px)`, paddingRight: `calc(${z.pad + SET_ICON + SET_GAP} * var(--u) * 1px)` }}>
+        {/* La fila scorre dentro il suo riquadro: a destra resta libero il simbolo dell'edizione. */}
+        <div className="token-typeline-row">
+          {chip(types, 'types', CARD_TYPES, 'Type')}
+          {add(types, 'types', CARD_TYPES, 'Add a type')}
+          {(subs.length > 0 || subtypes.length > 0) && <>
+            <span className="token-dash" aria-hidden="true">{'–'}</span>
+            {chip(subtypes, 'subtypes', subs, 'Subtype')}
+            {subs.length > 0 && add(subtypes, 'subtypes', subs, 'Add a subtype')}
+          </>}
+        </div>
       </div>
     </div>
   );
@@ -172,7 +178,7 @@ export default function TokenCard({ state, art, overlay, set, onPick, onFile, mo
   const drag = useRef(null);
   const down = (e) => {
     if (!movable) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* puntatore già finito: si trascina lo stesso */ }
     const ptrs = { ...(drag.current?.ptrs || {}), [e.pointerId]: { x: e.clientX, y: e.clientY } };
     drag.current = { ptrs, start: ptrs, from: { art: state.pos, overlay: state.overlayPos } };
   };
