@@ -50,7 +50,7 @@ export function loadFrame(template, colors, pt, b) {
     const key = `${template.id}|${pt}`;
     if (!frames.has(key)) {
       const layers = template.layers.filter((l) => pt || !l.pt);
-      frames.set(key, Promise.all(layers.map(async (l) => ({ ...l, img: await loadImage(l.src) }))).catch((e) => { frames.delete(key); throw e; }));
+      frames.set(key, Promise.all(layers.map(async (l) => (l.src ? { ...l, img: await loadImage(l.src) } : l))).catch((e) => { frames.delete(key); throw e; }));
     }
     return frames.get(key);
   }
@@ -214,7 +214,16 @@ export function renderToken(ctx, state, { scale, b = 0, art, overlay, frame, sym
   }
   if (Array.isArray(frame)) { // livelli della cornice dell'utente, ognuno dov'è nel disegno; prima il bleed
     t.bleed?.(ctx, b);
-    for (const l of frame) ctx.drawImage(l.img, l.x, l.y, l.w, l.h);
+    for (const l of frame) {
+      if (l.img) ctx.drawImage(l.img, l.x, l.y, l.w, l.h);
+      else { // contorno arrotondato spesso 1, dentro il suo riquadro come il bordo nel Figma
+        ctx.strokeStyle = l.stroke;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(l.x + 0.5, l.y + 0.5, l.w - 1, l.h - 1, l.r - 0.5);
+        ctx.stroke();
+      }
+    }
   } else if (frame) ctx.drawImage(frame, -b, -b, 630 + 2 * b, 880 + 2 * b);
   ctx.fillStyle = '#ffffff';
   ctx.textBaseline = 'alphabetic';

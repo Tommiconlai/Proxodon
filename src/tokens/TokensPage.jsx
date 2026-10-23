@@ -18,7 +18,7 @@ function FrameThumb({ t, colors }) {
   if (!t.layers) return <img src={thumb(t, colors)} alt="" />;
   return (
     <span className="token-frame-layers">
-      {t.layers.map((l) => <img key={l.src} src={l.src} alt="" style={{ left: pct(l.x, 630), top: pct(l.y, 880), width: pct(l.w, 630) }} />)}
+      {t.layers.filter((l) => l.src).map((l) => <img key={l.src} src={l.src} alt="" style={{ left: pct(l.x, 630), top: pct(l.y, 880), width: pct(l.w, 630) }} />)}
     </span>
   );
 }

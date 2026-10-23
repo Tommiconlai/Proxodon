@@ -1,10 +1,10 @@
-<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="590" height="758" viewBox="0 0 590 758" fill="none" xmlns="http://www.w3.org/2000/svg">
-<mask id="stroke0_0_7" fill="white">
-<path d="M590 723C590 742.33 574.33 758 555 758H109.5C94.3122 758 82 745.688 82 730.5C82 715.312 69.6878 703 54.5 703H32.5C14.5507 703 0 688.449 0 670.5V109C0 89.67 15.67 74 35 74H393C412.33 74 428 58.33 428 39V35C428 15.67 443.67 0 463 0H555C574.33 0 590 15.67 590 35V723Z"/>
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="590" height="748" viewBox="0 0 590 748" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="stroke0_0_6" fill="white">
+<path d="M590 658C590 677.33 574.33 693 555 693H494.5C479.312 693 467 705.312 467 720.5C467 735.688 454.688 748 439.5 748H35C15.67 748 0 732.33 0 713V109C0 89.67 15.67 74 35 74H393C412.33 74 428 58.33 428 39V35C428 15.67 443.67 0 463 0H555C574.33 0 590 15.67 590 35V658Z"/>
 </mask>
-<path id="Subtract" d="M555 0H463C443.67 0 428 15.67 428 35V39C428 58.33 412.33 74 393 74H35C15.67 74 0 89.67 0 109V670.5C0 688.449 14.5507 703 32.5 703H54.5C69.6878 703 82 715.312 82 730.5C82 745.688 94.3122 758 109.5 758H555C574.33 758 590 742.33 590 723V35C590 15.67 574.33 0 555 0Z" stroke-width="4" stroke="url(#paint0_linear_0_7)" mask="url(#stroke0_0_7)"/>
+<path id="Subtract" d="M555 0H463C443.67 0 428 15.67 428 35V39C428 58.33 412.33 74 393 74H35C15.67 74 0 89.67 0 109V713C0 732.33 15.67 748 35 748H439.5C454.688 748 467 735.688 467 720.5C467 705.312 479.312 693 494.5 693H555C574.33 693 590 677.33 590 658V35C590 15.67 574.33 0 555 0Z" stroke-width="4" stroke="url(#paint0_linear_0_6)" mask="url(#stroke0_0_6)"/>
 <defs>
-<linearGradient id="paint0_linear_0_7" x1="-1.01173e-06" y1="49.4117" x2="590" y2="49.4117" gradientUnits="userSpaceOnUse">
+<linearGradient id="paint0_linear_0_6" x1="-1.01173e-06" y1="49.4117" x2="590" y2="49.4117" gradientUnits="userSpaceOnUse">
 <stop offset="0.1" stop-color="#FF2E96"/>
 <stop offset="0.5" stop-color="#AB61ED"/>
 <stop offset="0.9" stop-color="#00E5FF"/>
