@@ -4283,3 +4283,36 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
 .btn-add.open, .btn-add:hover, .btn-generate:hover:not(:disabled) {
   background: rgba(0, 0, 0, 0.25); border-color: rgba(0, 229, 255, 0.55); color: var(--cyan-soft); box-shadow: none;
 }
+
+/* ============================================================
+   TOKENS (#/tokens): editor a sinistra, il token al centro (telefono: in colonna)
+   ============================================================ */
+.tokens-main { align-items: center; justify-content: center; }
+.token-stage { flex: 1; min-height: 0; width: 100%; display: grid; place-items: center; border-radius: 12px; }
+.token-stage.drop { outline: 2px dashed var(--cyan); outline-offset: -2px; }
+.token-canvas {
+  display: block; border-radius: 4.75% / 3.4%; outline: none; touch-action: auto;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(124, 92, 255, 0.28);
+}
+.token-canvas.has-art { cursor: grab; touch-action: none; } /* con un'immagine il dito la sposta, non scorre la pagina */
+.token-canvas.has-art:active { cursor: grabbing; }
+.token-canvas:focus-visible { box-shadow: var(--focus-ring), 0 24px 60px rgba(0, 0, 0, 0.55); }
+.token-frames { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.token-frame-btn {
+  padding: 0; border: 1px solid var(--border); border-radius: 6px; background: none; overflow: hidden; cursor: pointer;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.token-frame-btn img { display: block; width: 100%; aspect-ratio: 630 / 880; }
+.token-frame-btn:hover { border-color: rgba(0, 229, 255, 0.45); }
+.token-frame-btn[aria-checked="true"] { border-color: var(--cyan); box-shadow: 0 0 12px var(--cyan-glow); }
+.token-frame-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.token-row { display: flex; align-items: flex-end; gap: 10px; }
+.token-row .field { flex: 1; min-width: 0; }
+.token-row label.deck-icon-btn { cursor: pointer; }
+.token-actions { display: flex; gap: 10px; }
+.token-actions .btn-add { flex: 1; justify-content: center; }
+.tokens-body textarea.import-link-input, .tokens-mobile textarea.import-link-input { resize: vertical; min-height: 96px; font-family: var(--font-body, inherit); }
+.tokens-mobile { display: flex; flex-direction: column; gap: 18px; padding: calc(16px + env(safe-area-inset-top, 0px)) 14px 140px; }
+.tokens-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.tokens-mobile .token-stage { flex: none; }
+.tokens-controls { display: flex; flex-direction: column; gap: 24px; }
