@@ -4323,6 +4323,9 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 .token-frame-btn img { display: block; width: 100%; aspect-ratio: 630 / 880; }
+/* Cornice dell'utente: i livelli SVG nelle loro posizioni (in %), alti quanto vuole ognuno. */
+.token-frame-layers { position: relative; display: block; aspect-ratio: 630 / 880; overflow: hidden; }
+.token-frame-layers img { position: absolute; height: auto; aspect-ratio: auto; }
 .token-frame-btn:hover { border-color: rgba(0, 229, 255, 0.45); }
 .token-frame-btn[aria-checked="true"] { border-color: var(--cyan); box-shadow: 0 0 12px var(--cyan-glow); }
 .token-frame-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }

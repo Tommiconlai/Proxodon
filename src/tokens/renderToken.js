@@ -19,6 +19,10 @@ export const CREDIT_ICON = 30;
 // Simbolo dell'edizione a destra della riga del tipo: lato del quadrato e spazio che il tipo gli lascia, in unità.
 export const SET_ICON = 34;
 export const SET_GAP = 10;
+// Spazio prima del tipo (il pallino dei colori, se la cornice lo ha e ci sono colori) e dopo (il simbolo, se la cornice
+// non lo mette altrove: set).
+export const typeIndent = (zones, colors) => (zones.indicator && colors.length ? zones.indicator.r * 2 + 10 : 0);
+export const typeRight = (zones) => (zones.set ? 0 : SET_ICON + SET_GAP);
 
 // I font del bundle si caricano solo quando servono: il canvas li vuole già pronti (altrimenti usa quello di sistema).
 let fontsP = null;
@@ -39,8 +43,17 @@ export const ptBox = (s) => isCreature(s.types);
 const ptText = (s) => (ptBox(s) && (s.power.trim() || s.toughness.trim()) ? `${s.power.trim()}/${s.toughness.trim()}` : '');
 
 // Cornice colorata come immagine (URL blob dell'SVG, stessa origine: il canvas resta esportabile), una per combinazione.
+// Una cornice a livelli (dell'utente) = i suoi livelli con l'immagine caricata, senza la pillola di F/C se non serve.
 const frames = new Map();
 export function loadFrame(template, colors, pt, b) {
+  if (template.layers) {
+    const key = `${template.id}|${pt}`;
+    if (!frames.has(key)) {
+      const layers = template.layers.filter((l) => pt || !l.pt);
+      frames.set(key, Promise.all(layers.map(async (l) => ({ ...l, img: await loadImage(l.src) }))).catch((e) => { frames.delete(key); throw e; }));
+    }
+    return frames.get(key);
+  }
   const key = `${template.id}|${colors.join('')}|${pt}|${b}`;
   if (!frames.has(key)) {
     const url = URL.createObjectURL(new Blob([template.svg(frameColors(colors), { pt, b })], { type: 'image/svg+xml' }));
@@ -74,6 +87,23 @@ function drawLine(ctx, z, text, { dx = 0, dr = 0, align = 'left' } = {}) {
   ctx.textAlign = align;
   const x = align === 'center' ? z.x + z.w / 2 : z.x + (z.pad || 0) + dx;
   ctx.fillText(t, x, z.y + z.h / 2 + size * 0.36);
+  ctx.textAlign = 'left';
+}
+
+// Forza e costituzione: una riga al centro del riquadro; con z.split (Vanilla dell'utente) ognuna al centro del suo
+// riquadro, stesso corpo, e la barra a metà tra i due.
+function drawPT(ctx, z, s) {
+  if (!z.split) { drawLine(ctx, z, ptText(s), { align: 'center' }); return; }
+  const { p, t, w } = z.split;
+  const [power, tough] = [s.power.trim(), s.toughness.trim()];
+  const measure = (x, size) => { ctx.font = fontOf(z, size); return ctx.measureText(x).width; };
+  const size = Math.min(fitSize(measure, power, w, z.size, z.min), fitSize(measure, tough, w, z.size, z.min));
+  const y = z.y + z.h / 2 + size * 0.36;
+  ctx.font = fontOf(z, size);
+  ctx.textAlign = 'center';
+  ctx.fillText(power, p + w / 2, y);
+  ctx.fillText('/', z.x + z.w / 2, y);
+  ctx.fillText(tough, t + w / 2, y);
   ctx.textAlign = 'left';
 }
 
@@ -166,7 +196,8 @@ function drawOverlay(ctx, state, overlay, b) {
 // tendine); editor = il pennello del credito c'è anche a campo vuoto, per dire cosa va lì. L'editor non passa overlay:
 // lo disegna renderOverlay, sul canvas sopra i campi.
 export function renderToken(ctx, state, { scale, b = 0, art, overlay, frame, symbols: syms, skip = new Set(), editor = false }) {
-  const { zones } = templateById(state.template);
+  const t = templateById(state.template);
+  const { zones } = t;
   ctx.save();
   ctx.setTransform(scale, 0, 0, scale, b * scale, b * scale);
   ctx.fillStyle = '#0b0b14';
@@ -181,25 +212,31 @@ export function renderToken(ctx, state, { scale, b = 0, art, overlay, frame, sym
     ctx.drawImage(art, r.x, r.y, r.w, r.h);
     ctx.restore();
   }
-  if (frame) ctx.drawImage(frame, -b, -b, 630 + 2 * b, 880 + 2 * b);
+  if (Array.isArray(frame)) { // livelli della cornice dell'utente, ognuno dov'è nel disegno; prima il bleed
+    t.bleed?.(ctx, b);
+    for (const l of frame) ctx.drawImage(l.img, l.x, l.y, l.w, l.h);
+  } else if (frame) ctx.drawImage(frame, -b, -b, 630 + 2 * b, 880 + 2 * b);
   ctx.fillStyle = '#ffffff';
   ctx.textBaseline = 'alphabetic';
   const draw = (k, v) => v && !skip.has(k);
   if (draw('name', state.name.trim())) drawLine(ctx, zones.name, state.name.trim());
-  const ind = state.colors.length > 0;
-  if (ind) drawIndicator(ctx, zones.indicator, state.colors);
+  if (zones.indicator && state.colors.length) drawIndicator(ctx, zones.indicator, state.colors);
   ctx.fillStyle = '#ffffff';
   const type = typeLine(state.types, state.subtypes);
   const tz = zones.type;
-  drawSetSymbol(ctx, tz.x + tz.w - tz.pad - SET_ICON, tz.y + (tz.h - SET_ICON) / 2, SET_ICON);
-  if (draw('type', type)) drawLine(ctx, tz, type, { dx: ind ? zones.indicator.r * 2 + 10 : 0, dr: SET_ICON + SET_GAP });
+  const st = zones.set;
+  const side = st ? Math.min(st.w, st.h) : SET_ICON;
+  if (st) drawSetSymbol(ctx, st.x + (st.w - side) / 2, st.y + (st.h - side) / 2, side);
+  else drawSetSymbol(ctx, tz.x + tz.w - tz.pad - SET_ICON, tz.y + (tz.h - SET_ICON) / 2, SET_ICON);
+  if (draw('type', type)) drawLine(ctx, tz, type, { dx: typeIndent(zones, state.colors), dr: typeRight(zones) });
   if (zones.text && draw('rules', state.rules.trim())) { ctx.fillStyle = '#f1eefc'; drawRules(ctx, zones.text, state.rules.trim(), syms); }
   ctx.fillStyle = '#ffffff';
-  if (draw('pt', ptText(state))) drawLine(ctx, zones.pt, ptText(state), { align: 'center' });
+  if (draw('pt', ptText(state))) drawPT(ctx, zones.pt, state);
   const z = zones.credit;
+  const icon = z.icon ?? z.h * 0.8;
   ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-  if (state.credit.trim() || editor) drawBrush(ctx, z.x, z.y + z.h * 0.1, z.h * 0.8);
-  if (draw('credit', state.credit.trim())) drawLine(ctx, z, state.credit.trim(), { dx: CREDIT_ICON });
+  if (state.credit.trim() || editor) drawBrush(ctx, z.x, z.y + (z.h - icon) / 2, icon);
+  if (draw('credit', state.credit.trim())) drawLine(ctx, z, state.credit.trim(), { dx: z.dx ?? CREDIT_ICON });
   if (overlay) drawOverlay(ctx, state, overlay, b);
   ctx.restore();
 }

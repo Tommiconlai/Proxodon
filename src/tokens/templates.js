@@ -3,7 +3,9 @@
 // art = la finestra dell'immagine, name / type / text / pt / credit = i riquadri dei testi (con corpo massimo e minimo,
 // font: display Chakra Petch, body Space Grotesk, mono JetBrains Mono), indicator = il pallino del colore accanto al
 // tipo. b = bleed in unità: il disegno continua fuori dalla carta (fondo e sfumature), le zone restano dove sono.
-// Le cornici dell'utente (da Figma) seguiranno lo stesso schema.
+// Le cornici dell'utente (da Figma) sono invece livelli: gli SVG esportati, ognuno nella sua posizione (layers), con
+// set = il simbolo dell'edizione, pt.split = forza e costituzione in due riquadri e bleed = come la cornice continua
+// fuori dalla carta.
 
 // Due angoli tagliati, in alto a sinistra e in basso a destra, come i pannelli dell'app.
 const cut = ({ x, y, w, h }, k = 14) =>
@@ -49,6 +51,32 @@ const template = (id, name, zones, full = false) => ({
   id, name, zones, svg: (c, { pt, b = 0 }) => frame(c, pt, zones, full, b),
 });
 
+// Vanilla dell'utente (Figma "Proxodon": cornice 67:242, posizioni dei testi e del logo 67:372), unità = px del disegno.
+// Livelli dal basso: il velo nero al 60% fuori dal pannello (l'arte riempie la carta), il bordo sfumato del pannello, la
+// pillola del nome, la striscia nera in fondo, la barra del tipo con il tondo del logo, la pillola di F/C (solo sulle
+// creature, pt). I colori del token non la tingono e non c'è il pallino: nel disegno non ci sono.
+const VANILLA = [
+  { src: new URL('./frames/vanilla/background.svg', import.meta.url).href, x: 0, y: 0, w: 630, h: 880 },
+  { src: new URL('./frames/vanilla/panel.svg', import.meta.url).href, x: 20, y: 20, w: 590, h: 758 },
+  { src: new URL('./frames/vanilla/name-bar.svg', import.meta.url).href, x: 20, y: 20, w: 418, h: 64 },
+  { src: new URL('./frames/vanilla/bottom.svg', import.meta.url).href, x: 0, y: 817, w: 630, h: 63 },
+  { src: new URL('./frames/vanilla/type-bar.svg', import.meta.url).href, x: 20, y: 733, w: 590, h: 105 },
+  { src: new URL('./frames/vanilla/pt-pill.svg', import.meta.url).href, x: 497, y: 788, w: 113, h: 49, pt: true },
+];
+// Nel bleed (b unità attorno alla carta) la cornice continua: il velo al 60% sull'arte e, accanto e sotto la striscia
+// del fondo (che ai lati parte da 817), il nero.
+function vanillaBleed(ctx, b) {
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  ctx.beginPath();
+  ctx.rect(-b, -b, 630 + 2 * b, 880 + 2 * b);
+  ctx.rect(0, 0, 630, 880);
+  ctx.fill('evenodd');
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(-b, 817, b, 63 + b);
+  ctx.fillRect(630, 817, b, 63 + b);
+  ctx.fillRect(0, 880, 630, b);
+}
+
 export const TEMPLATES = [
   template('classic', 'Classic', {
     art: { x: 40, y: 104, w: 550, h: 404 },
@@ -68,14 +96,17 @@ export const TEMPLATES = [
     credit: { ...CREDIT, y: 812 },
     indicator: { x: 66, y: 623, r: 13 },
   }, true),
-  template('vanilla', 'Vanilla', {
-    art: { x: 40, y: 104, w: 550, h: 610 },
-    name: NAME,
-    type: { ...BAR, y: 720 },
-    pt: { ...PT, x: 470, y: 784, w: 122, h: 58 },
-    credit: { ...CREDIT, y: 808 },
-    indicator: { x: 66, y: 747, r: 13 },
-  }),
+  {
+    id: 'vanilla', name: 'Vanilla', layers: VANILLA, bleed: vanillaBleed,
+    zones: {
+      art: { x: 0, y: 0, w: 630, h: 880 },
+      name: { ...NAME, x: 48, y: 26, w: 363, h: 52, pad: 0 },
+      type: { ...BAR, x: 48, y: 796, w: 442, h: 34, pad: 0 },
+      pt: { ...PT, x: 512, y: 796, w: 84, h: 34, split: { p: 512, t: 563, w: 33 } },
+      credit: { ...CREDIT, x: 40, y: 846, w: 191, h: 16, icon: 15, dx: 19 },
+      set: { x: 31, y: 744, w: 33, h: 34 },
+    },
+  },
 ];
 
 export const templateById = (id) => TEMPLATES.find((t) => t.id === id) || TEMPLATES[0];

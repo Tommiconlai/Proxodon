@@ -12,6 +12,16 @@ import { IconUpload, IconTrash, IconReplay, IconDownload, IconNavPrint, IconPlus
 const COLORS = [['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green']];
 
 const thumb = (t, colors) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(t.svg(frameColors(colors), { pt: true }))}`;
+const pct = (v, of) => `${(v / of) * 100}%`;
+// Anteprima di una cornice: il suo SVG colorato, o i livelli di quella dell'utente uno sopra l'altro.
+function FrameThumb({ t, colors }) {
+  if (!t.layers) return <img src={thumb(t, colors)} alt="" />;
+  return (
+    <span className="token-frame-layers">
+      {t.layers.map((l) => <img key={l.src} src={l.src} alt="" style={{ left: pct(l.x, 630), top: pct(l.y, 880), width: pct(l.w, 630) }} />)}
+    </span>
+  );
+}
 const readImage = async (file, notify) => {
   if (!file?.type?.startsWith('image/')) { notify('That file is not an image.', 'error'); return null; }
   try { return await createImageBitmap(file); } catch { notify('Could not read that image.', 'error'); return null; }
@@ -112,7 +122,7 @@ export default function TokensPage({ onAdd, notify, mobile, bleedMm, setBleedMm,
         {TEMPLATES.map((t) => (
           <button key={t.id} type="button" role="radio" aria-checked={t.id === state.template} className="token-frame-btn"
             aria-label={t.name} title={t.name} onClick={() => set({ template: t.id, pos: P0, overlayPos: P0 })}>
-            <img src={thumb(t, state.colors)} alt="" />
+            <FrameThumb t={t} colors={state.colors} />
           </button>
         ))}
       </div>
