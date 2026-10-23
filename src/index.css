@@ -4312,7 +4312,6 @@ button.deck-bracket:focus-visible { outline: none; box-shadow: var(--focus-ring)
 :is(.tokens-body, .tokens-controls) .field .import-link-input { display: block; width: 100%; box-sizing: border-box; }
 .token-row { display: flex; align-items: flex-end; gap: 10px; }
 .token-row .field { flex: 1; min-width: 0; }
-.token-row label.deck-icon-btn { cursor: pointer; }
 .token-actions { display: flex; gap: 10px; }
 .token-actions .btn-add { flex: 1; justify-content: center; }
 .tokens-body textarea.import-link-input, .tokens-mobile textarea.import-link-input { resize: vertical; min-height: 96px; font-family: var(--font-body, inherit); }

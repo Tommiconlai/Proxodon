@@ -119,6 +119,7 @@ export default function TokensPage({ onAdd, notify, mobile }) {
   const [state, setState] = useState(memory.state);
   const [art, setArtNow] = useState(memory.art);
   const [busy, setBusy] = useState(false);
+  const fileRef = useRef(null);
   const id = useId();
   useEffect(() => { memory.state = state; memory.art = art; }, [state, art]);
   const set = (patch) => setState((s) => ({ ...s, ...patch }));
@@ -203,10 +204,11 @@ export default function TokensPage({ onAdd, notify, mobile }) {
       <section className="sidebar-section">
         <h2>Image</h2>
         <div className="token-row">
-          <label className="btn-secondary deck-icon-btn" title="Upload an image">
-            <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files[0]; e.target.value = ''; if (f) setArt(f); }} aria-label="Upload an image" />
-            <IconUpload size={18} />
-          </label>
+          {/* Un pulsante vero (raggiungibile da tastiera) che apre il selettore; il click è un gesto, vale anche sui telefoni. */}
+          <input ref={fileRef} type="file" accept="image/*" hidden tabIndex={-1} aria-hidden="true"
+            onChange={(e) => { const f = e.target.files[0]; e.target.value = ''; if (f) setArt(f); }} />
+          <button type="button" className="btn-secondary deck-icon-btn" onClick={() => fileRef.current?.click()}
+            aria-label="Upload an image" title="Upload an image"><IconUpload size={18} /></button>
           <button type="button" className="btn-secondary deck-icon-btn" onClick={() => set({ pos: { x: 0, y: 0, zoom: 1 } })} disabled={!art}
             aria-label="Reset position and zoom" title="Reset position and zoom"><IconReplay size={18} /></button>
           <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setArtNow(null)} disabled={!art}
