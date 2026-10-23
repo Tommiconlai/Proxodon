@@ -54,7 +54,8 @@ const template = (id, name, zones, full = false) => ({
 // Vanilla dell'utente (Figma "Proxodon": cornice 67:242, posizioni dei testi e del logo 67:372), unità = px del disegno.
 // Livelli dal basso: il velo nero al 60% fuori dal pannello (l'arte riempie la carta), il bordo sfumato del pannello, la
 // pillola del nome, la striscia nera in fondo, la barra del tipo con il tondo del logo, la pillola di F/C (solo sulle
-// creature, pt). I colori del token non la tingono e non c'è il pallino: nel disegno non ci sono.
+// creature, pt). I colori del token non la tingono e non c'è il pallino: nel disegno non ci sono. Il tondo del logo e la
+// tasca intorno sono 17 più a destra che nel Figma, il logo a filo del tipo (richiesta dell'utente).
 const VANILLA = [
   { src: new URL('./frames/vanilla/background.svg', import.meta.url).href, x: 0, y: 0, w: 630, h: 880 },
   { src: new URL('./frames/vanilla/panel.svg', import.meta.url).href, x: 20, y: 20, w: 590, h: 758 },
@@ -104,7 +105,7 @@ export const TEMPLATES = [
       type: { ...BAR, x: 48, y: 796, w: 442, h: 34, pad: 0 },
       pt: { ...PT, x: 512, y: 796, w: 84, h: 34, split: { p: 512, t: 563, w: 33 } },
       credit: { ...CREDIT, x: 40, y: 846, w: 191, h: 16, icon: 15, dx: 19 },
-      set: { x: 31, y: 744, w: 33, h: 34 },
+      set: { x: 48, y: 744, w: 33, h: 34 }, // a filo del tipo
     },
   },
 ];
