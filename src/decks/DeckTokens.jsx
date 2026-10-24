@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { cardsByIds } from './scryfallSearch';
+import { deckTokens } from './scryfallSearch';
 import { tokenFromScryfall } from '../tokens/tokenModel';
 import { draftInUse, startDraft } from '../tokens/tokenDraft';
 import { navigate } from '../hooks/useHashRoute';
@@ -12,31 +12,7 @@ import { IconNavTokens, IconReplay } from '../components/icons';
 // Scryfall si interroga aprendo il mazzo e le risposte restano in cache per la sessione (aggiungendo una carta si chiede
 // solo lei). Make custom porta quel token nel generatore (Tokens) con i testi già scritti e l'immagine da caricare, uno
 // alla volta: se lì ce n'è già uno in lavorazione, prima si chiede. demo (tutorial) = la lista già pronta, niente
-// Scryfall.
-const partsBySid = new Map(); // carta del mazzo (sid) → id dei token che crea
-const tokenById = new Map(); // id del token → la sua carta di Scryfall
-
-async function deckTokens(rows) {
-  const sids = [...new Set(rows.map((r) => r.card.sid).filter(Boolean))];
-  const fresh = sids.filter((s) => !partsBySid.has(s));
-  if (fresh.length) {
-    const cards = await cardsByIds(fresh);
-    for (const s of fresh) partsBySid.set(s, (cards.get(s)?.all_parts || []).filter((p) => p.component === 'token').map((p) => p.id));
-  }
-  const need = [...new Set(sids.flatMap((s) => partsBySid.get(s)))].filter((id) => !tokenById.has(id));
-  if (need.length) (await cardsByIds(need)).forEach((c, id) => tokenById.set(id, c));
-  const byOracle = new Map();
-  for (const r of rows) {
-    for (const id of partsBySid.get(r.card.sid) || []) {
-      const card = tokenById.get(id);
-      if (!card) continue;
-      const key = card.oracle_id || id;
-      if (!byOracle.has(key)) byOracle.set(key, { key, card, from: new Set() });
-      byOracle.get(key).from.add(r.card.name);
-    }
-  }
-  return [...byOracle.values()].map((t) => ({ ...t, from: [...t.from] })).sort((a, b) => a.card.name.localeCompare(b.card.name));
-}
+// Scryfall. La lista viene da deckTokens (scryfallSearch), la stessa che Print deck offre di stampare.
 
 // Senza immagine su Scryfall niente src (si vede il riquadro grigio), non uno vuoto.
 const imageOf = (c) => c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.normal || undefined;

@@ -4,7 +4,7 @@ import { unpublishDeck, changedMs, countLikes } from './deckStore';
 import { useCount } from './useCount';
 import { FORMATS, boardCounts, refreshSnapshots, addCard, toPrintEntries, coverRow, deckTags, searchIdentity } from './deckModel';
 import { useSettings } from '../utils/settings';
-import { cardsByIds } from './scryfallSearch';
+import { cardsByIds, deckTokens } from './scryfallSearch';
 import { navigate, replaceRoute } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
@@ -47,7 +47,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const likes = useCount(countLikes, id, undefined, !!deck?.public);
   const settings = useSettings(); // stampa (aggiungi o sostituisci, sideboard), valuta dei prezzi
   const [online, setOnline] = useState(() => navigator.onLine);
-  const [printOpen, setPrintOpen] = useState(false);
+  const [printOpen, setPrintOpen] = useState(null); // Print deck da confermare: { main, all } = i token senza e con la sideboard
   const [exportOpen, setExportOpen] = useState(false);
   const [coverOpen, setCoverOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
@@ -119,10 +119,15 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   if (!deck) return <div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>;
 
   const c = boardCounts(deck);
-  // Nessuna domanda se la coda è vuota e non c'è sideboard.
-  const startPrint = () => {
-    if (!c.side && (!printQueueCount || settings.printAdd)) onPrintDeck(toPrintEntries(deck), settings.printAdd);
-    else setPrintOpen(true);
+  // I token delle carte che vanno in stampa (main, e sideboard se inclusa): di solito già in cache dalla sezione Tokens.
+  // Scryfall giù = nessun token, si stampa il mazzo. Nessuna domanda se la coda è vuota e non c'è né sideboard né token.
+  const tokensOf = (side) => deckTokens(deck.cards.filter((r) => r.board === 'main' || (side && r.board === 'side')))
+    .then((l) => l.map((t) => t.card), () => []);
+  const startPrint = async () => {
+    const all = await tokensOf(true);
+    const main = c.side ? await tokensOf(false) : all; // dopo all: le carte sono già in cache
+    if (!c.side && !main.length && (!printQueueCount || settings.printAdd)) onPrintDeck(toPrintEntries(deck), settings.printAdd);
+    else setPrintOpen({ main, all });
   };
   const cover = coverRow(deck);
   const savedAt = changedMs(deck); // ultimo cambio di carte (changedAt): Public, edizioni, prezzi non contano
@@ -241,9 +246,9 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
       )}
       {tagsOpen && <TagsDialog tags={deckTags(deck)} onChange={(tags) => update((d) => ({ ...d, tags }))} onClose={() => setTagsOpen(false)} />}
       {printOpen && (
-        <PrintDeckDialog queueCount={printQueueCount} sideCount={c.side} add={settings.printAdd} defaultSide={settings.printSide}
-          onClose={() => setPrintOpen(false)}
-          onConfirm={(side) => { setPrintOpen(false); onPrintDeck(toPrintEntries(deck, { includeSide: side }), settings.printAdd); }} />
+        <PrintDeckDialog queueCount={printQueueCount} sideCount={c.side} tokens={printOpen} add={settings.printAdd} defaultSide={settings.printSide}
+          onClose={() => setPrintOpen(null)}
+          onConfirm={(side, tokens) => { setPrintOpen(null); onPrintDeck(toPrintEntries(deck, { includeSide: side, tokens }), settings.printAdd); }} />
       )}
     </div>
   );

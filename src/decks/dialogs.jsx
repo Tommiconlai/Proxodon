@@ -232,10 +232,26 @@ export function NameFormatDialog({ title, confirmLabel, initialName = '', initia
   );
 }
 
-// Conferma "Print deck": sostituzione della coda (se non vuota) o aggiunta (add, da Settings) e
-// sideboard opzionale (spuntata di default se lo dice Settings).
-export function PrintDeckDialog({ queueCount, sideCount, add, defaultSide, onConfirm, onClose }) {
+const CheckRow = ({ checked, onChange, children }) => (
+  <label className="checkbox-row">
+    <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    <span className="anim-check" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 18 18">
+        <path d="M 1 9 L 1 9 c 0 -5 3 -8 8 -8 L 9 1 C 14 1 17 5 17 9 L 17 9 c 0 4 -4 8 -8 8 L 9 17 C 5 17 1 14 1 9 L 1 9 Z" />
+        <polyline points="1 9 7 14 15 4" />
+      </svg>
+    </span>
+    {children}
+  </label>
+);
+
+// Conferma "Print deck": sostituzione della coda (se non vuota) o aggiunta (add, da Settings), sideboard opzionale
+// (spuntata di default se lo dice Settings) e i token delle carte in stampa (tokens: { main, all }, senza e con la
+// sideboard), non spuntati: una copia per token, in fondo alla coda.
+export function PrintDeckDialog({ queueCount, sideCount, tokens, add, defaultSide, onConfirm, onClose }) {
   const [side, setSide] = useState(!!defaultSide);
+  const [withTokens, setWithTokens] = useState(false);
+  const list = side ? tokens.all : tokens.main;
   const ref = useOverlayDismiss(onClose, true, { focusContainer: false });
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -244,21 +260,15 @@ export function PrintDeckDialog({ queueCount, sideCount, add, defaultSide, onCon
         {queueCount > 0 && (add
           ? <p className="modal-hint">The deck goes after the {queueCount} card{queueCount !== 1 ? 's' : ''} already in the print queue.</p>
           : <p className="modal-hint">Replace the {queueCount} card{queueCount !== 1 ? 's' : ''} in the print queue?</p>)}
-        {sideCount > 0 && (
-          <label className="checkbox-row">
-            <input type="checkbox" checked={side} onChange={(e) => setSide(e.target.checked)} />
-            <span className="anim-check" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 18 18">
-                <path d="M 1 9 L 1 9 c 0 -5 3 -8 8 -8 L 9 1 C 14 1 17 5 17 9 L 17 9 c 0 4 -4 8 -8 8 L 9 17 C 5 17 1 14 1 9 L 1 9 Z" />
-                <polyline points="1 9 7 14 15 4" />
-              </svg>
-            </span>
-            Include sideboard ({sideCount})
-          </label>
+        {sideCount > 0 && <CheckRow checked={side} onChange={setSide}>Include sideboard ({sideCount})</CheckRow>}
+        {list.length > 0 && (
+          <CheckRow checked={withTokens} onChange={setWithTokens}>
+            Include tokens ({list.length}), one of each
+          </CheckRow>
         )}
         <div className="modal-actions">
           <button type="button" className="btn-secondary" onClick={onClose} autoFocus>Cancel</button>
-          <button type="button" className="btn-generate import-btn" onClick={() => onConfirm(side)}>{queueCount > 0 ? (add ? 'Add and print' : 'Replace and print') : 'Print'}</button>
+          <button type="button" className="btn-generate import-btn" onClick={() => onConfirm(side, withTokens ? list : [])}>{queueCount > 0 ? (add ? 'Add and print' : 'Replace and print') : 'Print'}</button>
         </div>
       </div>
     </div>

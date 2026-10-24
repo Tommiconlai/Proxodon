@@ -565,12 +565,13 @@ export const artCrop = (c) => scryfallImg((typeof c?.img === 'string' ? c.img : 
 const frontName = (name) => name.split(' // ')[0];
 
 // Voci per fetchScryfallImages: set + numero tengono l'edizione scelta. Comandanti per primi,
-// sideboard solo se richiesta, maybeboard mai.
-export function toPrintEntries(deck, { includeSide = false } = {}) {
-  return deck.cards
+// sideboard solo se richiesta, maybeboard mai; in fondo i token (carte di Scryfall), una copia ciascuno.
+export function toPrintEntries(deck, { includeSide = false, tokens = [] } = {}) {
+  const cards = deck.cards
     .filter((r) => r.board === 'main' || (includeSide && r.board === 'side'))
     .sort((a, b) => Number(b.commander) - Number(a.commander))
     .map((r) => ({ qty: r.qty, name: frontName(r.card.name), set: r.card.set, collector: r.card.cn }));
+  return [...cards, ...tokens.map((c) => ({ qty: 1, name: frontName(c.name), set: c.set, collector: c.collector_number }))];
 }
 
 // ── Testo ────────────────────────────────────────────────────

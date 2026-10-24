@@ -83,6 +83,34 @@ export async function cardsByIds(ids) {
   return out;
 }
 
+// Token che creano le righe del mazzo, dagli all_parts di Scryfall, uno per oracle (un Treasure creato da tre carte
+// compare una volta) con le carte che lo creano (from), in ordine di nome. Risposte in cache per la sessione:
+// aggiungendo una carta si chiede solo lei. Li usano la sezione Tokens (DeckTokens) e Print deck (DeckEditor).
+const partsBySid = new Map(); // carta del mazzo (sid) → id dei token che crea
+const tokenById = new Map(); // id del token → la sua carta di Scryfall
+
+export async function deckTokens(rows) {
+  const sids = [...new Set(rows.map((r) => r.card.sid).filter(Boolean))];
+  const fresh = sids.filter((s) => !partsBySid.has(s));
+  if (fresh.length) {
+    const cards = await cardsByIds(fresh);
+    for (const s of fresh) partsBySid.set(s, (cards.get(s)?.all_parts || []).filter((p) => p.component === 'token').map((p) => p.id));
+  }
+  const need = [...new Set(sids.flatMap((s) => partsBySid.get(s)))].filter((id) => !tokenById.has(id));
+  if (need.length) (await cardsByIds(need)).forEach((c, id) => tokenById.set(id, c));
+  const byOracle = new Map();
+  for (const r of rows) {
+    for (const id of partsBySid.get(r.card.sid) || []) {
+      const card = tokenById.get(id);
+      if (!card) continue;
+      const key = card.oracle_id || id;
+      if (!byOracle.has(key)) byOracle.set(key, { key, card, from: new Set() });
+      byOracle.get(key).from.add(r.card.name);
+    }
+  }
+  return [...byOracle.values()].map((t) => ({ ...t, from: [...t.from] })).sort((a, b) => a.card.name.localeCompare(b.card.name));
+}
+
 // Voci importate ({ qty, name, set, collector, board, commander }) → righe pronte per addEntries.
 // Le DFC si cercano per faccia anteriore (come parseCardList).
 // fallback: una stampa (set, numero) che Scryfall non trova si cerca per nome (stampa di default);
