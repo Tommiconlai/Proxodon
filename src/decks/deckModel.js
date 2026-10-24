@@ -165,7 +165,10 @@ export function snapshotFromCard(c) {
     produced: c.produced_mana || [],
     legal,
     set: c.set || '',
+    setName: c.set_name || '',
     cn: c.collector_number || '',
+    rarity: c.rarity || '',
+    artist: c.artist || f0?.artist || '',
     img: imgs.normal || '',
     back: (!c.image_uris && c.card_faces?.[1]?.image_uris?.normal) || '',
     art: imgs.art_crop || '',
@@ -410,9 +413,45 @@ export const primaryType = (type) => TYPE_PRIORITY.find((t) => new RegExp(`\\b${
 export const GROUP_MODES = [
   { id: 'type', label: 'Type' },
   { id: 'typeAdv', label: 'Type, advanced' },
+  { id: 'subtype', label: 'Subtype' },
   { id: 'mv', label: 'Mana value' },
+  { id: 'color', label: 'Color' },
+  { id: 'identity', label: 'Color identity' },
+  { id: 'rarity', label: 'Rarity' },
+  { id: 'set', label: 'Set' },
+  { id: 'artist', label: 'Artist' },
   { id: 'custom', label: 'Custom sections' }, // solo con sezioni: ci si arriva creandone una
 ];
+// Modi a chiave semplice: key = la chiave di una carta ('' = dato che manca, gruppo in fondo), label = il nome del
+// gruppo, order = l'ordine delle chiavi (senza, per nome del gruppo).
+const DASH = String.fromCharCode(0x2014); // il trattino lungo dei type line di Scryfall
+const RARITIES = ['mythic', 'rare', 'uncommon', 'common', 'special', 'bonus'];
+const COLOR_NAMES = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' };
+const colorKey = (cs) => [...'WUBRG'].filter((c) => cs.includes(c)).join('');
+const colorRank = (k) => [...k].map((c) => 'WUBRG'.indexOf(c)).join('');
+// Le combinazioni con il nome dei tag dei mazzi ("Azorius (WU)", "Five Color (WUBRG)"), per chiave in ordine WUBRG.
+const COMBOS = new Map(DECK_TAGS.map((t) => t.match(/^.+ \(([WUBRG]{2,})\)$/)).filter(Boolean).map((m) => [colorKey(m[1]), m[0]]));
+const colorMode = (field) => ({
+  key: (s) => colorKey(s[field]),
+  label: (k) => (!k ? 'Colorless' : COLOR_NAMES[k] || COMBOS.get(k) || k),
+  order: (a, b) => a.length - b.length || colorRank(a).localeCompare(colorRank(b)), // monocolore prima, poi WUBRG
+});
+const rarityRank = (k) => (RARITIES.includes(k) ? RARITIES.indexOf(k) : RARITIES.length);
+const SIMPLE_MODES = {
+  subtype: { key: (s) => s.type.split(DASH)[1]?.trim() || '', label: (k) => k || 'No subtype' }, // tutto dopo il trattino
+  color: colorMode('colors'),
+  identity: colorMode('ci'),
+  rarity: { key: (s) => s.rarity, label: (k) => (k ? k[0].toUpperCase() + k.slice(1) : 'Unknown rarity'), order: (a, b) => rarityRank(a) - rarityRank(b) },
+  // Nome dell'espansione dalla prima carta che ce l'ha (gli snapshot vecchi hanno solo il codice, fino al riallineamento).
+  set: {
+    key: (s) => s.set,
+    label: (k, rows) => {
+      const name = rows.find((r) => r.card.setName)?.card.setName;
+      return !k ? 'Unknown set' : name ? `${name} (${k.toUpperCase()})` : k.toUpperCase();
+    },
+  },
+  artist: { key: (s) => s.artist, label: (k) => k || 'Unknown artist' },
+};
 // Tipi di carta nel type line, nell'ordine scritto ("Artifact Creature"); i sottotipi non
 // coincidono mai con questi nomi, i supertipi (Legendary, Basic) restano fuori.
 const CARD_TYPES = new Set(['Kindred', 'Tribal', 'Artifact', 'Enchantment', 'Land', 'Creature', 'Planeswalker', 'Battle', 'Instant', 'Sorcery']);
@@ -460,10 +499,18 @@ const groupOf = (key, label, rows, sort, extra) => ({ key, label, rows: rows.sor
 
 // Main board (comandanti esclusi) raggruppato secondo deck.groupBy:
 // type = tipo principale; typeAdv = combinazione di tipi ("Artifact Creatures" a parte), nella
-// famiglia del tipo principale; mv = 0..6, 7+ e terre a parte; custom = "Deck" poi le sezioni.
+// famiglia del tipo principale; mv = 0..6, 7+ e terre a parte; custom = "Deck" poi le sezioni; gli altri da
+// SIMPLE_MODES (sottotipo, colore, identità, rarità, set, artista).
 // `sort` = ordine dentro i gruppi (SORT_MODES).
 export function groupMain(deck, sort = 'mv') {
   const main = deck.cards.filter((r) => r.board === 'main' && !r.commander);
+  const simple = SIMPLE_MODES[deck.groupBy];
+  if (simple) {
+    return [...bucket(main, (r) => simple.key(r.card) || '')]
+      .map(([k, rows]) => ({ k, label: simple.label(k, rows), rows }))
+      .sort((a, b) => !a.k - !b.k || (simple.order ? simple.order(a.k, b.k) : 0) || a.label.localeCompare(b.label))
+      .map(({ k, label, rows }) => groupOf(`${deck.groupBy}-${k}`, label, rows, sort));
+  }
   if (deck.groupBy === 'custom') {
     const known = new Set(deck.sections.map((s) => s.id));
     const by = bucket(main, (r) => (known.has(r.section) ? r.section : null));
@@ -649,7 +696,8 @@ function cleanSnap(c) {
     mv: Math.min(1000, Math.max(0, num(c.mv) ?? 0)),
     type, colors: strs(c.colors, 6, 1), ci: strs(c.ci, 6, 1), produced: strs(c.produced, 7, 1),
     legal: Object.fromEntries(LEGAL_FORMATS.map((f) => [f, str(c.legal?.[f], 20) || 'not_legal'])),
-    set: str(c.set, 12), cn: str(c.cn, 12), img: scryfallImg(c.img), back: scryfallImg(c.back), art: scryfallImg(c.art),
+    set: str(c.set, 12), setName: str(c.setName, 80), cn: str(c.cn, 12), rarity: str(c.rarity, 12), artist: str(c.artist, 100),
+    img: scryfallImg(c.img), back: scryfallImg(c.back), art: scryfallImg(c.art),
     limit: Number.isInteger(c.limit) && c.limit >= 0 ? c.limit : null,
     cmdr: typeof c.cmdr === 'boolean' ? c.cmdr : /\bLegendary\b/.test(type) && /\bCreature\b/.test(type),
     gc: c.gc === true, eur: num(c.eur), usd: num(c.usd),
