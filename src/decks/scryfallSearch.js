@@ -2,7 +2,7 @@
  * Ricerca carte per l'editor mazzi: autocompletamento, carta per nome esatto, ricerca a pagine,
  * carte per id (riallineamento) e risoluzione delle liste importate in snapshot.
  */
-import { scryfallFetch, lookupCards, sleep } from '../utils/scryfall.js';
+import { scryfallFetch, lookupCards } from '../utils/scryfall.js';
 import { snapshotFromCard } from './deckModel.js';
 
 const API = 'https://api.scryfall.com';
@@ -67,7 +67,7 @@ export async function searchCards(q, signal, pageUrl, order) {
   }
 }
 
-// Carte per id Scryfall, a blocchi da 75 (riallineamento snapshot all'apertura del mazzo).
+// Carte per id Scryfall, a blocchi da 75 (riallineamento snapshot all'apertura del mazzo), al ritmo di scryfallFetch.
 export async function cardsByIds(ids) {
   const out = new Map();
   const uniq = [...new Set(ids)];
@@ -78,7 +78,6 @@ export async function cardsByIds(ids) {
       body: JSON.stringify({ identifiers: uniq.slice(i, i + 75).map((id) => ({ id })) }),
     });
     for (const c of (await res.json()).data || []) out.set(c.id, c);
-    if (i + 75 < uniq.length) await sleep(100);
   }
   return out;
 }

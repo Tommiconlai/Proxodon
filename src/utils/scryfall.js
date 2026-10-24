@@ -19,6 +19,19 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // AbortError (richiesta annullata dall'utente) esce subito; i 4xx portano `.status`.
 // Tetto di 30 s per richiesta: con la rete ferma un import finisce con un errore invece di girare per sempre.
 // Il signal del chiamante (ricerca) resta valido; senza AbortSignal.any (Safari < 17.4) vale solo il suo.
+// Limiti fissi di api.scryfall.com: /cards/search, /cards/named, /cards/random e /cards/collection 2 richieste al
+// secondo ciascuno, il resto 10; oltre: 429 e 30 s di blocco. Ogni richiesta (anche un nuovo tentativo) prende qui il
+// suo turno, per tutta l'app: 550 ms tra due dello stesso endpoint lento, 110 ms tra le altre. Le immagini
+// (*.scryfall.io) non hanno limiti e non passano di qui.
+const SLOW = /^https:\/\/api\.scryfall\.com\/cards\/(search|named|random|collection)\b/;
+const nextTurn = new Map(); // endpoint -> primo momento libero
+const turn = (url) => {
+  const k = SLOW.exec(url)?.[1] || 'other';
+  const now = Date.now();
+  const at = Math.max(now, nextTurn.get(k) || 0);
+  nextTurn.set(k, at + (k === 'other' ? 110 : 550));
+  return sleep(at - now);
+};
 export const timeoutSignal = (signal) => (signal
   ? (AbortSignal.any?.([signal, AbortSignal.timeout(30000)]) ?? signal) : AbortSignal.timeout?.(30000));
 
@@ -26,6 +39,7 @@ export async function scryfallFetch(url, opts, tries = 3) {
   let lastErr;
   for (let i = 0; i < tries; i++) {
     let res;
+    await turn(url);
     try {
       res = await fetch(url, { ...opts, signal: timeoutSignal(opts?.signal) }); // TimeoutError = come la rete: si ritenta
     } catch (e) {
@@ -124,8 +138,8 @@ export function imageFaces(card) {
  * Tutte le stampe (printings) di una carta, per scambiare l'art. `unique = 'art'` = una per
  * illustrazione (foto profilo). Tutte le pagine (175 l'una, dalla più nuova): le terre base ne hanno 800 e
  * più, e con la sola prima pagina le edizioni prima del 2022 (es. Unstable) mancavano. Ogni pagina vuole
- * qualche secondo: dopo la prima le altre partono insieme (100 ms l'una dall'altra, come chiede Scryfall) e
- * onPage(stampe finora) arriva a ogni pagina, per mostrarle subito.
+ * qualche secondo: dopo la prima le altre partono insieme e si sovrappongono, al ritmo di /cards/search
+ * (scryfallFetch, 2 al secondo). onPage(stampe finora) arriva a ogni pagina, per mostrarle subito.
  * @returns {Promise<{id,set,setName,thumb,png,art}[]>}
  */
 // Nome con cui "Cambia art" cerca le stampe: il filename senza estensione.
@@ -157,7 +171,6 @@ export async function fetchPrints(name, unique = 'prints', onPage) {
   if (n > 1) {
     onPage?.(list());
     await Promise.all(Array.from({ length: n - 1 }, async (_, k) => {
-      await sleep(100 * k);
       const j = await (await scryfallFetch(`${url}&page=${k + 2}`)).json();
       pages[k + 1] = j.data || [];
       onPage?.(list());
@@ -223,13 +236,11 @@ export async function lookupCards(list) {
     const json = await res.json();
     for (const card of json.data || []) add(card);
     missed.push(...(json.not_found || []).filter((i) => i.name));
-    if (p < parts.length - 1) await sleep(100); // gentile con l'API
   }
   // /cards/collection conosce solo il nome oracle; /cards/named?exact trova anche i nomi alternativi
   // e dà proprio quella stampa. Errori e 404: la carta resta tra le non trovate.
-  // Una richiesta per nome mancante al ritmo di slot(), ~0,1 s ciascuno con tanti nomi sbagliati.
+  // Una richiesta per nome mancante, al ritmo di /cards/named (scryfallFetch): ~0,55 s ciascuno con tanti nomi sbagliati.
   for (const i of missed) {
-    await slot();
     try {
       const res = await scryfallFetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(i.name)}${i.set ? `&set=${encodeURIComponent(i.set)}` : ''}`);
       add(await res.json(), i.name);
@@ -251,16 +262,9 @@ export async function lookupCards(list) {
  */
 // Stampa di una carta in un'altra lingua (impostazione Card language): /cards/:set/:number/:lang.
 // null se Scryfall non ce l'ha, o ce l'ha senza scansione (image_status missing / placeholder: l'immagine
-// sarebbe il segnaposto "Not Available"). Una richiesta ogni 110 ms (Scryfall chiede al massimo ~10 al
-// secondo), risultati tenuti in memoria per la sessione.
+// sarebbe il segnaposto "Not Available"). Al ritmo di scryfallFetch (10 al secondo), risultati tenuti in memoria
+// per la sessione.
 const LOC = new Map(); // "set/numero/lingua" -> Promise<card | null>
-let nextSlot = 0;
-const slot = () => {
-  const now = Date.now();
-  const at = Math.max(now, nextSlot);
-  nextSlot = at + 110;
-  return sleep(at - now);
-};
 // Set, numero e lingua vengono anche da mazzi altrui: solo forme vere (niente "..", "/" o altro nel percorso), sennò null.
 const LOC_OK = (set, cn, lang) => /^[a-z0-9]{2,6}$/i.test(set) && /^[0-9a-z★†-]{1,12}$/i.test(cn) && /^[a-z]{2,3}$/.test(lang);
 export function localizedCard(set, cn, lang) {
@@ -268,7 +272,6 @@ export function localizedCard(set, cn, lang) {
   const k = `${set}/${cn}/${lang}`;
   if (!LOC.has(k)) {
     LOC.set(k, (async () => {
-      await slot();
       try {
         const res = await scryfallFetch(`https://api.scryfall.com/cards/${encodeURIComponent(set)}/${encodeURIComponent(cn)}/${lang}`);
         const card = await res.json();
