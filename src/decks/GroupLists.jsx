@@ -1,23 +1,27 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   listenGroupLists, listenGroupList, listenGroupCards, countGroupCards, createGroupList, renameGroupList, inviteToGroupList,
   removeFromGroupList, setGroupInvite, inviteLink, joinGroupList, leaveGroupList, deleteGroupList, addGroupCards, setGroupQty,
-  removeGroupCard, MAX_GROUP_QTY,
+  removeGroupCard, setGroupEdition, MAX_GROUP_QTY,
 } from './groupStore';
 import { getPublicProfile } from './deckStore';
-import { toPrintEntries } from './deckModel';
+import { toPrintEntries, snapshotFromCard } from './deckModel';
+import { cardsByIds } from './scryfallSearch';
 import { useCount } from './useCount';
 import { useSettings } from '../utils/settings';
 import { navigate } from '../hooks/useHashRoute';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
+import { useLongPress, menuPoint } from '../hooks/useLongPress';
 import { TileFrame, GhostTile } from './DeckList';
 import { NameFormatDialog } from './dialogs';
 import CardSearch from './CardSearch';
 import CardImg from './CardImg';
 import ConfirmDialog from '../components/ConfirmDialog';
+import CardMenu from '../components/CardMenu';
+import ArtPickerModal from '../components/ArtPickerModal';
 import {
-  IconArrowLeft, IconPlus, IconMinus, IconX, IconTrash, IconUsers, IconUserPlus, IconCopy, IconCrown, IconDeckPrint, IconLogOut, IconGlobe,
+  IconArrowLeft, IconPlus, IconMinus, IconX, IconTrash, IconUsers, IconUserPlus, IconCopy, IconCrown, IconDeckPrint, IconLogOut, IconGlobe, IconImage,
 } from '../components/icons';
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -93,13 +97,18 @@ function GroupTile({ list, uid }) {
 
 // Testata (indietro, nome: il creatore lo rinomina sul posto; Print, link d'invito, elimina / esci), membri (il creatore
 // invita per nickname e toglie gli altri), ricerca per aggiungere carte, poi le carte: ognuna col nickname di chi l'ha
-// messa; − + e togli solo sulle proprie (il creatore toglie anche quelle di chi non è più nella lista). Print manda tutte
-// le copie di tutti nella stampa, come Print deck.
+// messa. Sulle proprie click, tasto destro, Shift+F10 o pressione lunga aprono il menu (Add 1, Remove 1, Remove all,
+// Change edition); il creatore ha Remove all anche su quelle di chi non è più nella lista. Print manda tutte le copie di
+// tutti nella stampa, come Print deck.
 export function GroupListPage({ uid, id, notify, printQueueCount, onPrintDeck }) {
   const [list, setList] = useState(undefined); // undefined = caricamento, null = non c'è più
   const [rows, setRows] = useState(null);
   const [ask, setAsk] = useState(null); // 'delete' | 'leave' | 'print'
   const [err, setErr] = useState(null);
+  const [menu, setMenu] = useState(null); // { row, x, y }
+  const [edition, setEdition] = useState(null); // la riga a cui cambiare edizione
+  const press = useLongPress();
+  const closeMenu = useCallback(() => setMenu(null), []);
   const settings = useSettings();
   useEffect(() => listenGroupList(id, setList, (e) => { setList(null); setErr(e); }), [id]);
   const member = !!list;
@@ -126,6 +135,22 @@ export function GroupListPage({ uid, id, notify, printQueueCount, onPrintDeck })
   };
   const startPrint = () => (printQueueCount && !settings.printAdd ? setAsk('print') : print());
   const add = (card, { qty }) => addGroupCards(id, uid, [{ card, qty }]).catch(fail);
+  // Le proprie righe; il creatore anche quelle di chi è uscito (solo Remove all).
+  const canEdit = (r) => r.uid === uid || (owner && !list.members.includes(r.uid));
+  const menuItems = (r) => (r.uid !== uid ? [
+    { key: 'all', Icon: IconTrash, label: 'Remove all', danger: true, note: `${r.owner || nameOf(r.uid)} is not in the list any more`, run: () => removeGroupCard(id, r.id).catch(fail) },
+  ] : [
+    { key: 'add', Icon: IconPlus, label: 'Add 1', disabled: r.qty >= MAX_GROUP_QTY, note: `At most ${MAX_GROUP_QTY} copies`, run: () => setGroupQty(id, r.id, r.qty + 1).catch(fail) },
+    { key: 'less', Icon: IconMinus, label: 'Remove 1', run: () => (r.qty > 1 ? setGroupQty(id, r.id, r.qty - 1) : removeGroupCard(id, r.id)).catch(fail) },
+    { key: 'all', Icon: IconTrash, label: r.qty > 1 ? `Remove all (${r.qty})` : 'Remove all', danger: true, run: () => removeGroupCard(id, r.id).catch(fail) },
+    { key: 'ed', Icon: IconImage, label: 'Change edition', run: () => setEdition(r) },
+  ]);
+  const pickEdition = async (p) => {
+    const c = (await cardsByIds([p.id])).get(p.id);
+    if (!c) throw new Error('This print was not found on Scryfall.');
+    await setGroupEdition(id, edition, snapshotFromCard(c), rows).catch((e) => { throw new Error(errorText(e)); });
+    setEdition(null);
+  };
 
   return (
     <div className="decks-root decks-page group-page">
@@ -147,37 +172,37 @@ export function GroupListPage({ uid, id, notify, printQueueCount, onPrintDeck })
       </div>
       {rows === null ? <span className="import-spinner" aria-label="Loading" /> : !sorted.length ? (
         <p className="field-hint group-empty">No cards yet. Add them with the search above, or from a deck: right-click a card (long press on a phone), To group list.</p>
-      ) : (
+      ) : (<>
+        <p className="field-hint group-tip">Click, right-click or long-press a card you added: add or remove copies, change its edition.</p>
         <ul className="group-cards">
           {sorted.map((r) => {
             const mine = r.uid === uid;
             const by = r.owner || nameOf(r.uid);
+            const label = `${r.card.name}, ${r.qty} ${r.qty === 1 ? 'copy' : 'copies'}, by ${by}`;
+            const face = (
+              <>
+                <CardImg card={r.card} className="group-card-img" alt={label} />
+                <span className="group-card-qty" aria-hidden="true">{r.qty}</span>
+              </>
+            );
             return (
               <li key={r.id} className={`group-card${mine ? ' mine' : ''}`}>
-                <CardImg card={r.card} className="group-card-img" alt={`${r.card.name}, ${r.qty} ${r.qty === 1 ? 'copy' : 'copies'}, by ${by}`} />
-                <span className="group-card-qty" aria-hidden="true">{r.qty}</span>
+                {canEdit(r) ? (
+                  <button type="button" className="group-card-btn" aria-haspopup="menu" aria-label={`${label}. Options`} title="Options: click, right-click or long press"
+                    onClick={(e) => { if (!press.consumed()) setMenu({ row: r, ...menuPoint(e) }); }}
+                    onContextMenu={(e) => { e.preventDefault(); setMenu({ row: r, ...menuPoint(e) }); }}
+                    {...press.bind((x, y) => setMenu({ row: r, x, y }))}>{face}</button>
+                ) : face}
                 <span className="group-card-by">by {by}</span>
-                {mine && (
-                  <span className="group-card-actions">
-                    <button type="button" className="btn-secondary deck-icon-btn" aria-label={`One less ${r.card.name}`} title="One less"
-                      onClick={() => (r.qty > 1 ? setGroupQty(id, r.id, r.qty - 1) : removeGroupCard(id, r.id)).catch(fail)}><IconMinus size={14} /></button>
-                    <button type="button" className="btn-secondary deck-icon-btn" aria-label={`One more ${r.card.name}`} title="One more" disabled={r.qty >= MAX_GROUP_QTY}
-                      onClick={() => setGroupQty(id, r.id, r.qty + 1).catch(fail)}><IconPlus size={14} /></button>
-                    <button type="button" className="btn-secondary deck-icon-btn" aria-label={`Remove ${r.card.name}`} title="Remove"
-                      onClick={() => removeGroupCard(id, r.id).catch(fail)}><IconX size={14} /></button>
-                  </span>
-                )}
-                {/* Chi l'ha messa non è più nella lista: solo il creatore la toglie (le regole lo permettono solo così). */}
-                {!mine && owner && !list.members.includes(r.uid) && (
-                  <span className="group-card-actions">
-                    <button type="button" className="btn-secondary deck-icon-btn" aria-label={`Remove ${r.card.name}, added by ${by} who left the list`}
-                      title={`${by} is not in the list any more: remove`} onClick={() => removeGroupCard(id, r.id).catch(fail)}><IconX size={14} /></button>
-                  </span>
-                )}
               </li>
             );
           })}
         </ul>
+      </>)}
+      {menu && <CardMenu x={menu.x} y={menu.y} title={menu.row.card.name} items={menuItems(menu.row)} onClose={closeMenu} />}
+      {edition && (
+        <ArtPickerModal name={edition.card.name} current={{ set: edition.card.set, cn: edition.card.cn }} title={`Change edition, ${edition.card.name}`}
+          onClose={() => setEdition(null)} onPickPrint={pickEdition} />
       )}
       {createPortal(
         <>

@@ -104,6 +104,14 @@ export async function addGroupCards(id, uid, items) {
   }));
 }
 export const setGroupQty = (id, rowId, qty) => updateDoc(doc(cardsCol(id), rowId), { qty });
+// Cambio di edizione di una propria riga (stessa carta: le regole tengono l'oracle id). Se un'altra propria riga ha già
+// quella stampa, le copie vanno lì (al massimo MAX_GROUP_QTY) e questa riga si toglie.
+export async function setGroupEdition(id, row, card, rows) {
+  const twin = rows.find((r) => r.id !== row.id && r.uid === row.uid && r.card.sid === card.sid);
+  if (!twin) return updateDoc(doc(cardsCol(id), row.id), { card: dilemmaCard(card) });
+  await updateDoc(doc(cardsCol(id), twin.id), { qty: Math.min(MAX_GROUP_QTY, twin.qty + row.qty) });
+  return deleteDoc(doc(cardsCol(id), row.id));
+}
 export const removeGroupCard = (id, rowId) => deleteDoc(doc(cardsCol(id), rowId));
 
 // Delete account: le liste create si eliminano, da quelle degli altri si esce (con le proprie carte).

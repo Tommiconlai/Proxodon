@@ -393,8 +393,9 @@ service cloud.firestore {
             && request.resource.data.members.toSet() == resource.data.members.toSet().union([request.auth.uid].toSet())));
       allow delete: if verified() && resource.data.owner == request.auth.uid;
       // Carte: le legge ogni membro; le aggiunge un membro (firmate col suo uid, il nickname come nei voti, la carta come
-      // quelle dei dilemmi, 1-99 copie, data del server); le copie le cambia e la riga la toglie solo chi l'ha messa. Il
-      // creatore toglie quelle degli altri solo se non sono più membri o mentre elimina la lista (deleted).
+      // quelle dei dilemmi, 1-99 copie, data del server); copie ed edizione (la stessa carta: stesso oid) le cambia e la
+      // riga la toglie solo chi l'ha messa. Il creatore toglie quelle degli altri solo se non sono più membri o mentre
+      // elimina la lista (deleted).
       match /cards/{rowId} {
         function list() {
           return get(/databases/$(db)/documents/groupLists/$(listId)).data;
@@ -408,8 +409,10 @@ service cloud.firestore {
           && (request.resource.data.get('owner', null) == null || (request.resource.data.owner is string
             && get(/databases/$(db)/documents/usernames/$(request.resource.data.owner.lower())).data.uid == request.auth.uid));
         allow update: if verified() && resource.data.uid == request.auth.uid && request.auth.uid in list().members
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qty'])
-          && request.resource.data.qty is int && request.resource.data.qty >= 1 && request.resource.data.qty <= 99;
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qty', 'card'])
+          && request.resource.data.qty is int && request.resource.data.qty >= 1 && request.resource.data.qty <= 99
+          && request.resource.data.card is map && card(request.resource.data.card)
+          && request.resource.data.card.oid == resource.data.card.oid;
         allow delete: if verified() && (resource.data.uid == request.auth.uid
           || (list().owner == request.auth.uid && (list().get('deleted', false) == true || !(resource.data.uid in list().members))));
       }
