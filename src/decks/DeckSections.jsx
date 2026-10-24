@@ -18,7 +18,7 @@ import CardImg from './CardImg';
 import { CardFrame, CardFrameDefs } from '../components/CardFrame';
 import { useCardImg } from './cardLang';
 import { PREVIEW, previewAt } from './hoverPreview';
-import { useSettings, setSetting } from '../utils/settings';
+import { useSettings, setDeckView } from '../utils/settings';
 import {
   IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy, IconFlip, IconPrinter, IconEye, IconX, IconScale, IconLifebuoy, IconZap,
 } from '../components/icons';
@@ -113,13 +113,14 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   // sempre nello stesso verso; dispari = retro. Solo su questo schermo, non si salva.
   const [flipped, setFlipped] = useState(() => new Map());
   const flip = (id) => setFlipped((prev) => new Map(prev).set(id, (prev.get(id) || 0) + 1));
-  // Vista, ordine, anteprima e densità dalle impostazioni del dispositivo (Settings); i menu View by e
-  // Sort by le cambiano per tutti i mazzi. Default: stack ordinati per nome.
+  // Vista e ordine: quelli scelti in questo mazzo (Settings, deckViews per id del mazzo), sennò i default di Settings;
+  // i menu View by e Sort by li cambiano solo per questo mazzo. Anteprima e densità: solo da Settings.
   const settings = useSettings();
-  const view = VIEWS.some((v) => v.id === settings.deckView) ? settings.deckView : 'stacks';
-  const sort = SORT_MODES.some((m) => m.id === settings.deckSort) ? settings.deckSort : 'name';
-  const setView = (v) => setSetting('deckView', v);
-  const setSort = (v) => setSetting('deckSort', v);
+  const own = settings.deckViews[deck.id] || {};
+  const view = [own.view, settings.deckView].find((v) => VIEWS.some((x) => x.id === v)) || 'stacks';
+  const sort = [own.sort, settings.deckSort].find((v) => SORT_MODES.some((x) => x.id === v)) || 'name';
+  const setView = (v) => deck.id && setDeckView(deck.id, { view: v });
+  const setSort = (v) => deck.id && setDeckView(deck.id, { sort: v });
   const previewW = PREVIEW[settings.preview] ?? PREVIEW.medium;
   const [allCopies, setAllCopies] = useState(false); // Split oltre SPLIT_MAX copie, chiesto da chi guarda
   const [dialog, setDialog] = useState(null); // { id?, name?, moveIds? } nuova sezione o rinomina

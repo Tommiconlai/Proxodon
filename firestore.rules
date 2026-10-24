@@ -45,6 +45,14 @@ service cloud.firestore {
       allow create: if owner(uid) && validProfile(uid, request.resource.data);
       allow update: if owner(uid) && validProfile(uid, request.resource.data) && nickFreed(request.resource.data);
     }
+    // Impostazioni dell'account (pagina Settings): un documento solo, prefs = { s, at }, solo del proprietario. s è una
+    // mappa che il client ripulisce leggendola (cleanSettings: solo le chiavi note, col tipo giusto), at l'ora del server.
+    match /users/{uid}/settings/{docId} {
+      allow read, delete: if owner(uid);
+      allow create, update: if owner(uid) && docId == 'prefs'
+        && request.resource.data.keys().hasOnly(['s', 'at']) && request.resource.data.s is map
+        && request.resource.data.at == request.time;
+    }
     // Le date "at" (tracce, like, voti, risposte) sono sempre l'ora del server: nessuno le sceglie.
     // Dilemmi a cui l'account ha risposto (contatore del profilo): solo suoi.
     match /users/{uid}/answered/{id} {

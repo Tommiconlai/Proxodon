@@ -340,6 +340,8 @@ export function deleteReply(uid, deckId, hId, rUid) {
 // displayName di Firebase Auth), since (iscrizione, per la pagina pubblica). Lo legge chiunque abbia un account
 // (pagina pubblica, ripulita da cleanProfile), lo scrive solo il proprietario.
 const profileDoc = (uid) => doc(db, 'users', uid);
+// Impostazioni dell'account (settingsSync): un documento solo, privato.
+export const prefsDoc = (uid) => doc(db, 'users', uid, 'settings', 'prefs');
 export const getPublicProfile = (uid) => getDoc(profileDoc(uid)).then((s) => cleanProfile(s.exists() ? s.data() : null));
 // Mazzi pubblici di un utente (pagina pubblica del profilo): le sue voci dell'indice, i più recenti prima.
 export const listenUserDecks = (uid, onChange, onError) =>
@@ -467,6 +469,8 @@ export async function deleteUserData(uid) {
   const follows = (ref) => getDocs(ref).then((qs) => qs.docs, (e) => { if (e.code !== 'permission-denied') errors.push(e); return []; });
   await settle((await follows(followingCol(uid))).map((f) => pair(doc(followersCol(f.id), uid), f.ref)));
   await settle((await follows(followersCol(uid))).map((f) => pair(doc(followingCol(f.id), uid), f.ref)));
+  // Impostazioni dell'account; regole di prima (niente accesso): non ci sono, non è un errore.
+  await settle([deleteDoc(prefsDoc(uid)).catch((e) => { if (e.code !== 'permission-denied') throw e; })]);
   await settle([getDoc(profileDoc(uid)).then((s) => {
     const nick = s.data()?.nickname;
     const batch = writeBatch(db);

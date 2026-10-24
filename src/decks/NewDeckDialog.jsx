@@ -12,7 +12,7 @@ import { getSettings } from '../utils/settings';
 export default function NewDeckDialog({ onClose, onCreate }) {
   const [name, setName] = useState('');
   const [format, setFormat] = useState(() => getSettings().deckFormat);
-  const [pub, setPub] = useState(false);
+  const [pub, setPub] = useState(() => getSettings().deckPublic);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);

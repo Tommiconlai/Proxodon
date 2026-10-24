@@ -489,7 +489,7 @@ function editorSteps(mobile) {
   };
   const organize = {
     target: '.deck-toolbar', title: 'Group, sort and view',
-    text: `Group by type, mana value or your own sections${mobile ? ' (New section is the last option of Group by)' : ''}. Sort and View apply to every deck.`,
+    text: `Group by type, subtype, mana value, color, rarity, set, artist or your own sections${mobile ? ' (New section is the last option of Group by)' : ''}. The deck keeps the Sort and View you pick; the defaults are in Settings.`,
     play: (g) => g.click('.deck-toolbar .deck-tool:nth-of-type(3) select', mobile ? 'Tap' : 'Group by', () => g.api.update((d) => ({ ...d, groupBy: 'mv' }))),
   };
   // Da telefono niente schede: Stats, Dilemmas e Help stanno sotto le carte, si scende fino alla sezione.
@@ -746,16 +746,22 @@ const profileSteps = () => [{
 
 const settingsSteps = () => [{
   target: '.settings-note', title: 'Settings',
-  text: 'Your account, plus preferences saved on this device. This is a demo copy: nothing you see here changes.',
+  text: 'Your account and your settings, saved in your account so they follow you on every device. This is a demo copy: nothing you see here changes.',
 }, {
   target: '#tut-set-account', title: 'Account',
   text: 'Email and how you sign in. With email and password you change the password here.',
 }, {
-  target: '#tut-set-decks', title: 'Decks',
-  text: 'Format and grouping of new decks, and the view and sort of every deck.',
+  target: '#tut-set-decks', title: 'New decks',
+  text: 'Format, grouping and visibility of the decks you create.',
 }, {
-  target: '#tut-set-lang', title: 'Card language',
-  text: 'Card images in your language when Scryfall has them, in decks and in Print deck.',
+  target: '#tut-set-display', title: 'Display',
+  text: 'The default view and sort of every deck (a deck keeps the ones you pick in it), the list, the card preview and Commander brackets.',
+}, {
+  target: '#tut-set-cards', title: 'Cards',
+  text: 'Card images in your language when Scryfall has them, in decks and in Print deck, and the currency of deck prices.',
+}, {
+  target: '#tut-set-printing', title: 'Preferred printing',
+  text: 'Which printing you get when you add a card from the search: the one you chose for that card, then your sets in order, then a rule (newest, oldest, cheapest).',
 }, {
   target: '#tut-set-backup', title: 'Backup',
   text: 'Download all your decks as one file. Restore adds the decks of a backup to the ones you have.',

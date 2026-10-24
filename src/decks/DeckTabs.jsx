@@ -3,6 +3,7 @@ import CardMenu from '../components/CardMenu';
 import { boardCounts, countTarget, countOk, deckTags, BRACKETS, gameChangers, autoBracket, deckBracket } from './deckModel';
 import { IconArrowUp, IconDeckFilter } from '../components/icons';
 import { badgeText } from '../hooks/useBadges';
+import { useSettings } from '../utils/settings';
 
 const TABS = [['deck', 'Deck'], ['stats', 'Stats'], ['dilemmas', 'Dilemmas'], ['help', 'Help']];
 
@@ -101,11 +102,12 @@ export function ListBand({ items, current }) {
 // Commander bracket accanto al nome (solo mazzi Commander). Con update (mazzo proprio) la pillola apre un menu con
 // le stesse pillole: Bracket 1-5 e None (spento). Scegliere il bracket calcolato dai Game Changer torna all'automatico
 // (segue le carte), gli altri restano fissi. Spento resta qui sbiadito, per riaccenderlo. Senza update (mazzo altrui)
-// solo la pillola, niente se è spento.
+// solo la pillola, niente se è spento. Bracket spenti in Settings (brackets): niente, in tutti i mazzi.
 export function DeckBracket({ deck, update }) {
   const [menu, setMenu] = useState(null); // { x, y }
   const closeMenu = useCallback(() => setMenu(null), []);
-  if (deck.format !== 'commander') return null;
+  const { brackets } = useSettings();
+  if (deck.format !== 'commander' || !brackets) return null;
   const b = deckBracket(deck);
   const n = gameChangers(deck);
   const auto = autoBracket(deck);

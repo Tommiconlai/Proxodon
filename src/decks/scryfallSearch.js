@@ -83,6 +83,47 @@ export async function cardsByIds(ids) {
   return out;
 }
 
+// Stampa preferita di una carta aggiunta dalla ricerca (Settings, Preferred printing): quella scelta per la carta
+// (favPrints, per oracle id), poi il primo dei set preferiti (prefSets, in ordine) in cui esiste, poi la regola
+// (printRule: newest, oldest, cheapest col prezzo della valuta di Settings, EUR se è spenta). Niente di questo, o
+// Scryfall che non risponde: la carta com'è arrivata (la stampa di default di Scryfall).
+const RULES = { newest: 'released&dir=desc', oldest: 'released&dir=asc' };
+const printsOf = async (q, order) => {
+  try {
+    const res = await scryfallFetch(`${API}/cards/search?q=${encodeURIComponent(`${q} game:paper`)}&unique=prints&order=${order}`);
+    return (await res.json()).data || [];
+  } catch (e) {
+    if (e.status === 404) return []; // nessuna stampa
+    throw e;
+  }
+};
+export async function preferredPrint(card, s) {
+  const oid = card.oracle_id || card.card_faces?.[0]?.oracle_id;
+  if (!oid) return card;
+  try {
+    const fav = s.favPrints[oid];
+    if (typeof fav?.sid === 'string') return (await cardsByIds([fav.sid])).get(fav.sid) || card;
+    const sets = s.prefSets.map((x) => x?.code).filter((c) => typeof c === 'string' && /^[a-z0-9]+$/.test(c));
+    if (sets.length) {
+      const found = await printsOf(`oracleid:${oid} (${sets.map((c) => `e:${c}`).join(' or ')})`, 'released');
+      const hit = sets.map((c) => found.find((p) => p.set === c)).find(Boolean);
+      if (hit) return hit;
+    }
+    if (s.printRule === 'cheapest') {
+      const cur = s.currency === 'usd' ? 'usd' : 'eur';
+      return (await printsOf(`oracleid:${oid}`, `${cur}&dir=asc`)).find((p) => Number(p.prices?.[cur]) > 0) || card;
+    }
+    if (RULES[s.printRule]) return (await printsOf(`oracleid:${oid}`, RULES[s.printRule]))[0] || card;
+  } catch { /* Scryfall giù: la stampa di default */ }
+  return card;
+}
+
+// Set di carta (niente digitali) per i set preferiti di Settings, i più nuovi prima: { code, name }. Una volta per sessione.
+let setsP = null;
+export const paperSets = () => (setsP ??= scryfallFetch(`${API}/sets`).then((r) => r.json())
+  .then((j) => (j.data || []).filter((x) => !x.digital).map((x) => ({ code: x.code, name: x.name })))
+  .catch((e) => { setsP = null; throw e; }));
+
 // Token che creano le righe del mazzo, dagli all_parts di Scryfall, uno per oracle (un Treasure creato da tre carte
 // compare una volta) con le carte che lo creano (from), in ordine di nome. Risposte in cache per la sessione:
 // aggiungendo una carta si chiede solo lei. Li usano la sezione Tokens (DeckTokens) e Print deck (DeckEditor).

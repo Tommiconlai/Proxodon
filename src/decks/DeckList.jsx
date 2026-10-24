@@ -16,6 +16,7 @@ import { ManaPips } from './Mana';
 import { CutFrame } from './CutFrame';
 import { NameFormatDialog, ExportDeckDialog } from './dialogs';
 import { timeAgo } from '../utils/timeAgo';
+import { useSettings } from '../utils/settings';
 import NewDeckDialog from './NewDeckDialog';
 import { useCount } from './useCount';
 import { ListBand } from './DeckTabs';
@@ -88,7 +89,8 @@ export function DeckTile({ deck: d, by, stats, ...props }) {
   const identity = d.ci ?? deckIdentity(d);
   const n = Math.max(1, identity.length);
   const format = formatLabel(d.format);
-  const bracket = Array.isArray(d.cards) ? deckBracket(d) : d.bracket; // voce dell'indice: già calcolato
+  // Voce dell'indice: già calcolato. Bracket spenti in Settings: niente.
+  const bracket = useSettings().brackets && (Array.isArray(d.cards) ? deckBracket(d) : d.bracket);
   // Pillola dei simboli: 13.5 l'uno a passi di 18.5, 7 di margine; tasca = pillola + 4 di vuoto.
   const cuts = { tl: [18.5 * n + 13, 26], br: [48, 26], ...(helping ? { tr: [32, 32] } : {}) };
   return (

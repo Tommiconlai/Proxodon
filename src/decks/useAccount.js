@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useState } from 'react';
 import { watchUser, needsVerification } from './firebase';
 import { listenProfile } from './deckStore';
+import { syncSettings } from './settingsSync';
 
 // Utente (undefined = in verifica, null = non loggato), documento profilo (foto e sfondo come data URL,
 // nickname) e rerender, che dopo reload() aggiorna l'utente sul posto.
@@ -14,5 +15,9 @@ export function useAccount() {
   // Solo da verificato: prima le regole rifiutano la lettura. Errore del listener: resta l'ultimo profilo noto
   // (azzerarlo farebbe sembrare il nickname vuoto, e un nuovo nickname partirebbe senza liberare il vecchio).
   useEffect(() => (ready ? listenProfile(uid, setProfile, () => {}) : undefined), [uid, ready]);
+  // Impostazioni sull'account (settingsSync), da verificato; uscendo si fermano. Mentre l'utente è ancora in verifica
+  // (undefined, un componente appena montato) niente: fermerebbe la sincronizzazione avviata da un altro.
+  const known = user !== undefined;
+  useEffect(() => { if (known) syncSettings(ready ? uid : null); }, [known, uid, ready]);
   return { user, profile, photo: profile?.photo || null, ready, rerender };
 }
