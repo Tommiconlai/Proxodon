@@ -122,29 +122,48 @@ export function imageFaces(card) {
 
 /**
  * Tutte le stampe (printings) di una carta, per scambiare l'art. `unique = 'art'` = una per
- * illustrazione (foto profilo). Solo prima pagina (175 max); +paginazione se serve.
+ * illustrazione (foto profilo). Tutte le pagine (175 l'una, dalla più nuova): le terre base ne hanno 800 e
+ * più, e con la sola prima pagina le edizioni prima del 2022 (es. Unstable) mancavano. Ogni pagina vuole
+ * qualche secondo: dopo la prima le altre partono insieme (100 ms l'una dall'altra, come chiede Scryfall) e
+ * onPage(stampe finora) arriva a ogni pagina, per mostrarle subito.
  * @returns {Promise<{id,set,setName,thumb,png,art}[]>}
  */
 // Nome con cui "Cambia art" cerca le stampe: il filename senza estensione.
 // Due carte sono "la stessa" (cambio art multiplo consentito) se coincide.
 export const artName = (item) => item.file.name.replace(/\.[a-z0-9]+$/i, '');
 
-export async function fetchPrints(name, unique = 'prints') {
+export async function fetchPrints(name, unique = 'prints', onPage) {
   const q = encodeURIComponent(`!"${name}" game:paper`);
-  const res = await fetch(`https://api.scryfall.com/cards/search?q=${q}&unique=${unique}&order=released`, { signal: timeoutSignal() });
-  if (res.status === 404) return []; // nessuna stampa
-  if (!res.ok) throw new Error(`Scryfall responded ${res.status}`);
-  const json = await res.json();
+  const url = `https://api.scryfall.com/cards/search?q=${q}&unique=${unique}&order=released`;
+  let first;
+  try {
+    first = await (await scryfallFetch(url)).json();
+  } catch (e) {
+    if (e.status === 404) return []; // nessuna stampa
+    throw e;
+  }
   // Per le DFC: scegli la faccia il cui nome combacia con quello cercato (fronte
   // o retro), così cambiando l'art del retro non si prende l'immagine del fronte.
   const target = name.trim().toLowerCase();
-  return (json.data || [])
-    .map((c) => {
-      const face = c.card_faces?.find((f) => f.name?.toLowerCase() === target);
-      const u = face?.image_uris || c.image_uris || c.card_faces?.[0]?.image_uris || {};
-      return { id: c.id, set: (c.set || '').toUpperCase(), collector: c.collector_number || '', setName: c.set_name || '', artist: c.artist || '', year: (c.released_at || '').slice(0, 4), thumb: u.small || u.normal, png: u.png || u.large, art: u.art_crop, fullArt: !!c.full_art, borderless: c.border_color === 'borderless' };
-    })
-    .filter((p) => p.thumb && p.png);
+  const toPrint = (c) => {
+    const face = c.card_faces?.find((f) => f.name?.toLowerCase() === target);
+    const u = face?.image_uris || c.image_uris || c.card_faces?.[0]?.image_uris || {};
+    return { id: c.id, set: (c.set || '').toUpperCase(), collector: c.collector_number || '', setName: c.set_name || '', artist: c.artist || '', year: (c.released_at || '').slice(0, 4), thumb: u.small || u.normal, png: u.png || u.large, art: u.art_crop, fullArt: !!c.full_art, borderless: c.border_color === 'borderless' };
+  };
+  const pages = [first.data || []]; // per numero di pagina: l'ordine resta quello di Scryfall
+  const list = () => pages.filter(Boolean).flat().map(toPrint).filter((p) => p.thumb && p.png);
+  // Le pagine dopo la prima: page=2, 3, ... (quante ne servono per total_cards).
+  const n = first.has_more && pages[0].length ? Math.ceil((first.total_cards || 0) / pages[0].length) : 1;
+  if (n > 1) {
+    onPage?.(list());
+    await Promise.all(Array.from({ length: n - 1 }, async (_, k) => {
+      await sleep(100 * k);
+      const j = await (await scryfallFetch(`${url}&page=${k + 2}`)).json();
+      pages[k + 1] = j.data || [];
+      onPage?.(list());
+    }));
+  }
+  return list();
 }
 
 /** Scarica un'immagine come File (riusa la pipeline esistente). */

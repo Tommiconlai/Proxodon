@@ -11,6 +11,7 @@ export default function ArtPickerModal({ card, name: nameProp, title, current, c
     // Nome dedotto dal filename; DFC / caratteri speciali -> niente stampe.
     const name = nameProp || artName(card);
     const [prints, setPrints] = useState(null); // null = caricamento, [] = nessuna
+    const [all, setAll] = useState(false); // tutte le pagine arrivate (le carte con tante stampe ne hanno diverse)
     const [error, setError] = useState(null);
     const [picking, setPicking] = useState(false);
     // Filtro locale sulle stampe già scaricate: ogni parola deve comparire in set, codice,
@@ -29,8 +30,8 @@ export default function ArtPickerModal({ card, name: nameProp, title, current, c
 
     useEffect(() => {
         let alive = true;
-        fetchPrints(name)
-            .then((p) => { if (alive) setPrints(p); })
+        fetchPrints(name, 'prints', (p) => { if (alive) setPrints(p); })
+            .then((p) => { if (alive) { setPrints(p); setAll(true); } })
             .catch((e) => { if (alive) setError(e.message || 'Scryfall error.'); });
         return () => { alive = false; };
     }, [name]);
@@ -74,6 +75,7 @@ export default function ArtPickerModal({ card, name: nameProp, title, current, c
                         />
                         <span className="art-search-count" aria-live="polite">
                             {shown.length === prints.length ? `${prints.length} printings` : `${shown.length} of ${prints.length}`}
+                            {!all && !error && <> <span className="import-spinner" /> loading more…</>}
                         </span>
                     </div>
                 )}
