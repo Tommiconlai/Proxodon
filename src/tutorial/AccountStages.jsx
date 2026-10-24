@@ -81,7 +81,7 @@ export function SettingsStage({ mobile, step }) {
   }, [step, mobile]);
   return (
     <Shell mobile={mobile}>
-      <div className="decks-root profile-page">
+      <div className="decks-root profile-page settings-page">
         <header className="decks-head"><h2 className="decks-title">Settings</h2></header>
         <p className="settings-note">Settings are saved in your account and follow you on every device.</p>
         <div className="profile-grid">
@@ -90,11 +90,13 @@ export function SettingsStage({ mobile, step }) {
               <dt>Email</dt><dd>{demoUser.email}<span className="profile-badge ok">verified</span></dd>
               <dt>Sign-in</dt><dd>Email and password</dd>
             </dl>
-            <h4 className="settings-sub">Password</h4>
-            <div className="profile-form">
-              <input type="password" className="import-link-input" placeholder="Current password" aria-label="Current password" readOnly />
-              <input type="password" className="import-link-input" placeholder="New password, at least 6 characters" aria-label="New password" readOnly />
-              <button type="button" className="btn-secondary signin-submit">Change password</button>
+            <div className="settings-block">
+              <h4 className="settings-sub">Password</h4>
+              <div className="profile-form">
+                <input type="password" className="import-link-input" placeholder="Current password" aria-label="Current password" readOnly />
+                <input type="password" className="import-link-input" placeholder="New password, at least 6 characters" aria-label="New password" readOnly />
+                <button type="button" className="btn-secondary signin-submit">Change password</button>
+              </div>
             </div>
           </Card>
           <Card id="tut-set-decks" title="New decks">

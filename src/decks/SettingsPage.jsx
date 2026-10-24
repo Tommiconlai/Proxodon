@@ -104,7 +104,7 @@ export default function SettingsPage({ user, notify }) {
   };
 
   return (
-    <div className="decks-root profile-page">
+    <div className="decks-root profile-page settings-page">
       <header className="decks-head">
         <h2 className="decks-title">Settings</h2>
       </header>
@@ -119,10 +119,12 @@ export default function SettingsPage({ user, notify }) {
             </dd>
             <dt>Sign-in</dt><dd>{providers.map((p) => PROVIDERS[p] || p).join(', ')}</dd>
           </dl>
-          <h4 className="settings-sub">Password</h4>
-          {providers.includes('password')
-            ? <PasswordForm email={user.email} />
-            : <p className="profile-note">You sign in with Google, so your password is managed by your Google account.</p>}
+          <div className="settings-block">
+            <h4 className="settings-sub">Password</h4>
+            {providers.includes('password')
+              ? <PasswordForm email={user.email} />
+              : <p className="profile-note">You sign in with Google, so your password is managed by your Google account.</p>}
+          </div>
         </Card>
         <Card id="settings-decks" title="New decks">
           <Choice k="deckFormat" label="Format" options={FORMATS} />

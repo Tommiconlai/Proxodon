@@ -2335,9 +2335,12 @@ input[type="range"]::-webkit-slider-thumb:hover {
 /* Lista mazzi, profilo e Settings: contenuto in una colonna centrata (vince su .deck-grid e .decks-empty). */
 .decks-root:is(.profile-page, .decks-page) > :not(.modal-overlay) { max-width: 1240px; margin-inline: auto; } /* gli sfondi dei dialoghi restano a tutto schermo */
 /* Schede di Settings; una colonna su telefono. */
-/* Riquadri di Settings in colonne da almeno 290 px, uno sotto l'altro: niente buchi sotto i riquadri corti. */
-.profile-grid { columns: 290px; column-gap: 16px; }
-.profile-grid > .profile-card { break-inside: avoid; margin-bottom: 16px; }
+/* Riquadri di Settings a tutta larghezza, uno sotto l'altro; dentro, i campi in colonne da almeno 260 px e a tutta riga
+   titolo, note, sottotitoli e righe con pulsante. */
+.profile-grid { display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px; }
+.settings-page .profile-card { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px 28px; align-items: start; }
+.settings-page .profile-card > :is(.profile-h, .profile-note, .settings-sub, .settings-inline, .settings-cols) { grid-column: 1 / -1; }
+.settings-page .profile-card > .checkbox-row { align-self: end; min-height: 40px; }
 .profile-card {
   min-width: 0;
   display: flex; flex-direction: column; gap: 14px;
@@ -2544,7 +2547,8 @@ span.profile-avatar { cursor: default; }
 .settings-hint { margin: 0; font-size: 0.78rem; line-height: 1.45; color: var(--text-muted); }
 /* Settings: sottotitolo dentro un riquadro (Password nell'Account), riga testo + pulsante, Preferred printing a tutta
    larghezza con due colonne quando c'è posto, campo + pulsante, liste di set (numerate) e carte. */
-.settings-sub { margin: 4px 0 -4px; font-size: 0.8rem; font-weight: 600; color: var(--text-primary); }
+.settings-sub { margin: 0; font-size: 0.8rem; font-weight: 600; color: var(--text-primary); }
+.settings-block { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .settings-inline { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .profile-card.settings-wide { margin-top: 0; }
 .settings-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px 28px; align-items: start; }
