@@ -93,7 +93,8 @@ function GroupTile({ list, uid }) {
 
 // Testata (indietro, nome: il creatore lo rinomina sul posto; Print, link d'invito, elimina / esci), membri (il creatore
 // invita per nickname e toglie gli altri), ricerca per aggiungere carte, poi le carte: ognuna col nickname di chi l'ha
-// messa; − + e togli solo sulle proprie. Print manda tutte le copie di tutti nella stampa, come Print deck.
+// messa; − + e togli solo sulle proprie (il creatore toglie anche quelle di chi non è più nella lista). Print manda tutte
+// le copie di tutti nella stampa, come Print deck.
 export function GroupListPage({ uid, id, notify, printQueueCount, onPrintDeck }) {
   const [list, setList] = useState(undefined); // undefined = caricamento, null = non c'è più
   const [rows, setRows] = useState(null);
@@ -164,6 +165,13 @@ export function GroupListPage({ uid, id, notify, printQueueCount, onPrintDeck })
                       onClick={() => setGroupQty(id, r.id, r.qty + 1).catch(fail)}><IconPlus size={14} /></button>
                     <button type="button" className="btn-secondary deck-icon-btn" aria-label={`Remove ${r.card.name}`} title="Remove"
                       onClick={() => removeGroupCard(id, r.id).catch(fail)}><IconX size={14} /></button>
+                  </span>
+                )}
+                {/* Chi l'ha messa non è più nella lista: solo il creatore la toglie (le regole lo permettono solo così). */}
+                {!mine && owner && !list.members.includes(r.uid) && (
+                  <span className="group-card-actions">
+                    <button type="button" className="btn-secondary deck-icon-btn" aria-label={`Remove ${r.card.name}, added by ${by} who left the list`}
+                      title={`${by} is not in the list any more: remove`} onClick={() => removeGroupCard(id, r.id).catch(fail)}><IconX size={14} /></button>
                   </span>
                 )}
               </li>
