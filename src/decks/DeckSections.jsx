@@ -632,6 +632,13 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
                 {z.label} <span className="n">{z.n}</span>
               </div>
             ))}
+            {/* To group list: le righe trascinate (una copia con Alt) vanno alla scelta della lista; il mazzo non cambia. */}
+            {onGroup && (
+              <div data-zone="zone-group" className={`deck-drop-zone group${dropKey === 'zone-group' ? ' drop-target' : ''}`}
+                {...dropProps('zone-group', null, undefined, (drag) => onGroup(deck.cards.filter((r) => drag.ids.includes(r.id)).map((r) => (drag.one ? { ...r, qty: 1 } : r))))}>
+                <IconUsers size={14} /> To group list
+              </div>
+            )}
             <div data-zone="zone-remove" className={`deck-drop-zone remove${dropKey === 'zone-remove' ? ' drop-target' : ''}`}
               {...dropProps('zone-remove', null, undefined, (drag) => removeWithUndo(deck.cards.filter((r) => drag.ids.includes(r.id))))}>
               <IconTrash size={14} /> Remove

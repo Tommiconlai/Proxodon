@@ -51,7 +51,7 @@ export default function DeckHelp({ editor }) {
         <ol>
           <li><b>Add cards</b>. Type a name in the search bar and pick it with ↑↓. <b>Enter</b> adds 1, <b>Shift+Enter</b> 4, <b>Alt+Enter</b> goes to the sideboard (maybeboard in Commander). <b>Advanced search</b> has filters, and its <b>+</b> takes the same keys.</li>
           <li><b>Select</b>. Click a card to select or deselect it, <b>Shift+click</b> for a range, or drag on an empty spot to select an area. Click outside or press <b>Esc</b> to clear.</li>
-          <li><b>Move</b>. Drag cards between main deck, sideboard, maybeboard and your sections, or onto the zones that appear bottom left while you drag. <b>Alt+drag</b> moves one copy.</li>
+          <li><b>Move</b>. Drag cards between main deck, sideboard, maybeboard and your sections, or onto the zones that appear bottom left while you drag (<b>To group list</b> there sends them to a group list, the deck keeps them). <b>Alt+drag</b> moves one copy.</li>
           <li><b>Options</b>. Right-click a card, or the selection: change edition, split, set as commander, move, send to a group list (the deck keeps it), remove. Hover a card for <b>+</b> and <b>−</b>.</li>
           <li><b>Organize</b>. <b>Group</b>, <b>Sort</b> and <b>View</b> above the cards. <b>New section</b> makes your own groups.</li>
           <li><b>Tokens</b>. Under the maybeboard, the tokens your cards create. <b>Make custom</b>, the round button on each token, opens it in Tokens with its text written: you add the art. Hover a token to see which cards create it. Print deck asks whether to print them too, one of each.</li>

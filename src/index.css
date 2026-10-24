@@ -4042,6 +4042,8 @@ span.deck-hero-art { cursor: default; }
 .deck-drop-zone.from { border-style: solid; border-color: rgba(255, 255, 255, 0.12); color: rgba(255, 255, 255, 0.3); cursor: not-allowed; } /* fondo pieno: le carte sotto non traspaiono */
 .deck-drop-zone.from .n { color: rgba(0, 229, 255, 0.35); }
 .deck-drop-zone.remove { align-items: center; justify-content: center; gap: 8px; border-color: rgba(255, 77, 109, 0.6); color: var(--danger); }
+.deck-drop-zone.group { align-items: center; justify-content: center; gap: 8px; border-color: rgba(0, 229, 255, 0.6); color: var(--cyan); }
+.deck-drop-zone.group.drop-target { border-color: var(--cyan); color: #fff; background: rgba(0, 229, 255, 0.16); box-shadow: 0 0 18px var(--cyan-glow); }
 .deck-drop-zone.remove.drop-target { border-color: var(--danger); color: #fff; background: rgba(255, 77, 109, 0.22); box-shadow: 0 0 18px rgba(255, 77, 109, 0.45); }
 
 /* ============================================================
