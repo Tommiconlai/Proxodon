@@ -149,7 +149,7 @@ export function SettingsStage({ mobile, step }) {
         </section>
         <section className="profile-card settings-danger" id="tut-set-delete" aria-labelledby="tut-set-delete-h">
           <h3 id="tut-set-delete-h" className="profile-h">Delete account</h3>
-          <p className="profile-note">Delete your account, your decks with their Community copies, dilemmas and help requests, your settings, and your votes, replies and likes. This can’t be undone.</p>
+          <p className="profile-note">Delete your account, your decks with their Community copies, dilemmas and help requests, the group lists you created, the cards you added to the others, your settings, and your votes, replies and likes. This can’t be undone.</p>
           <button type="button" className="btn-secondary settings-btn settings-delete"><IconTrash size={15} /> Delete account and data</button>
         </section>
       </div>

@@ -9,6 +9,7 @@ import { DeckBand, DeckTitle, DeckCount, DeckTopBar, DeckTagList, DeckBracket, B
 import { DeckDilemmas } from './Dilemmas';
 import { DeckHelps, HelpQuestion, HelpReply } from './HelpRequests';
 import { ExportDeckDialog } from './dialogs';
+import { ToGroupListDialog } from './GroupLists';
 import { IconCopy, IconDeckExport, IconDeckHeart } from '../components/icons';
 
 const STUCK_AT = 64; // px: la barra delle schede (padding + 40 px), come STUCK_AT nell'editor
@@ -24,6 +25,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
   const [help, setHelp] = useState(undefined); // la richiesta (helpId): undefined = caricamento, null = non c'è più
   useEffect(() => (helpId ? listenHelp(id, helpId, setHelp, () => setHelp(null)) : undefined), [id, helpId]);
   const [exportOpen, setExportOpen] = useState(false);
+  const [groupRows, setGroupRows] = useState(null); // To group list dal menu delle carte
   const [tab, setTab] = useState('deck');
   const heroRef = useRef(null);
   const scrollRef = useRef(null); // .deck-scroll: Back to top della barra in cima (DeckTopBar, telefono)
@@ -96,7 +98,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
   // La pagina di una richiesta non ha barra né fascia: nome e formato restano nella testata anche da desktop.
   const inHero = mobile || helpId;
   // Da desktop una scheda alla volta, da telefono tutto in fila (carte, Stats, Dilemmas, Help).
-  const cards = (t) => <DeckSections deck={deck} update={update} touch={mobile} readOnly tab={t} onTab={mobile ? undefined : setTab} />;
+  const cards = (t) => <DeckSections deck={deck} update={update} touch={mobile} readOnly tab={t} onTab={mobile ? undefined : setTab} onGroup={setGroupRows} />;
   const dilemmas = <DeckDilemmas deck={deck} uid={uid} mine={false} notify={notify} />;
   const helps = <DeckHelps deck={deck} uid={uid} mine={deck.uid === uid} notify={notify} />;
   return (
@@ -156,6 +158,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
       </div>
       {!mobile && tab === 'deck' && <DeckCount deck={deck} />}
       {exportOpen && <ExportDeckDialog deck={deck} onClose={() => setExportOpen(false)} />}
+      {groupRows && <ToGroupListDialog uid={uid} rows={groupRows} notify={notify} onClose={() => setGroupRows(null)} />}
     </div>
   );
 }

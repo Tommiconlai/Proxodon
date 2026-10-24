@@ -9,6 +9,7 @@ import { navigate, replaceRoute } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
 import DeckTokens from './DeckTokens';
+import { ToGroupListDialog } from './GroupLists';
 import { DeckBand, DeckTitle, DeckCount, DeckTopBar, DeckTagList, DeckBracket } from './DeckTabs';
 import { DeckDilemmas } from './Dilemmas';
 import { DeckHelps } from './HelpRequests';
@@ -51,6 +52,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const [exportOpen, setExportOpen] = useState(false);
   const [coverOpen, setCoverOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
+  const [groupRows, setGroupRows] = useState(null); // To group list dal menu delle carte: le righe da mandare
   const [ask, setAsk] = useState(null); // Dilemma dal menu delle carte: le 2 carte per il nuovo dilemma
   const [helpAsk, setHelpAsk] = useState(null); // Ask for help dal menu delle carte: le carte in focus della nuova richiesta
   const [advOpen, setAdvOpen] = useState(false); // pannello della ricerca avanzata (desktop)
@@ -150,6 +152,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
       onDilemma={(c) => { setAsk(c); setTab('dilemmas'); }}
       onHelp={(c) => { setHelpAsk(c); setTab('help'); if (mobile) toHelp(); }}
       onPrint={(rows) => onPrintDeck(toPrintEntries({ cards: rows.map((r) => ({ ...r, board: 'main' })) }), true)}
+      onGroup={setGroupRows}
       tokens={<DeckTokens deck={deck} />} />
   );
   const dilemmas = <DeckDilemmas deck={deck} uid={uid} mine notify={notify} ask={ask} onAsked={() => setAsk(null)} />;
@@ -244,6 +247,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
           <AdvancedSearch format={deck.format} identity={searchIdentity(deck)} onAdd={add} notify={notify} deckCards={deck.cards} />
         </MobilePage>
       )}
+      {groupRows && <ToGroupListDialog uid={uid} rows={groupRows} notify={notify} onClose={() => setGroupRows(null)} />}
       {tagsOpen && <TagsDialog tags={deckTags(deck)} onChange={(tags) => update((d) => ({ ...d, tags }))} onClose={() => setTagsOpen(false)} />}
       {printOpen && (
         <PrintDeckDialog queueCount={printQueueCount} sideCount={c.side} tokens={printOpen} add={settings.printAdd} defaultSide={settings.printSide}

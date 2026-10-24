@@ -14,6 +14,7 @@ import CommunityDeck from './CommunityDeck';
 import DeckHelp from './DeckHelp';
 import ProfilePage, { PublicProfilePage } from './ProfilePage';
 import SettingsPage from './SettingsPage';
+import { GroupListsSection, GroupListPage, JoinGroupList } from './GroupLists';
 import { listenFollowingIds, listenAnswered, listenReplied, listenDilemmaFeed, listenHelpFeed } from './deckStore';
 import { countUnanswered } from './deckModel';
 import { setBadges } from '../hooks/useBadges';
@@ -50,20 +51,22 @@ function Badges({ uid }) {
 // Radice dell'area mazzi (lazy): attende lo stato di login, poi lista (#/decks, #/community, #/dilemmas con
 // #/dilemmas/:mazzo/:dilemma per quello aperto e #/dilemmas/play per il gioco, #/help con #/help/:mazzo/:richiesta),
 // editor (#/decks/:id, #/decks/:id/help sulla scheda Help), mazzo della Community
-// (#/community/:id), profilo (#/profile, o #/profile/:uid per la pagina pubblica di un altro) o impostazioni. Avatar e ? (con il tutorial della pagina; nell'editor anche tasti e gesti)
+// (#/community/:id), liste di gruppo (#/decks/list/:id, invito #/decks/join/:id/:codice; in My decks la sezione sotto i
+// mazzi), profilo (#/profile, o #/profile/:uid per la pagina pubblica di un altro) o impostazioni. Avatar e ? (con il tutorial della pagina; nell'editor anche tasti e gesti)
 // vanno nell'header dell'app, in headerSlot.
 export default function DecksView({ route, notify, printQueueCount, onPrintDeck, headerSlot }) {
   const { user, profile, photo, rerender } = useAccount();
   if (user === undefined) return <div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>;
   if (!user) return <SignInPanel />;
   if (needsVerification(user)) return <VerifyEmailPanel email={user.email} onVerified={rerender} notify={notify} />;
-  const [, area, id, sub] = route.split('/');
+  const [, area, id, sub, extra] = route.split('/');
+  const group = area === 'decks' && (id === 'list' || id === 'join'); // liste di gruppo: #/decks/list/:id, #/decks/join/:id/:codice
   const community = area === 'community';
   return (
     <>
       <Badges uid={user.uid} />
       {headerSlot && createPortal(
-        <><DeckHelp editor={area === 'decks' && !!id && id !== 'folder'} /><AccountMenu user={user} photo={photo} notify={notify} /></>,
+        <><DeckHelp editor={area === 'decks' && !!id && id !== 'folder' && !group} /><AccountMenu user={user} photo={photo} notify={notify} /></>,
         headerSlot,
       )}
       {route === '/profile' || (area === 'profile' && id === user.uid) ? <ProfilePage user={user} profile={profile} notify={notify} onChange={rerender} />
@@ -72,10 +75,12 @@ export default function DecksView({ route, notify, printQueueCount, onPrintDeck,
         : area === 'dilemmas' ? <DeckList uid={user.uid} notify={notify} tab="dilemmas" open={id && sub ? { deckId: id, id: sub } : null} play={id === 'play'} />
         : area === 'help' && id && sub ? <CommunityDeck key={`${id}/${sub}`} uid={user.uid} id={id} helpId={sub} notify={notify} />
         : area === 'help' ? <DeckList uid={user.uid} notify={notify} tab="help" />
+        : group && id === 'list' && sub ? <GroupListPage key={sub} uid={user.uid} id={sub} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} />
+        : group && sub && extra ? <JoinGroupList key={sub} uid={user.uid} id={sub} code={extra} />
         : area === 'decks' && id === 'folder' ? <DeckList uid={user.uid} notify={notify} tab="mine" folder={sub} />
         : community && id ? <CommunityDeck key={id} uid={user.uid} id={id} notify={notify} />
         : id ? <DeckEditor key={id} uid={user.uid} id={id} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} initialTab={sub} owner={profile?.nickname} />
-          : <DeckList uid={user.uid} notify={notify} tab={community ? 'community' : 'mine'} />}
+          : <DeckList uid={user.uid} notify={notify} tab={community ? 'community' : 'mine'} after={community ? null : <GroupListsSection uid={user.uid} notify={notify} />} />}
     </>
   );
 }

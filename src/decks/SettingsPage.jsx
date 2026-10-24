@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { listenDecks, createDeck, deleteUserData } from './deckStore';
+import { deleteGroupData } from './groupStore';
 import { changePassword, authMessage, deleteAccount } from './firebase';
 import { toBackup, fromBackup, FORMATS, GROUP_MODES, SORT_MODES, VIEWS, scryfallImg } from './deckModel';
 import { autocomplete, cardsByIds, paperSets } from './scryfallSearch';
@@ -178,7 +179,7 @@ export default function SettingsPage({ user, notify }) {
       <PreferredPrinting />
       <Card id="settings-delete" title="Delete account" className="settings-danger">
         <p className="profile-note">
-          Delete your account, your decks with their Community copies, dilemmas and help requests, your settings, and your votes, replies and likes. This can’t be undone.
+          Delete your account, your decks with their Community copies, dilemmas and help requests, the group lists you created, the cards you added to the others, your settings, and your votes, replies and likes. This can’t be undone.
         </p>
         <button type="button" className="btn-secondary settings-btn settings-delete" onClick={() => setConfirmDel(true)}>
           <IconTrash size={15} /> Delete account and data
@@ -189,7 +190,7 @@ export default function SettingsPage({ user, notify }) {
           confirmLabel="Delete everything" onCancel={() => setConfirmDel(false)}
           onConfirm={() => {
             setConfirmDel(false);
-            deleteAccount(deleteUserData)
+            deleteAccount(async (u) => { await deleteGroupData(u); await deleteUserData(u); })
               .then(() => notify('Account and decks deleted'))
               .catch((e) => notify(e.message || 'Could not delete the account.', 'error'));
           }} />,

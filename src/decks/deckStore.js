@@ -50,7 +50,7 @@ let ownerUid;
 // Firma della copia: se ownerName non c'è ancora la legge dal profilo (prima la copia nasceva senza firma,
 // "anonymous", per esempio pubblicando dal pannello New deck appena aperta la pagina). Profilo illeggibile
 // (offline senza cache): undefined, e la copia tiene la firma che ha.
-const ownerOf = async (uid) => {
+export const ownerOf = async (uid) => {
   if (ownerName === undefined || ownerUid !== uid) {
     ownerUid = uid;
     ownerName = await getDoc(profileDoc(uid)).then((s) => s.data()?.nickname || null, () => undefined);
@@ -201,7 +201,8 @@ const plainDoc = (s) => ({ ...s.data({ serverTimestamps: 'estimate' }), id: s.id
 const dilemmasCol = (deckId) => collection(publicCol, deckId, 'dilemmas');
 const votesCol = (deckId, dId) => collection(dilemmasCol(deckId), dId, 'votes');
 const answeredCol = (uid) => collection(db, 'users', uid, 'answered');
-const dilemmaCard = (c) => ({ name: c.name, img: c.img || '', back: c.back || '', sid: c.sid, oid: c.oid, set: c.set || '', cn: c.cn || '' });
+// Anche le carte delle liste di gruppo (groupStore).
+export const dilemmaCard = (c) => ({ name: c.name, img: c.img || '', back: c.back || '', sid: c.sid, oid: c.oid, set: c.set || '', cn: c.cn || '' });
 // Carte dei dilemmi ripulite come quelle delle help request (cleanCards); un dilemma con meno di 2 carte valide non si vede.
 const cleanDilemma = (d) => ({ ...d, question: typeof d.question === 'string' ? d.question.slice(0, 280) : '', cards: cleanCards(d.cards, 4) });
 const okDilemma = (d) => d.cards.length >= 2;

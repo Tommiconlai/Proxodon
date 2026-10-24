@@ -20,7 +20,7 @@ import { useCardImg } from './cardLang';
 import { PREVIEW, previewAt } from './hoverPreview';
 import { useSettings, setDeckView } from '../utils/settings';
 import {
-  IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy, IconFlip, IconPrinter, IconEye, IconX, IconScale, IconLifebuoy, IconZap,
+  IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy, IconFlip, IconPrinter, IconEye, IconX, IconScale, IconLifebuoy, IconZap, IconUsers,
 } from '../components/icons';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 
@@ -101,7 +101,8 @@ const SPLIT_MAX = 300;
 // tokens: la sezione sotto il maybeboard con i token che creano le carte (DeckTokens), solo nei propri mazzi.
 const NEW_SECTION = 'new-section'; // voce di Group by da telefono: apre New section, non è un raggruppamento
 
-export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab, onPrint, onDilemma, onHelp, onCut, inCuts, notify, tokens }) {
+// onGroup(rows): To group list nel menu (anche in sola lettura), le righe scelte vanno in una lista di gruppo.
+export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab, onPrint, onDilemma, onHelp, onCut, inCuts, notify, tokens, onGroup }) {
   const [sel, setSel] = useState(() => new Set());
   const [anchor, setAnchor] = useState(null);
   const [menu, setMenu] = useState(null); // { ids, x, y }
@@ -256,6 +257,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   if (onCut && menuRows.length) {
     items.push({ key: 'cut', Icon: IconMinus, label: menuRows.length > 1 ? `Suggest cutting ${menuRows.length} cards` : 'Suggest cut', run: () => onCut(menuRows) });
   }
+  if (onGroup && menuRows.length) items.push({ key: 'group', Icon: IconUsers, label: 'To group list', run: () => onGroup(menuRows) });
   if (menuRows.length && !readOnly) {
     const ids = menuRows.map((r) => r.id);
     if (onPrint) items.push({ key: 'print', Icon: IconPrinter, label: 'Print', run: () => onPrint(menuRows) });

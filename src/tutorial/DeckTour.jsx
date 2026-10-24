@@ -15,7 +15,7 @@ import { CardFrame, CardFrameDefs } from '../components/CardFrame';
 import { FORMATS, formatLabel, coverRow, searchTerms, deckMatches } from '../decks/deckModel';
 import {
   IconPlus, IconMinus, IconCopy, IconTrash, IconPencil, IconExport, IconGlobe, IconPlay, IconFolder, IconArrowLeft,
-  IconPrinter, IconEye, IconScale, IconLifebuoy, IconImage, IconList, IconCheck,
+  IconPrinter, IconEye, IconScale, IconLifebuoy, IconImage, IconList, IconCheck, IconUsers,
   IconDeckTag, IconDeckPrint, IconDeckExport, IconDeckPublic, IconDeckSearch, IconDeckHeart, IconDeckFilter,
 } from '../components/icons';
 
@@ -393,7 +393,7 @@ async function area(g) {
 }
 const CARD_MENU = {
   title: 'Counterspell',
-  items: [[IconEye, 'View card'], [IconPrinter, 'Print'], [IconScale, 'Dilemma'], [IconLifebuoy, 'Ask for help'], [IconImage, 'Change edition'],
+  items: [[IconEye, 'View card'], [IconUsers, 'To group list'], [IconPrinter, 'Print'], [IconScale, 'Dilemma'], [IconLifebuoy, 'Ask for help'], [IconImage, 'Change edition'],
     [IconPlus, 'Move to a new section…'], [IconList, 'Move to maybeboard'], [IconTrash, 'Remove', true]],
 };
 const DECK_MENU = (name, pub) => ({
@@ -578,7 +578,7 @@ function communitySteps(mobile) {
   }, {
     target: '.deck-sections', title: 'Read only',
     text: `Group, sort and view change only your screen, and the cards cannot be selected. ${mobile ? 'Tap a card to see it big (tap outside to close), or long-press it.' : 'Right-click a card to see it full screen.'}`,
-    play: (g) => g.menu(rowSel('r13'), { title: 'Counterspell', items: [[IconEye, 'View card']] }, mobile ? { text: 'Long press', hold: true } : {}),
+    play: (g) => g.menu(rowSel('r13'), { title: 'Counterspell', items: [[IconEye, 'View card'], [IconUsers, 'To group list']] }, mobile ? { text: 'Long press', hold: true } : {}),
   }, {
     target: mobile ? '.deck-analysis' : '.deck-tabs', title: 'Stats, Dilemmas, Help',
     text: `The deck’s Stats, its Dilemmas to vote on and its Help requests to answer.${mobile ? ' On the phone they follow the cards, further down.' : ''}`,

@@ -2783,6 +2783,50 @@ a.deck-tile.deck-add { text-decoration: none; }
 .folder-head { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; color: var(--cyan); }
 .folder-head .deck-icon-btn { flex: none; width: 40px; height: 40px; padding: 0; justify-content: center; }
 .folder-name.in-head, .folder-name-input.in-head { min-width: 0; font-family: var(--font-display); font-size: 1.3rem; letter-spacing: 0.03em; }
+/* Liste di gruppo: riquadro in My decks (sagoma dei mazzi, icona al centro), pagina con testata, membri, ricerca e
+   carte (immagine, copie, nickname di chi l'ha messa, − + × solo sulle proprie), scelta della lista da To group list. */
+.group-tile-art { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--cyan); opacity: 0.35; }
+.group-head { flex-wrap: wrap; }
+.group-name { margin: 0; min-width: 0; font-family: var(--font-display); font-size: 1.3rem; letter-spacing: 0.03em; color: var(--text-primary); overflow-wrap: anywhere; }
+.group-count { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted); }
+.group-actions { margin-left: auto; display: flex; gap: 8px; }
+.group-actions .deck-icon-btn { width: 40px; height: 40px; padding: 0; justify-content: center; }
+.group-members { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 0 18px; }
+.group-member-list { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.group-member {
+  display: inline-flex; align-items: center; gap: 5px; padding: 4px 6px 4px 10px;
+  border: 1px solid var(--border); border-radius: 999px; background: rgba(8, 7, 15, 0.5); font-size: 0.82rem; color: var(--text-primary);
+}
+.group-member svg { color: var(--accent); }
+.group-member-x { display: inline-flex; padding: 3px; background: none; border: 0; border-radius: 50%; color: var(--text-muted); cursor: pointer; }
+.group-member-x svg { color: inherit; }
+.group-member-x:hover, .group-member-x:focus-visible { color: var(--danger); }
+.group-invite { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 260px; max-width: 460px; }
+.group-invite .settings-add { flex: 1; min-width: 0; }
+.group-invite .deck-icon-btn { width: 40px; height: 40px; padding: 0; justify-content: center; flex: none; }
+.group-invite .deck-icon-btn.on { color: var(--cyan); border-color: var(--cyan); }
+.group-search { max-width: 520px; margin: 0 0 20px; }
+.group-empty { margin: 8px 0; }
+.group-cards { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+.group-card { position: relative; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.group-card-img { width: 100%; aspect-ratio: 63 / 88; object-fit: cover; border-radius: 4.75% / 3.5%; background: var(--bg-elevated); }
+.group-card-qty {
+  position: absolute; top: 6px; left: 6px; min-width: 24px; padding: 2px 6px; border: 1px solid var(--cyan); border-radius: 999px;
+  background: rgba(8, 7, 15, 0.85); font-family: var(--font-mono); font-size: 0.75rem; color: #fff; text-align: center;
+}
+.group-card-by { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: 0.72rem; color: var(--cyan-soft); }
+.group-card.mine .group-card-by { color: var(--accent-light); }
+.group-card-actions { display: flex; gap: 6px; }
+.group-card-actions .deck-icon-btn { flex: 1; height: 32px; padding: 0; justify-content: center; }
+.group-pick { margin: 0 0 6px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow-y: auto; }
+.group-pick-btn { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; }
+.group-pick-btn span:first-of-type { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.group-pick-n { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); }
+.modal-hint a { color: var(--cyan); }
+@media (hover: none) {
+  .group-card-actions .deck-icon-btn, .group-actions .deck-icon-btn, .group-invite .deck-icon-btn { min-height: 44px; min-width: 44px; }
+  .group-member-x { padding: 12px; margin: -10px -6px -10px -6px; }
+}
 .mobile .folder-head .deck-icon-btn, .mobile .folder-name.in-head, .mobile .folder-name-input.in-head { min-height: 44px; }
 .mobile .folder-head .deck-icon-btn { width: 44px; }
 /* Trascinamento: il riquadro (mazzo o cartella) o il pulsante su cui si lascia si accende di ciano. */

@@ -66,7 +66,7 @@ const listHref = (t) => (t === 'mine' ? '#/decks' : `#/${t}`);
 // misure dentro le tasche sono in unità del riquadro (--u in CSS), così scalano con lui anche su telefono.
 const TILE_W = 209;
 const TILE_H = 208;
-function TileFrame({ cuts, dashed, children }) {
+export function TileFrame({ cuts, dashed, children }) {
   return <CutFrame w={TILE_W} h={TILE_H} cuts={cuts} dashed={dashed}>{children}</CutFrame>;
 }
 
@@ -224,7 +224,8 @@ function CommunityGrid({ uid, terms, filters }) {
 // colori, carta); in Dilemmas e Help la ricerca (domanda, carte, mazzo, autore) e accanto solo il formato.
 // open = il dilemma aperto dal feed (#/dilemmas/:mazzo/:dilemma; una help request si apre invece in CommunityDeck),
 // play = il gioco (#/dilemmas/play, dal Play al posto del +): niente ricerca. folder = la cartella aperta in My decks (#/decks/folder/:id).
-export default function DeckList({ uid, notify, tab = 'mine', open, play, folder: folderId }) {
+// after = la sezione sotto i mazzi in My decks (le liste di gruppo, da DecksView), non dentro una cartella.
+export default function DeckList({ uid, notify, tab = 'mine', open, play, folder: folderId, after }) {
   const community = tab === 'community';
   const dilemmas = tab === 'dilemmas';
   const help = tab === 'help';
@@ -428,6 +429,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
             {!searching && <GhostTile label="New deck" onClick={() => setDialog('new')}><IconPlus size={44} /></GhostTile>}
           </ul>
         )}
+        {!openFolder && after}
       </>}
 
       {menu && <CardMenu x={menu.x} y={menu.y} title={menu.deck.name} items={menuItems} onClose={closeMenu} />}

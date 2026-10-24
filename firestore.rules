@@ -362,6 +362,58 @@ service cloud.firestore {
     match /{path=**}/helps/{hId} {
       allow read: if verified() && request.query.limit != null && request.query.limit <= 60;
     }
+    // Liste di gruppo (My decks): le legge chi è tra i membri (al massimo 20, il creatore sempre dentro). Il creatore
+    // (owner) rinomina, invita e toglie membri, attiva o ritira il link d'invito (invite) e la elimina: prima deleted, poi
+    // via le carte, poi la lista. Un membro esce togliendo solo sé stesso. Col link entra chi scrive joinKey uguale a
+    // invite e aggiunge solo sé stesso. updatedAt è l'ora del server.
+    function validList(d) {
+      return d.keys().hasOnly(['owner', 'name', 'members', 'invite', 'joinKey', 'deleted', 'createdAt', 'updatedAt'])
+        && d.owner is string && d.name is string && d.name.size() > 0 && d.name.size() <= 80
+        && d.members is list && d.members.size() <= 20 && d.owner in d.members
+        && (d.get('invite', null) == null || (d.invite is string && d.invite.size() >= 20 && d.invite.size() <= 40))
+        && (d.get('joinKey', null) == null || (d.joinKey is string && d.joinKey.size() <= 40))
+        && d.get('deleted', false) is bool
+        && d.createdAt is timestamp && d.updatedAt == request.time;
+    }
+    match /groupLists/{listId} {
+      allow read: if verified() && request.auth.uid in resource.data.members;
+      allow create: if verified() && autoId(listId) && validList(request.resource.data)
+        && request.resource.data.owner == request.auth.uid && request.resource.data.members == [request.auth.uid]
+        && request.resource.data.createdAt == request.time
+        && !('joinKey' in request.resource.data) && request.resource.data.get('deleted', false) == false;
+      allow update: if verified() && validList(request.resource.data)
+        && request.resource.data.owner == resource.data.owner && request.resource.data.createdAt == resource.data.createdAt
+        && (resource.data.owner == request.auth.uid
+          || (request.auth.uid in resource.data.members
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'updatedAt'])
+            && request.resource.data.members.toSet() == resource.data.members.toSet().difference([request.auth.uid].toSet()))
+          || (!(request.auth.uid in resource.data.members) && resource.data.get('deleted', false) == false
+            && resource.data.get('invite', null) != null && request.resource.data.get('joinKey', null) == resource.data.invite
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'joinKey', 'updatedAt'])
+            && request.resource.data.members.toSet() == resource.data.members.toSet().union([request.auth.uid].toSet())));
+      allow delete: if verified() && resource.data.owner == request.auth.uid;
+      // Carte: le legge ogni membro; le aggiunge un membro (firmate col suo uid, il nickname come nei voti, la carta come
+      // quelle dei dilemmi, 1-99 copie, data del server); le copie le cambia e la riga la toglie solo chi l'ha messa. Il
+      // creatore toglie quelle degli altri solo se non sono più membri o mentre elimina la lista (deleted).
+      match /cards/{rowId} {
+        function list() {
+          return get(/databases/$(db)/documents/groupLists/$(listId)).data;
+        }
+        allow read: if verified() && request.auth.uid in list().members;
+        allow create: if verified() && request.auth.uid in list().members && list().get('deleted', false) == false
+          && request.resource.data.keys().hasOnly(['uid', 'owner', 'card', 'qty', 'at'])
+          && request.resource.data.uid == request.auth.uid && request.resource.data.at == request.time
+          && request.resource.data.qty is int && request.resource.data.qty >= 1 && request.resource.data.qty <= 99
+          && request.resource.data.card is map && card(request.resource.data.card)
+          && (request.resource.data.get('owner', null) == null || (request.resource.data.owner is string
+            && get(/databases/$(db)/documents/usernames/$(request.resource.data.owner.lower())).data.uid == request.auth.uid));
+        allow update: if verified() && resource.data.uid == request.auth.uid && request.auth.uid in list().members
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qty'])
+          && request.resource.data.qty is int && request.resource.data.qty >= 1 && request.resource.data.qty <= 99;
+        allow delete: if verified() && (resource.data.uid == request.auth.uid
+          || (list().owner == request.auth.uid && (list().get('deleted', false) == true || !(resource.data.uid in list().members))));
+      }
+    }
     // Nickname unici: usernames/{nome in minuscolo} = { uid }. Lo legge chi ha un account (per sapere
     // se è libero, mai l'elenco), lo prende chi lo trova libero e lo mette nel proprio profilo nella stessa
     // scrittura (uno per account, vedi nickFreed), lo libera solo il proprietario. Alcuni nomi sono riservati.
