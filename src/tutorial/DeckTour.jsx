@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Tutorial from './Tutorial';
 import { touches, pointAt } from './control';
 import { Shell, ProfileStage, SettingsStage } from './AccountStages';
+import { GroupStage, DemoGroupPick } from './GroupTour';
+import { groupSteps } from './groupSteps';
 import { C, demoDeck, myDecks, communityDecks, LIKES, dilemmas, DILEMMA_VOTES, helps, HELP_REPLIES, DEMO_TOKENS } from './demo';
 import DeckSections from '../decks/DeckSections';
 import DeckTokens from '../decks/DeckTokens';
@@ -64,6 +66,7 @@ function DeckStage({ apiRef, mobile, mode, step }) {
   const [add, setAdd] = useState([]);
   const [why, setWhy] = useState('');
   const [over, setOver] = useState(false);
+  const [pick, setPick] = useState(null); // To group list: le righe del dialog demo
   const [stuck, setStuck] = useState(false); // come nell'editor: la barra in alto prende lo sfondo quando la testata esce
   const scrollRef = useRef(null);
   const heroRef = useRef(null);
@@ -71,7 +74,7 @@ function DeckStage({ apiRef, mobile, mode, step }) {
     const once = (set) => (card) => set((l) => (l.some((c) => c.oid === card.oid) ? l : [...l, card]));
     apiRef.current = {
       update: (fn) => setDeck((d) => fn(d)), tab: setTab, query: setQ, active: setActive, like: () => setLiked((v) => !v),
-      cut: once(setCut), suggest: once(setAdd), why: setWhy, over: setOver,
+      cut: once(setCut), suggest: once(setAdd), why: setWhy, over: setOver, groupPick: setPick,
     };
   }, [apiRef]);
   // Passi su una parte in fondo al mazzo (step.scroll): la zona a metà schermo prima che la scheda del passo si fermi.
@@ -106,7 +109,7 @@ function DeckStage({ apiRef, mobile, mode, step }) {
   const inHero = mobile || help; // come nell'editor e nella Community: da desktop nome in alto, formato nella fascia
   const cards = (t) => (
     <DeckSections deck={deck} update={update} touch={mobile} readOnly={!editor} tab={t} onTab={mobile ? undefined : setTab} notify={noop}
-      onPrint={editor ? noop : undefined} onDilemma={editor ? noop : undefined} onHelp={editor ? noop : undefined}
+      onPrint={editor ? noop : undefined} onDilemma={editor ? noop : undefined} onHelp={editor ? noop : undefined} onGroup={editor ? setPick : undefined}
       tokens={editor ? <DeckTokens deck={deck} demo={DEMO_TOKENS} /> : undefined} />
   );
   const btn = (Icon, label, extra = '') => (
@@ -154,6 +157,7 @@ function DeckStage({ apiRef, mobile, mode, step }) {
         </div>
         {!mobile && tab === 'deck' && !help && <DeckCount deck={deck} />}
         {mobile && <DemoNav {...navItems(editor ? '/decks' : '/community')} open={false} />}
+        {pick && <DemoGroupPick rows={pick} />}
       </div>
     </Shell>
   );
@@ -487,6 +491,25 @@ function editorSteps(mobile) {
       : 'Right-click a card or the selection, or press Shift+F10: view it, print, ask a dilemma or for help, change edition, split, set the commander, move, remove.',
     play: (g) => g.menu(rowSel('r13'), CARD_MENU, mobile ? { text: 'Long press', hold: true, effect: select } : { effect: select }),
   };
+  const groupList = {
+    target: '.deck-sections', title: 'To a group list',
+    text: mobile ? 'Long-press a card, To group list, then pick one of the group lists you share with other players (they are in My decks, under your decks): the card goes there, the deck keeps it.'
+      : 'Right-click a card and To group list, or drag it onto To group list among the zones, then pick one of the group lists you share with other players (in My decks, under your decks). The card goes there; the deck keeps it.',
+    play: async (g) => {
+      if (mobile) {
+        await g.menu(rowSel('r5'), { title: 'Sol Ring', items: [[IconEye, 'View card'], [IconUsers, 'To group list'], [IconPrinter, 'Print'], [IconImage, 'Change edition']] }, { text: 'Long press', hold: true });
+        g.hideMenu();
+        g.api.groupPick([{ qty: 1, card: C.solRing }]);
+      } else await realDrag(g, 'r5', 'zone-group');
+      await g.wait(300);
+      g.spot('.modal-confirm'); // il dialog della scelta in luce, poi di nuovo il mazzo
+      await g.wait(400);
+      await g.click('.group-pick li:first-child .group-pick-btn', 'Friday proxies', () => g.api.groupPick(null));
+      g.spot(null);
+      g.say('Added to Friday proxies');
+      await g.wait(1400);
+    },
+  };
   const organize = {
     target: '.deck-toolbar', title: 'Group, sort and view',
     text: `Group by type, subtype, mana value, color, rarity, set, artist or your own sections${mobile ? ' (New section is the last option of Group by)' : ''}. The deck keeps the Sort and View you pick; the defaults are in Settings.`,
@@ -532,14 +555,14 @@ function editorSteps(mobile) {
     text: 'Under the maybeboard, the tokens your cards create, here the Beast of Beast Within. Make custom opens one in the Tokens page with its text already written: you add the art.',
     play: (g) => pointAt(g, [['.deck-token-custom', 'Make custom']]),
   };
-  if (mobile) return [hero, ...search, choose, menu, organize, tokens, ...tabs];
+  if (mobile) return [hero, ...search, choose, menu, groupList, organize, tokens, ...tabs];
   return [hero, ...search, choose, {
     target: '.deck-sections', title: 'Select an area',
     text: 'Press on an empty spot and drag: every card the box touches joins the selection.',
     play: async (g) => { await area(g); await g.wait(1000); },
   }, {
     target: '.deck-sections', title: 'Drag a card',
-    text: 'Pick up a card: on the left, above the count, the zones where it can go appear (Main, Sideboard, Maybeboard, your sections). Drop it there from anywhere in the deck, no scrolling. Dropping on a group works too.',
+    text: 'Pick up a card: on the left, above the count, the zones where it can go appear (Main, Sideboard, Maybeboard, your sections, To group list, Remove). Drop it there from anywhere in the deck, no scrolling. Dropping on a group works too.',
     play: async (g) => { await realDrag(g, 'r2', 'zone-maybe'); await g.wait(800); },
   }, {
     target: '.deck-sections', title: 'Move a selection',
@@ -563,7 +586,7 @@ function editorSteps(mobile) {
       await realDrag(g, 'r7', 'zone-tut-ramp');
       await g.wait(800);
     },
-  }, menu, organize, tokens, ...tabs];
+  }, menu, groupList, organize, tokens, ...tabs];
 }
 
 function communitySteps(mobile) {
@@ -780,12 +803,14 @@ const MAKE = {
   reply: (m) => ({ label: 'Help request', Stage: bind(DeckStage, { mode: 'help' }), steps: helpReplySteps(m) }),
   profile: () => ({ label: 'Profile', Stage: ProfileStage, steps: profileSteps() }),
   settings: () => ({ label: 'Settings', Stage: SettingsStage, steps: settingsSteps() }),
+  group: (m) => ({ label: 'Group list', Stage: GroupStage, steps: groupSteps(m) }),
 };
 function tourFor(route, mobile) {
   const [, area, id, sub] = route.split('/');
   const kind = area === 'profile' ? 'profile' : route === '/settings' ? 'settings'
     : area === 'dilemmas' ? 'dilemmas' : area === 'help' ? (id && sub ? 'reply' : 'help')
-      : area === 'community' ? (id ? 'communityDeck' : 'community') : area === 'decks' && id && id !== 'folder' ? 'editor' : 'mine';
+      : area === 'community' ? (id ? 'communityDeck' : 'community')
+        : area === 'decks' && (id === 'list' || id === 'join') ? 'group' : area === 'decks' && id && id !== 'folder' ? 'editor' : 'mine';
   const key = `${kind}:${mobile}`;
   cache[key] ??= MAKE[kind](mobile);
   return cache[key];
