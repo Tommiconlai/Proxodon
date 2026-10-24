@@ -575,7 +575,7 @@ function editorSteps(mobile) {
     },
   }, {
     target: '.deck-sections', title: 'One copy',
-    text: 'Alt+drag moves one copy: one Forest goes to the maybeboard, the others stay in the deck.',
+    text: 'A card with more copies asks how many to move. Alt+drag moves one without asking: one Forest goes to the maybeboard, the others stay in the deck. In Stacks (all) you drag the single copy.',
     play: async (g) => { await realDrag(g, 'r18', 'zone-maybe', { alt: true }); await g.wait(800); },
   }, {
     target: '.deck-sections', title: 'Your sections',

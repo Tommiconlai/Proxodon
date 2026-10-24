@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 import { FORMATS, DECK_TAGS, MAX_TAGS, coverRow, exportText } from './deckModel';
-import { IconX, IconCopy, IconDownload } from '../components/icons';
+import { IconX, IconCopy, IconDownload, IconCheck } from '../components/icons';
 import { downloadText } from '../utils/download';
 
 const safeName = (s) => s.replace(/[\\/:*?"<>|]+/g, '-').trim() || 'deck';
@@ -271,6 +271,38 @@ export function PrintDeckDialog({ queueCount, sideCount, tokens, add, defaultSid
           <button type="button" className="btn-generate import-btn" onClick={() => onConfirm(side, withTokens ? list : [])}>{queueCount > 0 ? (add ? 'Add and print' : 'Replace and print') : 'Print'}</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Una carta con più copie trascinata nel mazzo (fuori da Stacks (all), senza Alt): quante spostarne in `to`.
+// Fino a 4 copie un pulsante per numero, oltre un campo numerico (1..qty, Invio conferma). onPick(n).
+export function MoveCopiesDialog({ name, qty, to, onPick, onClose }) {
+  const [n, setN] = useState('');
+  const ref = useOverlayDismiss(onClose, true, { focusContainer: false });
+  const v = Number(n);
+  const ok = Number.isInteger(v) && v >= 1 && v <= qty;
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <form className="modal modal-confirm move-copies-form" ref={ref} role="dialog" aria-modal="true" aria-label="Move copies"
+        onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); if (ok) onPick(v); }}>
+        <div className="modal-header"><h2>Move copies</h2></div>
+        <p className="modal-hint" id="move-copies-q">How many {name} go to {to}? There are {qty}.</p>
+        {qty <= 4 ? (
+          <div className="move-copies" role="group" aria-labelledby="move-copies-q">
+            {Array.from({ length: qty }, (_, i) => (
+              <button key={i} type="button" className="btn-secondary" autoFocus={i === 0} onClick={() => onPick(i + 1)}>{i + 1}</button>
+            ))}
+          </div>
+        ) : (
+          <input type="number" className="import-link-input" min={1} max={qty} step={1} value={n} placeholder={`1 to ${qty}`}
+            onChange={(e) => setN(e.target.value)} autoFocus aria-labelledby="move-copies-q" />
+        )}
+        <div className="modal-actions">
+          <button type="button" className="btn-secondary deck-icon-btn" aria-label="Cancel" title="Cancel" onClick={onClose}><IconX size={18} /></button>
+          {qty > 4 && <button type="submit" className="btn-generate deck-icon-btn" disabled={!ok} aria-label="Move" title="Move"><IconCheck size={18} /></button>}
+        </div>
+      </form>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import CardMenu from '../components/CardMenu';
 import { useLongPress, menuPoint } from '../hooks/useLongPress';
 import { ManaCost } from './Mana';
-import { NameFormatDialog } from './dialogs';
+import { NameFormatDialog, MoveCopiesDialog } from './dialogs';
 import ArtPickerModal from '../components/ArtPickerModal';
 import { cardsByIds } from './scryfallSearch';
 import {
@@ -70,6 +70,8 @@ const TOUCH_STRIP = 36;
 const TOUCH_MIN = 170;
 const pileHeight = (n, w, strip = w * (680 / 488 - 1.253)) => PILE_HEAD + (n ? (w * 680) / 488 + (n - 1) * strip : 26); // 0 carte = "No commander yet."
 const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
+// La riga resta dov'è (stessa zona e sezione, non comandante): lì il rilascio non cambierebbe nulla.
+const stays = (r, board, section) => r.board === board && !r.commander && (section === undefined || (r.section ?? null) === section);
 // Split: un elemento per copia (e cornici ricalcolate a coppie), quindi un mazzo altrui da 500 righe x 99 bloccherebbe
 // la scheda. Sopra SPLIT_MAX copie (tutte le zone) si vede come Stacks, una carta per riga col numero, finché non si
 // chiede di vederle tutte. Nessun mazzo vero ci arriva: Commander 100, Constructed 60 + 15; i cube sì.
@@ -132,7 +134,8 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   // dell'area del mazzo (x = il centro di .deck-sections dentro host = .deck-editor), compaiono le zone dove spostare
   // le carte e quella che le toglie.
   const [dragging, setDragging] = useState(null);
-  const dragIds = useRef(null); // { ids, one } durante un trascinamento; one = Alt, una copia sola
+  const dragIds = useRef(null); // { ids, one } durante un trascinamento; one = una copia sola (Alt, o una copia in Stacks (all))
+  const [moving, setMoving] = useState(null); // { row, board, section }: carta con più copie rilasciata, quante spostarne
   const [marquee, setMarquee] = useState(null); // rettangolo della selezione ad area, relativo al contenitore
   const marqueeRef = useRef(null); // { x0, y0, base: Set, active }
   const swallowClick = useRef(false); // il click che chiude un'area non deve deselezionare
@@ -362,14 +365,16 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     },
   };
 
-  // Trascinamento (desktop): la riga, o tutta la selezione se ne fa parte; con Alt una copia per riga.
+  // Trascinamento (desktop): la riga, o tutta la selezione se ne fa parte; con Alt una copia per riga. In Stacks (all)
+  // ogni copia è una carta: presa da sola (non in una selezione di più righe) si sposta solo quella.
   const endDrag = () => { dragIds.current = null; setDropKey(null); setDragging(null); };
   // Sola lettura con onCut: si trascina solo verso fuori (DRAG_ROWS, la zona Cuts delle help request), qui niente rilascio.
   const dragProps = (r) => (touch || (readOnly && !onCut) ? {} : {
     draggable: true,
     onDragStart: (e) => {
       const ids = sel.has(r.id) && selected.length > 1 ? selected : [r.id];
-      dragIds.current = { ids, one: e.altKey };
+      const one = e.altKey || (split && ids.length === 1);
+      dragIds.current = { ids, one };
       e.dataTransfer.effectAllowed = readOnly ? 'copy' : 'move';
       e.dataTransfer.setData('text/plain', r.card.name);
       e.dataTransfer.setData(DRAG_ROWS, JSON.stringify(ids));
@@ -378,7 +383,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
       const img = view !== 'list' && e.currentTarget.querySelector('img');
       if (img) {
         const rows = deck.cards.filter((x) => ids.includes(x.id));
-        const n = e.altKey ? rows.length : sum(rows);
+        const n = one ? rows.length : sum(rows);
         const g = document.createElement('div');
         g.className = 'deck-ghost';
         g.append(img.cloneNode());
@@ -399,6 +404,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   });
   // Rilascio su un gruppo del main (con la sua sezione in custom), sul sideboard o sul maybeboard; act = cosa fare
   // al posto dello spostamento (la zona Remove). endDrag anche qui: la riga spostata può smontarsi prima del suo dragend.
+  // Una sola riga con più copie (senza Alt, fuori da Stacks (all)) che cambia posto: prima chiede quante (MoveCopiesDialog).
   const dropProps = (key, board, section, act) => (touch || readOnly ? {} : {
     onDragOver: (e) => { if (!dragIds.current) return; e.preventDefault(); setDropKey(key); },
     onDragLeave: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropKey((k) => (k === key ? null : k)); },
@@ -407,10 +413,13 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
       const drag = dragIds.current;
       endDrag();
       if (!drag) return;
-      if (act) act(drag);
-      else update((d) => placeRows(d, drag.ids, board, section, { one: drag.one }));
+      if (act) return act(drag);
+      const r = !drag.one && drag.ids.length === 1 && deck.cards.find((x) => x.id === drag.ids[0]);
+      if (r && r.qty > 1 && !stays(r, board, section)) setMoving({ row: r, board, section });
+      else update((d) => placeRows(d, drag.ids, board, section, { n: drag.one ? 1 : undefined }));
     },
   });
+  const placeLabel = (board, section) => (section ? `“${deck.sections.find((s) => s.id === section)?.name || 'Section'}”` : `the ${BOARD_LABEL[board]}`);
 
   // copy = indice della copia nella vista split (ogni copia è una carta, tutte agiscono sulla riga).
   const row = (r, copy = 0) => {
@@ -515,7 +524,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     { key: 'zone-maybe', label: 'Maybeboard', board: 'maybe', section: undefined, n: sum(blocks.maybe.rows) },
   ].map((z) => ({
     ...z,
-    from: dragRows.length > 0 && dragRows.every((r) => r.board === z.board && !r.commander && (z.section === undefined || (r.section ?? null) === z.section)),
+    from: dragRows.length > 0 && dragRows.every((r) => stays(r, z.board, z.section)),
   }));
 
   if (!deck.cards.length) {
@@ -582,7 +591,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
       {capped && (
         <p className="deck-split-cap" role="status">
           <IconCopy size={14} />
-          <span>{copies} cards: above {SPLIT_MAX}, Split shows each card once with its count.</span>
+          <span>{copies} cards: above {SPLIT_MAX}, Stacks (all) shows each card once with its count.</span>
           <button type="button" className="btn-secondary deck-icon-btn" aria-label={`Show all ${copies} copies`} title={`Show all ${copies} copies (slow on big lists)`}
             onClick={() => setAllCopies(true)}><IconEye size={16} /></button>
         </p>
@@ -661,6 +670,10 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
             });
             setDialog(null);
           }} />
+      )}
+      {moving && (
+        <MoveCopiesDialog name={moving.row.card.name} qty={moving.row.qty} to={placeLabel(moving.board, moving.section)} onClose={() => setMoving(null)}
+          onPick={(n) => { update((d) => placeRows(d, [moving.row.id], moving.board, moving.section, { n })); setMoving(null); }} />
       )}
       {edition && (
         <ArtPickerModal name={edition.name} current={edition.current} onClose={() => setEdition(null)}

@@ -2829,6 +2829,10 @@ a.deck-tile.deck-add { text-decoration: none; }
 .group-pick-btn { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; }
 .group-pick-btn span:first-of-type { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .group-pick-n { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); }
+/* Move copies: un pulsante per numero di copie (fino a 4), larghi uguali. */
+.move-copies { display: flex; gap: 8px; }
+.move-copies button { flex: 1; min-height: 48px; justify-content: center; font-family: var(--font-mono); font-size: 1.05rem; }
+.move-copies-form .modal-actions .deck-icon-btn { flex: none; width: 48px; height: 42px; padding: 0; justify-content: center; }
 .modal-hint a { color: var(--cyan); }
 @media (hover: none) {
   .group-actions .deck-icon-btn, .group-invite .deck-icon-btn { min-height: 44px; min-width: 44px; }

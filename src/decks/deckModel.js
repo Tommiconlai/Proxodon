@@ -298,13 +298,14 @@ export function deleteSection(deck, id) {
 }
 // Trascinamento: righe nella zona di destinazione, nella sezione se indicata (undefined = resta
 // la sua). Lasciata in un gruppo o in un'altra zona, una riga non è più comandante.
-// `one` (Alt+trascina): una copia per riga; la riga resta con una copia in meno.
-export function placeRows(deck, ids, board, section, { one = false } = {}) {
+// `n`: copie spostate per riga (Alt+trascina e Stacks (all) 1, sennò la scelta del dialog); la riga resta con le
+// altre. Senza n si sposta tutta.
+export function placeRows(deck, ids, board, section, { n } = {}) {
   const s = new Set(ids);
   const moved = (r, extra) => ({ ...r, ...extra, board, commander: false, ...(section !== undefined && { section }) });
   const cards = deck.cards.flatMap((r) => {
     if (!s.has(r.id)) return [r];
-    if (one && r.qty > 1) return [{ ...r, qty: r.qty - 1 }, moved(r, { id: rid(), qty: 1 })];
+    if (n && r.qty > n) return [{ ...r, qty: r.qty - n }, moved(r, { id: rid(), qty: n })];
     return [moved(r)];
   });
   const merged = mergeSame(cards);
@@ -467,7 +468,7 @@ export const VIEWS = [
   { id: 'list', label: 'List' },
   { id: 'grid', label: 'Grid' },
   { id: 'stacks', label: 'Stacks' },
-  { id: 'split', label: 'Stacks, every copy' },
+  { id: 'split', label: 'Stacks (all)' },
 ];
 const sorter = (sort) => (sort === 'name' ? byName : byMvName);
 
