@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import CardMenu from '../components/CardMenu';
 import { useLongPress, menuPoint } from '../hooks/useLongPress';
 import { ManaCost } from './Mana';
-import { NameFormatDialog, MoveCopiesDialog } from './dialogs';
+import { NameFormatDialog, CopiesDialog } from './dialogs';
 import ArtPickerModal from '../components/ArtPickerModal';
 import { cardsByIds } from './scryfallSearch';
 import {
@@ -135,7 +135,8 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   // le carte e quella che le toglie.
   const [dragging, setDragging] = useState(null);
   const dragIds = useRef(null); // { ids, one } durante un trascinamento; one = una copia sola (Alt, o una copia in Stacks (all))
-  const [moving, setMoving] = useState(null); // { row, board, section }: carta con più copie rilasciata, quante spostarne
+  // Carta con più copie rilasciata: quante spostarne ({ row, board, section }) o toglierne ({ row, remove: true }).
+  const [ask, setAsk] = useState(null);
   const [marquee, setMarquee] = useState(null); // rettangolo della selezione ad area, relativo al contenitore
   const marqueeRef = useRef(null); // { x0, y0, base: Set, active }
   const swallowClick = useRef(false); // il click che chiude un'area non deve deselezionare
@@ -240,14 +241,19 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   };
 
   // Tolte subito, con Undo nel toast: le righe tornano com'erano (zona, sezione, comandante, quantità).
-  const removeWithUndo = (rows) => {
-    const ids = rows.map((r) => r.id);
-    update((d) => removeRows(d, ids));
+  // n: copie tolte per riga (la zona Remove); le righe con più di n copie restano con le altre.
+  const removeWithUndo = (rows, n) => {
+    if (!rows.length) return;
+    const gone = rows.filter((r) => !n || r.qty <= n);
+    const fewer = rows.filter((r) => n && r.qty > n);
+    const ids = gone.map((r) => r.id);
+    update((d) => fewer.reduce((x, r) => bumpQty(x, r.id, -n), removeRows(d, ids)));
     setSel((prev) => new Set([...prev].filter((id) => !ids.includes(id))));
-    const n = sum(rows);
-    notify?.(rows.length === 1 ? `Removed ${rows[0].card.name}` : `Removed ${n} cards`, 'success', {
+    const k = rows.reduce((s, r) => s + Math.min(n || r.qty, r.qty), 0);
+    notify?.(rows.length > 1 ? `Removed ${k} cards` : `Removed ${gone.length ? '' : `${k} `}${rows[0].card.name}`, 'success', {
       label: 'Undo',
-      onClick: () => update((d) => ({ ...d, cards: [...d.cards, ...rows.filter((r) => !d.cards.some((x) => x.id === r.id))] })),
+      onClick: () => update((d) => fewer.reduce((x, r) => bumpQty(x, r.id, n),
+        { ...d, cards: [...d.cards, ...gone.filter((r) => !d.cards.some((x) => x.id === r.id))] })),
     });
   };
   const less = (r) => (r.qty > 1 ? update((d) => bumpQty(d, r.id, -1)) : removeWithUndo([r]));
@@ -404,7 +410,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   });
   // Rilascio su un gruppo del main (con la sua sezione in custom), sul sideboard o sul maybeboard; act = cosa fare
   // al posto dello spostamento (la zona Remove). endDrag anche qui: la riga spostata può smontarsi prima del suo dragend.
-  // Una sola riga con più copie (senza Alt, fuori da Stacks (all)) che cambia posto: prima chiede quante (MoveCopiesDialog).
+  // Una sola riga con più copie (senza Alt, fuori da Stacks (all)) che cambia posto: prima chiede quante (CopiesDialog).
   const dropProps = (key, board, section, act) => (touch || readOnly ? {} : {
     onDragOver: (e) => { if (!dragIds.current) return; e.preventDefault(); setDropKey(key); },
     onDragLeave: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropKey((k) => (k === key ? null : k)); },
@@ -415,11 +421,17 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
       if (!drag) return;
       if (act) return act(drag);
       const r = !drag.one && drag.ids.length === 1 && deck.cards.find((x) => x.id === drag.ids[0]);
-      if (r && r.qty > 1 && !stays(r, board, section)) setMoving({ row: r, board, section });
+      if (r && r.qty > 1 && !stays(r, board, section)) setAsk({ row: r, board, section });
       else update((d) => placeRows(d, drag.ids, board, section, { n: drag.one ? 1 : undefined }));
     },
   });
   const placeLabel = (board, section) => (section ? `“${deck.sections.find((s) => s.id === section)?.name || 'Section'}”` : `the ${BOARD_LABEL[board]}`);
+  // Zona Remove, come lo spostamento: una sola riga con più copie chiede quante; Alt e Stacks (all) una per riga.
+  const removeDrag = (drag) => {
+    const rows = deck.cards.filter((r) => drag.ids.includes(r.id));
+    if (!drag.one && rows.length === 1 && rows[0].qty > 1) setAsk({ row: rows[0], remove: true });
+    else removeWithUndo(rows, drag.one ? 1 : undefined);
+  };
 
   // copy = indice della copia nella vista split (ogni copia è una carta, tutte agiscono sulla riga).
   const row = (r, copy = 0) => {
@@ -630,7 +642,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
         )}
       </div>}
       {/* Solo per il trascinamento col mouse (da tastiera e telefono si sposta dal menu): fuori dagli screen reader. */}
-      {/* Remove toglie le righe trascinate (tutte le copie, anche con Alt), con Undo nel toast come dal menu. */}
+      {/* Remove toglie le carte trascinate (le copie scelte, come lo spostamento), con Undo nel toast come dal menu. */}
       {dragging?.host && zones.length > 0 && createPortal(
         <div className="deck-drop-zones" style={{ left: dragging.x }} aria-hidden="true">
           <span className="deck-drop-title">Move to</span>
@@ -649,7 +661,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
               </div>
             )}
             <div data-zone="zone-remove" className={`deck-drop-zone remove${dropKey === 'zone-remove' ? ' drop-target' : ''}`}
-              {...dropProps('zone-remove', null, undefined, (drag) => removeWithUndo(deck.cards.filter((r) => drag.ids.includes(r.id))))}>
+              {...dropProps('zone-remove', null, undefined, removeDrag)}>
               <IconTrash size={14} /> Remove
             </div>
           </div>
@@ -671,9 +683,16 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
             setDialog(null);
           }} />
       )}
-      {moving && (
-        <MoveCopiesDialog name={moving.row.card.name} qty={moving.row.qty} to={placeLabel(moving.board, moving.section)} onClose={() => setMoving(null)}
-          onPick={(n) => { update((d) => placeRows(d, [moving.row.id], moving.board, moving.section, { n })); setMoving(null); }} />
+      {ask && (
+        <CopiesDialog qty={ask.row.qty} onClose={() => setAsk(null)} {...(ask.remove ? {
+          title: 'Remove copies', action: 'Remove', question: `How many ${ask.row.card.name} to remove? There are ${ask.row.qty}.`,
+        } : {
+          title: 'Move copies', action: 'Move', question: `How many ${ask.row.card.name} go to ${placeLabel(ask.board, ask.section)}? There are ${ask.row.qty}.`,
+        })} onPick={(n) => {
+          if (ask.remove) removeWithUndo([ask.row], n);
+          else update((d) => placeRows(d, [ask.row.id], ask.board, ask.section, { n }));
+          setAsk(null);
+        }} />
       )}
       {edition && (
         <ArtPickerModal name={edition.name} current={edition.current} onClose={() => setEdition(null)}

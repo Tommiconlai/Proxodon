@@ -275,19 +275,20 @@ export function PrintDeckDialog({ queueCount, sideCount, tokens, add, defaultSid
   );
 }
 
-// Una carta con più copie trascinata nel mazzo (fuori da Stacks (all), senza Alt): quante spostarne in `to`.
-// Fino a 4 copie un pulsante per numero, oltre un campo numerico (1..qty, Invio conferma). onPick(n).
-export function MoveCopiesDialog({ name, qty, to, onPick, onClose }) {
+// Una carta con più copie trascinata nel mazzo (fuori da Stacks (all), senza Alt): quante spostarne o toglierne
+// (title, question, action = nome del pulsante di conferma). Fino a 4 copie un pulsante per numero, oltre un campo
+// numerico (1..qty, Invio conferma). onPick(n).
+export function CopiesDialog({ title, question, action, qty, onPick, onClose }) {
   const [n, setN] = useState('');
   const ref = useOverlayDismiss(onClose, true, { focusContainer: false });
   const v = Number(n);
   const ok = Number.isInteger(v) && v >= 1 && v <= qty;
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <form className="modal modal-confirm move-copies-form" ref={ref} role="dialog" aria-modal="true" aria-label="Move copies"
+      <form className="modal modal-confirm move-copies-form" ref={ref} role="dialog" aria-modal="true" aria-label={title}
         onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); if (ok) onPick(v); }}>
-        <div className="modal-header"><h2>Move copies</h2></div>
-        <p className="modal-hint" id="move-copies-q">How many {name} go to {to}? There are {qty}.</p>
+        <div className="modal-header"><h2>{title}</h2></div>
+        <p className="modal-hint" id="move-copies-q">{question}</p>
         {qty <= 4 ? (
           <div className="move-copies" role="group" aria-labelledby="move-copies-q">
             {Array.from({ length: qty }, (_, i) => (
@@ -300,7 +301,7 @@ export function MoveCopiesDialog({ name, qty, to, onPick, onClose }) {
         )}
         <div className="modal-actions">
           <button type="button" className="btn-secondary deck-icon-btn" aria-label="Cancel" title="Cancel" onClick={onClose}><IconX size={18} /></button>
-          {qty > 4 && <button type="submit" className="btn-generate deck-icon-btn" disabled={!ok} aria-label="Move" title="Move"><IconCheck size={18} /></button>}
+          {qty > 4 && <button type="submit" className="btn-generate deck-icon-btn" disabled={!ok} aria-label={action} title={action}><IconCheck size={18} /></button>}
         </div>
       </form>
     </div>
