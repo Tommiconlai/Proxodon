@@ -6,6 +6,7 @@
  */
 
 import { parseCardList, deckLine, MAX_LINES, TOO_MANY_LINES } from '../utils/scryfall.js';
+import { ROLES, LAND_FORMATS } from './landAnalysis.js';
 
 export const FORMATS = [
   { id: 'commander', label: 'Commander' },
@@ -479,6 +480,23 @@ export const commanderRows = (deck) => deck.cards.filter((r) => r.board === 'mai
 export const BRACKETS = ['Exhibition', 'Core', 'Upgraded', 'Optimized', 'cEDH'];
 const okBracket = (b) => Number.isInteger(b) && b >= 0 && b <= 5;
 export const bracketField = (b) => (okBracket(b) ? { bracket: b } : {});
+// Analisi delle terre (LandAnalysis), solo sul mazzo privato: override per nome della carta (ruolo, mana prodotto, peso
+// della MDFC) e settings. Overrides è una lista: con il merge di saveDeck una mappa si fonderebbe con quella salvata e un
+// override tolto resterebbe. Ripulita come le regole la vogliono (file di backup, copie): null = campo assente.
+const finite = (v, lo, hi) => (Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : null);
+export function cleanLandAnalysis(x) {
+  if (!x || typeof x !== 'object') return null;
+  const s = x.settings && typeof x.settings === 'object' ? x.settings : {};
+  return {
+    overrides: (Array.isArray(x.overrides) ? x.overrides : []).filter((o) => o && typeof o.name === 'string').slice(0, MAX_ROWS)
+      .map((o) => ({ name: str(o.name, 200), role: ROLES.includes(o.role) ? o.role : null, mana: finite(o.mana, 0, 20), weight: finite(o.weight, 0, 1) })),
+    settings: {
+      format: LAND_FORMATS.some(([id]) => id === s.format) ? s.format : null, cheap: finite(s.cheap, 0, 20), fast: s.fast === true,
+      cmdr: typeof s.cmdr === 'string' ? s.cmdr.slice(0, 64) : null, play: typeof s.play === 'boolean' ? s.play : null,
+    },
+  };
+}
+export const landField = (x) => { const c = cleanLandAnalysis(x); return c ? { landAnalysis: c } : {}; };
 // Game Changer distinti tra mazzo e comandante: side e maybeboard non contano.
 export const gameChangers = (d) => new Set(d.cards.filter((r) => r.board === 'main' && r.card.gc).map((r) => r.card.oid)).size;
 export const autoBracket = (d) => { const n = gameChangers(d); return n === 0 ? 2 : n <= 3 ? 3 : 4; };
@@ -673,7 +691,7 @@ export function toBackup(decks, now = new Date()) {
     app: 'proxodon', kind: 'decks', v: 1, exportedAt: now.toISOString(),
     decks: decks.map((d) => ({
       v: 1, name: d.name, format: d.format, groupBy: d.groupBy, sections: d.sections, cover: d.cover ?? null, cards: d.cards, tags: deckTags(d),
-      ...bracketField(d.bracket), createdAt: iso(d.createdAt), updatedAt: iso(d.updatedAt),
+      ...bracketField(d.bracket), ...landField(d.landAnalysis), createdAt: iso(d.createdAt), updatedAt: iso(d.updatedAt),
     })),
   };
 }
@@ -769,6 +787,7 @@ export function fromBackup(json) {
     cards: (Array.isArray(d?.cards) ? d.cards : []).filter(validRow).slice(0, MAX_ROWS).map(cleanRow).filter(Boolean)
       .map((r) => ({ ...r, id: rid(), commander: r.board === 'main' && !!r.commander })),
     ...bracketField(d?.bracket),
+    ...landField(d?.landAnalysis),
   }));
 }
 
@@ -781,6 +800,7 @@ export function duplicateDeck(deck) {
     sections: deck.sections.map((s) => ({ ...s })),
     cards: deck.cards.map((r) => ({ ...r, id: rid() })),
     ...bracketField(deck.bracket),
+    ...landField(deck.landAnalysis),
   };
 }
 

@@ -10,6 +10,7 @@ import {
 import { db } from './firebase';
 import {
   searchTerms, contentSig, deckTags, deckCover, cleanCards, cleanHelp, cleanReply, cleanPublicDeck, cleanIndex, indexFields, rid, bracketField, cleanProfile,
+  landField,
 } from './deckModel';
 
 const decksCol = (uid) => collection(db, 'users', uid, 'decks');
@@ -26,6 +27,7 @@ const payload = (d, merge = true) => ({
   v: 1, name: d.name, format: d.format, groupBy: d.groupBy, sections: d.sections, cover: d.cover ?? null, cards: d.cards,
   tags: deckTags(d), public: !!d.public, updatedAt: serverTimestamp(),
   ...(d.bracket == null && merge ? { bracket: deleteField() } : bracketField(d.bracket)),
+  ...landField(d.landAnalysis),
 });
 // "Updated" (riquadri dei mazzi) = changedAt, che si sposta solo quando cambia contentSig (carte aggiunte, tolte, quantità,
 // zone, sezioni, comandante). Nome, formato, raggruppamento, copertina, Public, cambi di edizione e
@@ -79,7 +81,8 @@ const commonOf = (d, f = {}) => ({
 const publish = async (uid, d, f) => {
   const owner = await ownerOf(uid);
   const common = commonOf(d, f);
-  await setDoc(doc(publicCol, d.id), { ...payload(d), ...f, uid, ...(owner !== undefined && { owner }), ...common }, { merge: true });
+  const { landAnalysis: _LAND, ...pub } = payload(d); // l'analisi delle terre resta sul mazzo privato
+  await setDoc(doc(publicCol, d.id), { ...pub, ...f, uid, ...(owner !== undefined && { owner }), ...common }, { merge: true });
   return writeIndex(uid, d, owner, common);
 };
 // Mazzi pubblici di prima dell'indice (o di prima del bracket nell'indice): il proprietario aprendo My decks scrive la

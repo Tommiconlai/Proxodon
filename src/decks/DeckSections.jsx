@@ -12,6 +12,7 @@ import {
   splitRow, changeEdition, snapshotFromCard, validateDeck, packPiles, splitPiles, maxCopies, MAX_DILEMMA_CARDS, MAX_HELP_CARDS, DRAG_ROWS,
 } from './deckModel';
 import DeckStats from './DeckStats';
+import LandPanel from './LandPanel';
 import ErrorBoundary from '../components/ErrorBoundary';
 import SampleHand from './SampleHand';
 import CardImg from './CardImg';
@@ -631,6 +632,13 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
           {/* Un dato strano in un mazzo altrui spegne solo le statistiche, non tutta la pagina. */}
           <ErrorBoundary fallback={<p className="field-hint">Stats could not be computed for this deck.</p>}>
             <DeckStats deck={deck} onSelect={pick} />
+          </ErrorBoundary>
+        </section>
+        {/* Analisi delle terre: in Community gli override cambiano solo la vista (update locale). */}
+        <section aria-labelledby="deck-lands-head">
+          <h3 className="deck-analysis-head" id="deck-lands-head">Land analysis</h3>
+          <ErrorBoundary fallback={<p className="field-hint">The land analysis could not be computed for this deck.</p>}>
+            <LandPanel deck={deck} update={update} />
           </ErrorBoundary>
         </section>
         {/* La mano di prova solo da desktop: da telefono non è pratica (scelta dell'utente). */}

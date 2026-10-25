@@ -79,9 +79,39 @@ export async function cardsByIds(ids) {
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ identifiers: uniq.slice(i, i + 75).map((id) => ({ id })) }),
     });
-    for (const c of (await res.json()).data || []) out.set(c.id, c);
+    for (const c of (await res.json()).data || []) { out.set(c.id, c); rememberOracle(c); }
   }
   return out;
+}
+
+// Dati Oracle per l'analisi delle terre (landAnalysis): solo i campi che servono, per oracle id, su questo dispositivo.
+// Li riempie ogni cardsByIds (il riallineamento all'apertura del mazzo legge già tutte le carte), così la scheda Stats
+// di solito non chiede niente; offline valgono quelli salvati. Al massimo ORACLE_MAX voci, una scrittura ogni mezzo secondo.
+const ORACLE_KEY = 'ip:oracle:v1';
+const ORACLE_MAX = 3000;
+const ORACLE_FIELDS = ['name', 'cmc', 'mana_cost', 'type_line', 'oracle_text', 'layout', 'produced_mana', 'keywords'];
+const FACE_FIELDS = ['name', 'mana_cost', 'type_line', 'oracle_text'];
+const pick = (o, keys) => Object.fromEntries(keys.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
+let oracle = {};
+try { oracle = JSON.parse(localStorage.getItem(ORACLE_KEY) || '{}'); } catch { /* storage bloccato, o node */ }
+let oracleSaving = 0;
+function rememberOracle(c) {
+  const oid = c.oracle_id || c.card_faces?.[0]?.oracle_id || c.id; // come snapshotFromCard
+  delete oracle[oid];
+  oracle[oid] = { ...pick(c, ORACLE_FIELDS), ...(c.card_faces && { card_faces: c.card_faces.map((f) => pick(f, FACE_FIELDS)) }) };
+  const keys = Object.keys(oracle);
+  for (let i = 0; i < keys.length - ORACLE_MAX; i++) delete oracle[keys[i]];
+  clearTimeout(oracleSaving);
+  oracleSaving = setTimeout(() => {
+    try { localStorage.setItem(ORACLE_KEY, JSON.stringify(oracle)); } catch { /* storage pieno o bloccato */ }
+  }, 500);
+}
+// Le carte delle righe già in cache: Map oracle id → dati Oracle.
+export const cachedOracle = (rows) => new Map(rows.filter((r) => oracle[r.card.oid]).map((r) => [r.card.oid, oracle[r.card.oid]]));
+// Scarica (per id della stampa) quelle che mancano; finito, cachedOracle le ha.
+export function fetchOracle(rows) {
+  const missing = rows.filter((r) => !oracle[r.card.oid]).map((r) => r.card.sid);
+  return missing.length ? cardsByIds(missing) : Promise.resolve();
 }
 
 // Stampa preferita di una carta aggiunta dalla ricerca (Settings, Preferred printing): quella scelta per la carta

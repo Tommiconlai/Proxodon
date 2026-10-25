@@ -24,7 +24,7 @@ const sum = (rows) => rows.reduce((n, r) => n + r.qty, 0);
 // Riquadro con la sagoma delle card dei mazzi (CutFrame, bordo sfumato, fondo scuro): misurato, perché le misure
 // cambiano con la pagina; la tasca in alto a sinistra è larga quanto la pillola del titolo (.stat-pill, anche dentro il
 // figcaption) più 4 px d'aria, alta 26 come nei riquadri dei mazzi.
-function StatFrame(props) {
+export function StatFrame(props) {
   const { as: Tag = 'div', className, children, ...rest } = props;
   const ref = useRef(null);
   const [box, setBox] = useState(null); // [larghezza, altezza, larghezza della pillola]

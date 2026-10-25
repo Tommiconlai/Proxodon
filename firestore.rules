@@ -102,6 +102,13 @@ service cloud.firestore {
     function bracket(d) {
       return d.get('bracket', 0) is int && d.get('bracket', 0) >= 0 && d.get('bracket', 0) <= 5;
     }
+    // Analisi delle terre (solo mazzo privato): override per carta (lista, max come le righe) e settings dell'analisi.
+    function landAnalysis(d) {
+      let la = d.get('landAnalysis', {});
+      return la is map && la.keys().hasOnly(['overrides', 'settings'])
+        && la.get('overrides', []) is list && la.get('overrides', []).size() <= 500
+        && la.get('settings', {}) is map && la.get('settings', {}).keys().hasOnly(['format', 'cheap', 'fast', 'cmdr', 'play']);
+    }
     // Mazzi: rev = revisione, +1 a ogni scrittura. Si accetta solo la revisione che segue quella salvata: un
     // dispositivo con una copia vecchia (cache non aggiornata) non sovrascrive quella nuova, la sua scrittura è
     // rifiutata e lui torna alla versione salvata. I mazzi di prima, senza rev, valgono 0. Un mazzo nasce con rev 1:
@@ -112,8 +119,8 @@ service cloud.firestore {
     // Solo i campi che scrive il client (payload, changes, createDeck, cartelle, versioni), nome e cartella corti.
     function validDeck(d) {
       return d.keys().hasOnly(['v', 'name', 'format', 'groupBy', 'sections', 'cover', 'cards', 'tags', 'public',
-          'updatedAt', 'sig', 'changedAt', 'createdAt', 'folder', 'rev', 'ver', 'base', 'bracket'])
-        && bracket(d) && d.get('v', 1) == 1 && d.get('createdAt', request.time) is timestamp
+          'updatedAt', 'sig', 'changedAt', 'createdAt', 'folder', 'rev', 'ver', 'base', 'bracket', 'landAnalysis'])
+        && bracket(d) && landAnalysis(d) && d.get('v', 1) == 1 && d.get('createdAt', request.time) is timestamp
         && d.cards is list && d.cards.size() <= 500
         && d.get('sections', []) is list && d.get('sections', []).size() <= 100
         && d.get('tags', []) is list && d.get('tags', []).size() <= 10

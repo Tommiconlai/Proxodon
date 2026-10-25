@@ -3611,6 +3611,54 @@ span.deck-hero-art { cursor: default; }
 /* Riepilogo del mazzo (primo nelle Stats): stessi riquadri dei colori, il nome del dato nella pillola. */
 .stat-tiles { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .stat-color-pct.small { font-size: 1.5rem; line-height: 1.5; }
+/* Analisi delle terre (LandPanel): riepilogo come le Stats, poi formula, probabilità, simulazione e ruoli delle carte. */
+.land-analysis { display: flex; flex-direction: column; gap: 18px; }
+.land-analysis .stat-tiles { grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); }
+@media (max-width: 600px) { /* telefono: tre per riga, numeri più piccoli */
+  .land-analysis .stat-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .land-analysis .stat-tiles .stat-color { padding: 34px 6px 10px; }
+  .land-analysis .stat-tiles .stat-pill { padding: 0 6px; font-size: 0.54rem; letter-spacing: 0.02em; }
+  .land-analysis .stat-tiles .stat-color-pct { font-size: 1.5rem; }
+  .land-analysis .stat-tiles .stat-color-sub { font-size: 0.72rem; }
+  .land-big-n { font-size: 2.4rem; }
+}
+.land-format { width: auto; max-width: 100%; margin: 10px 0 6px; }
+.land-note { margin: 0; font-size: 0.84rem; line-height: 1.5; color: var(--text-secondary); }
+.land-note a { color: var(--cyan-soft); }
+.land-formula-main { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 36px; margin: 4px 0 14px; }
+.land-big { display: flex; flex-direction: column; gap: 2px; }
+.land-big-n { font-family: var(--font-display); font-size: 3rem; font-weight: 600; line-height: 1; color: var(--cyan); text-shadow: 0 0 18px var(--cyan-glow); }
+.land-big-n.now { color: var(--text-primary); text-shadow: none; }
+.land-big-sub { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+.land-delta { margin: 0 0 4px; padding: 6px 12px; border: 1px solid var(--accent-dim); border-radius: 999px; background: var(--accent-dim); font-family: var(--font-mono); font-size: 0.86rem; color: var(--accent-light); }
+.land-delta.ok { border-color: rgba(207, 255, 86, 0.3); background: rgba(207, 255, 86, 0.08); color: var(--acid); }
+.land-details { margin-top: 12px; }
+.land-details > summary, .land-group > summary { cursor: pointer; }
+.land-details > summary { font-size: 0.86rem; color: var(--cyan-soft); }
+.land-terms { width: 100%; max-width: 520px; margin: 10px 0; border-collapse: collapse; font-size: 0.86rem; }
+.land-terms td { padding: 5px 0; border-top: 1px solid rgba(124, 92, 255, 0.12); color: var(--text-secondary); }
+.land-terms td + td { padding-left: 16px; text-align: right; font-family: var(--font-mono); color: var(--text-primary); }
+.land-terms tr.sum td { border-top-color: rgba(124, 92, 255, 0.35); font-weight: 600; color: var(--text-primary); }
+.land-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; margin: 6px 0 10px; }
+.land-check { display: inline-flex; align-items: center; gap: 8px; font-size: 0.86rem; color: var(--text-secondary); cursor: pointer; }
+.land-check input { width: auto; }
+.land-cmdr { margin: 8px 0; }
+.land-roles .stat-sub { margin: 0 0 6px; }
+.land-group > summary { list-style: none; }
+.land-group > summary::-webkit-details-marker { display: none; }
+.land-group > summary h4::before { content: '▸'; color: var(--text-muted); transition: transform var(--transition); }
+.land-group[open] > summary h4::before { transform: rotate(90deg); }
+.land-group ul { list-style: none; margin: 0; padding: 0; }
+.land-role-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 6px; border-top: 1px solid rgba(124, 92, 255, 0.12); }
+.land-role-row.changed { background: rgba(255, 45, 149, 0.05); }
+.land-role-card { flex: 1 1 260px; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.land-role-name { font-size: 0.92rem; color: var(--text-primary); }
+.land-mv { font-family: var(--font-mono); font-size: 0.78rem; color: var(--cyan); }
+.land-badge { padding: 0 6px; border: 1px solid rgba(207, 255, 86, 0.35); border-radius: 999px; font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--acid); }
+.land-reasons { flex-basis: 100%; font-size: 0.78rem; color: var(--text-muted); }
+.land-role-ctl { display: flex; align-items: center; gap: 8px; min-width: 200px; }
+.land-role-ctl select { width: auto; padding-block: 4px; }
+.land-role-ctl input { width: 64px; padding-block: 4px; }
 /* Probabilità di pescata: titolo, poi una riga di opzioni (Draw, Copies, At least, Turns) che va a
    capo sugli schermi stretti; grafico largo quanto la sezione. Linee 2 px, punti con anello del
    colore di fondo, crosshair tratteggiato sul turno sotto il mouse. */
