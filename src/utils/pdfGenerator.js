@@ -85,63 +85,79 @@ export function cropMarkSpan(limit, gap, len) {
   return { a: gap, b: limit };                              // accorcia il crocino fino alla mezzeria
 }
 
-/**
- * Disegna le linee di taglio (crop marks) per un'immagine nel PDF.
- * `limits` = estensione massima verso l'esterno per lato (left/right/up/down):
- * `bleed` sui bordi interni (mezzeria con la carta vicina), `bleed + offset`
- * sui bordi esterni (margine pagina).
- */
-function drawCropMarks(doc, x, y, bleed, limits, cardW, cardH, style = 'lines') {
-  const markLength = 3;
-  const gap = 0.5;
+// Forme dei crocini (Settings → Crop marks), uguali nel PDF RGB, nel CMYK e nell'anteprima; hint = la nota sotto la scelta.
+export const CROP_STYLES = [
+  { value: 'lines', label: 'Lines', hint: 'Short lines out from each corner.' },
+  { value: 'long', label: 'Long lines', hint: 'Across the gaps and out to the sheet edge: easy to line up on a paper trimmer.' },
+  { value: 'edge', label: 'Sheet margin only', hint: 'Lines only in the sheet margin, out to the edge: nothing on the bleed between cards.' },
+  { value: 'corners', label: 'Corner brackets', hint: 'An L just outside each corner.' },
+  { value: 'dots', label: 'Corner dots', hint: 'A small dot just outside each corner, the least visible.' },
+];
+export const CROP_COLOR = '#a0a0a0';
+export const hexRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) || 0);
 
+/**
+ * Spazio libero verso l'esterno per lato: `bleed` sui bordi interni (mezzeria con la carta vicina),
+ * `bleed + offset` sui bordi esterni (margine pagina); outer = i lati sul bordo del foglio.
+ * Nelle unità del chiamante (mm nel PDF, px nell'anteprima).
+ */
+export const cropLimits = (col, row, cols, rows, offsetX, offsetY, bleed) => ({
+  left: (col === 0 ? offsetX : 0) + bleed,
+  right: (col === cols - 1 ? offsetX : 0) + bleed,
+  up: (row === 0 ? offsetY : 0) + bleed,
+  down: (row === rows - 1 ? offsetY : 0) + bleed,
+  outer: { left: col === 0, right: col === cols - 1, up: row === 0, down: row === rows - 1 },
+});
+
+/**
+ * Crocini di una carta: segmenti [x1, y1, x2, y2] e punti [x, y, raggio], da alto-sx. x, y = angolo
+ * della cella, limits da cropLimits, u = unità per mm (1 nel PDF, px per mm nell'anteprima).
+ */
+export function cropMarkShapes(style, x, y, bleed, limits, cardW, cardH, u = 1) {
+  const gap = 0.5 * u;
+  const len = 3 * u;
   const cx = x + bleed;
   const cy = y + bleed;
   const cw = cardW;
   const ch = cardH;
-
-  doc.setDrawColor(160, 160, 160);
-  doc.setLineWidth(0.15);
-
+  const segs = [];
+  const dots = [];
+  // Squadrette e punti: vertice spostato in fuori di g (resta nel gutter), uno per angolo con il verso dei bracci.
+  const g = bleed > 0 ? Math.min(0.6 * u, bleed) : 0.6 * u;
+  const corners = [[cx - g, cy - g, 1, 1], [cx + cw + g, cy - g, -1, 1], [cx - g, cy + ch + g, 1, -1], [cx + cw + g, cy + ch + g, -1, -1]];
   if (style === 'corners') {
-    // Squadrette ad angolo: vertice spostato in fuori di g (resta nel gutter),
-    // due bracci di lunghezza len verso la carta. Inquadrano l'angolo di taglio.
-    const g = bleed > 0 ? Math.min(0.6, bleed) : 0.6;
-    const len = Math.min(markLength, cw * 0.45, ch * 0.45);
-    const bracket = (vx, vy, sx, sy) => {
-      doc.line(vx, vy, vx + sx * len, vy);
-      doc.line(vx, vy, vx, vy + sy * len);
+    const l = Math.min(len, cw * 0.45, ch * 0.45);
+    for (const [vx, vy, sx, sy] of corners) segs.push([vx, vy, vx + sx * l, vy], [vx, vy, vx, vy + sy * l]);
+  } else if (style === 'dots') {
+    for (const [vx, vy] of corners) dots.push([vx, vy, 0.4 * u]);
+  } else {
+    // lines: corte; long: tutto lo spazio libero (mezzeria, bordo del foglio); edge: solo nel margine del foglio,
+    // dal bordo della cella in fuori (almeno gap dal taglio anche senza abbondanza), così l'abbondanza resta pulita.
+    const span = (side) => {
+      if (style !== 'edge') return cropMarkSpan(limits[side], gap, style === 'long' ? Infinity : len);
+      const a = Math.max(bleed, gap);
+      return limits.outer[side] && limits[side] - a > gap ? { a, b: limits[side] } : null;
     };
-    bracket(cx - g, cy - g, 1, 1);            // alto-sx
-    bracket(cx + cw + g, cy - g, -1, 1);      // alto-dx
-    bracket(cx - g, cy + ch + g, 1, -1);      // basso-sx
-    bracket(cx + cw + g, cy + ch + g, -1, -1);// basso-dx
-    return;
+    const L = span('left');
+    const R = span('right');
+    const U = span('up');
+    const D = span('down');
+    // Orizzontali (escono dai bordi verticali del trim), poi verticali (dai bordi orizzontali)
+    if (L) segs.push([cx - L.b, cy, cx - L.a, cy], [cx - L.b, cy + ch, cx - L.a, cy + ch]);
+    if (R) segs.push([cx + cw + R.a, cy, cx + cw + R.b, cy], [cx + cw + R.a, cy + ch, cx + cw + R.b, cy + ch]);
+    if (U) segs.push([cx, cy - U.b, cx, cy - U.a], [cx + cw, cy - U.b, cx + cw, cy - U.a]);
+    if (D) segs.push([cx, cy + ch + D.a, cx, cy + ch + D.b], [cx + cw, cy + ch + D.a, cx + cw, cy + ch + D.b]);
   }
+  return { segs, dots };
+}
 
-  const L = cropMarkSpan(limits.left, gap, markLength);
-  const R = cropMarkSpan(limits.right, gap, markLength);
-  const U = cropMarkSpan(limits.up, gap, markLength);
-  const D = cropMarkSpan(limits.down, gap, markLength);
-
-  // Orizzontali (escono dai bordi verticali del trim, verso sinistra/destra)
-  if (L) {
-    doc.line(cx - L.b, cy, cx - L.a, cy);
-    doc.line(cx - L.b, cy + ch, cx - L.a, cy + ch);
-  }
-  if (R) {
-    doc.line(cx + cw + R.a, cy, cx + cw + R.b, cy);
-    doc.line(cx + cw + R.a, cy + ch, cx + cw + R.b, cy + ch);
-  }
-  // Verticali (escono dai bordi orizzontali del trim, verso alto/basso)
-  if (U) {
-    doc.line(cx, cy - U.b, cx, cy - U.a);
-    doc.line(cx + cw, cy - U.b, cx + cw, cy - U.a);
-  }
-  if (D) {
-    doc.line(cx, cy + ch + D.a, cx, cy + ch + D.b);
-    doc.line(cx + cw, cy + ch + D.a, cx + cw, cy + ch + D.b);
-  }
+function drawCropMarks(doc, { segs, dots }, color) {
+  const [r, g, b] = hexRgb(color);
+  doc.setDrawColor(r, g, b);
+  doc.setFillColor(r, g, b);
+  doc.setLineWidth(0.15);
+  for (const s of segs) doc.line(...s);
+  for (const [x, y, rad] of dots) doc.circle(x, y, rad, 'F');
 }
 
 // drawImage con flip opzionale orizzontale/verticale (per il mirror del bleed).
@@ -303,7 +319,7 @@ function compressImage(img, cellWmm, cellHmm, dpi, bleedMm, bleedMode, quality =
 /**
  * Genera e scarica il PDF.
  */
-export async function generatePDF(items, formatKey, bleedMm, dpi = 600, bleedStyle = 'auto', cardW = CARD_W, cardH = CARD_H, cropMarks = true, cropStyle = 'lines', customSheet = null, quality = 0.85, onProgress = null, signal = null) {
+export async function generatePDF(items, formatKey, bleedMm, dpi = 600, bleedStyle = 'auto', cardW = CARD_W, cardH = CARD_H, cropMarks = true, cropStyle = 'lines', cropColor = CROP_COLOR, customSheet = null, quality = 0.85, onProgress = null, signal = null) {
   if (!items || items.length === 0) throw new Error('No images selected.');
 
   const { cols, rows, cellW, cellH, pageW, pageH, orientation, offsetX, offsetY } = getGridInfo(formatKey, bleedMm, cardW, cardH, customSheet);
@@ -348,13 +364,8 @@ export async function generatePDF(items, formatKey, bleedMm, dpi = 600, bleedSty
       imgEl.close();
       doc.addImage(jpeg, 'JPEG', x, y, cellW, cellH);
       if (cropMarks) {
-        const limits = {
-          left:  (col === 0 ? offsetX : 0) + bleedMm,
-          right: (col === cols - 1 ? offsetX : 0) + bleedMm,
-          up:    (row === 0 ? offsetY : 0) + bleedMm,
-          down:  (row === rows - 1 ? offsetY : 0) + bleedMm,
-        };
-        drawCropMarks(doc, x, y, bleedMm, limits, cardW, cardH, cropStyle);
+        const limits = cropLimits(col, row, cols, rows, offsetX, offsetY, bleedMm);
+        drawCropMarks(doc, cropMarkShapes(cropStyle, x, y, bleedMm, limits, cardW, cardH), cropColor);
       }
 
       posOnPage++;

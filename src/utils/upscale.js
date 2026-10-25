@@ -4,12 +4,28 @@
  * modello (2.7 MB) sono nel sito, in public/models (copiati da @upscalerjs/esrgan-medium/models/x2):
  * niente CDN esterno senza controllo d'integrità. Aggiornando il pacchetto vanno ricopiati.
  */
+import { lsGet, lsSet } from './settings';
+
 let upscalerP = null;
 const getUpscaler = () => (upscalerP ??= Promise.all([
     import('upscaler'),
     import('@upscalerjs/esrgan-medium/2x'),
 ]).then(([{ default: Upscaler }, { default: model }]) => new Upscaler({ model: { ...model, path: 'models/esrgan-medium-x2/model.json' } }))
     .catch((e) => { upscalerP = null; throw e; })); // caricamento fallito (rete): il prossimo Upscale riprova
+export const loadUpscaler = getUpscaler;
+export const upscalerReady = () => upscalerP != null; // caricato o in caricamento
+
+// Stima del tempo (Upscale all): ms per megapixel d'ingresso, misurati a ogni upscale e tenuti nel browser;
+// prima della prima misura ~9 s/MP (vedi sotto), più ~16 s per il modello al primo uso della sessione.
+export const MODEL_LOAD_MS = 16000;
+export const upscaleRate = () => Number(lsGet('ip:upscaleMsPerMp')) || 9000;
+export const saveUpscaleRate = (ms) => lsSet('ip:upscaleMsPerMp', String(Math.round(ms)));
+export const formatEta = (ms) => {
+    const s = Math.ceil(ms / 1000);
+    if (s < 60) return `${Math.max(5, Math.ceil(s / 5) * 5)} s`;
+    if (s < 3600) return `${Math.round(s / 60)} min`;
+    return `${Math.floor(s / 3600)} h ${Math.round((s % 3600) / 60)} min`;
+};
 
 // Ha senso solo su raster RGB sotto il DPI scelto (i JPEG CMYK nativi perderebbero gli
 // inchiostri esatti). DPI effettivi arrotondati: una PNG Scryfall 744px raddoppiata fa
@@ -26,14 +42,16 @@ const loadImg = (src) => new Promise((resolve, reject) => {
 
 /**
  * Restituisce { file, width }: PNG 2× con lo stesso nome base (così "Change art" e
- * "stessa carta" continuano a funzionare). onProgress(0..1) durante l'elaborazione a tasselli.
+ * "stessa carta" continuano a funzionare). onProgress(0..1) durante l'elaborazione a tasselli;
+ * signal (AbortSignal) la interrompe.
  */
-export async function upscaleFile(file, onProgress) {
+export async function upscaleFile(file, onProgress, signal) {
     const upscaler = await getUpscaler();
     const url = URL.createObjectURL(file);
     try {
         const img = await loadImg(url);
         const dataUrl = await upscaler.upscale(img, {
+            signal,
             // Misurato (RTX 4070, WebGL, PNG Scryfall 745×1040): ~6 s con tasselli 128, ~7 s
             // cedendo il frame tra i tasselli (UI reattiva + avanzamento visibile). Il primo uso
             // costa ~16 s (compilazione shader + download pesi).

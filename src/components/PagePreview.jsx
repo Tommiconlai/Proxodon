@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
-import { getGridInfo, cropMarkSpan, drawCardWithBleed, resolveBleedMode, bleedLabel } from '../utils/pdfGenerator';
+import { getGridInfo, cropLimits, cropMarkShapes, CROP_COLOR, drawCardWithBleed, resolveBleedMode, bleedLabel } from '../utils/pdfGenerator';
 import CardMenu from './CardMenu';
 import { artName } from '../utils/scryfall';
 import { canUpscale } from '../utils/upscale';
@@ -20,58 +20,21 @@ function loadImage(src) {
     });
 }
 
-// ── Linee di taglio su canvas ────────────────────────────────
-function drawCropMarksCanvas(ctx, cellX, cellY, bleedPx, cardWpx, cardHpx, scale, limits, style = 'lines') {
-    const gap = 0.5 * scale;
-    const len = 3 * scale;
-
-    const cx = cellX + bleedPx;
-    const cy = cellY + bleedPx;
-
-    ctx.strokeStyle = '#aaa';
+// ── Linee di taglio su canvas (stesse forme del PDF, in px: u = scale) ──
+function drawCropMarksCanvas(ctx, { segs, dots }, scale, color) {
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
     ctx.lineWidth = Math.max(0.5, 0.3 * scale);
-
-    const seg = (x1, y1, x2, y2) => {
+    for (const [x1, y1, x2, y2] of segs) {
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
         ctx.stroke();
-    };
-
-    if (style === 'corners') {
-        // Squadrette ad angolo (vedi drawCropMarks PDF): vertice in fuori di g, bracci len verso la carta.
-        const g = bleedPx > 0 ? Math.min(0.6 * scale, bleedPx) : 0.6 * scale;
-        const len2 = Math.min(len, cardWpx * 0.45, cardHpx * 0.45);
-        const bracket = (vx, vy, sx, sy) => { seg(vx, vy, vx + sx * len2, vy); seg(vx, vy, vx, vy + sy * len2); };
-        bracket(cx - g, cy - g, 1, 1);
-        bracket(cx + cardWpx + g, cy - g, -1, 1);
-        bracket(cx - g, cy + cardHpx + g, 1, -1);
-        bracket(cx + cardWpx + g, cy + cardHpx + g, -1, -1);
-        return;
     }
-
-    const L = cropMarkSpan(limits.left, gap, len);
-    const R = cropMarkSpan(limits.right, gap, len);
-    const U = cropMarkSpan(limits.up, gap, len);
-    const D = cropMarkSpan(limits.down, gap, len);
-
-    // Orizzontali (sinistra/destra dai bordi verticali del trim)
-    if (L) {
-        seg(cx - L.b, cy, cx - L.a, cy);
-        seg(cx - L.b, cy + cardHpx, cx - L.a, cy + cardHpx);
-    }
-    if (R) {
-        seg(cx + cardWpx + R.a, cy, cx + cardWpx + R.b, cy);
-        seg(cx + cardWpx + R.a, cy + cardHpx, cx + cardWpx + R.b, cy + cardHpx);
-    }
-    // Verticali (alto/basso dai bordi orizzontali del trim)
-    if (U) {
-        seg(cx, cy - U.b, cx, cy - U.a);
-        seg(cx + cardWpx, cy - U.b, cx + cardWpx, cy - U.a);
-    }
-    if (D) {
-        seg(cx, cy + cardHpx + D.a, cx, cy + cardHpx + D.b);
-        seg(cx + cardWpx, cy + cardHpx + D.a, cx + cardWpx, cy + cardHpx + D.b);
+    for (const [x, y, r] of dots) {
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(1, r), 0, 2 * Math.PI);
+        ctx.fill();
     }
 }
 
@@ -89,7 +52,7 @@ function usePixelRatio() {
 }
 
 // ── Singola pagina canvas ─────────────────────────────────────
-export function PageCanvas({ pageImages, formatKey, bleedMm, bleedStyle, cardW, cardH, showCrop, cropStyle, customSheet, previewW, empty }) {
+export function PageCanvas({ pageImages, formatKey, bleedMm, bleedStyle, cardW, cardH, showCrop, cropStyle, cropColor = CROP_COLOR, customSheet, previewW, empty }) {
     const canvasRef = useRef();
     const dpr = usePixelRatio();
     // Cache src(objectURL) -> HTMLImageElement decodificata: evita di ri-decodificare
@@ -170,13 +133,10 @@ export function PageCanvas({ pageImages, formatKey, bleedMm, bleedStyle, cardW, 
                     }
                 }
 
-                const limits = {
-                    left:  (col === 0 ? offsetX * scale : 0) + bleedPx,
-                    right: (col === cols - 1 ? offsetX * scale : 0) + bleedPx,
-                    up:    (row === 0 ? offsetY * scale : 0) + bleedPx,
-                    down:  (row === rows - 1 ? offsetY * scale : 0) + bleedPx,
-                };
-                if (showCrop) drawCropMarksCanvas(ctx, x, y, bleedPx, cardWpx, cardHpx, scale, limits, cropStyle);
+                if (showCrop) {
+                    const limits = cropLimits(col, row, cols, rows, offsetX * scale, offsetY * scale, bleedPx);
+                    drawCropMarksCanvas(ctx, cropMarkShapes(cropStyle, x, y, bleedPx, limits, cardWpx, cardHpx, scale), scale, cropColor);
+                }
             }
 
             ctx.strokeStyle = '#c8c8c8';
@@ -186,7 +146,7 @@ export function PageCanvas({ pageImages, formatKey, bleedMm, bleedStyle, cardW, 
 
         draw();
         return () => { cancelled = true; };
-    }, [pageImages, formatKey, bleedMm, bleedStyle, cardW, cardH, showCrop, cropStyle, customSheet, previewW, empty, info, scale, previewH, dpr]);
+    }, [pageImages, formatKey, bleedMm, bleedStyle, cardW, cardH, showCrop, cropStyle, cropColor, customSheet, previewW, empty, info, scale, previewH, dpr]);
 
     return (
         <canvas
@@ -197,7 +157,7 @@ export function PageCanvas({ pageImages, formatKey, bleedMm, bleedStyle, cardW, 
 }
 
 // ── Componente principale ─────────────────────────────────────
-export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop, cropStyle, customSheet, onRemove, onChangeArt, onToggleBleed, onDuplicate, onMove, onUpscale, upscaling, isDragActive, missing, touch, onRemoveMany, onBleedMany }) {
+export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop, cropStyle, cropColor, customSheet, onRemove, onChangeArt, onToggleBleed, onDuplicate, onMove, onUpscale, upscaling, isDragActive, missing, touch, onRemoveMany, onBleedMany }) {
     const [pageOffset, setPageOffset] = useState(0);
     const [box, setBox] = useState({ w: 0, h: 0 });
     const stageRef = useRef(null);
@@ -557,6 +517,7 @@ export default function PagePreview({ images, formatKey, bleedMm, bleedStyle, dp
                         cardH={cardH}
                         showCrop={showCrop}
                         cropStyle={cropStyle}
+                        cropColor={cropColor}
                         customSheet={customSheet}
                         previewW={pageW}
                         empty={images.length === 0}

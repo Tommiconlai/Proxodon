@@ -1,4 +1,6 @@
-import { PAPER_FORMATS, getGridInfo } from '../utils/pdfGenerator';
+import { PAPER_FORMATS, getGridInfo, CROP_STYLES, CROP_COLOR } from '../utils/pdfGenerator';
+import { formatEta } from '../utils/upscale';
+import { IconSparkles, IconX } from './icons';
 import { BUNDLED_PROFILES, UPLOAD_ID } from '../utils/iccProfiles';
 
 const DPI_OPTIONS = [150, 300, 600, 800, 1000, 1200];
@@ -38,14 +40,15 @@ function SelectField({ label, value, onChange, children }) {
 export default function PageSettings({
     formatKey, setFormatKey, bleedMm, setBleedMm, bleedStyle, setBleedStyle, dpi, setDpi,
     cardType, setCardType, cardW, setCardW, cardH, setCardH,
-    cropMarks, setCropMarks, cropStyle, setCropStyle,
+    cropMarks, setCropMarks, cropStyle, setCropStyle, cropColor = CROP_COLOR, setCropColor,
     sheetUnit, setSheetUnit, sheetW, setSheetW, sheetH, setSheetH, customSheet,
     quality = 0.85, setQuality,
     colorMode = 'rgb', setColorMode, renderIntent = 'relative', setRenderIntent,
     iccProfileId = 'fogra39', setIccProfileId, uploadedIcc = null, onIccUpload, onIccClear,
-    profileMismatchCount = 0,
+    profileMismatchCount = 0, upscale = null,
 }) {
     const { cols, rows, perPage } = getGridInfo(formatKey, bleedMm, cardW, cardH, customSheet);
+    const upLabel = upscale ? `Upscale ${upscale.count} card${upscale.count > 1 ? 's' : ''} below ${dpi} DPI, 2× with AI (about ${formatEta(upscale.eta)})` : '';
     const [pw, ph] = formatKey === 'custom' && customSheet
         ? customSheet.map((v) => Math.round(v * 10) / 10)
         : PAPER_FORMATS[formatKey];
@@ -206,6 +209,18 @@ export default function PageSettings({
                             <option key={v} value={v}>{v} DPI</option>
                         ))}
                     </SelectField>
+                    {/* Upscale all: le carte sotto il DPI scelto, quante e quanto ci vuole; Stop durante l'upscale */}
+                    {upscale?.count > 0 && (
+                        <div className="upscale-all">
+                            <p className="field-hint" aria-live="polite">
+                                {upscale.running ? 'Upscaling with AI…'
+                                    : <><b>{upscale.count}</b> card{upscale.count > 1 ? 's' : ''} below {dpi} DPI · 2× with AI in about {formatEta(upscale.eta)}</>}
+                            </p>
+                            {upscale.running
+                                ? <button type="button" className="upscale-all-btn" onClick={upscale.onStop} aria-label="Stop upscaling" title="Stop upscaling"><IconX size={16} /></button>
+                                : <button type="button" className="upscale-all-btn" onClick={upscale.onAll} aria-label={upLabel} title={upLabel}><IconSparkles size={16} /></button>}
+                        </div>
+                    )}
 
                     {/* Compressione JPEG dell'export RGB (non si applica al CMYK lossless) */}
                     <div className="field">
@@ -234,12 +249,18 @@ export default function PageSettings({
                             <span>Show crop marks</span>
                         </label>
                         {cropMarks && (
-                            <div className="select-wrapper" style={{ marginTop: 10 }}>
-                                <select value={cropStyle} onChange={e => setCropStyle(e.target.value)} aria-label="Crop mark style">
-                                    <option value="lines">Lines</option>
-                                    <option value="corners">Corner brackets</option>
-                                </select>
-                            </div>
+                            <>
+                                <div className="crop-row">
+                                    <div className="select-wrapper">
+                                        <select value={cropStyle} onChange={e => setCropStyle(e.target.value)} aria-label="Crop mark style">
+                                            {CROP_STYLES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                        </select>
+                                    </div>
+                                    <input type="color" className="crop-color" value={cropColor} onChange={e => setCropColor?.(e.target.value)}
+                                        aria-label="Crop mark color" title="Crop mark color" />
+                                </div>
+                                <p className="field-hint">{CROP_STYLES.find(o => o.value === cropStyle)?.hint}</p>
+                            </>
                         )}
                     </div>
                 </div>

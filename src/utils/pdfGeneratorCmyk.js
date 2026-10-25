@@ -6,7 +6,7 @@
  * DeviceCMYK (raw FlateDecode, lossless), con UN profilo ICC incorporato come
  * OutputIntent. Niente RGB/ICCBased/trasparenza nel contenuto.
  *
- * Geometria riusata da pdfGenerator.js (getGridInfo/cropMarkSpan/drawCardWithBleed):
+ * Geometria riusata da pdfGenerator.js (getGridInfo/cropMarkShapes/drawCardWithBleed):
  * è pura matematica di layout, indipendente dallo spazio colore.
  *
  * v1 = solo arte RGB (Scryfall/upload RGB) -> CMYK via lcms (profilo tipografia).
@@ -17,7 +17,7 @@
  * iniziale (utenti RGB) non li include.
  */
 
-import { getGridInfo, cropMarkSpan, resolveBleedMode, drawCardWithBleed, CARD_W, CARD_H } from './pdfGenerator.js';
+import { getGridInfo, cropLimits, cropMarkShapes, hexRgb, CROP_COLOR, resolveBleedMode, drawCardWithBleed, CARD_W, CARD_H } from './pdfGenerator.js';
 import { isCmykJpeg, cmykCellBuffer } from './cmykRaster.js';
 import { decodeCMYK } from './vendor/jpegCmykDecoder.js';
 import { saveFile } from './download.js';
@@ -53,58 +53,17 @@ function renderCellRGBA(img, cellWmm, cellHmm, dpi, bleedMm, bleedMode) {
 }
 
 /**
- * Disegna i crocini di taglio in CMYK (100% K) su una pagina pdf-lib.
- * Porta drawCropMarks (jsPDF, mm da alto-sx) alle coordinate pdf-lib
- * (pt da basso-sx). Stessa geometria/clamp di cropMarkSpan.
+ * Disegna i crocini di taglio (cropMarkShapes, mm da alto-sx) su una pagina pdf-lib (pt da basso-sx).
+ * Colore scelto in CMYK con il nero estratto per primo: i grigi (default) vanno su una sola lastra, la K.
  */
-function drawCropMarksPdf(page, ops, x, y, bleed, limits, cardW, cardH, style, pageHpt) {
-  const markLength = 3;
-  const gap = 0.5;
-  const cx = x + bleed;
-  const cy = y + bleed;
-  const cw = cardW;
-  const ch = cardH;
+function drawCropMarksPdf(page, ops, { segs, dots }, hex, pageHpt) {
   const thickness = 0.15 * MM_TO_PT;
-  const color = ops.cmyk(0, 0, 0, 1); // 100% nero: visibile, una sola lastra (no TAC)
-
-  // mm (da alto-sx) -> punto pdf-lib (da basso-sx)
+  const [r, g, b] = hexRgb(hex).map((v) => v / 255);
+  const k = 1 - Math.max(r, g, b);
+  const color = k >= 1 ? ops.cmyk(0, 0, 0, 1) : ops.cmyk((1 - r - k) / (1 - k), (1 - g - k) / (1 - k), (1 - b - k) / (1 - k), k);
   const P = (xmm, ymmTop) => ({ x: xmm * MM_TO_PT, y: pageHpt - ymmTop * MM_TO_PT });
-  const line = (x1, y1, x2, y2) => page.drawLine({ start: P(x1, y1), end: P(x2, y2), thickness, color });
-
-  if (style === 'corners') {
-    const g = bleed > 0 ? Math.min(0.6, bleed) : 0.6;
-    const len = Math.min(markLength, cw * 0.45, ch * 0.45);
-    const bracket = (vx, vy, sx, sy) => {
-      line(vx, vy, vx + sx * len, vy);
-      line(vx, vy, vx, vy + sy * len);
-    };
-    bracket(cx - g, cy - g, 1, 1);
-    bracket(cx + cw + g, cy - g, -1, 1);
-    bracket(cx - g, cy + ch + g, 1, -1);
-    bracket(cx + cw + g, cy + ch + g, -1, -1);
-    return;
-  }
-
-  const L = cropMarkSpan(limits.left, gap, markLength);
-  const R = cropMarkSpan(limits.right, gap, markLength);
-  const U = cropMarkSpan(limits.up, gap, markLength);
-  const D = cropMarkSpan(limits.down, gap, markLength);
-  if (L) {
-    line(cx - L.b, cy, cx - L.a, cy);
-    line(cx - L.b, cy + ch, cx - L.a, cy + ch);
-  }
-  if (R) {
-    line(cx + cw + R.a, cy, cx + cw + R.b, cy);
-    line(cx + cw + R.a, cy + ch, cx + cw + R.b, cy + ch);
-  }
-  if (U) {
-    line(cx, cy - U.b, cx, cy - U.a);
-    line(cx + cw, cy - U.b, cx + cw, cy - U.a);
-  }
-  if (D) {
-    line(cx, cy + ch + D.a, cx, cy + ch + D.b);
-    line(cx + cw, cy + ch + D.a, cx + cw, cy + ch + D.b);
-  }
+  for (const [x1, y1, x2, y2] of segs) page.drawLine({ start: P(x1, y1), end: P(x2, y2), thickness, color });
+  for (const [x, y, rad] of dots) page.drawCircle({ ...P(x, y), size: rad * MM_TO_PT, color });
 }
 
 /**
@@ -112,7 +71,7 @@ function drawCropMarksPdf(page, ops, x, y, bleed, limits, cardW, cardH, style, p
  * Firma allineata a generatePDF + (iccBytes, iccName, intentKey).
  * iccBytes: Uint8Array del profilo CMYK della tipografia (obbligatorio).
  */
-export async function buildCmykPdfBytes(items, formatKey, bleedMm, dpi = 300, bleedStyle = 'auto', cardW = CARD_W, cardH = CARD_H, cropMarks = true, cropStyle = 'lines', customSheet = null, iccBytes = null, iccName = 'CMYK', intentKey = 'relative', condition = null, onProgress = null, signal = null) {
+export async function buildCmykPdfBytes(items, formatKey, bleedMm, dpi = 300, bleedStyle = 'auto', cardW = CARD_W, cardH = CARD_H, cropMarks = true, cropStyle = 'lines', cropColor = CROP_COLOR, customSheet = null, iccBytes = null, iccName = 'CMYK', intentKey = 'relative', condition = null, onProgress = null, signal = null) {
   if (!items || items.length === 0) throw new Error('No images selected.');
   if (!iccBytes || !iccBytes.length) throw new Error('Load the print shop ICC profile first.');
 
@@ -236,13 +195,8 @@ export async function buildCmykPdfBytes(items, formatKey, bleedMm, dpi = 300, bl
         );
 
         if (cropMarks) {
-          const limits = {
-            left:  (col === 0 ? offsetX : 0) + bleedMm,
-            right: (col === cols - 1 ? offsetX : 0) + bleedMm,
-            up:    (row === 0 ? offsetY : 0) + bleedMm,
-            down:  (row === rows - 1 ? offsetY : 0) + bleedMm,
-          };
-          drawCropMarksPdf(page, ops, xmm, ymm, bleedMm, limits, cardW, cardH, cropStyle, pageHpt);
+          const limits = cropLimits(col, row, cols, rows, offsetX, offsetY, bleedMm);
+          drawCropMarksPdf(page, ops, cropMarkShapes(cropStyle, xmm, ymm, bleedMm, limits, cardW, cardH), cropColor, pageHpt);
         }
 
         posOnPage++;

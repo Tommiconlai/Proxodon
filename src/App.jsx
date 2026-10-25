@@ -6,14 +6,14 @@ import PagePreview from './components/PagePreview';
 import ScryfallImportModal from './components/ScryfallImportModal';
 import MpcImportModal from './components/MpcImportModal';
 import ArtPickerModal from './components/ArtPickerModal';
-import { upscaleFile, canUpscale } from './utils/upscale';
+import { upscaleFile, canUpscale, loadUpscaler, upscalerReady, upscaleRate, saveUpscaleRate, MODEL_LOAD_MS, formatEta } from './utils/upscale';
 import CookieBanner from './components/CookieBanner';
 import ExportProgress from './components/ExportProgress';
 import Toast from './components/Toast';
 import { getSettings, lsGet, lsSet } from './utils/settings';
 import MobileLayout from './components/MobileLayout';
 import { useIsMobile } from './hooks/useIsMobile';
-import { generatePDF, getGridInfo, PAPER_FORMATS, nextBleedMode } from './utils/pdfGenerator';
+import { generatePDF, getGridInfo, PAPER_FORMATS, nextBleedMode, CROP_STYLES, CROP_COLOR } from './utils/pdfGenerator';
 import { DEFAULT_PROFILE_ID, UPLOAD_ID, getProfileMeta, loadBundledProfileBytes } from './utils/iccProfiles';
 import { fetchScryfallImages } from './utils/scryfall';
 import { IconFile, IconAlert, IconDownload, IconImage, IconPlus, IconX, Wordmark } from './components/icons';
@@ -56,7 +56,8 @@ export default function App() {
   const [cardW, setCardW] = useState(() => readNum('ip:cardW', 63) || 63);
   const [cardH, setCardH] = useState(() => readNum('ip:cardH', 88) || 88);
   const [cropMarks, setCropMarks] = useState(() => lsGet('ip:cropMarks') !== '0'); // default on
-  const [cropStyle, setCropStyle] = useState(() => lsGet('ip:cropStyle') || 'lines'); // lines | corners
+  const [cropStyle, setCropStyle] = useState(() => { const v = lsGet('ip:cropStyle'); return CROP_STYLES.some((o) => o.value === v) ? v : 'lines'; });
+  const [cropColor, setCropColor] = useState(() => { const v = lsGet('ip:cropColor'); return /^#[0-9a-f]{6}$/i.test(v || '') ? v : CROP_COLOR; });
   const [sheetUnit, setSheetUnit] = useState(() => (lsGet('ip:sheetUnit') === 'in' ? 'in' : 'mm'));
   const [sheetW, setSheetW] = useState(() => readNum('ip:sheetW', 210) || 210);
   const [sheetH, setSheetH] = useState(() => readNum('ip:sheetH', 297) || 297);
@@ -76,6 +77,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null); // feedback transitorio { kind:'success'|'error', msg }
   const [upscaling, setUpscaling] = useState(false); // upscale AI in corso (uno alla volta)
+  const upscaleAbortRef = useRef(null); // AbortController dell'upscale in corso (Stop nelle impostazioni)
   const [importOpen, setImportOpen] = useState(false);
   const [mpcOpen, setMpcOpen] = useState(false); // import da file XML MPCFill
   const [addMenuOpen, setAddMenuOpen] = useState(false); // menu "+" in sidebar (carica file / Scryfall)
@@ -101,13 +103,14 @@ export default function App() {
     lsSet('ip:cardH', String(cardH));
     lsSet('ip:cropMarks', cropMarks ? '1' : '0');
     lsSet('ip:cropStyle', cropStyle);
+    lsSet('ip:cropColor', cropColor);
     lsSet('ip:sheetUnit', sheetUnit);
     lsSet('ip:sheetW', String(sheetW));
     lsSet('ip:sheetH', String(sheetH));
     lsSet('ip:colorMode', colorMode);
     lsSet('ip:renderIntent', renderIntent);
     lsSet('ip:iccProfileId', iccProfileId);
-  }, [formatKey, bleedMm, bleedStyle, dpi, quality, cardType, cardW, cardH, cropMarks, cropStyle, sheetUnit, sheetW, sheetH, colorMode, renderIntent, iccProfileId]);
+  }, [formatKey, bleedMm, bleedStyle, dpi, quality, cardType, cardW, cardH, cropMarks, cropStyle, cropColor, sheetUnit, sheetW, sheetH, colorMode, renderIntent, iccProfileId]);
 
   // Revoca gli object URL residui allo smontaggio (evita leak di memoria).
   // imagesRef tiene il riferimento aggiornato senza ri-registrare l'effect.
@@ -305,33 +308,64 @@ export default function App() {
     setEditingIds(null);
   };
 
-  // Upscale AI 2× (ESRGAN nel browser) delle carte idonee fra `ids`. I duplicati condividono
-  // lo stesso File: si elabora una volta per file. Aggiorna `w` → il "!" bassa risoluzione
-  // si ricalcola da solo. Avanzamento in un toast persistente.
-  const handleUpscale = async (ids) => {
+  // Megapixel di una sorgente larga w (l'altezza dalle proporzioni della carta): la base delle stime.
+  const megapixels = (w) => (w * w * cardH) / cardW / 1e6;
+
+  // Upscale AI 2× (ESRGAN nel browser) delle carte idonee fra `ids`, o di tutte (ids null: Upscale all nelle
+  // impostazioni). I duplicati condividono lo stesso File: si elabora una volta per file, e ogni file finito
+  // sostituisce subito le sue carte (aggiorna `w`: il "!" e il contatore si ricalcolano; Stop tiene quelle fatte).
+  // Avanzamento e tempo che resta in un toast persistente; la velocità misurata resta per le stime dopo.
+  const handleUpscale = async (ids = null) => {
     if (upscaling) return;
-    const set = new Set([].concat(ids));
-    const files = [...new Set(images.filter(it => set.has(it.id) && canUpscale(it, dpi, cardW)).map(it => it.file))];
+    const set = ids == null ? null : new Set([].concat(ids));
+    const widths = new Map(images.filter(it => (!set || set.has(it.id)) && canUpscale(it, dpi, cardW)).map(it => [it.file, it.w]));
+    const files = [...widths.keys()];
     if (!files.length) return;
+    const ctrl = new AbortController();
+    upscaleAbortRef.current = ctrl;
     setUpscaling(true);
     const n = files.length;
-    const status = (i, p) => setToast({ kind: 'progress', msg: `Upscaling ${n > 1 ? `${i + 1}/${n} ` : ''}${p == null ? '(loading AI model)' : `${Math.round(p * 100)}%`}` });
+    const mp = (f) => megapixels(widths.get(f));
+    let left = files.reduce((s, f) => s + mp(f), 0); // megapixel ancora da fare
+    const saved = upscaleRate(); // ms per megapixel dell'ultima volta (o di default)
+    let spent = 0; // ms dei file finiti
+    let doneMp = 0; // e i loro megapixel
+    let cur = { t0: 0, mp: 0, p: 0 }; // file in corso
+    let done = 0;
+    // Velocità misurata in questa corsa (file finiti + la parte fatta di quello in corso) appena ce n'è
+    // abbastanza, sennò quella salvata: la stima si corregge già durante la prima immagine.
+    const measured = () => doneMp + cur.mp * cur.p;
+    const rate = () => (measured() > 0.05 ? (spent + performance.now() - cur.t0) / measured() : saved);
+    const status = (i, p) => {
+      if (p != null) cur.p = p;
+      setToast({ kind: 'progress', msg: `Upscaling ${n > 1 ? `${i + 1}/${n} ` : ''}${p == null ? '(loading AI model)'
+        : `${Math.round(p * 100)}%${n > 1 ? `, about ${formatEta((left - cur.mp * p) * rate())} left` : ''}`}` });
+    };
     status(0, null);
     try {
-      const done = new Map();
+      await loadUpscaler();
       for (const [i, f] of files.entries()) {
-        done.set(f, await upscaleFile(f, (p) => status(i, p)));
+        cur = { t0: performance.now(), mp: mp(f), p: 0 };
+        const r = await upscaleFile(f, (p) => status(i, p), ctrl.signal);
+        setImages(prev => prev.map(it => {
+          if (it.file !== f || (set && !set.has(it.id))) return it;
+          URL.revokeObjectURL(it.preview);
+          return { ...it, file: r.file, preview: URL.createObjectURL(r.file), w: r.width };
+        }));
+        spent += performance.now() - cur.t0;
+        doneMp += cur.mp;
+        left -= cur.mp;
+        cur = { t0: performance.now(), mp: 0, p: 0 };
+        done += 1;
       }
-      setImages(prev => prev.map(it => {
-        const r = set.has(it.id) && done.get(it.file);
-        if (!r) return it;
-        URL.revokeObjectURL(it.preview);
-        return { ...it, file: r.file, preview: URL.createObjectURL(r.file), w: r.width };
-      }));
       setToast({ kind: 'success', msg: `Upscaled ${n} image${n > 1 ? 's' : ''} 2×` });
     } catch (e) {
-      setToast({ kind: 'error', msg: `Upscale failed: ${e.message || 'unknown error'}` });
+      setToast(ctrl.signal.aborted
+        ? { kind: 'success', msg: `Upscale stopped: ${done} of ${n} done` }
+        : { kind: 'error', msg: `Upscale failed${done ? ` after ${done} of ${n}` : ''}: ${e.message || 'unknown error'}` });
     } finally {
+      if (measured() > 0.05) saveUpscaleRate(rate());
+      upscaleAbortRef.current = null;
       setUpscaling(false);
     }
   };
@@ -378,9 +412,9 @@ export default function App() {
           iccBytes = await loadBundledProfileBytes(meta.id); iccInfo = meta.info; condition = meta.condition;
         }
         const { generatePDFCmyk } = await import('./utils/pdfGeneratorCmyk');
-        await generatePDFCmyk(images, formatKey, bleedMm, dpi, bleedStyle, cardW, cardH, cropMarks, cropStyle, customSheet, iccBytes, iccInfo, renderIntent, condition, onProgress, ctrl.signal);
+        await generatePDFCmyk(images, formatKey, bleedMm, dpi, bleedStyle, cardW, cardH, cropMarks, cropStyle, cropColor, customSheet, iccBytes, iccInfo, renderIntent, condition, onProgress, ctrl.signal);
       } else {
-        await generatePDF(images, formatKey, bleedMm, dpi, bleedStyle, cardW, cardH, cropMarks, cropStyle, customSheet, quality, onProgress, ctrl.signal);
+        await generatePDF(images, formatKey, bleedMm, dpi, bleedStyle, cardW, cardH, cropMarks, cropStyle, cropColor, customSheet, quality, onProgress, ctrl.signal);
       }
       setToast({ kind: 'success', msg: 'PDF ready. Check your downloads.' });
     } catch (err) {
@@ -403,6 +437,17 @@ export default function App() {
     noKeyboard: true,
   });
 
+  // Upscale all (impostazioni, sotto Resolution): carte sotto il DPI scelto e tempo stimato sui file unici,
+  // con la velocità misurata (o quella di default) e il caricamento del modello se non è ancora in memoria.
+  const belowDpi = images.filter(it => canUpscale(it, dpi, cardW));
+  const upscaleInfo = {
+    count: belowDpi.length,
+    eta: [...new Map(belowDpi.map(it => [it.file, it.w])).values()].reduce((s, w) => s + megapixels(w), 0) * upscaleRate()
+      + (upscalerReady() ? 0 : MODEL_LOAD_MS),
+    running: upscaling,
+    onAll: () => handleUpscale(),
+    onStop: () => upscaleAbortRef.current?.abort(),
+  };
   const missing = images.length === 0 || perPage === 0 ? 0 : (perPage - (images.length % perPage)) % perPage;
   // Carte la cui sorgente non regge il DPI scelto, stessa soglia del marker "!" nel preview.
   const lowResCount = images.reduce((n, it) => n + (it.w && it.w < dpi * 0.5 * (cardW / 25.4) ? 1 : 0), 0);
@@ -491,14 +536,14 @@ export default function App() {
   const settingsProps = {
     formatKey, setFormatKey, bleedMm, setBleedMm, bleedStyle, setBleedStyle, dpi, setDpi,
     cardType, setCardType, cardW, setCardW, cardH, setCardH, cropMarks, setCropMarks,
-    cropStyle, setCropStyle, sheetUnit, setSheetUnit, sheetW, setSheetW, sheetH, setSheetH,
+    cropStyle, setCropStyle, cropColor, setCropColor, sheetUnit, setSheetUnit, sheetW, setSheetW, sheetH, setSheetH,
     customSheet, quality, setQuality,
     colorMode, setColorMode, renderIntent, setRenderIntent,
     iccProfileId, setIccProfileId, uploadedIcc, onIccUpload: handleIccUpload, onIccClear: handleIccClear,
-    profileMismatchCount,
+    profileMismatchCount, upscale: upscaleInfo,
   };
   const previewProps = {
-    images, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop: cropMarks, cropStyle,
+    images, formatKey, bleedMm, bleedStyle, dpi, cardW, cardH, showCrop: cropMarks, cropStyle, cropColor,
     customSheet, onRemove: handleRemove, onChangeArt: (ids) => setEditingIds([].concat(ids)), onToggleBleed: handleToggleBleed,
     onDuplicate: handleDuplicate, onMove: handleMove, onUpscale: handleUpscale, upscaling, isDragActive, missing,
     onRemoveMany: removeWithUndo, onBleedMany: handleBleedMany,

@@ -4,7 +4,7 @@ import PagePreview from '../components/PagePreview';
 import ExportProgress from '../components/ExportProgress';
 import { NavMenu } from '../components/MobileNav';
 import { navItems } from '../components/navItems';
-import { getGridInfo } from '../utils/pdfGenerator';
+import { getGridInfo, CROP_COLOR } from '../utils/pdfGenerator';
 import {
   IconPlus, IconImage, IconDownload, IconFile, IconTrash, IconCopy, IconFrame, IconSparkles, IconNavAdd, IconNavSettings, IconNavExport,
 } from '../components/icons';
@@ -16,7 +16,7 @@ import { printImages } from './demo';
 // con impostazioni demo; la coda, le impostazioni e il localStorage dell'utente non si toccano.
 const SETTINGS = {
   formatKey: 'A4', bleedMm: 2, bleedStyle: 'auto', dpi: 600, quality: 0.85, cardType: 'mtg', cardW: 63, cardH: 88,
-  cropMarks: true, cropStyle: 'lines', sheetUnit: 'mm', sheetW: 210, sheetH: 297, colorMode: 'rgb', renderIntent: 'relative', iccProfileId: 'fogra39',
+  cropMarks: true, cropStyle: 'lines', cropColor: CROP_COLOR, sheetUnit: 'mm', sheetW: 210, sheetH: 297, colorMode: 'rgb', renderIntent: 'relative', iccProfileId: 'fogra39',
 };
 const noop = () => {};
 const cap = (s) => s[0].toUpperCase() + s.slice(1);
@@ -41,7 +41,7 @@ function PrintStage({ apiRef, step, mobile }) {
   const missing = perPage ? (perPage - (images.length % perPage)) % perPage : 0;
   const preview = (
     <PagePreview images={images} formatKey={s.formatKey} bleedMm={s.bleedMm} bleedStyle={s.bleedStyle} dpi={s.dpi}
-      cardW={s.cardW} cardH={s.cardH} showCrop={s.cropMarks} cropStyle={s.cropStyle} customSheet={null}
+      cardW={s.cardW} cardH={s.cardH} showCrop={s.cropMarks} cropStyle={s.cropStyle} cropColor={s.cropColor} customSheet={null}
       onRemove={noop} onChangeArt={noop} onToggleBleed={noop} onDuplicate={noop} onMove={noop} onUpscale={noop} upscaling={false}
       isDragActive={dragOver} missing={missing} touch={mobile} onRemoveMany={noop} onBleedMany={noop} />
   );
