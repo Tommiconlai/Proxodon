@@ -1,7 +1,7 @@
 import { memo, useEffect, useState } from 'react';
 import { StatFrame } from './DeckStats';
 import { cachedOracle, fetchOracle } from './scryfallSearch';
-import { landModel, karsten, ROLES, ROLE_LABEL, LAND_FORMATS, KARSTEN_URL } from './landAnalysis';
+import { landModel, karsten, landOdds, ROLES, ROLE_LABEL, LAND_FORMATS, KARSTEN_URL } from './landAnalysis';
 import { IconReplay } from '../components/icons';
 
 // Analisi delle terre nella scheda Stats (spec LAND-COUNT-ANALYSIS): riepilogo, formula di Karsten col dettaglio dei
@@ -10,6 +10,7 @@ import { IconReplay } from '../components/icons';
 
 const f1 = (x) => (Math.round(x * 10) / 10).toFixed(1);
 const f2 = (x) => (Math.round(x * 100) / 100).toFixed(2);
+const pct = (p) => `${(p * 100).toFixed(1)}%`;
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const GROUPS = ['ramp', 'draw', 'mdfc', 'spell', 'land'];
 const GROUP_LABEL = { ramp: 'Ramp', draw: 'Draw', mdfc: 'MDFCs (spell // land)', spell: 'Other spells', land: 'Lands' };
@@ -98,6 +99,105 @@ function FormulaCard({ m, k, setSetting }) {
           always enters tapped. Source: Frank Karsten, <a href={KARSTEN_URL} target="_blank" rel="noopener noreferrer">How Many Lands
           Do You Need in Your Deck? An Updated Analysis</a>.
         </p>
+      </details>
+    </StatFrame>
+  );
+}
+
+// Mano iniziale: P(i terre su 7) per i = 0..7, in evidenza le mani da tenere (2-5).
+function HandBars({ hand }) {
+  const W = 400, H = 170, top = 20, bottom = 26;
+  const band = W / hand.length;
+  const bw = Math.min(30, band * 0.6);
+  const max = Math.max(...hand) || 1;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="stat-svg land-hand" role="img"
+      aria-label={`Lands in the opening hand: ${hand.map((p, i) => `${i}: ${pct(p)}`).join(', ')}`}>
+      <line x1="0" x2={W} y1={H - bottom + 0.5} y2={H - bottom + 0.5} className="stat-axis" />
+      {hand.map((p, i) => {
+        const h = (p / max) * (H - top - bottom);
+        const x = band * i + (band - bw) / 2;
+        return (
+          <g key={i}>
+            {h > 0.5 && <rect x={x} y={H - bottom - h} width={bw} height={h} rx={Math.min(3, h / 2)} className={`stat-bar ${i >= 2 && i <= 5 ? 's1' : 's2 land-dim'}`} />}
+            <text x={x + bw / 2} y={H - bottom - h - 6} className="stat-val" textAnchor="middle">{p >= 0.0995 ? Math.round(p * 100) : (p * 100).toFixed(1)}</text>
+            <text x={x + bw / 2} y={H - 8} className="stat-tick" textAnchor="middle">{i}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+// Probabilità (Fase 2): mano iniziale e land drop per turno. Exact: solo terre vere. Ideal: il mazzo senza le pescate
+// economiche, MDFC e (col peso w) il ramp economico come terre; limite ottimista. Simulation: dalla Fase 3.
+function OddsCard({ m, setSetting, sim }) {
+  const [w, setW] = useState(0);
+  const o = landOdds(m, w);
+  const play = m.settings.play;
+  return (
+    <StatFrame as="figure" className="stat-card land-odds">
+      <figcaption>
+        <span className="stat-pill">Land drop odds</span>
+        <span className="stat-sub">Exact hypergeometric odds, no mulligans: {plural(m.lands, 'land')} in {m.N} cards.</span>
+      </figcaption>
+      <div className="land-odds-grid">
+        <div className="land-hand-box">
+          <h4 className="land-h">Lands in the opening 7 (%)</h4>
+          <HandBars hand={o.hand} />
+          <p className="land-note">2 to 5 lands: <b>{pct(o.keepable)}</b>. Average {o.mean.toFixed(1)} lands.</p>
+        </div>
+        <div className="land-drops-box">
+          <div className="land-controls">
+            <label className="stat-odds-field">
+              <span>Turn order</span>
+              <select value={play ? 'play' : 'draw'} onChange={(e) => setSetting('play', e.target.value === 'play')}>
+                <option value="play">On the play</option>
+                <option value="draw">On the draw</option>
+              </select>
+            </label>
+          </div>
+          <table className="land-drops">
+            <caption className="sr-only">Chance of making every land drop through each turn</caption>
+            <thead>
+              <tr>
+                <th scope="col">Turn</th>
+                <th scope="col" title="Lands only, MDFCs not counted">Exact</th>
+                <th scope="col" title="Optimistic bound: cheap draw spells shrink the deck, MDFCs count as part of a land">Ideal</th>
+                <th scope="col" title="Goldfish simulation with mulligans, ramp and draw">Simulation</th>
+              </tr>
+            </thead>
+            <tbody>
+              {o.drops.map((d) => (
+                <tr key={d.t}>
+                  <th scope="row">{d.t} <span className="land-seen">{d.n} cards</span></th>
+                  <td>{pct(d.exact)}</td>
+                  <td>{pct(d.ideal)}</td>
+                  <td className="land-sim-cell">{sim?.onCurve[d.t - 1] != null ? pct(sim.onCurve[d.t - 1]) : '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <details className="land-details">
+        <summary>About these numbers</summary>
+        <p className="land-note">
+          Each row is the chance of having played a land on every turn so far: at least t lands among the cards seen by turn t
+          ({play ? 'on the play there is no draw on turn 1' : 'on the draw you also draw on turn 1'}). Ideal treats the deck as
+          {' '}{m.N - m.cheapDraw} cards ({plural(m.cheapDraw, 'cheap draw spell')} replace themselves) with {f2(o.Ki)} lands
+          (MDFCs as fractions{w ? `, cheap ramp as ${w} of a land` : ''}). It assumes every cantrip is cast at once and for free, so it
+          is an upper bound: in a 60-card deck it values a cantrip at about 0.43 lands, against Karsten&apos;s empirical 0.28.
+        </p>
+        <div className="land-controls">
+          <label className="stat-odds-field">
+            <span>Cheap ramp as a land</span>
+            <input type="number" min="0" max="1" step="0.1" value={w} onChange={(e) => {
+              const v = Number(e.target.value);
+              if (e.target.value !== '' && Number.isFinite(v)) setW(Math.max(0, Math.min(1, v)));
+            }} />
+          </label>
+        </div>
       </details>
     </StatFrame>
   );
@@ -212,6 +312,7 @@ function LandPanel({ deck, update }) {
         </p>
       )}
       <FormulaCard m={m} k={k} setSetting={setSetting} />
+      <OddsCard m={m} setSetting={setSetting} />
       <RolesCard m={m} onOverride={onOverride} cmdrPick={cmdrPick} />
     </div>
   );

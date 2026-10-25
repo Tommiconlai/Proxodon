@@ -287,3 +287,50 @@ export function karsten(m) {
     extrapolated: m.settings.format !== 'commander' && m.N !== 60,
   };
 }
+
+// Ipergeometrica (spec §5.1): N carte nel mazzo, K terre, n carte viste, k terre volute. log-fattoriali in tabella,
+// allungata quando serve.
+const LOG_FACT = [0];
+export function logFactorial(n) {
+  for (let i = LOG_FACT.length; i <= n; i++) LOG_FACT[i] = LOG_FACT[i - 1] + Math.log(i);
+  return LOG_FACT[n];
+}
+export const logChoose = (n, k) => logFactorial(n) - logFactorial(k) - logFactorial(n - k);
+
+export function hypergeomPmf(N, K, n, i) {
+  if (i < 0 || i > K || i > n || n - i > N - K || n > N) return 0;
+  return Math.exp(logChoose(K, i) + logChoose(N - K, n - i) - logChoose(N, n));
+}
+
+export function hypergeomAtLeast(N, K, n, k) {
+  let p = 0;
+  for (let i = Math.max(0, k); i <= Math.min(K, n); i++) p += hypergeomPmf(N, K, n, i);
+  return Math.min(1, Math.max(0, p));
+}
+
+// Carte viste al turno t: 7 + t - 1 se si gioca per primi (niente pescata al turno 1), 7 + t se si pesca.
+export const cardsSeen = (turn, onThePlay) => 7 + turn - (onThePlay ? 1 : 0);
+
+// K frazionario (MDFC, ramp pesato): interpolazione lineare tra floor e ceil.
+export function atLeastFractional(N, Kf, n, k) {
+  const lo = Math.floor(Kf);
+  const f = Kf - lo;
+  return f ? (1 - f) * hypergeomAtLeast(N, lo, n, k) + f * hypergeomAtLeast(N, lo + 1, n, k) : hypergeomAtLeast(N, lo, n, k);
+}
+
+// Viste della Fase 2 (§5.2): mano iniziale (P di i terre su 7, i = 0..7) e tabella dei land drop fino al turno 6 (8 in
+// Commander). exact: solo terre vere; ideal: mazzo di N - cheapDraw carte, terre + pesi MDFC + w x cheapRamp.
+export function landOdds(m, w = 0) {
+  const N = m.N;
+  const K = m.lands;
+  const hand = Array.from({ length: 8 }, (_, i) => hypergeomPmf(N, K, 7, i));
+  const Ni = N - m.cheapDraw;
+  const Ki = Math.min(Ni, K + m.mdfcWeight + w * m.cheapRamp);
+  const turns = m.settings.format === 'commander' ? 8 : 6;
+  const drops = Array.from({ length: turns }, (_, j) => {
+    const t = j + 1;
+    const n = cardsSeen(t, m.settings.play);
+    return { t, n, exact: hypergeomAtLeast(N, K, n, t), ideal: atLeastFractional(Ni, Ki, Math.min(n, Ni), t) };
+  });
+  return { hand, keepable: hand.slice(2, 6).reduce((a, b) => a + b, 0), mean: N ? (7 * K) / N : 0, drops, Ni, Ki };
+}
