@@ -1,8 +1,9 @@
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { StatFrame } from './DeckStats';
 import { cachedOracle, fetchOracle } from './scryfallSearch';
 import { landModel, karsten, landOdds, ROLES, ROLE_LABEL, LAND_FORMATS, KARSTEN_URL } from './landAnalysis';
-import { IconReplay } from '../components/icons';
+import { simInput, simParams } from './landSim';
+import { IconPlay, IconReplay, IconX } from '../components/icons';
 
 // Analisi delle terre nella scheda Stats (spec LAND-COUNT-ANALYSIS): riepilogo, formula di Karsten col dettaglio dei
 // termini, ruoli delle carte con override (salvati sul mazzo, deck.landAnalysis). Consultiva: non cambia mai le carte.
@@ -203,6 +204,220 @@ function OddsCard({ m, setSetting, sim }) {
   );
 }
 
+// Risultati della simulazione per la sessione: chiave (carte e parametri) → risultato, gli ultimi 20.
+const simCache = new Map();
+
+// Simulazione nel worker (landSim.worker.js). start chiude quella in corso e ne lancia una, stop la ferma (terminate).
+// result: quello della chiave attuale, sennò l'ultimo finito (outdated: mazzo o parametri cambiati dopo).
+function useSim(key) {
+  const [state, setState] = useState({ progress: null, error: null, last: null });
+  const worker = useRef(null);
+  useEffect(() => () => worker.current?.terminate(), []);
+  const stop = () => {
+    worker.current?.terminate();
+    worker.current = null;
+    setState((s) => ({ ...s, progress: null }));
+  };
+  const start = (input, params) => {
+    worker.current?.terminate();
+    const w = new Worker(new URL('./landSim.worker.js', import.meta.url), { type: 'module' });
+    worker.current = w;
+    const done = (patch) => {
+      w.terminate();
+      if (worker.current === w) worker.current = null;
+      setState((s) => ({ ...s, progress: null, ...patch }));
+    };
+    w.onmessage = ({ data }) => {
+      if (data.progress != null) { setState((s) => ({ ...s, progress: data.progress })); return; }
+      if (data.error) { done({ error: data.error }); return; }
+      simCache.set(key, data.result);
+      if (simCache.size > 20) simCache.delete(simCache.keys().next().value);
+      done({ last: key });
+    };
+    w.onerror = (e) => { e.preventDefault(); done({ error: e.message || 'The simulation could not start.' }); };
+    setState((s) => ({ ...s, progress: 0, error: null }));
+    w.postMessage({ input, params });
+  };
+  const fresh = simCache.get(key);
+  const result = fresh || (state.last && simCache.get(state.last)) || null;
+  return { result, outdated: !fresh && !!result, running: state.progress != null, progress: state.progress, error: state.error, start, stop };
+}
+
+function NumField({ label, value, min, max, step = 1, onChange }) {
+  return (
+    <label className="stat-odds-field">
+      <span>{label}</span>
+      <input type="number" min={min} max={max} step={step} value={value} onChange={(e) => {
+        const v = Number(e.target.value);
+        if (e.target.value !== '' && Number.isFinite(v)) onChange(Math.max(min, Math.min(max, Math.round(v))));
+      }} />
+    </label>
+  );
+}
+
+const simShowsFormula = (r, f) => f >= r.rows[0].lands - 0.5 && f <= r.rows[r.rows.length - 1].lands + 0.5;
+
+// Punteggio per numero di terre: banda quasi ottimale in ombra, terre attuali (linea piena) e formula (tratteggiata).
+function SimChart({ r, formula }) {
+  const W = 400, H = 210, top = 12, bottom = 36, left = 44, right = 12;
+  const first = r.rows[0].lands;
+  const step = (W - left - right) / r.rows.length; // ogni numero di terre al centro della sua fascia
+  const ys = r.rows.map((x) => x.compounded);
+  const pad = (Math.max(...ys) - Math.min(...ys)) * 0.15 || 1;
+  const lo = Math.min(...ys) - pad, hi = Math.max(...ys) + pad;
+  const sx = (v) => left + (v - first + 0.5) * step;
+  const sy = (v) => top + (1 - (v - lo) / (hi - lo)) * (H - top - bottom);
+  const ticks = [lo + pad, (lo + hi) / 2, hi - pad];
+  const showFormula = simShowsFormula(r, formula);
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="stat-svg land-sim-chart" role="img"
+      aria-label={`Score by land count: ${r.rows.map((x) => `${x.lands}: ${x.compounded.toFixed(1)}`).join(', ')}`}>
+      <rect x={sx(r.band[0]) - step / 2} y={top} width={(r.band[1] - r.band[0] + 1) * step} height={H - top - bottom} className="land-band" />
+      {ticks.map((t) => (
+        <g key={t}>
+          <line x1={left} x2={W - right} y1={sy(t)} y2={sy(t)} className="stat-grid" />
+          <text x={left - 8} y={sy(t) + 4} className="stat-tick" textAnchor="end">{t.toFixed(1)}</text>
+        </g>
+      ))}
+      <line x1={left} x2={W - right} y1={H - bottom + 0.5} y2={H - bottom + 0.5} className="stat-axis" />
+      {r.rows.map((x) => <text key={x.lands} x={sx(x.lands)} y={H - bottom + 16} className="stat-tick" textAnchor="middle">{x.lands}</text>)}
+      <text x={left + (W - left - right) / 2} y={H - 3} className="stat-axis-title" textAnchor="middle">Lands</text>
+      <line x1={sx(r.current)} x2={sx(r.current)} y1={top} y2={H - bottom} className="land-now-line" />
+      {showFormula && <line x1={sx(formula)} x2={sx(formula)} y1={top} y2={H - bottom} className="land-formula-line" />}
+      <path d={r.rows.map((x, i) => `${i ? 'L' : 'M'}${sx(x.lands)},${sy(x.compounded)}`).join('')} className="land-sim-line" />
+      {r.rows.map((x) => <circle key={x.lands} cx={sx(x.lands)} cy={sy(x.compounded)} r={x.lands === r.best ? 5 : 3} className={`land-sim-pt${x.lands === r.best ? ' on' : ''}`} />)}
+    </svg>
+  );
+}
+
+// Una riga delle regole di mulligan: con h carte in mano si tiene da a a b terre.
+function KeepRow({ h, keep, setOver }) {
+  const [a, b] = keep[h];
+  const field = (i, v) => (
+    <input type="number" min="0" max="7" value={v} aria-label={`${i ? 'Most' : 'Fewest'} lands to keep ${h} cards`} onChange={(e) => {
+      const n = Number(e.target.value);
+      if (e.target.value === '' || !Number.isFinite(n)) return;
+      const x = Math.max(0, Math.min(7, Math.round(n)));
+      setOver({ keep: { ...keep, [h]: i ? [a, x] : [x, b] } });
+    }} />
+  );
+  return <div className="stat-odds-field land-keep" title={`Keep a ${h}-card hand with this many lands`}><span>Keep {h}</span>{field(0, a)}<span>to</span>{field(1, b)}<span>lands</span></div>;
+}
+
+// Simulazione (Fase 3): avvio e stop, ottimo e banda, grafico, tabella per numero di terre, impostazioni.
+function SimCard({ m, k, params, setOver, sim, onRun }) {
+  const r = sim.result;
+  const canRun = m.N >= 7 + params.turns;
+  const range = r && (r.band[0] === r.band[1] ? `${r.band[0]}` : `${r.band[0]}-${r.band[1]}`);
+  const inBand = r && r.current >= r.band[0] && r.current <= r.band[1];
+  let where = '';
+  if (r) where = inBand ? `Your ${r.current} lands are inside the near-optimal range.` : `Your ${r.current} lands are ${r.current < r.band[0] ? 'below' : 'above'} the near-optimal range.`;
+  let status = 'Runs in the background, takes a few seconds.';
+  if (!canRun) status = `Needs at least ${7 + params.turns} cards.`;
+  else if (r && sim.outdated) status = 'The deck or the settings changed: run it again to update.';
+  else if (r) status = `${r.rows.length} land counts, ${params.games.toLocaleString('en')} games each.`;
+  return (
+    <StatFrame as="figure" className="stat-card land-sim">
+      <figcaption>
+        <span className="stat-pill">Goldfish simulation</span>
+        <span className="stat-sub">
+          Plays {params.games.toLocaleString('en')} games for each land count, with mulligans, ramp, draw, tapped lands and fetches,
+          and looks for the count that spends the most mana, early turns first.
+        </span>
+      </figcaption>
+      <div className="land-sim-run">
+        <button type="button" className="btn-generate deck-icon-btn" disabled={sim.running || !canRun} onClick={onRun}
+          aria-label="Run the simulation" title="Run the simulation"><IconPlay size={16} /></button>
+        {sim.running ? (
+          <>
+            <div className="stat-meter land-progress" role="progressbar" aria-label="Simulation progress" aria-valuemin={0} aria-valuemax={100}
+              aria-valuenow={Math.round(sim.progress * 100)}><span style={{ width: `${sim.progress * 100}%` }} /></div>
+            <button type="button" className="btn-secondary deck-icon-btn" onClick={sim.stop}
+              aria-label="Stop the simulation" title="Stop the simulation"><IconX size={16} /></button>
+          </>
+        ) : <span className="land-note">{status}</span>}
+      </div>
+      {sim.error && <p className="land-note land-error" role="alert">{sim.error}</p>}
+      {r && (
+        <div className={`land-sim-out${sim.outdated ? ' outdated' : ''}`}>
+          <p className="land-sim-head">Simulated optimum: <b>{r.best}</b> lands <span>(near-optimal {range})</span></p>
+          <p className="land-note">{where}</p>
+          <SimChart r={r} formula={k.recommendedLands} />
+          <div className="stat-legend land-legend">
+            <span><i className="land-swatch band" aria-hidden="true" />Near-optimal</span>
+            <span><i className="land-swatch now" aria-hidden="true" />Now ({r.current})</span>
+            <span><i className="land-swatch formula" aria-hidden="true" />Formula ({f1(k.recommendedLands)}{simShowsFormula(r, k.recommendedLands) ? '' : ', off the chart'})</span>
+          </div>
+          <div className="land-table-wrap">
+            <table className="land-drops land-sim-table">
+              <caption className="sr-only">Simulation results by land count</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Lands</th>
+                  <th scope="col" title="Mana spent, early turns count more">Score</th>
+                  <th scope="col" title="Chance of having 3 mana on turn 3">T3</th>
+                  <th scope="col" title="Chance of having 4 mana on turn 4">T4</th>
+                  <th scope="col" title={`At least ${params.turns + 2} lands seen by turn ${params.turns}`}>Flood</th>
+                  <th scope="col" title="At least one mulligan that cost a card">Mull.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {r.rows.map((x) => (
+                  <tr key={x.lands} className={`${x.lands === r.current ? 'now' : ''}${x.lands >= r.band[0] && x.lands <= r.band[1] ? ' band' : ''}`}>
+                    <th scope="row">{x.lands}{x.lands === r.best && <span className="land-badge">best</span>}</th>
+                    <td>{x.compounded.toFixed(1)}</td>
+                    <td>{pct(x.onCurve[2])}</td>
+                    <td>{x.onCurve[3] != null ? pct(x.onCurve[3]) : '-'}</td>
+                    <td>{pct(x.flood)}</td>
+                    <td>{pct(x.mulliganRate)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="land-note">
+            Score: mana spent, where turn 1 counts {params.turns} times and the last turn once. T3 and T4: chance of having that much
+            mana on that turn. Flood: at least two lands that could never be played. Mull.: hands that went below 7 cards.
+          </p>
+          {Math.abs(k.recommendedLands - r.best) > 2 && (
+            <p className="land-note">
+              The formula says {f1(k.recommendedLands)}, the simulation {r.best}. The formula is empirical, fitted on successful
+              tournament decks{k.extrapolated ? ' (and only extrapolated to this deck size)' : ''}, while the simulation is a goldfish:
+              nobody interacts and nothing punishes a slow start, so the two can disagree by a few lands.
+            </p>
+          )}
+        </div>
+      )}
+      <details className="land-details">
+        <summary>Simulation settings</summary>
+        <div className="land-sim-settings">
+          <NumField label="Turns" value={params.turns} min={4} max={12} onChange={(v) => setOver({ turns: v })} />
+          <NumField label="Free mulligans" value={params.freeMulligans} min={0} max={3} onChange={(v) => setOver({ freeMulligans: v })} />
+          <NumField label="Games per count" value={params.games} min={1000} max={100000} step={1000} onChange={(v) => setOver({ games: v })} />
+          <NumField label="Lands below" value={params.below} min={0} max={10} onChange={(v) => setOver({ below: v })} />
+          <NumField label="Lands above" value={params.above} min={0} max={10} onChange={(v) => setOver({ above: v })} />
+          <NumField label="Seed" value={params.seed} min={0} max={2147483647} onChange={(v) => setOver({ seed: v })} />
+          {[7, 6, 5].map((h) => <KeepRow key={h} h={h} keep={params.keep} setOver={setOver} />)}
+          <label className="land-check">
+            <input type="checkbox" checked={params.keepRamp} onChange={(e) => setOver({ keepRamp: e.target.checked })} />
+            <span>Also keep 7 cards with 2 lands and a ramp card of mana value up to 2</span>
+          </label>
+          <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setOver(null)}
+            aria-label="Reset the simulation settings" title="Back to the default settings"><IconReplay size={14} /></button>
+        </div>
+        <p className="land-note">
+          Turn order comes from Land drop odds ({params.play ? 'on the play' : 'on the draw'}). Lands in a hand include MDFCs; with 4 cards
+          or fewer the hand is always kept. The same seed gives the same numbers.
+        </p>
+      </details>
+      <p className="land-note">
+        A model, not a game: no interaction, mana sinks, cost reducers, Treasures or color requirements, and lands that enter tapped
+        only sometimes count as untapped.
+      </p>
+    </StatFrame>
+  );
+}
+
 // Una carta: costo, badge cheap, motivi, ruolo (e mana prodotto per il ramp, peso per le MDFC), reset dell'override.
 function RoleRow({ c, onOverride }) {
   const set = (patch) => onOverride(c.name, patch);
@@ -258,8 +473,12 @@ function RolesCard({ m, onOverride, cmdrPick }) {
 
 function LandPanel({ deck, update }) {
   const { oracle, loading, error } = useOracle(deck.cards);
+  const [simOver, setSimOver] = useState({}); // impostazioni della simulazione cambiate a mano (solo per la sessione)
   const m = landModel(deck, oracle);
   const s = m.settings;
+  const input = simInput(m);
+  const params = simParams(m, simOver);
+  const sim = useSim(JSON.stringify([input, params]));
   if (!m.N && !m.commanders.length) {
     return loading ? <p className="field-hint">Loading card data from Scryfall…</p> : null;
   }
@@ -312,7 +531,9 @@ function LandPanel({ deck, update }) {
         </p>
       )}
       <FormulaCard m={m} k={k} setSetting={setSetting} />
-      <OddsCard m={m} setSetting={setSetting} />
+      <OddsCard m={m} setSetting={setSetting} sim={sim.outdated ? null : sim.result?.rows.find((x) => x.lands === sim.result.current)} />
+      <SimCard m={m} k={k} params={params} sim={sim} onRun={() => sim.start(input, params)}
+        setOver={(patch) => setSimOver((o) => (patch ? { ...o, ...patch } : {}))} />
       <RolesCard m={m} onOverride={onOverride} cmdrPick={cmdrPick} />
     </div>
   );

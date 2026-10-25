@@ -3675,6 +3675,37 @@ span.deck-hero-art { cursor: default; }
   .land-drops th, .land-drops td { padding: 5px 4px; }
   .land-seen { display: block; margin: 0; }
 }
+/* Simulazione: avvio con barra di avanzamento, ottimo, grafico (banda, ora, formula), tabella, impostazioni. */
+.land-sim-run { display: flex; align-items: center; gap: 12px; margin: 4px 0 14px; }
+.land-sim-run .deck-icon-btn { width: 40px; height: 40px; padding: 0; justify-content: center; flex: none; }
+.land-progress { flex: 1; max-width: 360px; }
+.land-error { color: var(--danger); }
+.land-sim-out.outdated { opacity: 0.5; }
+.land-sim-head { margin: 0 0 4px; font-family: var(--font-display); font-size: 1.25rem; color: var(--text-primary); }
+.land-sim-head b { color: var(--cyan); text-shadow: 0 0 14px var(--cyan-glow); }
+.land-sim-head span { font-size: 0.95rem; color: var(--text-secondary); white-space: nowrap; }
+.land-sim-chart { max-width: 640px; margin: 12px 0 8px; }
+.land-band { fill: rgba(0, 229, 255, 0.08); }
+.land-now-line { stroke: var(--chart-2); stroke-width: 2; }
+.land-formula-line { stroke: var(--acid); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.land-sim-line { fill: none; stroke: var(--cyan); stroke-width: 2; stroke-linejoin: round; }
+.land-sim-pt { fill: var(--bg-surface); stroke: var(--cyan); stroke-width: 2; }
+.land-sim-pt.on { fill: var(--cyan); }
+.land-swatch { display: inline-block; width: 14px; height: 10px; border-radius: 2px; }
+.land-swatch.band { background: rgba(0, 229, 255, 0.2); }
+.land-swatch.now { width: 3px; background: var(--chart-2); }
+.land-swatch.formula { width: 0; height: 12px; border-left: 2px dashed var(--acid); border-radius: 0; }
+.land-table-wrap { max-width: 640px; margin-bottom: 10px; overflow-x: auto; }
+.land-sim-table tr.band td, .land-sim-table tr.band th { background: rgba(0, 229, 255, 0.05); }
+.land-sim-table tr.now th { color: var(--chart-2); }
+.land-sim-table .land-badge { margin-left: 6px; }
+@media (max-width: 600px) { /* telefono: sei colonne in 300 px */
+  .land-sim-table { font-size: 0.76rem; }
+  .land-sim-table thead th { letter-spacing: 0.04em; }
+  .land-sim-table .land-badge { margin-left: 4px; padding: 0 4px; font-size: 0.56rem; }
+}
+.land-sim-settings { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; margin: 10px 0; }
+.land-keep input { width: 56px; }
 /* Probabilità di pescata: titolo, poi una riga di opzioni (Draw, Copies, At least, Turns) che va a
    capo sugli schermi stretti; grafico largo quanto la sezione. Linee 2 px, punti con anello del
    colore di fondo, crosshair tratteggiato sul turno sotto il mouse. */
