@@ -93,7 +93,7 @@ export default function AdvancedSearch({ format, identity, onAdd, notify, deckCa
           <input className="import-link-input" {...field('name')} placeholder="Bolt" spellCheck={false} />
         </label>
         <label className="adv-field" htmlFor={`${id}-oracle`}><span>Oracle text</span>
-          <input className="import-link-input" {...field('oracle')} placeholder="draw a card" spellCheck={false} />
+          <input className="import-link-input" {...field('oracle')} placeholder='whenever "gain life"' title='Every word, anywhere in the text; "words in quotes" stay together' spellCheck={false} />
         </label>
         <label className="adv-field" htmlFor={`${id}-type`}><span>Type</span>
           <input className="import-link-input" {...field('type')} list={`${id}-types`} placeholder="Creature Goblin" spellCheck={false} />

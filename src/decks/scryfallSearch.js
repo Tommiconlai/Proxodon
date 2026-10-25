@@ -29,7 +29,9 @@ export function advancedQuery(f) {
   const out = [];
   // Il nome pieno delle carte a due facce su Scryfall usa " // ": "Fire/Ice" diventa "Fire // Ice".
   if (filled(f.name)) out.push(phrase(f.name.replace(/\s*\/+\s*/g, ' // ')));
-  if (filled(f.oracle)) out.push(`o:${phrase(f.oracle)}`);
+  // Testo: ogni parola a sé (o:"whenever" o:"gain" o:"life"), come la ricerca avanzata di Scryfall; tra virgolette
+  // una frase esatta ("gain life"). Ogni termine tra virgolette: parentesi e due punti non rompono la sintassi.
+  if (filled(f.oracle)) f.oracle.match(/"[^"]*"|[^\s"]+/g)?.filter((w) => w.replace(/"/g, '').trim()).forEach((w) => out.push(`o:${phrase(w)}`));
   if (filled(f.manaCost)) out.push(`m:${f.manaCost.replace(/\s+/g, '')}`);
   if (filled(f.mv)) out.push(`mv${f.mvOp || '='}${Number(f.mv)}`);
   out.push(colorQuery('c', f.colors, f.colorless, f.colorMode), colorQuery('id', f.idColors, f.idColorless, f.idMode));
