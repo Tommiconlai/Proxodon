@@ -9,7 +9,7 @@
 
 export const ROLES = ['land', 'mdfc', 'ramp', 'draw', 'spell'];
 export const ROLE_LABEL = { land: 'Land', mdfc: 'MDFC', ramp: 'Ramp', draw: 'Draw', spell: 'Spell' };
-export const COST_KINDS = ['none', 'affinity']; // override dell'effetto sul costo
+export const COST_KINDS = ['none', 'affinity', 'reducer']; // override dell'effetto sul costo
 export const LAND_FORMATS = [['commander', 'Commander'], ['60', '60 cards'], ['other', 'Other']];
 
 const WORDS = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
@@ -53,14 +53,32 @@ function costShape(c, face) {
     genericCost, fixedCost, types, supertypes: left.filter((w) => SUPERTYPES.includes(w)), subtypes: dash < 0 ? [] : words.slice(dash + 1),
     colors: face.colors ?? c.colors ?? [...new Set(cost.match(/[WUBRG]/g) || [])],
     permanent: types.some((t) => PERMANENTS.includes(t)), isArtifact: types.includes('artifact'),
-    affinity: null, unsupportedCost: null,
+    affinity: null, reducer: null, unsupportedCost: null,
   };
 }
 
+// Filtro di un riduttore (addendum §2.2) dalle parole prima di "spells": divise su and / or / virgole, tutte dello stesso
+// tipo (colori, tipi di carta, sottotipi...), sennò null. Nessuna parola = tutte le magie.
+const COLOR_OF = { white: 'W', blue: 'U', black: 'B', red: 'R', green: 'G' };
+const COLOR_NAME = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
+const CARD_TYPES = ['artifact', 'creature', 'enchantment', 'instant', 'sorcery', 'planeswalker', 'battle'];
+const FLAG_KINDS = ['colorless', 'multicolored', 'noncreature', 'historic', 'legendary'];
+export function parseFilter(text) {
+  const words = text.toLowerCase().split(/\s*(?:,|\band\b|\bor\b)\s*/).map((w) => w.trim()).filter(Boolean);
+  if (!words.length) return { kind: 'all', values: [] };
+  const parts = words.map((w) => (COLOR_OF[w] ? ['color', COLOR_OF[w]] : FLAG_KINDS.includes(w) ? [w] : CARD_TYPES.includes(w) ? ['type', w] : ['subtype', w]));
+  const kind = parts[0][0];
+  return parts.every((p) => p[0] === kind) ? { kind, values: parts.filter((p) => p[1]).map((p) => p[1]) } : null;
+}
+// Il filtro in parole, per i badge e il campo dell'override: '' = tutte le magie.
+export const filterText = (f) => (f.kind === 'all' ? '' : f.kind === 'color' ? f.values.map((v) => COLOR_NAME[v]).join(' and ')
+  : f.values.length ? f.values.join(' and ') : f.kind);
+
 // Effetti sul costo (addendum §2.3). Affinità per artefatti: la keyword con "affinity for artifacts", o "costs {1} less
-// to cast for each artifact you control". Riconosciuti ma non simulati (unsupportedCost, un'etichetta breve): le altre
-// affinità, delve / convoke / improvise / emerge, gli sconti "for each" su altro, quelli condizionali e ogni altra frase
-// con "cost(s) {N} less to cast".
+// to cast for each artifact you control". Riduttori statici, solo sui permanenti: "<filtro> spells (you cast) cost {N}
+// less to cast." Riconosciuti ma non simulati (unsupportedCost, un'etichetta breve): le altre affinità, delve / convoke /
+// improvise / emerge, il tipo scelto, il tipo in comune, gli sconti in mana colorato, quelli "for each" su altro, quelli
+// condizionali e ogni altra frase con "cost(s) {N} less to cast".
 function costEffects(c, text, out) {
   const kw = (c.keywords || []).map((k) => k.toLowerCase());
   const aff = kw.includes('affinity') && text.match(/\baffinity for ([a-z][a-z ]*)/i);
@@ -68,9 +86,15 @@ function costEffects(c, text, out) {
   else if (aff) out.unsupportedCost = `affinity for ${aff[1].trim().toLowerCase()}`;
   out.unsupportedCost ||= ['delve', 'convoke', 'improvise', 'emerge'].find((k) => kw.includes(k)) || null;
   for (const s of text.split(/(?<=\.)\s+|\n/).map((x) => x.trim())) {
-    if (out.unsupportedCost || !/\bcosts? \{[^}]+\} less to cast\b/i.test(s) || /\bfor each artifact you control\b/i.test(s)) continue;
+    if (out.unsupportedCost || !/\bcosts? (\{[^}]+\})+ less to cast\b/i.test(s) || /\bfor each artifact you control\b/i.test(s)) continue;
+    const r = out.permanent && !out.reducer && s.match(/^(.*?)\s*spells(?: you cast)? cost \{(\d+)\} less to cast\.?$/i);
+    const filter = r && parseFilter(r[1]);
+    if (filter) { out.reducer = { amount: Number(r[2]), filter }; continue; }
     const each = s.match(/\bfor each (.+?)\.?$/i);
-    out.unsupportedCost = each ? `for each ${each[1]}` : /\bif\b/i.test(s) ? 'conditional discount' : 'other cost reduction';
+    if (/\bchosen type\b/i.test(s)) out.unsupportedCost = 'chosen type';
+    else if (/\bshare a card type\b/i.test(s)) out.unsupportedCost = 'shared card type';
+    else if (/\bcosts? (\{[WUBRG]\})+ less\b/i.test(s)) out.unsupportedCost = 'colored mana discount';
+    else out.unsupportedCost = each ? `for each ${each[1]}` : /\bif\b/i.test(s) ? 'conditional discount' : 'other cost reduction';
   }
 }
 
@@ -214,7 +238,8 @@ export function classifyCard(c) {
 }
 
 // Override dell'utente (deck.landAnalysis.overrides, per nome della carta): ruolo, mana prodotto, peso della MDFC, effetto
-// sul costo (cost: 'none' o 'affinity'; scelto a mano, la carta non resta tra quelle non simulate).
+// sul costo (cost: 'none', 'affinity' o 'reducer' con amount e filter in parole, solo per i permanenti; scelto a mano, la
+// carta non resta tra quelle non simulate).
 // Un ruolo cambiato a mano prende i valori di default di quel ruolo se la carta non li aveva.
 function applyOverride(card, o, type) {
   if (!o) return card;
@@ -228,7 +253,11 @@ function applyOverride(card, o, type) {
   }
   if (c.role === 'ramp' && Number.isFinite(o.mana)) c.manaProduced = o.mana;
   if (c.role === 'mdfc' && Number.isFinite(o.weight)) c.mdfcWeight = o.weight;
-  if (o.cost) Object.assign(c, { affinity: o.cost === 'affinity' ? 'artifacts' : null, unsupportedCost: null });
+  if (o.cost) {
+    const filter = (typeof o.filter === 'string' && parseFilter(o.filter)) || card.reducer?.filter || { kind: 'all', values: [] };
+    const reducer = o.cost === 'reducer' && card.permanent ? { amount: Number.isFinite(o.amount) ? o.amount : card.reducer?.amount ?? 1, filter } : null;
+    Object.assign(c, { affinity: o.cost === 'affinity' ? 'artifacts' : null, reducer, unsupportedCost: null });
+  }
   if (c.rampKind === 'rock' || c.rampKind === 'dork') c.fastMana = c.manaProduced > c.mv;
   return c;
 }
@@ -274,7 +303,7 @@ export function landModel(deck, oracle) {
     const o = oracle.get(e.oid);
     if (!o) { unknown.push(e); continue; }
     const base = classifyCard(o);
-    const c = { ...e, baseRole: base.role, baseCost: !!(base.affinity || base.unsupportedCost), ...applyOverride(base, overrides.get(e.name), e.type) };
+    const c = { ...e, baseRole: base.role, baseCost: !!(base.affinity || base.reducer || base.unsupportedCost), ...applyOverride(base, overrides.get(e.name), e.type) };
     (e.commander ? commanders : cards).push(c);
   }
   const n = cards.reduce((x, c) => x + c.qty, 0) + unknown.reduce((x, c) => x + c.qty, 0);

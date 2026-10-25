@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { StatFrame } from './DeckStats';
 import { cachedOracle, fetchOracle } from './scryfallSearch';
-import { landModel, karsten, landOdds, ROLES, ROLE_LABEL, LAND_FORMATS, KARSTEN_URL } from './landAnalysis';
+import { landModel, karsten, landOdds, filterText, parseFilter, ROLES, ROLE_LABEL, LAND_FORMATS, KARSTEN_URL } from './landAnalysis';
 import { simInput, simParams } from './landSim';
 import { IconPlay, IconReplay, IconX } from '../components/icons';
 
@@ -318,6 +318,8 @@ function SimCard({ m, k, params, setOver, sim, onRun }) {
   else if (r) status = `${r.rows.length} land counts, ${params.games.toLocaleString('en')} games each.`;
   // Effetti sul costo (addendum COST-REDUCTION): carte con sconti simulati e carte riconosciute ma non simulate.
   const affinity = m.cards.filter((c) => c.affinity).reduce((n, c) => n + c.qty, 0);
+  const reducers = m.cards.filter((c) => c.reducer).reduce((n, c) => n + c.qty, 0);
+  const discounts = affinity + reducers > 0;
   const unsupported = m.cards.filter((c) => c.unsupportedCost);
   const cur = r?.rows.find((x) => x.lands === r.current);
   return (
@@ -329,9 +331,10 @@ function SimCard({ m, k, params, setOver, sim, onRun }) {
           and looks for the count that deploys the most mana value, early turns first.
         </span>
       </figcaption>
-      {(affinity > 0 || unsupported.length > 0) && (
+      {(discounts || unsupported.length > 0) && (
         <p className="land-note">
-          {affinity > 0 && <>Discounts modelled: {plural(affinity, 'affinity card')}{params.discounts ? '' : ' (off in the settings)'}. </>}
+          {discounts && <>Discounts modelled: {[affinity && plural(affinity, 'affinity card'), reducers && plural(reducers, 'reducer')].filter(Boolean).join(', ')}
+            {params.discounts ? '' : ' (off in the settings)'}. </>}
           {unsupported.length > 0 && <>Not modelled, printed cost: {unsupported.map((c) => `${c.name} (${c.unsupportedCost})`).join(', ')}.</>}
         </p>
       )}
@@ -388,7 +391,7 @@ function SimCard({ m, k, params, setOver, sim, onRun }) {
           <p className="land-note">
             Score: value deployed (MV), where turn 1 counts {params.turns} times and the last turn once. T3 and T4: chance of having that
             much mana on that turn. Flood: at least two lands that could never be played. Mull.: hands that went below 7 cards.
-            {affinity > 0 && cur && <> Cards count at their printed mana value, whatever they cost: with {r.current} lands a game deploys
+            {discounts && cur && <> Cards count at their printed mana value, whatever they cost: with {r.current} lands a game deploys
               {' '}{f1(cur.deployed)} mana value and pays {f1(cur.manaPaid)} mana.</>}
           </p>
           {Math.abs(k.recommendedLands - r.best) > 2 && (
@@ -410,7 +413,7 @@ function SimCard({ m, k, params, setOver, sim, onRun }) {
           <NumField label="Lands above" value={params.above} min={0} max={10} onChange={(v) => setOver({ above: v })} />
           <NumField label="Seed" value={params.seed} min={0} max={2147483647} onChange={(v) => setOver({ seed: v })} />
           {[7, 6, 5].map((h) => <KeepRow key={h} h={h} keep={params.keep} setOver={setOver} />)}
-          {affinity > 0 && (
+          {discounts && (
             <label className="land-check">
               <input type="checkbox" checked={params.discounts} onChange={(e) => setOver({ discounts: e.target.checked })} />
               <span>Cost reductions (off: every card pays its printed cost)</span>
@@ -429,16 +432,18 @@ function SimCard({ m, k, params, setOver, sim, onRun }) {
         </p>
       </details>
       <p className="land-note">
-        A model, not a game: no interaction, mana sinks, cost reductions other than affinity, Treasures or color requirements, and
-        lands that enter tapped only sometimes count as untapped.
+        A model, not a game: no interaction, mana sinks, Treasures, color requirements or discounts other than affinity and
+        static reducers, and lands that enter tapped only sometimes count as untapped.
       </p>
     </StatFrame>
   );
 }
 
-// Una carta: costo, badge cheap, motivi, ruolo (e mana prodotto per il ramp, peso per le MDFC), reset dell'override.
+// Una carta: costo, badge (cheap, sconti, non simulata), motivi, ruolo (e mana prodotto per il ramp, peso per le MDFC),
+// effetto sul costo (con sconto e filtro per i riduttori), reset dell'override.
 function RoleRow({ c, onOverride }) {
   const set = (patch) => onOverride(c.name, patch);
+  const filter = c.reducer && filterText(c.reducer.filter);
   return (
     <li className={`land-role-row${c.overridden ? ' changed' : ''}`}>
       <div className="land-role-card">
@@ -447,6 +452,8 @@ function RoleRow({ c, onOverride }) {
         {c.role !== 'land' && <span className="land-mv" title="Mana value">{c.mv}{c.hasX ? '+X' : ''}</span>}
         {c.cheap && (c.role === 'ramp' || c.role === 'draw') && <span className="land-badge">cheap</span>}
         {c.affinity && <span className="land-badge cost" title="Costs 1 less for each artifact you control">Affinity</span>}
+        {c.reducer && <span className="land-badge cost" title="Lowers the generic cost of these spells while on the battlefield">
+          -{c.reducer.amount} {filter || 'all'} spells</span>}
         {c.unsupportedCost && <span className="land-badge off" title={`The simulation pays the printed cost: ${c.unsupportedCost}`}>Not modelled</span>}
         <span className="land-reasons">{c.overridden ? 'Set by you' : c.reasons.join('. ')}</span>
       </div>
@@ -463,16 +470,31 @@ function RoleRow({ c, onOverride }) {
             {[...new Set([0.74, 0.38, c.mdfcWeight])].map((w) => <option key={w} value={w}>{w}</option>)}
           </select>
         )}
-        {c.role !== 'land' && (c.baseCost || c.affinity) && (
-          <select value={c.affinity ? 'affinity' : 'none'} aria-label={`Cost reduction of ${c.name}`} title="Cost reduction in the simulation"
-            onChange={(e) => set({ cost: e.target.value })}>
+        {c.role !== 'land' && (c.baseCost || c.affinity || c.reducer) && (
+          <select value={c.affinity ? 'affinity' : c.reducer ? 'reducer' : 'none'} aria-label={`Cost reduction of ${c.name}`}
+            title="Cost reduction in the simulation" onChange={(e) => set({ cost: e.target.value })}>
             <option value="none">No discount</option>
             <option value="affinity">Affinity for artifacts</option>
+            {c.permanent && <option value="reducer">Makes spells cheaper</option>}
           </select>
+        )}
+        {c.reducer && (
+          <>
+            <input type="number" min="0" max="20" value={c.reducer.amount} aria-label={`Discount of ${c.name}`} title="Generic mana less per spell"
+              onChange={(e) => { const v = Number(e.target.value); if (e.target.value !== '' && Number.isFinite(v)) set({ cost: 'reducer', amount: Math.max(0, Math.min(20, Math.round(v))) }); }} />
+            <input type="text" className="import-link-input land-filter" maxLength={60} spellCheck={false} key={filter} defaultValue={filter}
+              placeholder="all spells" aria-label={`Spells discounted by ${c.name}`}
+              title="Which spells: blue, artifact, instant and sorcery, goblin... One kind of word at a time. Empty: all spells"
+              onBlur={(e) => {
+                const v = e.target.value.trim();
+                if (!parseFilter(v)) e.target.value = filter; // parole di tipi diversi: si torna al filtro attuale
+                else if (v !== filter) set({ cost: 'reducer', filter: v });
+              }} />
+          </>
         )}
         {c.overridden && (
           <button type="button" className="btn-secondary deck-icon-btn" aria-label={`Reset ${c.name}`} title="Back to the automatic values"
-            onClick={() => set({ role: null, mana: null, weight: null, cost: null })}><IconReplay size={14} /></button>
+            onClick={() => set({ role: null, mana: null, weight: null, cost: null, amount: null, filter: null })}><IconReplay size={14} /></button>
         )}
       </div>
     </li>

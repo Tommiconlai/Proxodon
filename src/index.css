@@ -3661,6 +3661,7 @@ span.deck-hero-art { cursor: default; }
 .land-role-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 200px; max-width: 100%; }
 .land-role-ctl select { width: auto; padding-block: 4px; }
 .land-role-ctl input { width: 64px; padding-block: 4px; }
+.land-role-ctl .land-filter { flex: 0 1 170px; width: 170px; font-size: 0.78rem; }
 .land-odds-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 18px 32px; align-items: start; }
 @media (max-width: 760px) { .land-odds-grid { grid-template-columns: minmax(0, 1fr); } }
 .land-h { margin: 0 0 8px; font-family: var(--font-mono); font-size: 0.72rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }

@@ -18,13 +18,19 @@ export function simParams(m, over = {}) {
 // Carte della simulazione dal modello (landModel): solo i campi che servono, con le copie. Le carte senza dati Oracle
 // entrano come magie senza effetti al valore di mana medio; i comandanti (solo il costo) partono dalla zona di comando.
 // Solo nei mazzi con effetti sul costo (addendum COST-REDUCTION): art = artefatto (terre comprese), gen / fix = parte
-// generica e fissa del costo (non se il costo simulato non è quello stampato, come per il cycling), aff = affinità.
+// generica e fissa del costo (non se il costo simulato non è quello stampato, come per il cycling), aff = affinità,
+// red = riduttore (solo permanenti); con dei riduttori nel mazzo anche colori, tipi, sottotipi e leg (leggendaria).
 export function simInput(m) {
-  const fx = m.cards.some((c) => c.affinity);
+  const fx = m.cards.some((c) => c.affinity || c.reducer);
+  const reducers = m.cards.some((c) => c.reducer);
   const costs = (c, x) => {
     if (c.isArtifact) x.art = true;
-    if (c.role !== 'land' && c.genericCost + c.fixedCost === c.simMV) Object.assign(x, { gen: c.genericCost, fix: c.fixedCost });
+    if (c.role !== 'land' && c.genericCost + c.fixedCost === c.simMV) {
+      Object.assign(x, { gen: c.genericCost, fix: c.fixedCost });
+      if (reducers) Object.assign(x, { col: c.colors, types: c.types, sub: c.subtypes }, c.supertypes.includes('legendary') && { leg: true });
+    }
     if (c.affinity) x.aff = true;
+    if (c.reducer && c.permanent) x.red = c.reducer;
     return x;
   };
   const one = (c) => {
@@ -72,13 +78,32 @@ const removeAt = (a, i) => { a[i] = a[a.length - 1]; a.pop(); };
 const TIE = { spell: 0, mdfc: 0, draw: 1, ramp: 2 }; // nel mulligan va sotto prima la magia semplice, poi draw, poi ramp
 const gain = (c) => (c.kind === 'search' ? c.toBf : c.mana);
 const PLAIN_LAND = { role: 'land', mv: 0, fetch: false, tapped: false };
-const regular = (c) => c.role === 'spell';
+const regular = (c) => c.role === 'spell' && !c.red;
 
-// Costo effettivo (addendum COST-REDUCTION §3.2): con l'affinità la parte generica scende di uno per artefatto sul
-// campo, mai sotto zero; la parte fissa resta. Le carte senza gen costano il loro mv.
-export function effectiveCost(c, artifacts) {
+// Un riduttore vale per questa magia? (filtri dell'addendum §2.2)
+function matches(f, c) {
+  switch (f.kind) {
+    case 'all': return true;
+    case 'color': return f.values.some((v) => c.col?.includes(v));
+    case 'colorless': return !c.col?.length;
+    case 'multicolored': return c.col?.length > 1;
+    case 'type': return f.values.some((v) => c.types?.includes(v));
+    case 'noncreature': return !c.types?.includes('creature');
+    case 'subtype': return f.values.some((v) => c.sub?.includes(v));
+    case 'historic': return !!(c.leg || c.types?.includes('artifact') || c.sub?.includes('saga'));
+    case 'legendary': return !!c.leg;
+    default: return false;
+  }
+}
+
+// Costo effettivo (addendum COST-REDUCTION §3.2): la parte generica scende di uno per artefatto sul campo con l'affinità
+// e di amount per ogni riduttore sul campo che vale per la carta, mai sotto zero; la parte fissa resta. Le carte senza
+// gen costano il loro mv.
+export function effectiveCost(c, artifacts, reducers = []) {
   if (c.gen === undefined) return c.mv;
-  return c.fix + Math.max(0, c.gen - (c.aff ? artifacts : 0));
+  let off = c.aff ? artifacts : 0;
+  for (const r of reducers) if (matches(r.filter, c)) off += r.amount;
+  return c.fix + Math.max(0, c.gen - off);
 }
 
 function keeps(hand, h, p) {
@@ -91,9 +116,18 @@ function keeps(hand, h, p) {
 // Mulligan London (§6.3.1): ogni tentativo rimescola tutto e pesca 7, poi mette sotto 7 - h carte una alla volta (una
 // terra se ce ne sono più di metà o non restano altre carte, sennò la carta più cara). Ritorna [mano, mulligan pagati].
 // Mazzi con effetti sul costo (addendum §3.6): sotto prima le terre tappate; con gli sconti il costo è quello stimato,
-// come se gli altri artefatti della mano fossero sul campo.
+// come se gli altri artefatti e riduttori della mano fossero sul campo.
 function deal(deck, p, rnd, lib, o) {
-  const arts = (hand) => hand.reduce((a, c) => a + (c.art ? 1 : 0), 0);
+  const estimate = (hand, i) => {
+    let arts = 0;
+    const reds = [];
+    hand.forEach((c, j) => {
+      if (j === i) return;
+      if (c.art) arts++;
+      if (c.red) reds.push(c.red);
+    });
+    return effectiveCost(hand[i], arts, reds);
+  };
   for (let m = 0; ; m++) {
     lib.length = 0;
     for (const c of deck) lib.push(c);
@@ -102,7 +136,7 @@ function deal(deck, p, rnd, lib, o) {
     if (!p.mulligans) return [hand, 0];
     const paid = Math.max(0, m - p.freeMulligans);
     const h = 7 - paid;
-    const cost = o.disc ? (c) => effectiveCost(c, arts(hand) - (c.art ? 1 : 0)) : (c) => c.mv;
+    const cost = o.disc ? (i) => estimate(hand, i) : (i) => hand[i].mv;
     for (let b = paid; b > 0 && hand.length; b--) {
       const lands = hand.filter(isLand).length;
       let k = -1;
@@ -112,7 +146,7 @@ function deal(deck, p, rnd, lib, o) {
         if (k < 0) k = hand.findIndex((c) => c.role === 'mdfc');
       } else {
         hand.forEach((c, i) => {
-          if (!isLand(c) && (k < 0 || cost(c) > cost(hand[k]) || (cost(c) === cost(hand[k]) && TIE[c.role] < TIE[hand[k].role]))) k = i;
+          if (!isLand(c) && (k < 0 || cost(i) > cost(k) || (cost(i) === cost(k) && TIE[c.role] < TIE[hand[k].role]))) k = i;
         });
       }
       lib.unshift(hand.splice(k, 1)[0]);
@@ -131,6 +165,7 @@ function runCount(deck, cmdrs, p, tick, o) {
   const rnd = mulberry32(p.seed);
   const lib = [];
   const once = []; // rock monouso sul campo: il loro mana si spende per ultimo, poi se ne vanno
+  const reducers = []; // riduttori sul campo
   const used = new Uint8Array(cmdrs.length);
   const acc = { compounded: 0, deployed: 0, paid: 0, flood: 0, mull: 0, onCurve: new Array(C).fill(0), available: new Array(T).fill(0) };
   let hand, pool, onceSum, landsUp, landsTapped, rocks, dorks, dorksNew, dropped, seen, artifacts;
@@ -157,13 +192,14 @@ function runCount(deck, cmdrs, p, tick, o) {
     if (land.art && land.role === 'land') artifacts++;
     if (tapped) landsTapped++; else { landsUp++; pool++; }
   };
-  const price = (c) => (o.disc ? effectiveCost(c, artifacts) : c.mv);
+  const price = (c) => (o.disc ? effectiveCost(c, artifacts, reducers) : c.mv);
   const cost = (k) => (k < hand.length ? price(hand[k]) : cmdrs[k - hand.length]);
   const value = (k) => (k < hand.length ? hand[k].mv : cmdrs[k - hand.length]);
   // Prossima carta da lanciare con avail mana (§6.3.5, addendum §3.4): ramp più economico (a pari costo quello che dà
-  // di più), poi gli abilitatori degli sconti (il più economico, a pari costo il valore più alto), poi draw più
-  // economico (a pari costo il valore più alto), poi la carta di valore più alto che entra (MDFC tenute come magie,
-  // comandanti; a pari valore la meno cara). skip: carte già prese nella prova a secco. Indici oltre la mano = comandanti.
+  // di più), poi gli abilitatori degli sconti (riduttori, artefatti nei mazzi con affinità; il più economico, a pari costo
+  // il valore più alto), poi draw più economico (a pari costo il valore più alto), poi la carta di valore più alto che
+  // entra (MDFC tenute come magie, comandanti; a pari valore la meno cara). skip: carte già prese nella prova a secco.
+  // Indici oltre la mano = comandanti.
   const pick = (avail, skip) => {
     let r = -1, e = -1, d = -1, x = -1, nr = 0, ne = 0, nd = 0, nx = 0;
     for (let i = 0; i < hand.length; i++) {
@@ -183,10 +219,11 @@ function runCount(deck, cmdrs, p, tick, o) {
     return r >= 0 ? r : e >= 0 ? e : d >= 0 ? d : x;
   };
   // Prova a secco: quanto valore si mette in campo con mana disponibile dopo aver giocato land, stesse priorità e
-  // sconti (gli artefatti che entrano contano), senza gli altri effetti.
+  // sconti (artefatti e riduttori che entrano contano), senza gli altri effetti.
   const spendWith = (mana, land) => {
     const skip = new Uint8Array(hand.length + cmdrs.length);
     const before = artifacts;
+    const reds = reducers.length;
     if (land.art && land.role === 'land') artifacts++;
     let v = 0;
     for (let k = pick(mana, skip); k >= 0; k = pick(mana, skip)) {
@@ -194,8 +231,10 @@ function runCount(deck, cmdrs, p, tick, o) {
       mana -= cost(k);
       v += value(k);
       if (k < hand.length && hand[k].art) artifacts++;
+      if (k < hand.length && hand[k].red) reducers.push(hand[k].red);
     }
     artifacts = before;
+    reducers.length = reds;
     return v;
   };
   // Land drop (§6.3.3): tra una terra che entra stappata e una tappata, la tappata se un mana in più non fa mettere in
@@ -237,6 +276,7 @@ function runCount(deck, cmdrs, p, tick, o) {
     [hand, mulls] = deal(o.sample ? o.sample(rnd) : deck, p, rnd, lib, o);
     landsUp = landsTapped = rocks = dorks = dorksNew = onceSum = artifacts = 0;
     once.length = 0;
+    reducers.length = 0;
     used.fill(0);
     seen = hand.filter((c) => c.role === 'land').length;
     let compounded = 0, total = 0, paid = 0;
@@ -262,6 +302,7 @@ function runCount(deck, cmdrs, p, tick, o) {
         const c = hand[k];
         removeAt(hand, k);
         if (c.art) artifacts++;
+        if (c.red) reducers.push(c.red);
         if (c.role === 'ramp') {
           if (c.kind === 'rock') {
             if (c.once) { once.push(c.mana); onceSum += c.mana; } else { rocks += c.mana; pool += c.mana; }
@@ -339,9 +380,10 @@ export function simulate(input, p, onProgress) {
   const spells = deck.filter(regular);
   const pool = spells.length ? spells : deck.filter((c) => c.role !== 'land');
   const filler = pool.length ? Math.round(pool.reduce((a, c) => a + c.mv, 0) / pool.length) : 0;
-  const fx = deck.some((c) => c.aff);
+  const fx = deck.some((c) => c.aff || c.red);
   const disc = fx && p.discounts !== false;
-  const o = { fx, disc, enabler: disc ? (c) => !!c.art : () => false };
+  const aff = deck.some((c) => c.aff);
+  const o = { fx, disc, enabler: disc ? (c) => !!(c.red || (aff && c.art)) : () => false };
   const most = (xs) => xs.reduce((a, s) => (!a || s[1] > a[1] ? s : a), null)?.[0];
   const lands = specs.filter(([c]) => c.role === 'land');
   const plain = most(lands.filter(([c]) => !c.tapped && !c.fetch)) || most(lands) || PLAIN_LAND;

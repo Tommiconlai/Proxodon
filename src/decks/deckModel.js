@@ -492,7 +492,8 @@ export function cleanLandAnalysis(x) {
     overrides: (Array.isArray(x.overrides) ? x.overrides : []).filter((o) => o && typeof o.name === 'string').slice(0, MAX_ROWS)
       .map((o) => ({
         name: str(o.name, 200), role: ROLES.includes(o.role) ? o.role : null, mana: finite(o.mana, 0, 20), weight: finite(o.weight, 0, 1),
-        cost: COST_KINDS.includes(o.cost) ? o.cost : null,
+        cost: COST_KINDS.includes(o.cost) ? o.cost : null, amount: finite(o.amount, 0, 20),
+        filter: typeof o.filter === 'string' ? o.filter.slice(0, 60) : null,
       })),
     settings: {
       format: LAND_FORMATS.some(([id]) => id === s.format) ? s.format : null, cheap: finite(s.cheap, 0, 20), fast: s.fast === true,
