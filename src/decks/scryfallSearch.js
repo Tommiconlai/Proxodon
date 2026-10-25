@@ -89,8 +89,8 @@ export async function cardsByIds(ids) {
 // di solito non chiede niente; offline valgono quelli salvati. Al massimo ORACLE_MAX voci, una scrittura ogni mezzo secondo.
 const ORACLE_KEY = 'ip:oracle:v1';
 const ORACLE_MAX = 3000;
-const ORACLE_FIELDS = ['name', 'cmc', 'mana_cost', 'type_line', 'oracle_text', 'layout', 'produced_mana', 'keywords'];
-const FACE_FIELDS = ['name', 'mana_cost', 'type_line', 'oracle_text'];
+const ORACLE_FIELDS = ['name', 'cmc', 'mana_cost', 'type_line', 'oracle_text', 'layout', 'produced_mana', 'keywords', 'colors'];
+const FACE_FIELDS = ['name', 'mana_cost', 'type_line', 'oracle_text', 'colors'];
 const pick = (o, keys) => Object.fromEntries(keys.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
 let oracle = {};
 try { oracle = JSON.parse(localStorage.getItem(ORACLE_KEY) || '{}'); } catch { /* storage bloccato, o node */ }

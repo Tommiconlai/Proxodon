@@ -6,7 +6,7 @@
  */
 
 import { parseCardList, deckLine, MAX_LINES, TOO_MANY_LINES } from '../utils/scryfall.js';
-import { ROLES, LAND_FORMATS } from './landAnalysis.js';
+import { ROLES, LAND_FORMATS, COST_KINDS } from './landAnalysis.js';
 
 export const FORMATS = [
   { id: 'commander', label: 'Commander' },
@@ -481,15 +481,19 @@ export const BRACKETS = ['Exhibition', 'Core', 'Upgraded', 'Optimized', 'cEDH'];
 const okBracket = (b) => Number.isInteger(b) && b >= 0 && b <= 5;
 export const bracketField = (b) => (okBracket(b) ? { bracket: b } : {});
 // Analisi delle terre (LandAnalysis), solo sul mazzo privato: override per nome della carta (ruolo, mana prodotto, peso
-// della MDFC) e settings. Overrides è una lista: con il merge di saveDeck una mappa si fonderebbe con quella salvata e un
-// override tolto resterebbe. Ripulita come le regole la vogliono (file di backup, copie): null = campo assente.
+// della MDFC, effetto sul costo) e settings. Overrides è una lista: con il merge di saveDeck una mappa si fonderebbe con
+// quella salvata e un override tolto resterebbe. Ripulita come le regole la vogliono (file di backup, copie): null = campo
+// assente.
 const finite = (v, lo, hi) => (Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : null);
 export function cleanLandAnalysis(x) {
   if (!x || typeof x !== 'object') return null;
   const s = x.settings && typeof x.settings === 'object' ? x.settings : {};
   return {
     overrides: (Array.isArray(x.overrides) ? x.overrides : []).filter((o) => o && typeof o.name === 'string').slice(0, MAX_ROWS)
-      .map((o) => ({ name: str(o.name, 200), role: ROLES.includes(o.role) ? o.role : null, mana: finite(o.mana, 0, 20), weight: finite(o.weight, 0, 1) })),
+      .map((o) => ({
+        name: str(o.name, 200), role: ROLES.includes(o.role) ? o.role : null, mana: finite(o.mana, 0, 20), weight: finite(o.weight, 0, 1),
+        cost: COST_KINDS.includes(o.cost) ? o.cost : null,
+      })),
     settings: {
       format: LAND_FORMATS.some(([id]) => id === s.format) ? s.format : null, cheap: finite(s.cheap, 0, 20), fast: s.fast === true,
       cmdr: typeof s.cmdr === 'string' ? s.cmdr.slice(0, 64) : null, play: typeof s.play === 'boolean' ? s.play : null,

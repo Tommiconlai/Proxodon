@@ -316,15 +316,25 @@ function SimCard({ m, k, params, setOver, sim, onRun }) {
   if (!canRun) status = `Needs at least ${7 + params.turns} cards.`;
   else if (r && sim.outdated) status = 'The deck or the settings changed: run it again to update.';
   else if (r) status = `${r.rows.length} land counts, ${params.games.toLocaleString('en')} games each.`;
+  // Effetti sul costo (addendum COST-REDUCTION): carte con sconti simulati e carte riconosciute ma non simulate.
+  const affinity = m.cards.filter((c) => c.affinity).reduce((n, c) => n + c.qty, 0);
+  const unsupported = m.cards.filter((c) => c.unsupportedCost);
+  const cur = r?.rows.find((x) => x.lands === r.current);
   return (
     <StatFrame as="figure" className="stat-card land-sim">
       <figcaption>
         <span className="stat-pill">Goldfish simulation</span>
         <span className="stat-sub">
           Plays {params.games.toLocaleString('en')} games for each land count, with mulligans, ramp, draw, tapped lands and fetches,
-          and looks for the count that spends the most mana, early turns first.
+          and looks for the count that deploys the most mana value, early turns first.
         </span>
       </figcaption>
+      {(affinity > 0 || unsupported.length > 0) && (
+        <p className="land-note">
+          {affinity > 0 && <>Discounts modelled: {plural(affinity, 'affinity card')}{params.discounts ? '' : ' (off in the settings)'}. </>}
+          {unsupported.length > 0 && <>Not modelled, printed cost: {unsupported.map((c) => `${c.name} (${c.unsupportedCost})`).join(', ')}.</>}
+        </p>
+      )}
       <div className="land-sim-run">
         <button type="button" className="btn-generate deck-icon-btn" disabled={sim.running || !canRun} onClick={onRun}
           aria-label="Run the simulation" title="Run the simulation"><IconPlay size={16} /></button>
@@ -354,7 +364,7 @@ function SimCard({ m, k, params, setOver, sim, onRun }) {
               <thead>
                 <tr>
                   <th scope="col">Lands</th>
-                  <th scope="col" title="Mana spent, early turns count more">Score</th>
+                  <th scope="col" title="Value deployed (mana value of the cards cast), early turns count more">Score</th>
                   <th scope="col" title="Chance of having 3 mana on turn 3">T3</th>
                   <th scope="col" title="Chance of having 4 mana on turn 4">T4</th>
                   <th scope="col" title={`At least ${params.turns + 2} lands seen by turn ${params.turns}`}>Flood</th>
@@ -376,8 +386,10 @@ function SimCard({ m, k, params, setOver, sim, onRun }) {
             </table>
           </div>
           <p className="land-note">
-            Score: mana spent, where turn 1 counts {params.turns} times and the last turn once. T3 and T4: chance of having that much
-            mana on that turn. Flood: at least two lands that could never be played. Mull.: hands that went below 7 cards.
+            Score: value deployed (MV), where turn 1 counts {params.turns} times and the last turn once. T3 and T4: chance of having that
+            much mana on that turn. Flood: at least two lands that could never be played. Mull.: hands that went below 7 cards.
+            {affinity > 0 && cur && <> Cards count at their printed mana value, whatever they cost: with {r.current} lands a game deploys
+              {' '}{f1(cur.deployed)} mana value and pays {f1(cur.manaPaid)} mana.</>}
           </p>
           {Math.abs(k.recommendedLands - r.best) > 2 && (
             <p className="land-note">
@@ -398,6 +410,12 @@ function SimCard({ m, k, params, setOver, sim, onRun }) {
           <NumField label="Lands above" value={params.above} min={0} max={10} onChange={(v) => setOver({ above: v })} />
           <NumField label="Seed" value={params.seed} min={0} max={2147483647} onChange={(v) => setOver({ seed: v })} />
           {[7, 6, 5].map((h) => <KeepRow key={h} h={h} keep={params.keep} setOver={setOver} />)}
+          {affinity > 0 && (
+            <label className="land-check">
+              <input type="checkbox" checked={params.discounts} onChange={(e) => setOver({ discounts: e.target.checked })} />
+              <span>Cost reductions (off: every card pays its printed cost)</span>
+            </label>
+          )}
           <label className="land-check">
             <input type="checkbox" checked={params.keepRamp} onChange={(e) => setOver({ keepRamp: e.target.checked })} />
             <span>Also keep 7 cards with 2 lands and a ramp card of mana value up to 2</span>
@@ -411,8 +429,8 @@ function SimCard({ m, k, params, setOver, sim, onRun }) {
         </p>
       </details>
       <p className="land-note">
-        A model, not a game: no interaction, mana sinks, cost reducers, Treasures or color requirements, and lands that enter tapped
-        only sometimes count as untapped.
+        A model, not a game: no interaction, mana sinks, cost reductions other than affinity, Treasures or color requirements, and
+        lands that enter tapped only sometimes count as untapped.
       </p>
     </StatFrame>
   );
@@ -428,6 +446,8 @@ function RoleRow({ c, onOverride }) {
         <span className="land-role-name">{c.name}</span>
         {c.role !== 'land' && <span className="land-mv" title="Mana value">{c.mv}{c.hasX ? '+X' : ''}</span>}
         {c.cheap && (c.role === 'ramp' || c.role === 'draw') && <span className="land-badge">cheap</span>}
+        {c.affinity && <span className="land-badge cost" title="Costs 1 less for each artifact you control">Affinity</span>}
+        {c.unsupportedCost && <span className="land-badge off" title={`The simulation pays the printed cost: ${c.unsupportedCost}`}>Not modelled</span>}
         <span className="land-reasons">{c.overridden ? 'Set by you' : c.reasons.join('. ')}</span>
       </div>
       <div className="land-role-ctl">
@@ -443,9 +463,16 @@ function RoleRow({ c, onOverride }) {
             {[...new Set([0.74, 0.38, c.mdfcWeight])].map((w) => <option key={w} value={w}>{w}</option>)}
           </select>
         )}
+        {c.role !== 'land' && (c.baseCost || c.affinity) && (
+          <select value={c.affinity ? 'affinity' : 'none'} aria-label={`Cost reduction of ${c.name}`} title="Cost reduction in the simulation"
+            onChange={(e) => set({ cost: e.target.value })}>
+            <option value="none">No discount</option>
+            <option value="affinity">Affinity for artifacts</option>
+          </select>
+        )}
         {c.overridden && (
-          <button type="button" className="btn-secondary deck-icon-btn" aria-label={`Reset ${c.name}`} title="Back to the automatic role"
-            onClick={() => set({ role: null, mana: null, weight: null })}><IconReplay size={14} /></button>
+          <button type="button" className="btn-secondary deck-icon-btn" aria-label={`Reset ${c.name}`} title="Back to the automatic values"
+            onClick={() => set({ role: null, mana: null, weight: null, cost: null })}><IconReplay size={14} /></button>
         )}
       </div>
     </li>
@@ -489,7 +516,7 @@ function LandPanel({ deck, update }) {
   const onOverride = (name, patch) => save((x) => {
     const o = { ...(x.overrides.find((y) => y.name === name) || { name }), ...patch };
     const rest = x.overrides.filter((y) => y.name !== name);
-    return { ...x, overrides: o.role || Number.isFinite(o.mana) || Number.isFinite(o.weight) ? [...rest, o] : rest };
+    return { ...x, overrides: o.role || Number.isFinite(o.mana) || Number.isFinite(o.weight) || o.cost ? [...rest, o] : rest };
   });
   const fmtLabel = (id) => LAND_FORMATS.find(([f]) => f === id)[1];
   // Commander senza comandante nel mazzo: si sceglie qui (solo per l'analisi, il mazzo non cambia).

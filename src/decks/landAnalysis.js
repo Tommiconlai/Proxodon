@@ -9,6 +9,7 @@
 
 export const ROLES = ['land', 'mdfc', 'ramp', 'draw', 'spell'];
 export const ROLE_LABEL = { land: 'Land', mdfc: 'MDFC', ramp: 'Ramp', draw: 'Draw', spell: 'Spell' };
+export const COST_KINDS = ['none', 'affinity']; // override dell'effetto sul costo
 export const LAND_FORMATS = [['commander', 'Commander'], ['60', '60 cards'], ['other', 'Other']];
 
 const WORDS = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
@@ -30,6 +31,48 @@ const noReminder = (t) => (t || '').replace(/\([^)]*\)/g, '');
 const faces = (c) => (c.card_faces?.length ? c.card_faces : [c]);
 const isLandType = (t) => /\bLand\b/.test(t || '');
 const isSpellType = (t) => /\b(Instant|Sorcery)\b/.test(t || '');
+const SUPERTYPES = ['basic', 'legendary', 'snow', 'world', 'ongoing'];
+const PERMANENTS = ['artifact', 'creature', 'enchantment', 'planeswalker', 'battle'];
+
+// Costo e tipi della faccia che si lancia (addendum COST-REDUCTION §2.2). genericCost = i {N} (X vale 0), la sola parte
+// che uno sconto abbassa; fixedCost = il resto (colorati, ibridi, phyrexiani, {C}, {S}). Tipi in minuscolo dalla type
+// line (i sottotipi dopo il trattino); colori da Scryfall, sennò dal costo ([] = incolore).
+function costShape(c, face) {
+  const cost = face.mana_cost ?? c.mana_cost ?? '';
+  let genericCost = 0;
+  let fixedCost = 0;
+  for (const t of cost.match(/\{[^}]+\}/g) || []) {
+    if (/^\{\d+\}$/.test(t)) genericCost += Number(t.slice(1, -1));
+    else fixedCost += manaValue(t);
+  }
+  const words = (face.type_line ?? c.type_line ?? '').toLowerCase().split(/\s+/).filter(Boolean);
+  const dash = words.findIndex((w) => !/^[a-z]/.test(w));
+  const left = dash < 0 ? words : words.slice(0, dash);
+  const types = left.filter((w) => !SUPERTYPES.includes(w));
+  return {
+    genericCost, fixedCost, types, supertypes: left.filter((w) => SUPERTYPES.includes(w)), subtypes: dash < 0 ? [] : words.slice(dash + 1),
+    colors: face.colors ?? c.colors ?? [...new Set(cost.match(/[WUBRG]/g) || [])],
+    permanent: types.some((t) => PERMANENTS.includes(t)), isArtifact: types.includes('artifact'),
+    affinity: null, unsupportedCost: null,
+  };
+}
+
+// Effetti sul costo (addendum §2.3). Affinità per artefatti: la keyword con "affinity for artifacts", o "costs {1} less
+// to cast for each artifact you control". Riconosciuti ma non simulati (unsupportedCost, un'etichetta breve): le altre
+// affinità, delve / convoke / improvise / emerge, gli sconti "for each" su altro, quelli condizionali e ogni altra frase
+// con "cost(s) {N} less to cast".
+function costEffects(c, text, out) {
+  const kw = (c.keywords || []).map((k) => k.toLowerCase());
+  const aff = kw.includes('affinity') && text.match(/\baffinity for ([a-z][a-z ]*)/i);
+  if ((aff && /^artifacts\b/i.test(aff[1])) || /\bcosts \{1\} less to cast for each artifact you control\b/i.test(text)) out.affinity = 'artifacts';
+  else if (aff) out.unsupportedCost = `affinity for ${aff[1].trim().toLowerCase()}`;
+  out.unsupportedCost ||= ['delve', 'convoke', 'improvise', 'emerge'].find((k) => kw.includes(k)) || null;
+  for (const s of text.split(/(?<=\.)\s+|\n/).map((x) => x.trim())) {
+    if (out.unsupportedCost || !/\bcosts? \{[^}]+\} less to cast\b/i.test(s) || /\bfor each artifact you control\b/i.test(s)) continue;
+    const each = s.match(/\bfor each (.+?)\.?$/i);
+    out.unsupportedCost = each ? `for each ${each[1]}` : /\bif\b/i.test(s) ? 'conditional discount' : 'other cost reduction';
+  }
+}
 
 // Entra tappata senza condizioni: una frase che finisce in "enters (the battlefield) tapped" e non comincia con "If"
 // ("If you don't, it enters tapped" e "... tapped unless you control ..." sono condizionali).
@@ -62,16 +105,19 @@ function addAmount(text) {
 }
 
 // Classificazione di una carta Scryfall (campi: name, cmc, mana_cost, type_line, oracle_text, layout, card_faces,
-// produced_mana, keywords). Regole in ordine, vince la prima: land, mdfc, ramp, draw, spell. cheap si calcola dopo
-// (dipende dalla soglia): simMV <= soglia.
+// produced_mana, keywords, colors). Regole in ordine, vince la prima: land, mdfc, ramp, draw, spell. cheap si calcola
+// dopo (dipende dalla soglia): simMV <= soglia. Costo, tipi ed effetti sul costo dalla faccia che si lancia.
 export function classifyCard(c) {
   const fs = faces(c);
   const all = fs.map((f) => noReminder(f.oracle_text)).join('\n');
+  const cast = (c.layout === 'modal_dfc' && fs.find((f) => !isLandType(f.type_line))) || fs[0];
   const out = {
     role: 'spell', mv: c.cmc ?? 0, hasX: /\{X\}/.test(fs[0].mana_cost ?? c.mana_cost ?? ''), entersTapped: false, fetchesLand: false,
     fetchEntersTapped: false, mdfcWeight: 0, rampKind: null, manaProduced: 0, singleUse: false, landsToBattlefield: 0,
     landsToHand: 0, landsEnterTapped: false, fastMana: false, cardsDrawn: 0, landTutor: false, simMV: c.cmc ?? 0, reasons: [],
+    ...costShape(c, cast),
   };
+  costEffects(c, all, out);
   const why = (r) => out.reasons.push(r);
   // 1. Terra: ogni faccia è una Land (base, doppie, Pathway, Dryad Arbor).
   if (fs.every((f) => isLandType(f.type_line ?? c.type_line))) {
@@ -167,7 +213,8 @@ export function classifyCard(c) {
   return out;
 }
 
-// Override dell'utente (deck.landAnalysis.overrides, per nome della carta): ruolo, mana prodotto, peso della MDFC.
+// Override dell'utente (deck.landAnalysis.overrides, per nome della carta): ruolo, mana prodotto, peso della MDFC, effetto
+// sul costo (cost: 'none' o 'affinity'; scelto a mano, la carta non resta tra quelle non simulate).
 // Un ruolo cambiato a mano prende i valori di default di quel ruolo se la carta non li aveva.
 function applyOverride(card, o, type) {
   if (!o) return card;
@@ -181,6 +228,7 @@ function applyOverride(card, o, type) {
   }
   if (c.role === 'ramp' && Number.isFinite(o.mana)) c.manaProduced = o.mana;
   if (c.role === 'mdfc' && Number.isFinite(o.weight)) c.mdfcWeight = o.weight;
+  if (o.cost) Object.assign(c, { affinity: o.cost === 'affinity' ? 'artifacts' : null, unsupportedCost: null });
   if (c.rampKind === 'rock' || c.rampKind === 'dork') c.fastMana = c.manaProduced > c.mv;
   return c;
 }
@@ -226,7 +274,7 @@ export function landModel(deck, oracle) {
     const o = oracle.get(e.oid);
     if (!o) { unknown.push(e); continue; }
     const base = classifyCard(o);
-    const c = { ...e, baseRole: base.role, ...applyOverride(base, overrides.get(e.name), e.type) };
+    const c = { ...e, baseRole: base.role, baseCost: !!(base.affinity || base.unsupportedCost), ...applyOverride(base, overrides.get(e.name), e.type) };
     (e.commander ? commanders : cards).push(c);
   }
   const n = cards.reduce((x, c) => x + c.qty, 0) + unknown.reduce((x, c) => x + c.qty, 0);
