@@ -449,7 +449,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     const turns = (r.card.back && flipped.get(r.id)) || 0;
     const cutHere = inCuts?.has(r.card.oid); // già nei Cuts della risposta: la cornice della selezione, fissa
     return (
-      <li key={copy ? `${r.id}:${copy}` : r.id} data-row-id={r.id} className={`deck-row${sel.has(r.id) ? ' selected' : ''}${cutHere ? ' marked' : ''}${warn ? ' over' : ''}`} {...dragProps(r)}
+      <li key={copy ? `${r.id}:${copy}` : r.id} data-row-id={r.id} className={`deck-row${sel.has(r.id) ? ' selected' : ''}${cutHere ? ' marked' : ''}${warn ? ' over' : ''}${ban ? ' banned' : ''}`} {...dragProps(r)}
         onMouseEnter={touch ? undefined : (e) => showPreview(e, r)} onMouseLeave={touch ? undefined : () => setHover(null)}>
         <button type="button" className="deck-row-main" aria-pressed={sel.has(r.id)}
           aria-label={view === 'list' ? undefined : `${split ? `${r.card.name}, copy ${copy + 1} of ${r.qty}` : `${r.qty} ${r.card.name}`}${ban ? `, ${banText}` : ''}${warn ? `, ${warnText}` : ''}${gc ? ', game changer' : ''}${cutHere ? ', in Cuts' : ''}`}
@@ -482,9 +482,9 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
                   <CardImg card={r.card} side={1} className="deck-card-backface" />
                 </span>
               ) : r.card.img ? <CardImg card={r.card} /> : <span className="deck-card-ph">{r.card.name}</span>}
-              {(ban || warn || gc) && (
+              {/* Bandita o non legale: alone rosso interno e carta più scura (.deck-row.banned), nessun chip. */}
+              {(warn || gc) && (
               <span className="deck-card-flags">
-                {ban && <span className="deck-card-ban" title={banText}><IconBan size={13} /></span>}
                 {warn && <span className="deck-card-warn" title={warnText}><IconAlert size={12} /></span>}
                 {gc && <span className="deck-card-gc" title="Game changer"><IconZap size={12} /></span>}
               </span>

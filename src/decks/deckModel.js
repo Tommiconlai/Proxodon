@@ -973,11 +973,7 @@ export function validateDeck(deck) {
       ids: ids(deck.cards.filter((r) => counted(r) && oids.has(r.card.oid))),
     });
   }
-  const illegal = deck.cards.filter((r) => counted(r) && illegalRow(f, r));
-  if (illegal.length) {
-    const label = [...new Map(illegal.map((r) => [r.card.oid, `${r.card.name}${illegalRow(f, r) === 'banned' ? ' (banned)' : ''}`])).values()].join(', ');
-    out.push({ key: 'illegal', level: 'error', label: `Not allowed in ${formatLabel(f)}: ${label}`, ids: ids(illegal) });
-  }
+  // Carte bandite o non legali: nessun avviso qui, le segna la carta stessa (illegalRow, alone rosso in DeckSections).
   return out;
 }
 
