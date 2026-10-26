@@ -4,6 +4,7 @@
  */
 import { scryfallFetch, lookupCards } from '../utils/scryfall.js';
 import { snapshotFromCard } from './deckModel.js';
+import { formatRules, leaderQuery } from './formats.js';
 
 const API = 'https://api.scryfall.com';
 
@@ -15,17 +16,19 @@ export const searchUrl = (q, order = 'name') => `${API}/cards/search?q=${encodeU
 // Solo carte giocabili nel formato del mazzo (fuori bandite e non legali); Casual senza filtro. identity
 // (searchIdentity) = i colori del comandante: solo carte con l'identità dentro quella (comandante incolore: id:c).
 const idQuery = (ci) => (ci.length ? `id<=${ci.join('').toLowerCase()}` : 'id:c');
+// Pauper Commander: anche le creature non comuni, che possono essere il comandante (Scryfall le segna non legali).
+const legalQuery = (format) => (formatRules(format).cmd === 'uncommon' ? `(legal:${format} or (${leaderQuery(format)} -banned:${format}))` : `legal:${format}`);
 export const withLegal = (q, format, identity) =>
-  `${format === 'casual' ? q : `${q} legal:${format}`} ${identity ? idQuery(identity) : ''}`.trim();
+  `${format === 'casual' ? q : `${q} ${legalQuery(format)}`} ${identity ? idQuery(identity) : ''}`.trim();
 
 // Filtri della ricerca avanzata → sintassi Scryfall. Campi vuoti ignorati; le virgolette dentro i
 // testi si tolgono (Scryfall non ha escape). Colori della carta (c:) e identità (id:) a parte; in tutti e due
-// incolore vince sui colori.
+// incolore vince sui colori. leader = la query di "Can be your commander" del formato (leaderQuery).
 const phrase = (s) => `"${s.trim().replace(/"/g, '').replace(/\s+/g, ' ')}"`;
 const filled = (v) => v != null && String(v).trim() !== '';
 const colorQuery = (k, colors, colorless, mode) => (colorless ? `${k}:c`
   : colors?.length ? `${k}${mode || '>='}${colors.join('').toLowerCase()}` : '');
-export function advancedQuery(f) {
+export function advancedQuery(f, leader = 'is:commander') {
   const out = [];
   // Il nome pieno delle carte a due facce su Scryfall usa " // ": "Fire/Ice" diventa "Fire // Ice".
   if (filled(f.name)) out.push(phrase(f.name.replace(/\s*\/+\s*/g, ' // ')));
@@ -42,7 +45,7 @@ export function advancedQuery(f) {
   if (filled(f.tou)) out.push(`tou${f.touOp || '='}${Number(f.tou)}`);
   if (filled(f.keyword)) out.push(`kw:${phrase(f.keyword)}`);
   if (filled(f.artist)) out.push(`a:${phrase(f.artist)}`);
-  if (f.isCommander) out.push('is:commander');
+  if (f.isCommander) out.push(leader);
   if (filled(f.extra)) out.push(f.extra.trim());
   return out.filter(Boolean).join(' ');
 }

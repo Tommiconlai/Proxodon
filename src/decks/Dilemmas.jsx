@@ -15,7 +15,7 @@ import { goBack } from '../hooks/useHashRoute';
 import { useBackClose } from '../hooks/useBackClose';
 import { useCount } from './useCount';
 import { CutFrame } from './CutFrame';
-import { groupMain, commanderRows, boardRows, scryfallImg, artCrop as art, shuffle, splitSlices, MAX_DILEMMA_CARDS, searchIdentity } from './deckModel';
+import { groupMain, commanderRows, boardRows, formatRules, scryfallImg, artCrop as art, shuffle, splitSlices, MAX_DILEMMA_CARDS, searchIdentity } from './deckModel';
 import {
   IconPlus, IconArrowLeft, IconArrowRight, IconTrash, IconCheck, IconX,
 } from '../components/icons';
@@ -452,9 +452,9 @@ function DeckListText({ deck }) {
     return () => window.removeEventListener('scroll', off, true);
   }, [hover]);
   const blocks = [
-    ['Commander', commanderRows(deck)],
+    [formatRules(deck.format).cmd === 'walker' ? 'Oathbreaker' : 'Commander', commanderRows(deck)],
     ...groupMain({ ...deck, groupBy: 'type' }, 'name').map((g) => [g.label, g.rows]),
-    ...(deck.format === 'commander' ? [] : [['Sideboard', boardRows(deck, 'side', 'name')]]),
+    ...(formatRules(deck.format).side ? [['Sideboard', boardRows(deck, 'side', 'name')]] : []),
   ].filter(([, rows]) => rows.length);
   return (
     <div className="dilemma-list-cols">

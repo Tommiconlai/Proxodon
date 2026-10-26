@@ -8,7 +8,7 @@ import ArtPickerModal from '../components/ArtPickerModal';
 import { cardsByIds } from './scryfallSearch';
 import {
   GROUP_MODES, SORT_MODES, VIEWS, groupMain, commanderRows, boardRows, bumpQty, removeRows, setCommander, moveToBoard,
-  addSection, renameSection, deleteSection, moveToSection, placeRows, overLimit, formatLabel, illegalIn, legalityLabel,
+  addSection, renameSection, deleteSection, moveToSection, placeRows, overLimit, formatLabel, formatRules, illegalRow, legalityLabel,
   splitRow, changeEdition, snapshotFromCard, validateDeck, packPiles, splitPiles, maxCopies, MAX_DILEMMA_CARDS, MAX_HELP_CARDS, DRAG_ROWS,
 } from './deckModel';
 import DeckStats from './DeckStats';
@@ -23,6 +23,7 @@ import { useSettings, setDeckView } from '../utils/settings';
 import {
   IconPlus, IconMinus, IconTrash, IconCrown, IconList, IconPencil, IconAlert, IconBan, IconImage, IconCopy, IconFlip, IconPrinter, IconEye, IconX, IconScale, IconLifebuoy, IconZap, IconUsers,
 } from '../components/icons';
+import { leaderNoun } from './formats';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 
 const BOARD_LABEL = { main: 'main deck', side: 'sideboard', maybe: 'maybeboard' };
@@ -150,10 +151,11 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   const layout = view === 'split' ? 'stacks' : view; // classi CSS: lo split è uno stack (anche oltre SPLIT_MAX)
   const over = useMemo(() => overLimit(deck), [deck]);
   const overBy = useMemo(() => new Map(over.map((e) => [e.oid, e])), [over]);
-  // Avvisi solo dove le carte contano: main e (fuori da Commander) sideboard.
-  const counts = (r) => r.board === 'main' || (r.board === 'side' && deck.format !== 'commander');
+  // Avvisi solo dove le carte contano: main e (nei formati con sideboard) sideboard.
+  const rules = formatRules(deck.format);
+  const counts = (r) => r.board === 'main' || (r.board === 'side' && rules.side > 0);
   const warnOf = (r) => (counts(r) ? overBy.get(r.card.oid) : undefined);
-  const banOf = (r) => (counts(r) ? illegalIn(deck.format, r.card) : null);
+  const banOf = (r) => (counts(r) ? illegalRow(deck.format, r) : null);
   // Controlli del formato (mai bloccanti): chip sopra le carte, il click seleziona le carte coinvolte.
   const issues = useMemo(() => validateDeck(deck), [deck]);
   // Chip dei controlli e barre dei grafici: seleziona quelle carte e porta in vista la prima. Dai grafici
@@ -197,10 +199,11 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     const cmd = commanderRows(deck);
     const side = boardRows(deck, 'side', sort);
     const maybe = boardRows(deck, 'maybe', sort);
+    const fr = formatRules(deck.format);
     return {
-      commander: cmd.length || deck.format === 'commander' ? { key: 'commander', label: 'Commander', rows: cmd } : null,
+      commander: cmd.length || fr.cmd ? { key: 'commander', label: fr.cmd === 'walker' ? 'Oathbreaker' : 'Commander', rows: cmd } : null,
       groups: groupMain(deck, sort),
-      side: side.length || deck.format !== 'commander' ? { key: 'side', label: 'Sideboard', rows: side } : null,
+      side: side.length || fr.side ? { key: 'side', label: 'Sideboard', rows: side } : null,
       maybe: { key: 'maybe', label: 'Maybeboard', rows: maybe },
     };
   }, [deck, sort]);
@@ -258,7 +261,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     });
   };
   const less = (r) => (r.qty > 1 ? update((d) => bumpQty(d, r.id, -1)) : removeWithUndo([r]));
-  const canAdd = (r) => deck.format !== 'commander' || maxCopies('commander', r.card) > 1; // Commander: + solo dove il limite lo consente
+  const canAdd = (r) => rules.copies !== 1 || maxCopies(deck.format, r.card) > 1; // singleton: + solo dove il limite lo consente
 
   const menuRows = menu ? deck.cards.filter((r) => menu.ids.includes(r.id)) : [];
   const items = [];
@@ -297,11 +300,13 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     if (menuRows.length === 1 && menuRows[0].qty > 1) {
       items.push({ key: 'split', Icon: IconCopy, label: 'Split row', run: () => update((d) => splitRow(d, ids[0])) });
     }
-    // Al massimo 2 comandanti in tutto: "Set" solo se con quelli già presenti non si supera 2;
-    // "Remove" su qualsiasi gruppo di comandanti.
+    // Zona di comando al massimo rules.max righe (2 comandanti; in Oathbreaker 2 planeswalker con le loro signature
+    // spell): "Set" solo se con quelle già presenti non si supera; "Remove" su qualsiasi gruppo.
     const cmdAfter = commanderRows(deck).length + menuRows.filter((r) => !r.commander).length;
-    if (deck.format === 'commander' && allMain && (allCmd || cmdAfter <= 2)) {
-      items.push({ key: 'cmd', Icon: IconCrown, label: allCmd ? 'Remove as commander' : 'Set as commander', run: () => update((d) => setCommander(d, ids, !allCmd)) });
+    if (rules.cmd && allMain && (allCmd || cmdAfter <= rules.max)) {
+      const walkers = menuRows.filter((r) => /\bPlaneswalker\b/.test(r.card.type)).length;
+      const noun = rules.cmd !== 'walker' ? 'commander' : walkers === menuRows.length ? 'oathbreaker' : walkers ? 'oathbreaker or signature spell' : 'signature spell';
+      items.push({ key: 'cmd', Icon: IconCrown, label: `${allCmd ? 'Remove' : 'Set'} as ${noun}`, run: () => update((d) => setCommander(d, ids, !allCmd)) });
     }
     if (ids.every((id) => sectionable.has(id))) {
       for (const g of custom ? blocks.groups : []) {
@@ -312,7 +317,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     }
     for (const b of ['main', 'side', 'maybe']) {
       if (menuRows.every((r) => r.board === b)) continue;
-      if (b === 'side' && deck.format === 'commander') continue; // niente sideboard in Commander
+      if (b === 'side' && !rules.side) continue; // niente sideboard (Commander e simili)
       items.push({ key: b, Icon: IconList, label: `Move to ${BOARD_LABEL[b]}`, run: () => update((d) => moveToBoard(d, ids, b)) });
     }
     items.push({
@@ -508,7 +513,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   };
   const cards = (rows) => (split ? rows.flatMap((r) => Array.from({ length: r.qty }, (_, i) => row(r, i))) : rows.map((r) => row(r)));
   // Niente istruzioni nella pagina: stanno nel ? dell'header (DeckHelp).
-  const empty = (g) => (g.key === 'commander' ? 'No commander yet.' : 'No cards yet.');
+  const empty = (g) => (g.key === 'commander' ? `No ${leaderNoun(deck.format)} yet.` : 'No cards yet.');
   // drop = [zona, sezione] per accettare il rilascio delle carte trascinate.
   const group = (g, extraClass = '', drop) => (
     <section key={g.key} className={`deck-group ${extraClass}${dropKey === g.key ? ' drop-target' : ''}`} aria-label={g.label} {...(drop && dropProps(g.key, ...drop))}>

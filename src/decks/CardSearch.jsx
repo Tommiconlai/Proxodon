@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from 'react';
 import { autocomplete, namedCard } from './scryfallSearch';
 import { lookupCards } from '../utils/scryfall';
-import { illegalIn } from './deckModel';
+import { blockedIn } from './deckModel';
 import { useAddCard } from './useAddCard';
 import AdvancedSearch from './AdvancedSearch';
 import { IconDeckSearch } from '../components/icons';
@@ -46,7 +46,7 @@ export default function CardSearch({ format, identity, onAdd, notify, autoFocus,
               const find = await lookupCards(names.map((n) => ({ name: front(n) })));
               shown = names.filter((n) => {
                 const c = find({ name: front(n) });
-                return !c || (!illegalIn(format, { legal: c.legalities }) && (idKey === null || (c.color_identity || []).every((x) => idKey.includes(x))));
+                return !c || (!blockedIn(format, { legal: c.legalities, type: c.type_line || '', rarity: c.rarity }) && (idKey === null || (c.color_identity || []).every((x) => idKey.includes(x))));
               });
             } catch { /* senza dati: nessun filtro */ }
           }

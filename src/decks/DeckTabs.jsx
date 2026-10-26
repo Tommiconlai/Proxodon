@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import CardMenu from '../components/CardMenu';
-import { boardCounts, countTarget, countOk, deckTags, BRACKETS, gameChangers, autoBracket, deckBracket } from './deckModel';
+import { boardCounts, countTarget, countOk, formatRules, deckTags, BRACKETS, gameChangers, autoBracket, deckBracket } from './deckModel';
 import { IconArrowUp, IconDeckFilter } from '../components/icons';
 import { badgeText } from '../hooks/useBadges';
 import { useSettings } from '../utils/settings';
@@ -162,18 +162,19 @@ export function DeckTagList({ deck }) {
 }
 
 // Conteggio carte, fisso in basso a sinistra della vista mazzo (scheda Deck, editor e Community): un chip
-// "N main" (comandanti compresi) e sotto "N side" nei formati che usano la sideboard (tutti tranne
-// Commander); il numero del main è ciano se va bene per il formato (Commander esattamente 100, gli altri
-// almeno 60), ambra se no. plain = senza chip, in fila (dentro DeckTopBar).
+// "N main" (comandanti compresi) e sotto "N side" nei formati che usano la sideboard (non Commander e
+// simili); il numero del main è ciano se va bene per il formato (esattamente 100 in Commander, 60 in Oathbreaker,
+// 50 in Tiny Leaders, almeno 60 negli altri), ambra se no. plain = senza chip, in fila (dentro DeckTopBar).
 export function DeckCount({ deck, plain }) {
   const c = boardCounts(deck);
-  const side = deck.format === 'commander' ? 0 : c.side;
+  const rules = formatRules(deck.format);
+  const side = rules.side ? c.side : 0;
   const target = countTarget(deck.format);
-  const detail = `Main deck ${c.main}${target ? (deck.format === 'commander' ? ` of ${target}` : ` (at least ${target})`) : ''}${side ? `, sideboard ${side}` : ''}`;
+  const detail = `Main deck ${c.main}${target ? (rules.exact ? ` of ${target}` : ` (at least ${target})`) : ''}${side ? `, sideboard ${side}` : ''}`;
   return (
     <div className={`deck-count${plain ? ' plain' : ''}`} role="status" title={detail} aria-label={detail}>
       <span className={`deck-count-chip${countOk(deck.format, c.main) ? '' : ' warn'}`}><span className="n">{c.main}</span> main</span>
-      {deck.format !== 'commander' && <span className="deck-count-chip"><span className="n">{side}</span> side</span>}
+      {rules.side > 0 && <span className="deck-count-chip"><span className="n">{side}</span> side</span>}
     </div>
   );
 }

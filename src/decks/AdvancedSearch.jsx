@@ -3,6 +3,7 @@ import { advancedQuery, withLegal, searchCards } from './scryfallSearch';
 import { ManaCost } from './Mana';
 import { useAddCard } from './useAddCard';
 import { snapshotFromCard } from './deckModel';
+import { formatRules, leaderQuery, leaderNoun } from './formats';
 import { CardView } from './DeckSections';
 import { CardFrame, CardFrameDefs } from '../components/CardFrame';
 import { IconSearch, IconPlus } from '../components/icons';
@@ -66,7 +67,7 @@ export default function AdvancedSearch({ format, identity, onAdd, notify, deckCa
   };
 
   const run = async (pageUrl) => {
-    const q = advancedQuery(f);
+    const q = advancedQuery(f, leaderQuery(format));
     if (!q && !pageUrl) { setError('Set at least one filter.'); return; }
     setBusy(true);
     setError(null);
@@ -136,8 +137,8 @@ export default function AdvancedSearch({ format, identity, onAdd, notify, deckCa
         <label className="adv-field" htmlFor={`${id}-extra`}><span>Scryfall syntax</span>
           <input className="import-link-input" {...field('extra')} placeholder="is:fetchland" spellCheck={false} />
         </label>
-        {format === 'commander' && (
-          <label className="adv-check adv-wide"><input type="checkbox" {...check('isCommander')} /> Can be your commander</label>
+        {formatRules(format).cmd && (
+          <label className="adv-check adv-wide"><input type="checkbox" {...check('isCommander')} /> Can be your {leaderNoun(format)}</label>
         )}
 
         <div className="adv-actions">

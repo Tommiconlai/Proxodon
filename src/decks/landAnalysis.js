@@ -6,6 +6,7 @@
  * 3. karsten: quante terre secondo la regressione di Frank Karsten su 95.000 mazzi da torneo.
  * I dati Oracle arrivano dalla cache di scryfallSearch (oracleCards), non dallo snapshot delle righe.
  */
+import { formatRules } from './formats.js';
 
 export const ROLES = ['land', 'mdfc', 'ramp', 'draw', 'spell'];
 export const ROLE_LABEL = { land: 'Land', mdfc: 'MDFC', ramp: 'Ramp', draw: 'Draw', spell: 'Spell' };
@@ -262,9 +263,11 @@ function applyOverride(card, o, type) {
   return c;
 }
 
-// Formato dell'analisi: commander se ci sono comandanti o il mazzo è Commander, 60 se il main è di 58-65 carte.
+// Formato dell'analisi: commander nei formati da 100 con comandante (e nei mazzi senza zona di comando, come Casual,
+// se hanno comandanti), 60 se il main è di 58-65 carte (anche Oathbreaker), sennò other (Tiny Leaders).
 export function detectFormat(deck, n) {
-  if (deck.format === 'commander' || deck.cards.some((r) => r.board === 'main' && r.commander)) return 'commander';
+  const { cmd, size } = formatRules(deck.format);
+  if (cmd ? size === 100 : deck.cards.some((r) => r.board === 'main' && r.commander)) return 'commander';
   return n >= 58 && n <= 65 ? '60' : 'other';
 }
 

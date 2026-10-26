@@ -7,19 +7,9 @@
 
 import { parseCardList, deckLine, MAX_LINES, TOO_MANY_LINES } from '../utils/scryfall.js';
 import { ROLES, LAND_FORMATS, COST_KINDS } from './landAnalysis.js';
+import { FORMATS, LEGAL_FORMATS, formatRules, formatLabel, leaderNoun } from './formats.js';
 
-export const FORMATS = [
-  { id: 'commander', label: 'Commander' },
-  { id: 'standard', label: 'Standard' },
-  { id: 'pioneer', label: 'Pioneer' },
-  { id: 'modern', label: 'Modern' },
-  { id: 'legacy', label: 'Legacy' },
-  { id: 'vintage', label: 'Vintage' },
-  { id: 'pauper', label: 'Pauper' },
-  { id: 'casual', label: 'Casual' },
-];
-const LEGAL_FORMATS = FORMATS.filter((f) => f.id !== 'casual').map((f) => f.id);
-export const formatLabel = (id) => FORMATS.find((f) => f.id === id)?.label || id;
+export { FORMATS, formatRules, formatLabel };
 
 // Tag dei mazzi: solo da questa lista, al massimo MAX_TAGS. deckTags scarta quelli ignoti (backup, copie vecchie).
 export const DECK_TAGS = [
@@ -349,20 +339,21 @@ export function boardCounts(deck) {
   return { main: sum(of('main')), side: sum(of('side')), maybe: sum(of('maybe')), commanders: deck.cards.filter((r) => r.board === 'main' && r.commander).length };
 }
 
-export const countTarget = (format) => (format === 'commander' ? 100 : format === 'casual' ? null : 60);
+// Carte del main (comandanti compresi) che il formato chiede: esattamente (exact) o almeno; null = nessun numero.
+export const countTarget = (format) => formatRules(format).size ?? null;
 
 export function countOk(format, main) {
-  const t = countTarget(format);
-  if (t == null) return true;
-  return format === 'commander' ? main === t : main >= t;
+  const { size, exact } = formatRules(format);
+  if (size == null) return true;
+  return exact ? main === size : main >= size;
 }
 
-// Copie da aggiungere con le scorciatoie: Shift chiede 4, ma nel singleton (Commander) solo le
+// Copie da aggiungere con le scorciatoie: Shift chiede 4, ma nei formati singleton (Commander e simili) solo le
 // terre base e le carte "any number" ne prendono 4; le carte "up to N" al massimo N.
 export function copiesToAdd(format, card, four) {
   if (!four) return 1;
   if (card.limit != null && card.limit > 0) return Math.min(4, card.limit);
-  if (format !== 'commander' || isBasicLand(card) || card.limit === 0) return 4;
+  if (formatRules(format).copies !== 1 || isBasicLand(card) || card.limit === 0) return 4;
   return 1;
 }
 
@@ -375,22 +366,28 @@ export function illegalIn(format, card) {
   return l === 'banned' || l === 'not_legal' ? l : null;
 }
 export const legalityLabel = (status, format) => `${status === 'banned' ? 'Banned' : 'Not legal'} in ${formatLabel(format)}`;
+// Aggiunta dalla ricerca: le illegali restano fuori, tranne in Pauper Commander le creature non comuni non bandite (il
+// comandante, che Scryfall segna not_legal perché non è comune). Per una carta grezza: { legal, type, rarity }.
+const pauperLeader = (format, card, lead) => formatRules(format).cmd === 'uncommon' && lead && illegalIn(format, card) === 'not_legal';
+export const blockedIn = (format, card) => (pauperLeader(format, card, canLead(format, card)) ? null : illegalIn(format, card));
+// Legalità di una riga: il comandante non comune di Pauper Commander lo controlla canLead (validateDeck); bandito resta.
+export const illegalRow = (format, r) => (pauperLeader(format, r.card, r.commander) ? null : illegalIn(format, r.card));
 
 // Copie ammesse di una carta: Infinity = nessun limite (Casual, terre base, "any number"),
-// "up to N" = N, altrimenti 1 in Commander e 4 nei formati da 60.
+// "up to N" = N, altrimenti quelle del formato (1 nei singleton, 4 nei formati da 60).
 export function maxCopies(format, card) {
   if (format === 'casual' || isBasicLand(card) || card.limit === 0) return Infinity;
-  if (card.legal?.[format] === 'restricted') return 1; // Vintage
+  if (card.legal?.[format] === 'restricted') return 1; // Vintage (in Duel e Tiny Leaders: bandita come comandante)
   if (card.limit > 0) return card.limit;
-  return format === 'commander' ? 1 : 4;
+  return formatRules(format).copies;
 }
 
-// Carte oltre il limite, contate per oracle id (stampe diverse insieme) su main e, fuori da
-// Commander, sideboard; maybeboard mai. → [{ oid, name, count, max }] nell'ordine del mazzo.
+// Carte oltre il limite, contate per oracle id (stampe diverse insieme) su main e, nei formati con
+// sideboard, sideboard; maybeboard mai. → [{ oid, name, count, max }] nell'ordine del mazzo.
 export function overLimit(deck) {
   const by = new Map();
   for (const r of deck.cards) {
-    if (r.board === 'maybe' || (r.board === 'side' && deck.format === 'commander')) continue;
+    if (r.board === 'maybe' || (r.board === 'side' && !formatRules(deck.format).side)) continue;
     const e = by.get(r.card.oid) || { oid: r.card.oid, name: r.card.name, count: 0, max: maxCopies(deck.format, r.card) };
     e.count += r.qty;
     by.set(r.card.oid, e);
@@ -563,15 +560,19 @@ export function groupMain(deck, sort = 'mv') {
 
 const WUBRG = ['W', 'U', 'B', 'R', 'G'];
 
+const isWalker = (s) => /\bPlaneswalker\b/.test(s.type);
+// Chi dà l'identità al mazzo: i comandanti (in Oathbreaker solo i planeswalker, non le signature spell).
+const leaderRows = (deck) => commanderRows(deck).filter((r) => formatRules(deck.format).cmd !== 'walker' || isWalker(r.card));
+
 // Identità del mazzo: quella dei comandanti, o (senza comandante) l'unione del main.
 export function deckIdentity(deck) {
-  const cmd = commanderRows(deck);
+  const cmd = leaderRows(deck);
   const src = cmd.length ? cmd : deck.cards.filter((r) => r.board === 'main');
   const set = new Set(src.flatMap((r) => r.card.ci));
   return WUBRG.filter((c) => set.has(c));
 }
-// Identità che la ricerca carte rispetta: solo Commander con almeno un comandante; null = nessun filtro.
-export const searchIdentity = (deck) => (deck.format === 'commander' && commanderRows(deck).length ? deckIdentity(deck) : null);
+// Identità che la ricerca carte rispetta: solo nei formati con comandante, quando c'è; null = nessun filtro.
+export const searchIdentity = (deck) => (formatRules(deck.format).cmd && leaderRows(deck).length ? deckIdentity(deck) : null);
 
 // Firma del contenuto del mazzo, per "Updated": carte per oracle id (un cambio di edizione o d'arte
 // non conta), quantità sommate per zona, sezione e comandante (dividere o unire righe non conta). Cambia
@@ -913,31 +914,56 @@ export function hyperAtLeast(N, K, n, k) {
 
 // Snapshot vecchi senza cmdr: si deduce dal tipo finché il riallineamento non lo aggiunge.
 const canCommand = (s) => s.cmdr ?? (/\bLegendary\b/.test(s.type) && /\bCreature\b/.test(s.type));
+// Può stare nella zona di comando del formato: Oathbreaker = planeswalker o signature spell (istantaneo, stregoneria);
+// Pauper Commander = creatura (o Background) non comune, dalla rarità della stampa scelta; gli altri = canCommand.
+export function canLead(format, s) {
+  const kind = formatRules(format).cmd;
+  if (kind === 'walker') return /\b(Planeswalker|Instant|Sorcery)\b/.test(s.type);
+  if (kind === 'uncommon') return s.rarity === 'uncommon' && /\b(Creature|Background)\b/.test(s.type);
+  return canCommand(s);
+}
+const CANT_LEAD = { legend: "Can't be a commander", uncommon: 'Commander must be an uncommon creature', walker: "Can't be an oathbreaker or signature spell" };
 
 // Problemi del mazzo (mai bloccanti), ognuno con le righe da evidenziare. Il numero di carte sta
 // nelle statistiche e nel riquadro della lista mazzi. Casual: nessun controllo.
 export function validateDeck(deck) {
   const f = deck.format;
   if (f === 'casual') return [];
+  const rules = formatRules(f);
   const out = [];
-  const counted = (r) => r.board === 'main' || (r.board === 'side' && f !== 'commander');
+  const counted = (r) => r.board === 'main' || (r.board === 'side' && rules.side > 0);
   const names = (rows) => [...new Set(rows.map((r) => r.card.name))].join(', ');
   const ids = (rows) => rows.map((r) => r.id);
   const side = deck.cards.filter((r) => r.board === 'side');
-  if (f === 'commander') {
+  if (rules.cmd) {
     const cmd = commanderRows(deck);
-    if (!cmd.length) out.push({ key: 'nocmd', level: 'warn', label: 'No commander yet', ids: [] });
-    if (cmd.length > 2) out.push({ key: 'toomany', level: 'warn', label: `${cmd.length} commanders, max 2`, ids: ids(cmd) });
-    const bad = cmd.filter((r) => !canCommand(r.card));
-    if (bad.length) out.push({ key: 'notcmd', level: 'warn', label: `Can't be a commander: ${names(bad)}`, ids: ids(bad) });
-    if (cmd.length) {
-      const allowed = new Set(cmd.flatMap((r) => r.card.ci));
-      const off = deck.cards.filter((r) => r.board === 'main' && !r.commander && r.card.ci.some((c) => !allowed.has(c)));
-      if (off.length) out.push({ key: 'identity', level: 'warn', label: `Outside the commander's colors: ${names(off)}`, ids: ids(off) });
+    const leaders = leaderRows(deck);
+    const noun = leaderNoun(f);
+    const most = rules.cmd === 'walker' ? 2 : rules.max; // Oathbreaker: 2 planeswalker (partner), ognuno con la sua spell
+    if (!leaders.length) out.push({ key: 'nocmd', level: 'warn', label: `No ${noun} yet`, ids: [] });
+    if (leaders.length > most) out.push({ key: 'toomany', level: 'warn', label: `${leaders.length} ${noun}s, max ${most}`, ids: ids(leaders) });
+    if (rules.cmd === 'walker') {
+      const spells = cmd.filter((r) => !isWalker(r.card));
+      if (leaders.length && spells.length !== leaders.length) {
+        out.push({ key: 'signature', level: 'warn', label: `One signature spell per oathbreaker (${spells.length} of ${leaders.length})`, ids: ids(spells) });
+      }
     }
-    if (side.length) out.push({ key: 'side', level: 'warn', label: 'Commander has no sideboard', ids: ids(side) });
-  } else if (sum(side) > 15) {
-    out.push({ key: 'sidesize', level: 'warn', label: `Sideboard ${sum(side)}/15`, ids: ids(side) });
+    const bad = cmd.filter((r) => !canLead(f, r.card));
+    if (bad.length) out.push({ key: 'notcmd', level: 'warn', label: `${CANT_LEAD[rules.cmd]}: ${names(bad)}`, ids: ids(bad) });
+    // Nei formati con zona di comando Scryfall usa restricted per "bandita come comandante" (Duel, Tiny Leaders).
+    const banned = cmd.filter((r) => r.card.legal?.[f] === 'restricted');
+    if (banned.length) out.push({ key: 'cmdban', level: 'error', label: `Banned as ${noun}: ${names(banned)}`, ids: ids(banned) });
+    if (leaders.length) {
+      const allowed = new Set(leaders.flatMap((r) => r.card.ci));
+      const lead = new Set(ids(leaders));
+      const off = deck.cards.filter((r) => r.board === 'main' && !lead.has(r.id) && r.card.ci.some((c) => !allowed.has(c)));
+      if (off.length) out.push({ key: 'identity', level: 'warn', label: `Outside the ${noun}'s colors: ${names(off)}`, ids: ids(off) });
+    }
+  }
+  if (!rules.side && side.length) {
+    out.push({ key: 'side', level: 'warn', label: `${formatLabel(f)} has no sideboard`, ids: ids(side) });
+  } else if (sum(side) > rules.side) {
+    out.push({ key: 'sidesize', level: 'warn', label: `Sideboard ${sum(side)}/${rules.side}`, ids: ids(side) });
   }
   const over = overLimit(deck);
   if (over.length) {
@@ -947,9 +973,9 @@ export function validateDeck(deck) {
       ids: ids(deck.cards.filter((r) => counted(r) && oids.has(r.card.oid))),
     });
   }
-  const illegal = deck.cards.filter((r) => counted(r) && illegalIn(f, r.card));
+  const illegal = deck.cards.filter((r) => counted(r) && illegalRow(f, r));
   if (illegal.length) {
-    const label = [...new Map(illegal.map((r) => [r.card.oid, `${r.card.name}${illegalIn(f, r.card) === 'banned' ? ' (banned)' : ''}`])).values()].join(', ');
+    const label = [...new Map(illegal.map((r) => [r.card.oid, `${r.card.name}${illegalRow(f, r) === 'banned' ? ' (banned)' : ''}`])).values()].join(', ');
     out.push({ key: 'illegal', level: 'error', label: `Not allowed in ${formatLabel(f)}: ${label}`, ids: ids(illegal) });
   }
   return out;
@@ -1003,6 +1029,6 @@ export function shuffle(list, rng = Math.random) {
   return a;
 }
 
-// Mulligan London: dopo N mulligan si pescano 7 carte e se ne mettono N in fondo. In Commander
-// (multiplayer) il primo non conta (regola 103.5c).
-export const mulliganBottom = (format, mulls) => Math.max(0, format === 'commander' ? mulls - 1 : mulls);
+// Mulligan London: dopo N mulligan si pescano 7 carte e se ne mettono N in fondo. Nei formati multigiocatore
+// (Commander, Pauper Commander, PreDH, Oathbreaker) il primo non conta (regola 103.5c); in Duel e Tiny Leaders sì.
+export const mulliganBottom = (format, mulls) => Math.max(0, formatRules(format).multi ? mulls - 1 : mulls);
