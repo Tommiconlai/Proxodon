@@ -214,6 +214,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
             <span className="sr-only" role="status">{syncState}</span>
           </div>
         </div>
+        {cover?.card.art && cover.card.artist && <span className="deck-hero-credit">Art by {cover.card.artist} · © Wizards of the Coast</span>}
       </header>
       {mobile ? (
         <DeckTopBar deck={deck} scrollRef={scrollRef} onFilters={() => setAdvOpen(true)} filtersOpen={advOpen}

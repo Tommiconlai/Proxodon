@@ -4,7 +4,7 @@ import {
   ensureIndexed,
 } from './deckStore';
 import {
-  FORMATS, duplicateDeck, deckIdentity, deckCover, deckTags, scryfallImg, formatLabel, deckBracket, searchTerms, deckMatches, rid,
+  FORMATS, duplicateDeck, deckIdentity, deckCover, coverRow, deckTags, scryfallImg, formatLabel, deckBracket, searchTerms, deckMatches, rid,
   MAX_ROWS, MAX_QTY,
 } from './deckModel';
 import { navigate } from '../hooks/useHashRoute';
@@ -79,6 +79,8 @@ export function TileFrame({ cuts, dashed, children }) {
 export function DeckTile({ deck: d, by, stats, ...props }) {
   // Voce dell'indice della Community (cleanIndex): copertina e identità già pronte, niente righe.
   const cover = scryfallImg(d.art ?? deckCover(d));
+  // Artista dell'arte nel tooltip (regole Scryfall per l'art_crop): solo dai mazzi con le righe, l'indice non ce l'ha.
+  const artist = Array.isArray(d.cards) ? coverRow(d)?.card.artist : '';
   const updated = changedMs(d); // ultimo cambio di carte (changedAt), non l'ultima scrittura
   const live = !stats && !!d.public;
   const likesNow = useCount(countLikes, d.id, undefined, live);
@@ -94,7 +96,7 @@ export function DeckTile({ deck: d, by, stats, ...props }) {
   // Pillola dei simboli: 13.5 l'uno a passi di 18.5, 7 di margine; tasca = pillola + 4 di vuoto.
   const cuts = { tl: [18.5 * n + 13, 26], br: [48, 26], ...(helping ? { tr: [32, 32] } : {}) };
   return (
-    <button type="button" className={`deck-tile${helping ? ' helping' : ''}`} {...props}>
+    <button type="button" className={`deck-tile${helping ? ' helping' : ''}`} title={artist ? `Art by ${artist}` : undefined} {...props}>
       <TileFrame cuts={cuts}>
         {cover && <span className="deck-tile-art" style={{ backgroundImage: `url("${cover}")` }} />}
       </TileFrame>

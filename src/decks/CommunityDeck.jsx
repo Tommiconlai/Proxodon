@@ -142,6 +142,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
               {inHero && <span className="deck-sync deck-hero-by">by {byLink}</span>}
             </div>
           </div>
+          {cover?.card.art && cover.card.artist && <span className="deck-hero-credit">Art by {cover.card.artist} · © Wizards of the Coast</span>}
         </header>
         {!helpId && (mobile ? <DeckTopBar deck={deck} scrollRef={scrollRef} />
           : <DeckBand tab={tab} onTab={setTab} format={<span className="deck-format-static">{formatLabel(deck.format)}</span>} />)}

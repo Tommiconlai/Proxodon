@@ -6,6 +6,7 @@ import {
 } from './firebase';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { PrivacyButton } from '../components/PrivacyPanel';
+import { CreditsButton } from '../components/CreditsPanel';
 import { IconTrash } from '../components/icons';
 import AccountMenu from './AccountMenu';
 import { useAccount } from './useAccount';
@@ -143,6 +144,7 @@ function SignInPanel() {
         {info && <div className="info-box" role="status"><span>{info}</span></div>}
         <div className="privacy-row">
           <span>An account keeps your email, decks and settings on Firebase (Google). The print area works without one.</span>
+          <CreditsButton />
           <PrivacyButton />
         </div>
       </div>

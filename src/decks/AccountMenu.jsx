@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import CardMenu from '../components/CardMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
 import PrivacyPanel from '../components/PrivacyPanel';
-import { CreditsPanel } from './dialogs';
+import CreditsPanel from '../components/CreditsPanel';
 import { signOut, writesSynced } from './firebase';
 import { useAccount } from './useAccount';
 import { navigate } from '../hooks/useHashRoute';

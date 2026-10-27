@@ -1,8 +1,10 @@
 /**
  * Profili ICC inclusi (ECI), Proxodon
  *
- * Profili di destinazione/output liberamente ridistribuibili (eci.org), così
- * l'export CMYK ha un default pronto all'uso senza upload. Importati come asset
+ * Profili di destinazione/output dell'ECI (eci.org), © Heidelberger Druckmaschinen AG, non liberi: il tag cprt dei
+ * PSO v3 li lascia usare e incorporare (nei PDF) senza limiti, non distribuire senza il permesso scritto dell'ECI;
+ * ISO Coated v2 dice solo "All Rights Reserved". Crediti in third-party-notices.txt. Servono perché
+ * l'export CMYK abbia un default pronto all'uso senza upload. Importati come asset
  * URL (?url): emessi sotto la base relativa e scaricati on-demand (NON inlinati
  * nel bundle principale), stesso meccanismo di lcms.wasm.
  */

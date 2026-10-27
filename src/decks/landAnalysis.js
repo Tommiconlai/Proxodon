@@ -336,7 +336,6 @@ export const KARSTEN = {
   base99: 31.42, mv99: 3.13,
   cheap: 0.28, mdfcUntapped: 0.74, mdfcTapped: 0.38,
 };
-export const KARSTEN_URL = 'https://www.tcgplayer.com/content/article/How-Many-Lands-Do-You-Need-in-Your-Deck-An-Updated-Analysis/cd1c1a24-d439-4a8e-b369-b936edb0b38a/';
 
 const r2 = (x) => Math.round(x * 100) / 100;
 // Formula di Karsten. Commander: 31.42 + 3.13 avgMV - 0.28 cheap. 60 e altri: (N/60)(19.59 + 1.90 avgMV + 0.27 companion)

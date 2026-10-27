@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useIsMobile } from '../hooks/useIsMobile';
 import HelpTour from '../tutorial/HelpTour';
+import { HelpAbout } from '../components/CreditsPanel';
 
 // "?" con il suo popover, nell'header accanto all'avatar (mazzi e Tokens): come il ? della stampa, in fondo avvia il
 // tutorial della pagina. label = nome del pulsante, title = titolo del popover. Click apre e chiude; click fuori o Esc chiude.
@@ -10,7 +11,8 @@ export function HelpPopover({ label, title, children }) {
   const ref = useRef(null);
   useEffect(() => {
     if (!open) return undefined;
-    const onDoc = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
+    // Credits e Privacy aperti da qui stanno nel body: un click dentro non chiude (smonterebbe il pannello).
+    const onDoc = (e) => { if (!ref.current?.contains(e.target) && !e.target.closest('.modal-overlay')) setOpen(false); };
     const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
     document.addEventListener('mousedown', onDoc);
     document.addEventListener('keydown', onKey);
@@ -26,6 +28,7 @@ export function HelpPopover({ label, title, children }) {
         <strong>{title}</strong>
         {children}
         <HelpTour onStart={() => setOpen(false)} />
+        <HelpAbout />
       </div>
     </div>
   );

@@ -22,6 +22,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { useHashRoute, navigate } from './hooks/useHashRoute';
 import { stopTutorial, useTutorial } from './tutorial/control';
 import HelpTour from './tutorial/HelpTour';
+import { HelpAbout } from './components/CreditsPanel';
 import TokenHelp from './tokens/TokenHelp';
 
 // Area mazzi caricata solo quando serve (porta con sé Firebase): la stampa resta leggera.
@@ -156,7 +157,8 @@ export default function App() {
   const helpRef = useRef(null);
   useEffect(() => {
     if (!helpOpen) return;
-    const onDoc = (e) => { if (helpRef.current && !helpRef.current.contains(e.target)) setHelpOpen(false); };
+    // Credits e Privacy aperti da qui stanno nel body: un click dentro non chiude (smonterebbe il pannello).
+    const onDoc = (e) => { if (helpRef.current && !helpRef.current.contains(e.target) && !e.target.closest('.modal-overlay')) setHelpOpen(false); };
     const onKey = (e) => { if (e.key === 'Escape') setHelpOpen(false); };
     document.addEventListener('mousedown', onDoc);
     document.addEventListener('keydown', onKey);
@@ -599,6 +601,7 @@ export default function App() {
               </ol>
               <p className="help-controls"><b>Click</b> select or deselect · <b>Right-click</b> options · <b>Drag</b> swap</p>
               <HelpTour onStart={() => setHelpOpen(false)} />
+              <HelpAbout />
             </div>
           </div>
         )}

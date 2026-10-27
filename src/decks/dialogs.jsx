@@ -34,15 +34,19 @@ export function CoverDialog({ deck, onPick, onClose }) {
         <div className="art-grid cover-grid">
           {auto && !q.trim() && (
             <button type="button" className={`art-cell${current ? '' : ' current'}`} onClick={() => onPick(null)}
-              title={`Automatic: ${auto.name}`}>
+              title={`Automatic: ${auto.name}${auto.artist ? `, art by ${auto.artist}` : ''}`}>
               <img src={auto.art} alt="" />
               <span>Automatic</span>
+              {auto.artist && <span className="art-cell-by">{auto.artist}</span>}
             </button>
           )}
+          {/* L'artista sotto ogni arte: le regole di Scryfall per l'art_crop lo vogliono nella stessa schermata. */}
           {shown.map((c) => (
-            <button key={c.oid} type="button" className={`art-cell${current === c.oid ? ' current' : ''}`} onClick={() => onPick(c.oid)} title={c.name}>
+            <button key={c.oid} type="button" className={`art-cell${current === c.oid ? ' current' : ''}`} onClick={() => onPick(c.oid)}
+              title={c.artist ? `${c.name}, art by ${c.artist}` : c.name}>
               <img src={c.art} alt="" loading="lazy" />
               <span>{c.name}</span>
+              {c.artist && <span className="art-cell-by">{c.artist}</span>}
             </button>
           ))}
         </div>
@@ -120,56 +124,6 @@ export function ExportDeckDialog({ deck, onClose }) {
           </button>
           <button type="button" className="btn-generate import-btn" onClick={copy}><IconCopy size={15} /> {copied ? 'Copied' : 'Copy'}</button>
         </div>
-      </div>
-    </div>
-  );
-}
-
-// Fonti di immagini, dati, profili colore, font e librerie (menu dell'avatar → Credits).
-const CREDITS = [
-  ['Cards', [
-    ['Scryfall', 'https://scryfall.com', 'card search, data, images, art crops, mana symbols and prices (Cardmarket, TCGplayer). Artists are named in the art pickers.'],
-    ['Wizards of the Coast', 'https://company.wizards.com/en/legal/fancontentpolicy', 'Magic: The Gathering, card names, art and symbols. Proxodon is unofficial Fan Content permitted under the Fan Content Policy. Not approved or endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.'],
-    ['MPC Autofill', 'https://github.com/chilli-axe/mpc-autofill', 'the XML orders you import; their images are loaded from Google Drive and belong to their creators.'],
-  ]],
-  ['Print', [
-    ['European Color Initiative', 'https://www.eci.org', 'ICC profiles ISO Coated v2, PSO Coated v3 and PSO Uncoated v3 (FOGRA52).'],
-    ['Little CMS', 'https://www.littlecms.com', 'color conversion, through lcms-wasm (MIT).'],
-    ['jsPDF and pdf-lib', 'https://github.com/parallax/jsPDF', 'PDF export (MIT).'],
-    ['jpeg-js', 'https://github.com/jpeg-js/jpeg-js', 'CMYK JPEG decoding (Apache-2.0).'],
-    ['UpscalerJS', 'https://upscalerjs.com', 'AI upscale with the ESRGAN medium model on TensorFlow.js (MIT, Apache-2.0), bundled with the app.'],
-  ]],
-  ['Look', [
-    ['Fontsource', 'https://fontsource.org', 'Chakra Petch (Cadson Demak), Space Grotesk (Florian Karsten) and JetBrains Mono (JetBrains), SIL Open Font License, bundled with the app.'],
-    ['Lucide', 'https://lucide.dev', 'icons (ISC).'],
-    ['Iconify', 'https://iconify.design', 'phone menu and Print bar icons: Fluent UI System Icons (Microsoft, MIT), Akar Icons (MIT), Famicons (MIT) and Basil by Craftwork (CC BY 4.0).'],
-  ]],
-  ['Built with', [
-    ['Firebase', 'https://firebase.google.com', 'accounts and deck sync.'],
-    ['React, Vite and react-dropzone', 'https://react.dev', 'the app itself (MIT).'],
-  ]],
-];
-
-export function CreditsPanel({ onClose }) {
-  const ref = useOverlayDismiss(onClose);
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-credits" ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Credits" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Credits</h2>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Close" title="Close"><IconX size={18} /></button>
-        </div>
-        <p className="modal-hint">Proxodon builds on the work of these people and projects.</p>
-        {CREDITS.map(([group, items]) => (
-          <section key={group} className="credits-group" aria-label={group}>
-            <h3 className="profile-h">{group}</h3>
-            <ul className="privacy-list">
-              {items.map(([name, url, what]) => (
-                <li key={name}><a href={url} target="_blank" rel="noopener noreferrer"><b>{name}</b></a>: {what}</li>
-              ))}
-            </ul>
-          </section>
-        ))}
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import ExportProgress from './ExportProgress';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 import { useBackClose } from '../hooks/useBackClose';
 import HelpTour from '../tutorial/HelpTour';
+import { HelpAbout } from './CreditsPanel';
 
 // Pagina overlay full-screen (Settings / Export, dalla barra in cima a Print): si apre dal basso, header + chiudi.
 export function MobilePage({ title, onClose, children }) {
@@ -59,6 +60,7 @@ export default function MobileLayout({ settingsProps, previewProps, actions, add
         </ol>
         <p className="help-controls"><b>Tap</b> select or deselect · <b>Long-press</b> options</p>
         <HelpTour onStart={() => setHelpOpen(false)} />
+        <HelpAbout />
       </div>
     </div>
   );

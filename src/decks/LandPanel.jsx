@@ -1,7 +1,8 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { StatFrame } from './DeckStats';
 import { cachedOracle, fetchOracle } from './scryfallSearch';
-import { landModel, karsten, landOdds, filterText, parseFilter, ROLES, ROLE_LABEL, LAND_FORMATS, KARSTEN_URL } from './landAnalysis';
+import { landModel, karsten, landOdds, filterText, parseFilter, ROLES, ROLE_LABEL, LAND_FORMATS } from './landAnalysis';
+import { LandSources } from '../components/CreditsPanel';
 import { simInput, simParams } from './landSim';
 import { IconPlay, IconReplay, IconX } from '../components/icons';
 
@@ -97,8 +98,7 @@ function FormulaCard({ m, k, setSetting }) {
         <p className="land-note">
           Cheap draw and ramp: draw, card selection, tutors, cycling, mana rocks, mana creatures and land search with mana value
           (or cycling cost) up to the threshold. MDFCs count 0.74 of a land when the land side can enter untapped, 0.38 when it
-          always enters tapped. Source: Frank Karsten, <a href={KARSTEN_URL} target="_blank" rel="noopener noreferrer">How Many Lands
-          Do You Need in Your Deck? An Updated Analysis</a>.
+          always enters tapped. <LandSources />
         </p>
       </details>
     </StatFrame>
