@@ -1,26 +1,28 @@
 import { useState } from 'react';
 import { lsGet, lsSet } from '../utils/settings';
+import { PrivacyButton } from './PrivacyPanel';
+import { IconCheck } from './icons';
 
-// Banner consenso cookie. I settaggi vivono in localStorage (sempre, tecnici);
-// la scelta qui (`ip:cookieConsent` = accepted|declined) abilita/nega eventuali
-// cookie di analytics futuri. Basta leggere il flag prima di caricarli.
-const KEY = 'ip:cookieConsent';
+// Avviso, non consenso: Proxodon usa solo storage tecnico (impostazioni, cache, sessione), che non chiede il consenso
+// (ePrivacy art. 5.3). Un cookie o uno script di analytics vorrebbe un vero Accept / Decline prima di caricarlo.
+// `ip:cookieConsent` era il vecchio banner con Accept / Decline per analytics mai esistiti: si toglie.
+const KEY = 'ip:privacyNotice';
+try { localStorage.removeItem('ip:cookieConsent'); } catch { /* storage bloccato */ }
 
 export default function CookieBanner() {
-    const [choice, setChoice] = useState(() => lsGet(KEY));
-    if (choice) return null;
-
-    const decide = (v) => { lsSet(KEY, v); setChoice(v); };
+    const [seen, setSeen] = useState(() => lsGet(KEY));
+    if (seen) return null;
 
     return (
-        <div className="cookie-banner" role="dialog" aria-label="Cookie consent" aria-live="polite">
+        <div className="cookie-banner" role="region" aria-label="Privacy notice">
             <p className="cookie-text">
-                Proxodon keeps your settings in your browser's local storage. Signing in to Decks also
-                keeps a session there. With your consent we may also use cookies for anonymous usage analytics.
+                No ads, no analytics, no tracking cookies. Proxodon keeps your settings on this device, plus your
+                session if you sign in. Card data and images load from Scryfall.
             </p>
             <div className="cookie-actions">
-                <button className="btn-secondary" onClick={() => decide('declined')}>Decline</button>
-                <button className="btn-generate cookie-accept" onClick={() => decide('accepted')}>Accept</button>
+                <PrivacyButton />
+                <button type="button" className="btn-add deck-icon-btn" aria-label="Got it" title="Got it"
+                    onClick={() => { lsSet(KEY, '1'); setSeen('1'); }}><IconCheck size={16} /></button>
             </div>
         </div>
     );

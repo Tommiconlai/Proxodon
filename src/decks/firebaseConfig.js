@@ -13,4 +13,6 @@ export const firebaseConfig = {
 
 // App Check: chiave del sito reCAPTCHA (pubblica anche lei), da Google Cloud > Security > reCAPTCHA, con i domini
 // proxodon.com, www.proxodon.com, tommiconlai.github.io e localhost (dev). Vuota = App Check spento.
+// Accenderlo carica reCAPTCHA (Google, coi suoi cookie) su ogni visita ai mazzi: va detto nel pannello Privacy
+// (components/PrivacyPanel.jsx) e valutato per il consenso.
 export const appCheckSiteKey = '';

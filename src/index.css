@@ -1646,13 +1646,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   flex-shrink: 0;
 }
 
-.cookie-actions .btn-secondary { white-space: nowrap; }
-
-.cookie-accept {
-  width: auto;
-  padding: 9px 20px;
-  font-size: 0.85rem;
-}
+.cookie-actions .deck-icon-btn { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; }
 
 @media (max-width: 560px) {
   .cookie-banner { flex-direction: column; align-items: stretch; gap: 10px; }
@@ -2209,6 +2203,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 @media (max-width: 768px), (max-width: 1024px) and (orientation: portrait) {
   /* Banner cookie sopra la bottom-tab bar (≈56px + safe-area) */
   .cookie-banner { bottom: calc(72px + env(safe-area-inset-bottom, 0)); }
+  .cookie-actions .deck-icon-btn { width: 44px; height: 44px; }
   /* Modali occupano tutto lo schermo su mobile */
   .modal {
     width: 100%;
@@ -2334,6 +2329,11 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 .signin-link:hover:not(:disabled), .signin-link:focus-visible { text-decoration: underline; color: var(--cyan); }
 .signin-link:disabled { opacity: 0.5; cursor: default; }
+/* Riga Privacy in fondo all'accesso: testo e tasto ⓘ, come la riga del tutorial nei popover ?. */
+.privacy-row { display: flex; align-items: center; gap: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 0.74rem; line-height: 1.45; color: var(--text-secondary); }
+.privacy-row span { flex: 1; }
+.privacy-row .deck-icon-btn { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; padding: 0; }
+.mobile .privacy-row .deck-icon-btn { width: 44px; height: 44px; }
 /* Delete this account (VerifyEmailPanel): cestino rosso come Delete account di Settings, 44 px da telefono. */
 .signin-delete { width: 36px; height: 36px; padding: 0; justify-content: center; }
 .mobile .signin-delete { width: 44px; height: 44px; }

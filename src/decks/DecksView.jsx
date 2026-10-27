@@ -5,6 +5,7 @@ import {
   needsVerification, sendVerification, checkVerified, deleteUnverifiedAccount,
 } from './firebase';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { PrivacyButton } from '../components/PrivacyPanel';
 import { IconTrash } from '../components/icons';
 import AccountMenu from './AccountMenu';
 import { useAccount } from './useAccount';
@@ -140,7 +141,10 @@ function SignInPanel() {
         </form>
         {error && <div className="info-box info-box-error" role="alert"><span>{error}</span></div>}
         {info && <div className="info-box" role="status"><span>{info}</span></div>}
-        <p className="field-hint">The print area works without an account.</p>
+        <div className="privacy-row">
+          <span>An account keeps your email, decks and settings on Firebase (Google). The print area works without one.</span>
+          <PrivacyButton />
+        </div>
       </div>
     </div>
   );
