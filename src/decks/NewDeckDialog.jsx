@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 import { resolveEntries } from './scryfallSearch';
-import { FORMATS, newDeck, addEntries, parseDeckText } from './deckModel';
+import { FORMATS, formatRules, newDeck, addEntries, parseDeckText } from './deckModel';
 import { IconX, IconCheck } from '../components/icons';
 import { getSettings } from '../utils/settings';
 
@@ -22,6 +22,7 @@ export default function NewDeckDialog({ onClose, onCreate, title = 'New deck', f
   const ref = useOverlayDismiss(close, true, { focusContainer: false });
   const list = text.trim();
   const label = list ? 'Import deck' : 'Create deck';
+  const cmd = formatRules(format).cmd; // esempi da Commander solo nei formati con la zona di comando
 
   const run = async (e) => {
     e.preventDefault();
@@ -56,7 +57,7 @@ export default function NewDeckDialog({ onClose, onCreate, title = 'New deck', f
         </div>
         <label className="field-label" htmlFor="deck-name">Name</label>
         <input id="deck-name" className="import-link-input" value={name} onChange={(e) => setName(e.target.value)}
-          autoFocus maxLength={80} placeholder="Atraxa superfriends" spellCheck={false} disabled={busy} />
+          autoFocus maxLength={80} placeholder={cmd ? 'Atraxa superfriends' : 'Mono-red burn'} spellCheck={false} disabled={busy} />
         <label className="field-label" htmlFor="deck-format">Format</label>
         <select id="deck-format" value={format} onChange={(e) => setFormat(e.target.value)} disabled={busy}>
           {formats.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
@@ -73,7 +74,8 @@ export default function NewDeckDialog({ onClose, onCreate, title = 'New deck', f
         </label>}
         <label className="field-label" htmlFor="deck-list">Import a list <span className="field-hint">Optional</span></label>
         <textarea id="deck-list" className="import-textarea" value={text} onChange={(e) => setText(e.target.value)} rows={6}
-          placeholder={'Commander\n1 Atraxa, Praetors\' Voice\n\nDeck\n1 Sol Ring\n1 Command Tower'} disabled={busy} spellCheck={false} />
+          placeholder={cmd ? 'Commander\n1 Atraxa, Praetors\' Voice\n\nDeck\n1 Sol Ring\n1 Command Tower' : 'Deck\n4 Lightning Bolt\n4 Monastery Swiftspear\n\nSideboard\n2 Pyroblast'}
+          disabled={busy} spellCheck={false} />
         <p className="modal-hint">Lines like <code>1 Sol Ring (C21) 263</code>; headers <code>Commander</code>, <code>Deck</code>, <code>Sideboard</code> and <code>Maybeboard</code> pick the board. Double-faced cards work as <code>A // B</code> or <code>A/B</code>. Leave it empty for an empty deck.</p>
         {error && <div className="info-box info-box-error"><span>{error}</span></div>}
         <div className="modal-actions">

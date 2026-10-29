@@ -69,7 +69,7 @@ export default function DecksView({ route, notify, printQueueCount, onPrintDeck,
     <>
       <Badges uid={user.uid} />
       {headerSlot && createPortal(
-        <><DeckHelp editor={area === 'decks' && !!id && id !== 'folder' && !group} /><AccountMenu user={user} photo={photo} notify={notify} /></>,
+        <><DeckHelp editor={area === 'decks' && !!id && id !== 'folder' && !group} team={area === 'decks' && id === 'team'} /><AccountMenu user={user} photo={photo} notify={notify} /></>,
         headerSlot,
       )}
       {route === '/profile' || (area === 'profile' && id === user.uid) ? <ProfilePage user={user} profile={profile} notify={notify} onChange={rerender} />

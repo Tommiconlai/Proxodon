@@ -156,7 +156,7 @@ export function TeamBody({ team, uid, slots, notify, printQueueCount, onPrintDec
             : d === null ? <p className="field-hint team-empty">{s.canEdit ? 'No deck yet: create one, or copy one of yours (an independent copy).' : 'No deck yet.'}</p>
               : (
                 <>
-                  {s.canEdit && <div className="team-search"><CardSearch format={d.format} onAdd={add} notify={notify} noAdvanced /></div>}
+                  {s.canEdit && <div className="team-search"><CardSearch format={d.format} onAdd={add} notify={notify} noAdvanced label={`Search cards for ${d.name}`} /></div>}
                   <DeckSections deck={d} update={s.update} touch={mobile} readOnly={!s.canEdit} tab="deck" fixedView="stacks" teamOver={over} notify={notify}
                     select={jump?.slot === i ? jump : undefined}
                     onPrint={(rows) => onPrintDeck(toPrintEntries({ cards: rows.map((r) => ({ ...r, board: 'main' })) }), true)} />
@@ -218,7 +218,7 @@ export function TeamBody({ team, uid, slots, notify, printQueueCount, onPrintDec
       )}
       {dialog?.kind === 'rename' && slots[dialog.slot].deck && (
         <NameFormatDialog title="Rename deck" confirmLabel="Rename" showFormat={false} initialName={slots[dialog.slot].deck.name}
-          onClose={() => setDialog(null)}
+          placeholder="Mono-red burn" onClose={() => setDialog(null)}
           onSubmit={({ name }) => { slots[dialog.slot].update((d) => ({ ...d, name })); setDialog(null); }} />
       )}
       {createPortal(

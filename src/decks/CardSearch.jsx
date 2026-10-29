@@ -14,7 +14,8 @@ const front = (name) => name.split(' // ')[0];
 // "Advanced search": se il genitore passa onAdvanced (desktop, ricerca nella testata) apre il suo
 // pannello fuori da qui; altrimenti i filtri si aprono qui sotto. noAdvanced = solo il nome (editor da telefono,
 // dove il tasto filtri sta in DeckTopBar; zona Suggestions delle help request, dove il pannello non ci sta).
-export default function CardSearch({ format, identity, onAdd, notify, autoFocus, advanced: advancedProp, onAdvanced, noAdvanced }) {
+// label = nome della casella per i lettori di schermo (Team Trios: una ricerca per mazzo nella stessa pagina).
+export default function CardSearch({ format, identity, onAdd, notify, autoFocus, advanced: advancedProp, onAdvanced, noAdvanced, label = 'Search cards' }) {
   const [q, setQ] = useState('');
   const [sugg, setSugg] = useState([]);
   const [emptyFor, setEmptyFor] = useState(null); // testo per cui nessuna carta giocabile corrisponde
@@ -74,7 +75,7 @@ export default function CardSearch({ format, identity, onAdd, notify, autoFocus,
       <div className="search-wrap">
         <div className="search-box">
           <IconDeckSearch />
-          <input role="combobox" aria-label="Search cards" aria-expanded={visible.length > 0} aria-controls={listId}
+          <input role="combobox" aria-label={label} aria-expanded={visible.length > 0} aria-controls={listId}
             aria-autocomplete="list" aria-activedescendant={visible.length ? `${listId}-${active}` : undefined}
             value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onKeyDown}
             placeholder="Search a card name" autoFocus={autoFocus} data-autofocus={autoFocus || undefined} spellCheck={false} autoComplete="off" />

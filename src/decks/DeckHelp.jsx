@@ -4,8 +4,9 @@ import HelpTour from '../tutorial/HelpTour';
 import { HelpAbout } from '../components/CreditsPanel';
 
 // "?" con il suo popover, nell'header accanto all'avatar (mazzi e Tokens): come il ? della stampa, in fondo avvia il
-// tutorial della pagina. label = nome del pulsante, title = titolo del popover. Click apre e chiude; click fuori o Esc chiude.
-export function HelpPopover({ label, title, children }) {
+// tutorial della pagina (tour = false: la pagina non ne ha uno). label = nome del pulsante, title = titolo del popover.
+// Click apre e chiude; click fuori o Esc chiude.
+export function HelpPopover({ label, title, tour = true, children }) {
   const touch = useIsMobile();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -27,19 +28,30 @@ export function HelpPopover({ label, title, children }) {
         {touch && <button type="button" className="help-tooltip-close" aria-label="Close help" title="Close help" onClick={() => setOpen(false)}>✕</button>}
         <strong>{title}</strong>
         {children}
-        <HelpTour onStart={() => setOpen(false)} />
+        {tour && <HelpTour onStart={() => setOpen(false)} />}
         <HelpAbout />
       </div>
     </div>
   );
 }
 
-// "?" delle pagine mazzi: nell'editor (editor) spiega tasti e gesti che la pagina non mostra più.
-export default function DeckHelp({ editor }) {
+// "?" delle pagine mazzi: nell'editor (editor) spiega tasti e gesti che la pagina non mostra più. In Team Trios (team)
+// spiega la squadra, senza tutorial: quello dell'editor mostrerebbe un'altra pagina.
+export default function DeckHelp({ editor, team }) {
   const touch = useIsMobile();
+  const what = team ? 'How Team Trios works' : 'How the deck editor works';
   return (
-    <HelpPopover label={editor ? 'How the deck editor works' : 'Help for this page'} title={editor ? 'How the deck editor works' : 'This page'}>
-      {!editor ? null : touch ? (
+    <HelpPopover label={editor ? what : 'Help for this page'} title={editor ? what : 'This page'} tour={!team}>
+      {team ? (
+        <ol>
+          <li><b>Three decks</b>, one per slot, each with its own format. The leader edits all three, gives a free slot to a player by nickname and removes players. A player edits only their own deck, and can leave.</li>
+          <li><b>New or copied</b>. An empty slot takes a new deck or a copy of one of yours: the copy is independent, your deck stays as it is.</li>
+          <li><b>Team limit</b>. At most 4 copies of a card across the three decks, sideboards included. Basic lands and cards that allow any number are exempt. Over the limit, an amber chip in each deck names the card: {touch ? 'tap' : 'click'} it to select those cards.</li>
+          <li><b>Add cards</b>. {touch ? 'Type a name in the search bar of a deck, then tap a result.'
+            : <>Type a name in the search bar of a deck and pick it with ↑↓. <b>Enter</b> adds 1, <b>Shift+Enter</b> 4, <b>Alt+Enter</b> goes to the sideboard.</>}</li>
+          <li><b>Stats</b>. {touch ? 'Under the decks' : 'In their tab'}, for the deck you pick.</li>
+        </ol>
+      ) : !editor ? null : touch ? (
         <ol>
           <li><b>Add cards</b>. Type a name in the search bar at the top, then tap a result. The filters button under it opens <b>Advanced search</b>.</li>
           <li><b>Select</b>. Tap a card to select or deselect it.</li>
