@@ -47,7 +47,7 @@ export const listenGroupCards = (id, onChange, onError) => onSnapshot(query(card
   (qs) => onChange(qs.docs.map(fromRow).filter(Boolean)), onError);
 export const countGroupCards = (id) => getCountFromServer(cardsCol(id)).then((s) => s.data().count);
 
-// L'id subito (la scrittura offline resta in coda): si apre la lista appena creata.
+// L'id subito (la scrittura offline resta in coda); la pagina si apre a scrittura confermata (done).
 export function createGroupList(uid, name) {
   const ref = doc(listsCol);
   return { id: ref.id, done: setDoc(ref, { owner: uid, name, members: [uid], invite: null, createdAt: serverTimestamp(), ...now() }) };

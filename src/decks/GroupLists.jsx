@@ -39,11 +39,14 @@ export function GroupListsSection({ uid, notify }) {
   useEffect(() => listenGroupLists(uid, setLists, () => setLists([])), [uid]);
   useEffect(() => listenTeams(uid, setTeams, () => setTeams([])), [uid]);
   const team = naming === 'team';
+  // La pagina si apre quando il server ha la lista o la squadra: un ascolto partito prima è rifiutato dalle regole (il
+  // documento non c'è ancora) e la pagina direbbe "not available". Solo se si è ancora qui; offline la tile compare subito.
   const create = ({ name }) => {
     const { id, done } = team ? createTeam(uid, name) : createGroupList(uid, name);
-    done.catch((e) => notify(errorText(e), 'error'));
+    const from = window.location.hash;
+    done.then(() => { if (window.location.hash === from) navigate(`/decks/${team ? 'team' : 'list'}/${id}`); },
+      (e) => notify(errorText(e), 'error'));
     setNaming(null);
-    navigate(`/decks/${team ? 'team' : 'list'}/${id}`);
   };
   return (
     <section className="group-lists" aria-labelledby="group-lists-h">

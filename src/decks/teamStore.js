@@ -36,7 +36,7 @@ export const listenTeams = (uid, onChange, onError) => onSnapshot(query(teamsCol
 export const listenTeam = (id, onChange, onError) => onSnapshot(teamDoc(id),
   (s) => { const t = s.exists() ? fromTeam(s) : null; onChange(t && !t.deleted ? t : null); }, onError);
 
-// L'id subito (la scrittura offline resta in coda): si apre la squadra appena creata, col leader nel posto 0.
+// L'id subito (la scrittura offline resta in coda), col leader nel posto 0; la pagina si apre a scrittura confermata (done).
 export function createTeam(uid, name) {
   const ref = doc(teamsCol);
   return { id: ref.id, done: setDoc(ref, { owner: uid, name, members: [uid], slots: [uid, null, null], createdAt: serverTimestamp(), ...now() }) };
