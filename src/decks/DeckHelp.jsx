@@ -4,9 +4,9 @@ import HelpTour from '../tutorial/HelpTour';
 import { HelpAbout } from '../components/CreditsPanel';
 
 // "?" con il suo popover, nell'header accanto all'avatar (mazzi e Tokens): come il ? della stampa, in fondo avvia il
-// tutorial della pagina (tour = false: la pagina non ne ha uno). label = nome del pulsante, title = titolo del popover.
+// tutorial della pagina. label = nome del pulsante, title = titolo del popover.
 // Click apre e chiude; click fuori o Esc chiude.
-export function HelpPopover({ label, title, tour = true, children }) {
+export function HelpPopover({ label, title, children }) {
   const touch = useIsMobile();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -28,7 +28,7 @@ export function HelpPopover({ label, title, tour = true, children }) {
         {touch && <button type="button" className="help-tooltip-close" aria-label="Close help" title="Close help" onClick={() => setOpen(false)}>✕</button>}
         <strong>{title}</strong>
         {children}
-        {tour && <HelpTour onStart={() => setOpen(false)} />}
+        <HelpTour onStart={() => setOpen(false)} />
         <HelpAbout />
       </div>
     </div>
@@ -36,12 +36,12 @@ export function HelpPopover({ label, title, tour = true, children }) {
 }
 
 // "?" delle pagine mazzi: nell'editor (editor) spiega tasti e gesti che la pagina non mostra più. In Team Trios (team)
-// spiega la squadra, senza tutorial: quello dell'editor mostrerebbe un'altra pagina.
+// spiega la squadra, e il tutorial è quello della squadra (DeckTour).
 export default function DeckHelp({ editor, team }) {
   const touch = useIsMobile();
   const what = team ? 'How Team Trios works' : 'How the deck editor works';
   return (
-    <HelpPopover label={editor ? what : 'Help for this page'} title={editor ? what : 'This page'} tour={!team}>
+    <HelpPopover label={editor ? what : 'Help for this page'} title={editor ? what : 'This page'}>
       {team ? (
         <ol>
           <li><b>Three decks</b>, one per slot, each with its own format. The leader edits all three, gives a free slot to a player by nickname and removes players. A player edits only their own deck, and can leave.</li>

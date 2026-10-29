@@ -30,6 +30,7 @@ export const C = {
   meren: {"sid": "508b1442-bf2c-4ad6-9bcf-bd894e081ab6", "oid": "0310dfdb-0498-488d-9f1a-279f8239e024", "name": "Meren of Clan Nel Toth", "mana": "{2}{B}{G}", "mv": 4.0, "type": "Legendary Creature \u2014 Human Shaman", "colors": ["B", "G"], "ci": ["B", "G"], "produced": [], "legal": {"commander": "legal", "standard": "not_legal", "pioneer": "not_legal", "modern": "not_legal", "legacy": "legal", "vintage": "legal", "pauper": "not_legal"}, "set": "tdc", "cn": "", "img": "https://cards.scryfall.io/normal/front/5/0/508b1442-bf2c-4ad6-9bcf-bd894e081ab6.jpg?1783907026", "back": "", "art": "https://cards.scryfall.io/art_crop/front/5/0/508b1442-bf2c-4ad6-9bcf-bd894e081ab6.jpg?1783907026", "limit": null, "cmdr": true, "eur": null, "usd": null},
   sakuraTribeElder: {"sid": "7a8b1c49-8594-426d-b585-41140235bb0e", "oid": "e3afc704-220f-498f-9eaa-0821b17dc24c", "name": "Sakura-Tribe Elder", "mana": "{1}{G}", "mv": 2.0, "type": "Creature \u2014 Snake Shaman", "colors": ["G"], "ci": ["G"], "produced": [], "legal": {"commander": "legal", "standard": "not_legal", "pioneer": "not_legal", "modern": "legal", "legacy": "legal", "vintage": "legal", "pauper": "legal"}, "set": "soc", "cn": "", "img": "https://cards.scryfall.io/normal/front/7/a/7a8b1c49-8594-426d-b585-41140235bb0e.jpg?1783903761", "back": "", "art": "https://cards.scryfall.io/art_crop/front/7/a/7a8b1c49-8594-426d-b585-41140235bb0e.jpg?1783903761", "limit": null, "cmdr": false, "eur": null, "usd": null},
   harmonize: {"sid": "bd7138fb-6aa7-455e-b1f7-ca08d747277d", "oid": "7eff84f1-f772-497a-b350-bbc93d0230f7", "name": "Harmonize", "mana": "{2}{G}{G}", "mv": 4.0, "type": "Sorcery", "colors": ["G"], "ci": ["G"], "produced": [], "legal": {"commander": "legal", "standard": "not_legal", "pioneer": "not_legal", "modern": "legal", "legacy": "legal", "vintage": "legal", "pauper": "not_legal"}, "set": "msc", "cn": "", "img": "https://cards.scryfall.io/normal/front/b/d/bd7138fb-6aa7-455e-b1f7-ca08d747277d.jpg?1783903229", "back": "", "art": "https://cards.scryfall.io/art_crop/front/b/d/bd7138fb-6aa7-455e-b1f7-ca08d747277d.jpg?1783903229", "limit": null, "cmdr": false, "eur": null, "usd": null},
+  plains: {"sid": "09ac862f-0a51-44dd-b86f-9412b8218b13", "oid": "bc71ebf6-2056-41f7-be35-b2e5c34afa99", "name": "Plains", "mana": "", "mv": 0.0, "type": "Basic Land \u2014 Plains", "colors": [], "ci": ["W"], "produced": ["W"], "legal": {"commander": "legal", "standard": "legal", "pioneer": "legal", "modern": "legal", "legacy": "legal", "vintage": "legal", "pauper": "legal"}, "set": "mdd", "cn": "", "img": "https://cards.scryfall.io/normal/front/0/9/09ac862f-0a51-44dd-b86f-9412b8218b13.jpg?1791578423", "back": "", "art": "https://cards.scryfall.io/art_crop/front/0/9/09ac862f-0a51-44dd-b86f-9412b8218b13.jpg?1791578423", "limit": null, "cmdr": false, "eur": null, "usd": null},
 };
 
 // Momento di N minuti fa, come i Timestamp di Firestore (toMillis).
@@ -72,6 +73,22 @@ export const myDecks = () => [
   deck('tut-atraxa', 'Counter Council', 'commander', [row('a1', C.atraxa, 1, { commander: true }), row('a2', C.counterspell)], { tags: ['+1/+1 Counters'], changedAt: ago(60 * 26) }),
   deck('tut-meren', 'Grave Garden', 'commander', [row('e1', C.meren, 1, { commander: true }), row('e2', C.explore)], { tags: ['Reanimator'], folder: { id: 'tut-brews', name: 'Brews' } }),
   deck('tut-thalia', 'Taxing Thalia', 'legacy', [row('t1', C.thalia), row('t2', C.swordsToPlowshares)], { tags: ['Hatebears'], folder: { id: 'tut-brews', name: 'Brews' } }),
+];
+
+// Team Trios: tre mazzi Legacy in costruzione, uno per posto. Explore 2 + 4 = 6 copie sui tre mazzi, oltre il limite di
+// squadra (4); le terre base non contano.
+export const trioDecks = () => [
+  deck('tut-t1', 'Simic Tempo', 'legacy', [
+    row('a1', C.brainstorm, 4), row('a2', C.counterspell, 4), row('a3', C.growthSpiral, 4), row('a4', C.ponder, 4),
+    row('a5', C.explore, 2), row('a6', C.rhysticStudy, 2), row('a7', C.island, 10), row('a8', C.forest, 6),
+  ]),
+  deck('tut-t2', 'Elf Ramp', 'legacy', [
+    row('b1', C.llanowarElves, 4), row('b2', C.birdsOfParadise, 4), row('b3', C.sakuraTribeElder, 4), row('b4', C.explore, 4),
+    row('b5', C.rampantGrowth, 4), row('b6', C.harmonize, 2), row('b7', C.beastWithin, 2), row('b8', C.forest, 16),
+  ]),
+  deck('tut-t3', 'Taxing Thalia', 'legacy', [
+    row('c1', C.thalia, 4), row('c2', C.swordsToPlowshares, 4), row('c3', C.pathToExile, 4), row('c4', C.plains, 14),
+  ]),
 ];
 
 // Community: mazzi pubblici di altri giocatori (nickname inventati).

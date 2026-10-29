@@ -69,12 +69,14 @@ function TeamDecks({ team, uid, notify, printQueueCount, onPrintDeck }) {
     const update = (fn) => setLocal((l) => { const d = fn(deck); return { ...l, [i]: { groupBy: d.groupBy, landAnalysis: d.landAnalysis } }; });
     return { deck, update, canEdit: false };
   });
-  return <TeamBody team={team} uid={uid} slots={slots} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} />;
+  const nameOf = useNames(team.members);
+  return <TeamBody team={team} uid={uid} slots={slots} nameOf={nameOf} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} />;
 }
 
-// La pagina, solo presentazione: slots = [{ deck, update, canEdit, saving, unsaved }] nell'ordine dei posti; deck
-// undefined = caricamento, null = posto senza mazzo, false = non caricato.
-export function TeamBody({ team, uid, slots, notify, printQueueCount, onPrintDeck }) {
+// La pagina, solo presentazione (anche nel tutorial, su dati demo): slots = [{ deck, update, canEdit, saving, unsaved }]
+// nell'ordine dei posti; deck undefined = caricamento, null = posto senza mazzo, false = non caricato. nameOf(uid) = il
+// nickname di un giocatore.
+export function TeamBody({ team, uid, slots, nameOf, notify, printQueueCount, onPrintDeck }) {
   const mobile = useIsMobile();
   const [tab, setTab] = useState('deck');
   const [pick, setPick] = useState(0); // il mazzo di Stats
@@ -86,7 +88,6 @@ export function TeamBody({ team, uid, slots, notify, printQueueCount, onPrintDec
   const [jump, setJump] = useState(null); // { slot, ids }: Select in deck dalle Stats, le carte da selezionare nel mazzo
   // Decks è lungo tre mazzi: ogni scheda parte dall'alto (Select in deck poi scorre fino alla carta).
   const onTab = (t, ids) => { setTab(t); setJump(ids ? { slot: shown, ids } : null); scrollRef.current?.scrollTo(0, 0); };
-  const nameOf = useNames(team.members);
   const [a, b, c] = slots.map((s) => s.deck || null);
   const over = useMemo(() => teamOverLimit([a, b, c]), [a, b, c]);
   const leader = team.owner === uid;

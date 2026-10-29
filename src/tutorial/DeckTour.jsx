@@ -4,6 +4,8 @@ import { touches, pointAt } from './control';
 import { Shell, ProfileStage, SettingsStage } from './AccountStages';
 import { GroupStage, DemoGroupPick } from './GroupTour';
 import { groupSteps } from './groupSteps';
+import { TeamStage } from './TeamTour';
+import { teamSteps } from './teamSteps';
 import { C, demoDeck, myDecks, communityDecks, LIKES, dilemmas, DILEMMA_VOTES, helps, HELP_REPLIES, DEMO_TOKENS } from './demo';
 import DeckSections from '../decks/DeckSections';
 import DeckTokens from '../decks/DeckTokens';
@@ -804,13 +806,15 @@ const MAKE = {
   profile: () => ({ label: 'Profile', Stage: ProfileStage, steps: profileSteps() }),
   settings: () => ({ label: 'Settings', Stage: SettingsStage, steps: settingsSteps() }),
   group: (m) => ({ label: 'Group list', Stage: GroupStage, steps: groupSteps(m) }),
+  team: (m) => ({ label: 'Team Trios', Stage: TeamStage, steps: teamSteps(m) }),
 };
 function tourFor(route, mobile) {
   const [, area, id, sub] = route.split('/');
   const kind = area === 'profile' ? 'profile' : route === '/settings' ? 'settings'
     : area === 'dilemmas' ? 'dilemmas' : area === 'help' ? (id && sub ? 'reply' : 'help')
       : area === 'community' ? (id ? 'communityDeck' : 'community')
-        : area === 'decks' && (id === 'list' || id === 'join') ? 'group' : area === 'decks' && id && id !== 'folder' ? 'editor' : 'mine';
+        : area === 'decks' && (id === 'list' || id === 'join') ? 'group' : area === 'decks' && id === 'team' ? 'team'
+          : area === 'decks' && id && id !== 'folder' ? 'editor' : 'mine';
   const key = `${kind}:${mobile}`;
   cache[key] ??= MAKE[kind](mobile);
   return cache[key];

@@ -262,14 +262,17 @@ function makeKit({ stage, fx, pos, api, setMenu, focus, signal }) {
     const r = el.getBoundingClientRect();
     return { x: r.left + r.width * fx0, y: r.top + r.height * fy0 };
   };
-  const draw = () => { fx.cursor.style.transform = `translate(${pos.x}px, ${pos.y}px)`; };
+  // L'etichetta del gesto passa a sinistra del cursore quando a destra uscirebbe dallo schermo (pulsanti sul bordo).
+  let labelW = 0;
+  const flip = () => fx.label.classList.toggle('flip', pos.x + 30 + labelW > window.innerWidth - 8);
+  const draw = () => { fx.cursor.style.transform = `translate(${pos.x}px, ${pos.y}px)`; flip(); };
   const move = async (t, ms = 650, onFrame) => {
     const p = at(t);
     const x0 = pos.x;
     const y0 = pos.y;
     await tween(fast ? 0 : ms, (k) => { pos.x = x0 + (p.x - x0) * k; pos.y = y0 + (p.y - y0) * k; draw(); onFrame?.(); }, signal);
   };
-  const say = (text) => { fx.label.textContent = text || ''; fx.label.hidden = !text; };
+  const say = (text) => { fx.label.textContent = text || ''; fx.label.hidden = !text; labelW = fx.label.offsetWidth; flip(); };
   const ripple = (kind = '') => {
     const r = document.createElement('span');
     r.className = `tut-ripple ${kind}`;
