@@ -210,6 +210,10 @@ h3 {
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-md);
   padding: 14px 16px 12px;
+  /* Entro lo schermo, scorre dentro: anche nascosto, un tooltip più alto allungava la pagina (scrollIntoView di Select in
+     deck la spostava sotto la barra). */
+  max-height: calc(100vh - 84px);
+  overflow-y: auto;
   z-index: 50;
   opacity: 0;
   visibility: hidden;
