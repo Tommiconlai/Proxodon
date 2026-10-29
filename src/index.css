@@ -2859,6 +2859,31 @@ a.deck-tile.deck-add { text-decoration: none; }
 .group-pick-btn { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; }
 .group-pick-btn span:first-of-type { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .group-pick-n { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); }
+/* Team Trios (#/decks/team/:id): testata ferma in alto alta come la barra del nome dell'editor (62 px), così la fascia
+   con Decks e Stats (due schede, centrate) si attacca sotto come nell'editor; poi i tre mazzi uno sotto l'altro, ognuno
+   col nome tra [ ] e sotto formato, giocatore, conteggio, stato e icone, allineati alle carte (13% come .deck-sections). */
+.team-bar { position: sticky; top: 0; z-index: 6; flex: none; height: 62px; margin: 0; padding: 22px 22px 0 40px; background: var(--bg-base); }
+.deck-editor.is-mobile .team-bar { height: auto; padding: 14px 14px 10px; }
+.team-page .deck-tabs.in-band { width: 301px; margin-left: -150px; }
+.team-deck { padding-top: 28px; }
+.team-deck + .team-deck { margin-top: 8px; border-top: 1px solid rgba(124, 92, 255, 0.16); }
+.team-deck-head, .team-search, .team-empty { margin-inline: 13%; }
+.deck-editor.is-mobile :is(.team-deck-head, .team-search, .team-empty, .team-pick) { margin-inline: 14px; }
+.team-deck-head { display: flex; flex-direction: column; gap: 12px; }
+.team-deck-name { font-size: 1.05rem; overflow-wrap: anywhere; }
+.team-deck-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.team-deck-meta .deck-count.plain { text-shadow: none; }
+.team-format { font-family: var(--font-display); font-size: 0.95rem; color: var(--text-primary); }
+.team-open { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted); }
+.team-invite { flex: 0 1 300px; min-width: 0; }
+.team-deck-actions { margin-left: auto; display: flex; gap: 8px; }
+.team-deck-actions .deck-icon-btn { width: 40px; height: 40px; padding: 0; justify-content: center; flex: none; }
+.team-search { max-width: 520px; margin-top: 16px; }
+.team-empty { display: block; margin-top: 16px; margin-bottom: 28px; }
+.deck-tool.team-pick { margin: 22px 13% 0; }
+.team-page .deck-sections.tab-stats { padding-top: 14px; }
+.team-part { padding-top: 12px; border-top: 1px solid rgba(124, 92, 255, 0.16); }
+.team-tile .group-tile-art { color: var(--accent); }
 /* Move copies: un pulsante per numero di copie (fino a 4), larghi uguali. */
 .move-copies { display: flex; gap: 8px; }
 .move-copies button { flex: 1; min-height: 48px; justify-content: center; font-family: var(--font-mono); font-size: 1.05rem; }

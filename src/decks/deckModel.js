@@ -7,7 +7,7 @@
 
 import { parseCardList, deckLine, MAX_LINES, TOO_MANY_LINES } from '../utils/scryfall.js';
 import { ROLES, LAND_FORMATS, COST_KINDS } from './landAnalysis.js';
-import { FORMATS, LEGAL_FORMATS, formatRules, formatLabel, leaderNoun } from './formats.js';
+import { FORMATS, LEGAL_FORMATS, TEAM_FORMATS, formatRules, formatLabel, leaderNoun } from './formats.js';
 
 export { FORMATS, formatRules, formatLabel };
 
@@ -237,6 +237,16 @@ export function addEntries(deck, items, { merge = true } = {}) {
   return d;
 }
 
+// Toast dell'importazione da una lista (New deck): carte non trovate (le prime 5) e copie rimaste fuori (righe oltre
+// MAX_ROWS, quantità oltre MAX_QTY). → [testo, tipo del toast].
+export function importNote(notFound, left) {
+  const parts = [
+    notFound.length && `Not found: ${notFound.slice(0, 5).join(', ')}${notFound.length > 5 ? ` and ${notFound.length - 5} more` : ''}.`,
+    left > 0 && `${left} ${left === 1 ? 'copy' : 'copies'} left out (at most ${MAX_ROWS} rows and ${MAX_QTY} copies per row).`,
+  ].filter(Boolean);
+  return parts.length ? [`Imported. ${parts.join(' ')}`, 'error'] : ['Deck imported', 'success'];
+}
+
 export function removeRows(deck, ids) {
   const s = new Set(ids);
   return { ...deck, cards: deck.cards.filter((r) => !s.has(r.id)) };
@@ -393,6 +403,26 @@ export function overLimit(deck) {
     by.set(r.card.oid, e);
   }
   return [...by.values()].filter((e) => e.count > e.max);
+}
+
+// Team Trios: copie sommate sui tre mazzi (null = slot vuoto), main + sideboard in qualunque formato, maybeboard mai;
+// massimo 4, "up to N" = N, terre base e "any number" esenti. → Map oid → { oid, name, count, max, team } oltre il limite.
+export function teamOverLimit(decks) {
+  const by = new Map();
+  for (const r of decks.flatMap((d) => d?.cards || [])) {
+    if (r.board === 'maybe' || isBasicLand(r.card) || r.card.limit === 0) continue;
+    const e = by.get(r.card.oid) || { oid: r.card.oid, name: r.card.name, count: 0, max: r.card.limit > 0 ? r.card.limit : 4, team: true };
+    e.count += r.qty;
+    by.set(r.card.oid, e);
+  }
+  return new Map([...by].filter(([, e]) => e.count > e.max));
+}
+// Chip del limite di squadra (DeckSections, in ogni mazzo che ha quelle carte): le sue righe di main e sideboard. null = nessuna.
+export function teamIssue(deck, over) {
+  const rows = deck.cards.filter((r) => r.board !== 'maybe' && over.has(r.card.oid));
+  if (!rows.length) return null;
+  const list = [...new Set(rows.map((r) => r.card.oid))].map((o) => over.get(o));
+  return { key: 'team', level: 'warn', label: `Over the team limit: ${list.map((e) => `${e.name} ${e.count}/${e.max}`).join(', ')}`, ids: rows.map((r) => r.id) };
 }
 
 // ── Viste ────────────────────────────────────────────────────
@@ -809,6 +839,12 @@ export function duplicateDeck(deck) {
     ...landField(deck.landAnalysis),
   };
 }
+
+// Team Trios: mazzo di un posto, nuovo o copia indipendente di uno dei propri (stesso nome). Formato con la zona di
+// comando: Casual, da scegliere a mano. Mai pubblico né in una cartella.
+export const teamCopy = (d) => ({
+  ...duplicateDeck(d), name: d.name, format: TEAM_FORMATS.some((f) => f.id === d.format) ? d.format : 'casual',
+});
 
 // Confronto profondo che ignora l'ordine delle chiavi (Firestore può riordinarle).
 const same = (a, b) => {

@@ -9,10 +9,12 @@ import { getSettings } from '../utils/settings';
 // la lista da importare (intestazioni Commander / Deck / Sideboard / Maybeboard riconosciute; carte a due
 // facce sia "A // B" sia "A/B"). Senza lista = mazzo vuoto. Raggruppamento, stampa non trovata e righe
 // ripetute seguono Settings. onCreate(deck, notFound).
-export default function NewDeckDialog({ onClose, onCreate }) {
+// Team Trios: title del pannello, formats ammessi (il primo formato se quello di Settings non c'è), initialFormat,
+// allowPublic = false senza Public.
+export default function NewDeckDialog({ onClose, onCreate, title = 'New deck', formats = FORMATS, initialFormat, allowPublic = true }) {
   const [name, setName] = useState('');
-  const [format, setFormat] = useState(() => getSettings().deckFormat);
-  const [pub, setPub] = useState(() => getSettings().deckPublic);
+  const [format, setFormat] = useState(() => initialFormat || [getSettings().deckFormat].find((f) => formats.some((x) => x.id === f)) || formats[0].id);
+  const [pub, setPub] = useState(() => allowPublic && getSettings().deckPublic);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -46,10 +48,10 @@ export default function NewDeckDialog({ onClose, onCreate }) {
 
   return (
     <div className="modal-overlay" onClick={close}>
-      <form className="modal deck-form new-deck" ref={ref} role="dialog" aria-modal="true" aria-label="New deck"
+      <form className="modal deck-form new-deck" ref={ref} role="dialog" aria-modal="true" aria-label={title}
         onClick={(e) => e.stopPropagation()} onSubmit={run}>
         <div className="modal-header">
-          <h2>New deck</h2>
+          <h2>{title}</h2>
           <button type="button" className="modal-close" onClick={close} aria-label="Close" title="Close" disabled={busy}><IconX size={18} /></button>
         </div>
         <label className="field-label" htmlFor="deck-name">Name</label>
@@ -57,9 +59,9 @@ export default function NewDeckDialog({ onClose, onCreate }) {
           autoFocus maxLength={80} placeholder="Atraxa superfriends" spellCheck={false} disabled={busy} />
         <label className="field-label" htmlFor="deck-format">Format</label>
         <select id="deck-format" value={format} onChange={(e) => setFormat(e.target.value)} disabled={busy}>
-          {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+          {formats.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
         </select>
-        <label className="checkbox-row">
+        {allowPublic && <label className="checkbox-row">
           <input type="checkbox" checked={pub} onChange={(e) => setPub(e.target.checked)} disabled={busy} />
           <span className="anim-check" aria-hidden="true">
             <svg width="18" height="18" viewBox="0 0 18 18">
@@ -68,7 +70,7 @@ export default function NewDeckDialog({ onClose, onCreate }) {
             </svg>
           </span>
           Public, shared in Community
-        </label>
+        </label>}
         <label className="field-label" htmlFor="deck-list">Import a list <span className="field-hint">Optional</span></label>
         <textarea id="deck-list" className="import-textarea" value={text} onChange={(e) => setText(e.target.value)} rows={6}
           placeholder={'Commander\n1 Atraxa, Praetors\' Voice\n\nDeck\n1 Sol Ring\n1 Command Tower'} disabled={busy} spellCheck={false} />

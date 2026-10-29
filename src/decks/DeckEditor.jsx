@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useDeck } from './useDeck';
+import { useDeck, useScryfallRefresh, syncText } from './useDeck';
+import { usePrintDeck } from './usePrintDeck';
 import { unpublishDeck, changedMs, countLikes } from './deckStore';
 import { useCount } from './useCount';
-import { FORMATS, boardCounts, refreshSnapshots, addCard, toPrintEntries, coverRow, deckTags, searchIdentity } from './deckModel';
-import { useSettings } from '../utils/settings';
-import { cardsByIds, deckTokens } from './scryfallSearch';
+import { FORMATS, boardCounts, addCard, toPrintEntries, coverRow, deckTags, searchIdentity } from './deckModel';
 import { navigate, replaceRoute } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
@@ -16,7 +15,7 @@ import { DeckHelps } from './HelpRequests';
 import CardSearch from './CardSearch';
 import AdvancedSearch from './AdvancedSearch';
 import { MobilePage } from '../components/MobileLayout';
-import { PrintDeckDialog, CoverDialog, ExportDeckDialog, TagsDialog } from './dialogs';
+import { CoverDialog, ExportDeckDialog, TagsDialog } from './dialogs';
 import { IconX, IconArrowLeft, IconDeckTag, IconDeckPrint, IconDeckExport, IconDeckPublic, IconDeckHeart } from '../components/icons';
 import { timeAgo } from '../utils/timeAgo';
 
@@ -35,20 +34,14 @@ const toHelp = () => setTimeout(() => document.querySelector('.deck-part-help')?
 
 export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDeck, initialTab, owner }) {
   // Errori di sync del mazzo, anche dopo la chiusura dell'editor (notify è dell'app, resta vivo).
-  const syncError = useCallback((e) => notify(e.code === 'resource-exhausted'
-    ? 'Daily sync limit reached. Your changes stay on this device and sync after the reset.'
-    // Salvataggio rifiutato ma il mazzo sul server è quello di partenza (useDeck, kept): le modifiche restano, Retry
-    // (solo a editor aperto) riprova subito.
-    : e.kept ? (e.retry ? 'Your last change was not saved. It is still here: retry now, or it is tried again with your next change.' : 'Your last change to this deck could not be saved.')
-    // Versione rifiutata dalle regole (useDeck): il mazzo è cambiato altrove, qui torna la versione salvata.
-    : e.code === 'permission-denied' && !e.publish ? 'This deck changed on another device or tab: your last change was not saved. You now see the saved version.'
-      : e.publish ? `Community copy not updated: ${e.message}` : `Sync error: ${e.message}`, 'error', e.retry && { label: 'Retry', onClick: e.retry }), [notify]);
+  // Versione rifiutata dalle regole (useDeck): il mazzo è cambiato altrove, qui torna la versione salvata.
+  const syncError = useCallback((e) => notify(syncText(e, 'This deck changed on another device or tab: your last change was not saved. You now see the saved version.'),
+    'error', e.retry && { label: 'Retry', onClick: e.retry }), [notify]);
   const { deck, update, saving, unsaved, synced } = useDeck(uid, id, syncError);
   const mobile = useIsMobile();
   const likes = useCount(countLikes, id, undefined, !!deck?.public);
-  const settings = useSettings(); // stampa (aggiungi o sostituisci, sideboard), valuta dei prezzi
   const [online, setOnline] = useState(() => navigator.onLine);
-  const [printOpen, setPrintOpen] = useState(null); // Print deck da confermare: { main, all } = i token senza e con la sideboard
+  const [startPrint, printDialog] = usePrintDeck(printQueueCount, onPrintDeck);
   const [exportOpen, setExportOpen] = useState(false);
   const [coverOpen, setCoverOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
@@ -64,7 +57,6 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   useEffect(() => { if (mobile && loaded && initialTab === 'help') toHelp(); }, [mobile, loaded, initialTab]);
   const heroRef = useRef(null);
   const scrollRef = useRef(null); // .deck-scroll: Back to top della barra in cima (DeckTopBar, telefono)
-  const refreshed = useRef(false);
   // Barra quando della testata resta meno della riga nome + ricerca. Soglia fissa: la barra da
   // .stuck è più bassa (niente Advanced search), misurarla farebbe oscillare lo stato.
   const onScroll = (e) => setStuck(e.currentTarget.scrollTop > (heroRef.current?.offsetHeight || 0) - STUCK_AT);
@@ -91,14 +83,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
     replaceRoute('/decks'); // con navigate, Indietro (anche quello di Android) rientrerebbe nel mazzo che non c'è più
   }, [deck, notify]);
 
-  // Riallinea una volta gli snapshot con Scryfall (ban, immagini). Scryfall giù = restano quelli salvati.
-  useEffect(() => {
-    // Solo da una versione confermata dal server (synced): da una cache vecchia salverebbe la copia vecchia.
-    if (!deck || !synced || refreshed.current) return;
-    refreshed.current = true;
-    const ids = deck.cards.map((r) => r.card.sid);
-    if (ids.length) cardsByIds(ids).then((map) => update((d) => refreshSnapshots(d, map).deck)).catch(() => {});
-  }, [deck, synced, update]);
+  useScryfallRefresh(deck, synced, update);
 
   const add = (card, opts) => update((d) => {
     const r = addCard(d, card, opts);
@@ -121,16 +106,6 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   if (!deck) return <div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>;
 
   const c = boardCounts(deck);
-  // I token delle carte che vanno in stampa (main, e sideboard se inclusa): di solito già in cache dalla sezione Tokens.
-  // Scryfall giù = nessun token, si stampa il mazzo. Nessuna domanda se la coda è vuota e non c'è né sideboard né token.
-  const tokensOf = (side) => deckTokens(deck.cards.filter((r) => r.board === 'main' || (side && r.board === 'side')))
-    .then((l) => l.map((t) => t.card), () => []);
-  const startPrint = async () => {
-    const all = await tokensOf(true);
-    const main = c.side ? await tokensOf(false) : all; // dopo all: le carte sono già in cache
-    if (!c.side && !main.length && (!printQueueCount || settings.printAdd)) onPrintDeck(toPrintEntries(deck), settings.printAdd);
-    else setPrintOpen({ main, all });
-  };
   const cover = coverRow(deck);
   const savedAt = changedMs(deck); // ultimo cambio di carte (changedAt): Public, edizioni, prezzi non contano
   const syncState = unsaved ? 'Not saved' : !online ? (saving ? 'Offline, saved on this device' : 'Offline') : saving ? 'Saving…' : 'Saved';
@@ -194,7 +169,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
             <span className="deck-hero-actions">
             <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setTagsOpen(true)}
               aria-label="Tags" title="Tags"><IconDeckTag /></button>
-            <button type="button" className="btn-secondary deck-icon-btn" onClick={startPrint} disabled={!c.main}
+            <button type="button" className="btn-secondary deck-icon-btn" onClick={() => startPrint(deck)} disabled={!c.main}
               aria-label="Print deck" title="Print deck"><IconDeckPrint /></button>
             <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setExportOpen(true)} disabled={!deck.cards.length}
               aria-label="Export" title="Export"><IconDeckExport /></button>
@@ -250,11 +225,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
       )}
       {groupRows && <ToGroupListDialog uid={uid} rows={groupRows} notify={notify} onClose={() => setGroupRows(null)} />}
       {tagsOpen && <TagsDialog tags={deckTags(deck)} onChange={(tags) => update((d) => ({ ...d, tags }))} onClose={() => setTagsOpen(false)} />}
-      {printOpen && (
-        <PrintDeckDialog queueCount={printQueueCount} sideCount={c.side} tokens={printOpen} add={settings.printAdd} defaultSide={settings.printSide}
-          onClose={() => setPrintOpen(null)}
-          onConfirm={(side, tokens) => { setPrintOpen(null); onPrintDeck(toPrintEntries(deck, { includeSide: side, tokens }), settings.printAdd); }} />
-      )}
+      {printDialog}
     </div>
   );
 }

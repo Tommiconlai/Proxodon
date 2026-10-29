@@ -28,6 +28,8 @@ export const FORMATS = [
   { id: 'casual', label: 'Casual', copies: Infinity, side: Infinity },
 ];
 export const LEGAL_FORMATS = FORMATS.filter((f) => f.id !== 'casual').map((f) => f.id);
+// Team Trios: mazzi da 60 e Casual, niente zona di comando.
+export const TEAM_FORMATS = FORMATS.filter((f) => !f.cmd);
 // Formato ignoto (mazzi di versioni future, file): come Casual, nessun controllo.
 export const formatRules = (id) => FORMATS.find((f) => f.id === id) || FORMATS[FORMATS.length - 1];
 export const formatLabel = (id) => FORMATS.find((f) => f.id === id)?.label || id;

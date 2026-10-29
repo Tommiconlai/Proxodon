@@ -14,6 +14,8 @@ import {
 } from './deckModel';
 
 const decksCol = (uid) => collection(db, 'users', uid, 'decks');
+// Dove sta un mazzo: l'uid (mazzi personali) o una collezione (i mazzi di una squadra, teamStore).
+const colOf = (at) => (typeof at === 'string' ? decksCol(at) : at);
 // serverTimestamps 'estimate': un mazzo appena scritto ha già una data (stimata) per l'ordinamento.
 // sig mancante (mazzi di prima di changedAt): la firma delle carte appena lette fa da base, così il primo
 // cambio vero si riconosce.
@@ -113,20 +115,21 @@ export function listenDecks(uid, onChange, onError) {
 }
 
 // fromCache: lo snapshot viene dalla cache locale e non è ancora confermato dal server (può essere vecchio).
-export function listenDeck(uid, id, onChange, onError) {
-  return onSnapshot(doc(decksCol(uid), id), { includeMetadataChanges: true },
+export function listenDeck(at, id, onChange, onError) {
+  return onSnapshot(doc(colOf(at), id), { includeMetadataChanges: true },
     (s) => onChange(s.exists() ? fromDoc(s) : null, s.metadata.hasPendingWrites, s.metadata.fromCache), onError);
 }
 // Il mazzo com'è sul server, mai dalla cache (useDeck: un salvataggio rifiutato era un conflitto?). null = non c'è.
-export const deckFromServer = (uid, id) => getDocFromServer(doc(decksCol(uid), id)).then((s) => (s.exists() ? fromDoc(s) : null));
+export const deckFromServer = (at, id) => getDocFromServer(doc(colOf(at), id)).then((s) => (s.exists() ? fromDoc(s) : null));
 
 // Nuovo mazzo; public (dal pannello New deck) scrive subito anche la copia in Community. folder = la
 // cartella in cui nasce (aperta in My decks), fuori dal payload perché la copia pubblica non la porta.
-export function createDeck(uid, deck) {
-  const ref = doc(decksCol(uid));
+// id: quello scelto (il posto di una squadra), sennò uno nuovo.
+export function createDeck(at, deck, id) {
+  const ref = id ? doc(colOf(at), id) : doc(colOf(at));
   const f = changes(deck);
   const done = setDoc(ref, { ...payload(deck, false), ...f, rev: 1, folder: deck.folder ?? null, createdAt: serverTimestamp() });
-  return { id: ref.id, done: deck.public ? Promise.all([done, publish(uid, { ...deck, id: ref.id }, f)]) : done };
+  return { id: ref.id, done: deck.public ? Promise.all([done, publish(at, { ...deck, id: ref.id }, f)]) : done };
 }
 // Cartelle di My decks: folder = { id, name } sul mazzo (solo quello privato), null = fuori. Una cartella
 // esiste finché ha un mazzo; spostare o rinominare = riscrivere folder su quei mazzi, in un solo batch.
@@ -143,11 +146,12 @@ export function setDeckFolder(uid, ids, folder) {
 // (offline) cadono tutti: il secondo parte dalla ver del primo, che il server non ha mai avuto. Senza ver (app di
 // prima, cartelle) conta solo rev. Pubblico: la copia si riscrive dopo, solo se il mazzo è stato accettato; un suo
 // errore ha publish = true (non è un conflitto del mazzo).
-export const saveDeck = (uid, deck, ver = rid()) => {
+// I mazzi di una squadra (at = collezione) non sono mai pubblici.
+export const saveDeck = (at, deck, ver = rid()) => {
   const f = changes(deck);
-  const done = setDoc(doc(decksCol(uid), deck.id),
+  const done = setDoc(doc(colOf(at), deck.id),
     { ...payload(deck), ...f, rev: (deck.rev || 0) + 1, ver, base: deck.ver ?? null }, { merge: true });
-  return deck.public ? done.then(() => publish(uid, deck, f).catch((e) => { e.publish = true; throw e; })) : done;
+  return deck.public ? done.then(() => publish(at, deck, f).catch((e) => { e.publish = true; throw e; })) : done;
 };
 export const setDeckPublic = (uid, deck, on) => Promise.all([
   saveDeck(uid, { ...deck, public: on }), !on && unpublishDeck(uid, deck.id),

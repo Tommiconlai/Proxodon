@@ -5,7 +5,8 @@ import {
   removeFromGroupList, setGroupInvite, inviteLink, joinGroupList, leaveGroupList, deleteGroupList, addGroupCards, setGroupQty,
   removeGroupCard, setGroupEdition, MAX_GROUP_QTY,
 } from './groupStore';
-import { getPublicProfile } from './deckStore';
+import { listenTeams, createTeam } from './teamStore';
+import { useNames, errorText } from './useNames';
 import { toPrintEntries, snapshotFromCard } from './deckModel';
 import { cardsByIds } from './scryfallSearch';
 import { useCount } from './useCount';
@@ -26,49 +27,38 @@ import {
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const sumQty = (rows) => rows.reduce((n, r) => n + r.qty, 0);
-const errorText = (e) => (e?.code === 'permission-denied' ? 'Not allowed. The new Firestore rules may not be published yet.' : e?.message || 'Something went wrong.');
-
-// Nickname dei membri (profili pubblici, una lettura per membro, tenuti per la sessione): "a player" senza nickname.
-const names = new Map();
-function useNames(uids) {
-  const [, bump] = useState(0);
-  const key = uids.join(',');
-  useEffect(() => {
-    let on = true;
-    key.split(',').filter((u) => u && !names.has(u)).forEach((u) => {
-      names.set(u, null);
-      getPublicProfile(u).then((p) => { names.set(u, p.nickname); if (on) bump((n) => n + 1); }, () => names.delete(u));
-    });
-    return () => { on = false; };
-  }, [key]);
-  return (u) => names.get(u) || 'a player';
-}
 
 // ── My decks: la sezione sotto i mazzi ──────────────────────────────────
 
-// Le liste di gruppo di cui si è membri (create da sé o da altri), un riquadro ciascuna, e il + per crearne una.
+// Le liste di gruppo e le squadre Team Trios di cui si è membri (create da sé o da altri), un riquadro ciascuna, e i
+// riquadri per crearne: + una lista, la corona (il leader) una squadra.
 export function GroupListsSection({ uid, notify }) {
   const [lists, setLists] = useState(null);
-  const [naming, setNaming] = useState(false);
+  const [teams, setTeams] = useState(null);
+  const [naming, setNaming] = useState(null); // 'list' | 'team'
   useEffect(() => listenGroupLists(uid, setLists, () => setLists([])), [uid]);
+  useEffect(() => listenTeams(uid, setTeams, () => setTeams([])), [uid]);
+  const team = naming === 'team';
+  const create = ({ name }) => {
+    const { id, done } = team ? createTeam(uid, name) : createGroupList(uid, name);
+    done.catch((e) => notify(errorText(e), 'error'));
+    setNaming(null);
+    navigate(`/decks/${team ? 'team' : 'list'}/${id}`);
+  };
   return (
     <section className="group-lists" aria-labelledby="group-lists-h">
-      <header className="decks-head profile-next"><h2 id="group-lists-h" className="decks-title">Group lists</h2></header>
-      {lists === null ? <span className="import-spinner" aria-label="Loading" /> : (
+      <header className="decks-head profile-next"><h2 id="group-lists-h" className="decks-title">Group lists and teams</h2></header>
+      {lists === null || teams === null ? <span className="import-spinner" aria-label="Loading" /> : (
         <ul className="deck-grid">
           {lists.map((l) => <GroupTile key={l.id} list={l} uid={uid} />)}
-          <GhostTile label="New group list" onClick={() => setNaming(true)}><IconPlus size={44} /></GhostTile>
+          {teams.map((t) => <TeamTile key={t.id} team={t} uid={uid} />)}
+          <GhostTile label="New group list" onClick={() => setNaming('list')}><IconPlus size={44} /></GhostTile>
+          <GhostTile label="New Team Trios" onClick={() => setNaming('team')}><IconCrown size={44} /></GhostTile>
         </ul>
       )}
       {naming && (
-        <NameFormatDialog title="New group list" confirmLabel="Create" showFormat={false} placeholder="Proxies for Friday" maxLength={80}
-          onClose={() => setNaming(false)}
-          onSubmit={({ name }) => {
-            const { id, done } = createGroupList(uid, name);
-            done.catch((e) => notify(errorText(e), 'error'));
-            setNaming(false);
-            navigate(`/decks/list/${id}`);
-          }} />
+        <NameFormatDialog title={team ? 'New Team Trios' : 'New group list'} confirmLabel="Create" showFormat={false}
+          placeholder={team ? 'Team for Saturday' : 'Proxies for Friday'} maxLength={80} onClose={() => setNaming(null)} onSubmit={create} />
       )}
     </section>
   );
@@ -86,6 +76,25 @@ function GroupTile({ list, uid }) {
           <span className="deck-tile-meta">
             <span>{plural(n, 'member')}</span><span>{plural(cards, 'card')}</span>
             <span className="deck-tile-by">{list.owner === uid ? 'yours' : 'shared with you'}</span>
+          </span>
+        </span>
+      </a>
+    </li>
+  );
+}
+
+// Una squadra Team Trios: la corona del leader al posto delle carte.
+function TeamTile({ team, uid }) {
+  const n = team.members.length;
+  return (
+    <li className="deck-tile-wrap">
+      <a className="deck-tile group-tile team-tile" href={`#/decks/team/${team.id}`} aria-label={`Open Team Trios ${team.name}, ${plural(n, 'player')}`}>
+        <TileFrame><span className="group-tile-art" aria-hidden="true"><IconCrown size={56} /></span></TileFrame>
+        <span className="deck-tile-body">
+          <span className="deck-tile-name">{team.name}</span>
+          <span className="deck-tile-meta">
+            <span>Team Trios</span><span>{plural(n, 'player')}</span>
+            <span className="deck-tile-by">{team.owner === uid ? 'yours' : 'shared with you'}</span>
           </span>
         </span>
       </a>
@@ -224,11 +233,12 @@ export function GroupListPage({ uid, id, notify, printQueueCount, onPrintDeck })
   );
 }
 
-// Nome della lista per il creatore: click = si rinomina sul posto (Enter o uscita salvano, Esc annulla, vuoto = resta).
-function ListName({ name, onRename }) {
+// Nome della lista (o della squadra, Team Trios) per il creatore: click = si rinomina sul posto (Enter o uscita salvano,
+// Esc annulla, vuoto = resta). what = cosa si rinomina, nel tooltip e nell'etichetta del campo.
+export function ListName({ name, onRename, what = 'list' }) {
   const [editing, setEditing] = useState(false);
   const open = useRef(false); // una sola chiusura: Enter / Esc smontano l'input e il blur non deve ripetere
-  if (!editing) return <button type="button" className="folder-name in-head" onClick={() => { open.current = true; setEditing(true); }} title="Rename the list">{name}</button>;
+  if (!editing) return <button type="button" className="folder-name in-head" onClick={() => { open.current = true; setEditing(true); }} title={`Rename the ${what}`}>{name}</button>;
   const finish = (v) => {
     if (!open.current) return;
     open.current = false;
@@ -236,7 +246,7 @@ function ListName({ name, onRename }) {
     if (v && v !== name) onRename(v);
   };
   return (
-    <input className="folder-name-input in-head" defaultValue={name} maxLength={80} autoFocus aria-label="List name" spellCheck={false}
+    <input className="folder-name-input in-head" defaultValue={name} maxLength={80} autoFocus aria-label={`${what[0].toUpperCase()}${what.slice(1)} name`} spellCheck={false}
       onFocus={(e) => e.target.select()} onBlur={(e) => finish(e.target.value.trim())}
       onKeyDown={(e) => {
         if (e.key === 'Enter') finish(e.currentTarget.value.trim());

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { deckFromServer, listenDeck, saveDeck } from './deckStore';
-import { rid } from './deckModel';
+import { rid, refreshSnapshots } from './deckModel';
+import { cardsByIds } from './scryfallSearch';
 
 // Mazzo aperto: stato locale + salvataggio dell'intero documento 800 ms dopo l'ultima modifica
 // (e subito quando la scheda va in background o l'editor si chiude). Finché c'è una modifica
@@ -17,6 +18,15 @@ import { rid } from './deckModel';
 // onError: errori di lettura e salvataggio, chiamato anche a editor chiuso (il salvataggio della chiusura).
 // alive: chiuso l'editor, update non fa più niente (un Undo nel toast o una risposta di Scryfall in ritardo non
 // riscrivono il mazzo da una copia ormai vecchia).
+// Testo del toast per un errore di useDeck; changed = salvataggio rifiutato perché il mazzo è cambiato altrove.
+export const syncText = (e, changed) => (e.code === 'resource-exhausted'
+  ? 'Daily sync limit reached. Your changes stay on this device and sync after the reset.'
+  // Salvataggio rifiutato ma il mazzo sul server è quello di partenza (kept): le modifiche restano, Retry (solo a
+  // editor aperto) riprova subito.
+  : e.kept ? (e.retry ? 'Your last change was not saved. It is still here: retry now, or it is tried again with your next change.' : 'Your last change to this deck could not be saved.')
+  : e.code === 'permission-denied' && !e.publish ? changed
+    : e.publish ? `Community copy not updated: ${e.message}` : `Sync error: ${e.message}`);
+
 export function useDeck(uid, id, onError) {
   const [deck, setDeck] = useState(undefined); // undefined = caricamento, null = eliminato, false = non caricato (errore)
   const [pending, setPending] = useState(false); // scritture non ancora confermate dal server
@@ -104,4 +114,16 @@ export function useDeck(uid, id, onError) {
   }, [write]);
 
   return { deck, update, saving: dirty || pending, unsaved, synced };
+}
+
+// Riallinea una volta gli snapshot con Scryfall (ban, immagini). Scryfall giù = restano quelli salvati. Solo da una
+// versione confermata dal server (synced): da una cache vecchia salverebbe la copia vecchia.
+export function useScryfallRefresh(deck, synced, update) {
+  const refreshed = useRef(false);
+  useEffect(() => {
+    if (!deck || !synced || refreshed.current) return;
+    refreshed.current = true;
+    const ids = deck.cards.map((r) => r.card.sid);
+    if (ids.length) cardsByIds(ids).then((map) => update((d) => refreshSnapshots(d, map).deck)).catch(() => {});
+  }, [deck, synced, update]);
 }

@@ -71,9 +71,9 @@ function TabStrip({ items, current, onTab, label }) {
 }
 
 // Fascia del mazzo da desktop (Figma 47:108): la linea sfumata con l'incavo a sinistra (format = il formato) e
-// al centro le schede Deck / Stats / Dilemmas / Help. Sticky sotto la barra del nome, col fondo quando è
-// attaccata (.solid).
-export function DeckBand({ tab, onTab, format }) {
+// al centro le schede Deck / Stats / Dilemmas / Help (items: altre schede, Team Trios). Sticky sotto la barra del nome,
+// col fondo quando è attaccata (.solid).
+export function DeckBand({ tab, onTab, format, items = TABS }) {
   const ref = useRef(null);
   const [solid, setSolid] = useState(false);
   useEffect(() => {
@@ -88,7 +88,7 @@ export function DeckBand({ tab, onTab, format }) {
   return (
     <div ref={ref} className={`deck-band${solid ? ' solid' : ''}`}>
       {format && <div className="deck-band-format">{format}</div>}
-      <TabStrip items={TABS} current={tab} onTab={onTab} label="Deck view" />
+      <TabStrip items={items} current={tab} onTab={onTab} label="Deck view" />
     </div>
   );
 }

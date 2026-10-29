@@ -424,6 +424,59 @@ service cloud.firestore {
           || (list().owner == request.auth.uid && (list().get('deleted', false) == true || !(resource.data.uid in list().members))));
       }
     }
+    // Team Trios (My decks): teams/{id} = { owner (il team leader), name, members (al massimo 3, il leader sempre
+    // dentro), slots: i tre posti mazzo (uid di un membro o null; il posto 0 è del leader), deleted?, createdAt,
+    // updatedAt }. La legge chi è tra i membri. Il leader rinomina, dà e toglie i posti (coi membri) e la elimina: prima
+    // deleted, poi via i mazzi, poi la squadra. Un membro esce togliendo solo sé stesso, dai membri e dal suo posto.
+    function validTeam(d) {
+      return d.keys().hasOnly(['owner', 'name', 'members', 'slots', 'deleted', 'createdAt', 'updatedAt'])
+        && d.owner is string && d.name is string && d.name.size() > 0 && d.name.size() <= 80
+        && d.members is list && d.members.size() <= 3 && d.owner in d.members
+        && d.slots is list && d.slots.size() == 3 && d.slots[0] == d.owner
+        && (d.slots[1] == null || d.slots[1] in d.members) && (d.slots[2] == null || d.slots[2] in d.members)
+        && d.get('deleted', false) is bool
+        && d.createdAt is timestamp && d.updatedAt == request.time;
+    }
+    match /teams/{teamId} {
+      // Il posto i dopo l'uscita di chi scrive: vuoto se era suo, sennò com'era.
+      function left(i) {
+        return (resource.data.slots[i] == request.auth.uid && request.resource.data.slots[i] == null)
+          || (resource.data.slots[i] != request.auth.uid && request.resource.data.slots[i] == resource.data.slots[i]);
+      }
+      allow read: if verified() && request.auth.uid in resource.data.members;
+      allow create: if verified() && autoId(teamId) && validTeam(request.resource.data)
+        && request.resource.data.owner == request.auth.uid && request.resource.data.members == [request.auth.uid]
+        && request.resource.data.slots == [request.auth.uid, null, null]
+        && request.resource.data.createdAt == request.time && request.resource.data.get('deleted', false) == false;
+      allow update: if verified() && validTeam(request.resource.data)
+        && request.resource.data.owner == resource.data.owner && request.resource.data.createdAt == resource.data.createdAt
+        && (resource.data.owner == request.auth.uid
+          || (request.auth.uid in resource.data.members
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'slots', 'updatedAt'])
+            && request.resource.data.members.toSet() == resource.data.members.toSet().difference([request.auth.uid].toSet())
+            && left(0) && left(1) && left(2)));
+      allow delete: if verified() && resource.data.owner == request.auth.uid;
+      // Mazzi: teams/{id}/decks/{0|1|2}, come i mazzi personali (validDeck, rev e ver) ma mai pubblici. Li legge ogni
+      // membro; li crea e cambia il leader o il giocatore di quel posto (non in una squadra in eliminazione), che li toglie.
+      match /decks/{slot} {
+        function team() {
+          return get(/databases/$(db)/documents/teams/$(teamId)).data;
+        }
+        function editor() {
+          return verified() && (team().owner == request.auth.uid || team().slots[int(slot)] == request.auth.uid);
+        }
+        allow read: if verified() && request.auth.uid in team().members;
+        allow create: if slot in ['0', '1', '2'] && editor() && team().get('deleted', false) == false
+          && validDeck(request.resource.data) && request.resource.data.get('rev', 0) == 1
+          && request.resource.data.get('public', false) == false;
+        allow update: if editor() && team().get('deleted', false) == false && validDeck(request.resource.data)
+          && request.resource.data.get('public', false) == false
+          && request.resource.data.get('rev', 0) == resource.data.get('rev', 0) + 1
+          && (request.resource.data.get('ver', null) == resource.data.get('ver', null)
+            || request.resource.data.get('base', null) == resource.data.get('ver', null));
+        allow delete: if editor();
+      }
+    }
     // Nickname unici: usernames/{nome in minuscolo} = { uid }. Lo legge chi ha un account (per sapere
     // se è libero, mai l'elenco), lo prende chi lo trova libero e lo mette nel proprio profilo nella stessa
     // scrittura (uno per account, vedi nickFreed), lo libera solo il proprietario. Alcuni nomi sono riservati.

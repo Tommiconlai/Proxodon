@@ -9,7 +9,7 @@ import { cardsByIds } from './scryfallSearch';
 import {
   GROUP_MODES, SORT_MODES, VIEWS, groupMain, commanderRows, boardRows, bumpQty, removeRows, setCommander, moveToBoard,
   addSection, renameSection, deleteSection, moveToSection, placeRows, overLimit, formatLabel, formatRules, illegalRow, legalityLabel,
-  splitRow, changeEdition, snapshotFromCard, validateDeck, packPiles, splitPiles, maxCopies, MAX_DILEMMA_CARDS, MAX_HELP_CARDS, DRAG_ROWS,
+  splitRow, changeEdition, snapshotFromCard, validateDeck, teamIssue, packPiles, splitPiles, maxCopies, MAX_DILEMMA_CARDS, MAX_HELP_CARDS, DRAG_ROWS,
 } from './deckModel';
 import DeckStats from './DeckStats';
 import LandPanel from './LandPanel';
@@ -103,11 +103,16 @@ const SPLIT_MAX = 300;
 // onHelp(cards): Ask for help nel menu, le carte scelte (fino a MAX_HELP_CARDS diverse) in focus nella nuova richiesta.
 // Telefono (touch): − / + della carta selezionata (una sola) in una barra sopra quella in basso, a 44 px.
 // tokens: la sezione sotto il maybeboard con i token che creano le carte (DeckTokens), solo nei propri mazzi.
+// fixedView (Team Trios): la vista è quella, senza il menu View by. teamOver: le carte oltre il limite di squadra
+// (teamOverLimit), segnate come quelle oltre il limite del formato (che vince), con il loro chip tra i controlli.
+// select (Team Trios): { ids } scelte con Select in deck nelle Stats (un'altra istanza), selezionate qui all'arrivo.
 const NEW_SECTION = 'new-section'; // voce di Group by da telefono: apre New section, non è un raggruppamento
 
 // onGroup(rows): To group list nel menu (anche in sola lettura), le righe scelte vanno in una lista di gruppo.
-export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab, onPrint, onDilemma, onHelp, onCut, inCuts, notify, tokens, onGroup }) {
-  const [sel, setSel] = useState(() => new Set());
+export default function DeckSections({ deck, update, touch, readOnly, tab = 'deck', onTab, onPrint, onDilemma, onHelp, onCut, inCuts, notify, tokens, onGroup, fixedView, teamOver, select }) {
+  const [sel, setSel] = useState(() => new Set(select?.ids));
+  const [selFrom, setSelFrom] = useState(select);
+  if (select !== selFrom) { setSelFrom(select); if (select) setSel(new Set(select.ids)); }
   const [anchor, setAnchor] = useState(null);
   const [menu, setMenu] = useState(null); // { ids, x, y }
   // Anteprima accanto alla riga ({ img, back, w, x, y }) nel suo componente (HoverLayer): passare sulle righe
@@ -122,7 +127,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   // i menu View by e Sort by li cambiano solo per questo mazzo. Anteprima e densità: solo da Settings.
   const settings = useSettings();
   const own = settings.deckViews[deck.id] || {};
-  const view = [own.view, settings.deckView].find((v) => VIEWS.some((x) => x.id === v)) || 'stacks';
+  const view = fixedView || [own.view, settings.deckView].find((v) => VIEWS.some((x) => x.id === v)) || 'stacks';
   const sort = [own.sort, settings.deckSort].find((v) => SORT_MODES.some((x) => x.id === v)) || 'name';
   const setView = (v) => deck.id && setDeckView(deck.id, { view: v });
   const setSort = (v) => deck.id && setDeckView(deck.id, { sort: v });
@@ -154,15 +159,18 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   // Avvisi solo dove le carte contano: main e (nei formati con sideboard) sideboard.
   const rules = formatRules(deck.format);
   const counts = (r) => r.board === 'main' || (r.board === 'side' && rules.side > 0);
-  const warnOf = (r) => (counts(r) ? overBy.get(r.card.oid) : undefined);
+  const warnOf = (r) => (counts(r) ? overBy.get(r.card.oid) || teamOver?.get(r.card.oid) : undefined);
   const banOf = (r) => (counts(r) ? illegalRow(deck.format, r) : null);
   // Controlli del formato (mai bloccanti): chip sopra le carte, il click seleziona le carte coinvolte.
-  const issues = useMemo(() => validateDeck(deck), [deck]);
+  const issues = useMemo(() => {
+    const team = teamOver && teamIssue(deck, teamOver);
+    return team ? [...validateDeck(deck), team] : validateDeck(deck);
+  }, [deck, teamOver]);
   // Chip dei controlli e barre dei grafici: seleziona quelle carte e porta in vista la prima. Dai grafici
   // (scheda Stats) torna prima a Deck: lo scorrimento aspetta il render delle carte.
   const pick = (ids) => {
     setSel(new Set(ids));
-    onTab?.('deck');
+    onTab?.('deck', ids);
     // CSS.escape: gli id delle righe di un mazzo altrui sono testo libero (una " romperebbe il selettore).
     setTimeout(() => document.querySelector(`.deck-row[data-row-id="${CSS.escape(ids[0])}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
   };
@@ -177,6 +185,11 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     ro.observe(rootRef.current);
     return () => ro.disconnect();
   }, [hasCards]);
+  // select (Team Trios): la prima carta in vista quando le pile hanno la loro larghezza (il mazzo è appena montato).
+  const measured = areaW > 0;
+  useEffect(() => {
+    if (select && measured) rootRef.current?.querySelector(`.deck-row[data-row-id="${CSS.escape(select.ids[0])}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [select, measured]);
 
   // Cornice (CardFrame) solo sulla parte scoperta: negli stack e nella griglia sovrapposta la carta dopo,
   // nella stessa colonna, copre il resto. --frame-h = altezza scoperta, ricalcolata dopo ogni render: il CSS
@@ -442,7 +455,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   // copy = indice della copia nella vista split (ogni copia è una carta, tutte agiscono sulla riga).
   const row = (r, copy = 0) => {
     const warn = warnOf(r);
-    const warnText = warn && `${warn.count} copies, max ${warn.max} in ${formatLabel(deck.format)}`;
+    const warnText = warn && (warn.team ? `${warn.count} copies in the team, max ${warn.max}` : `${warn.count} copies, max ${warn.max} in ${formatLabel(deck.format)}`);
     const ban = banOf(r);
     const banText = ban && legalityLabel(ban, deck.format);
     const gc = deck.format === 'commander' && r.card.gc; // game changer, solo nei mazzi Commander
@@ -577,12 +590,14 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
             {SORT_MODES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
           </select>
         </label>
-        <label className="deck-tool">
-          <span>View by</span>
-          <select value={view} onChange={(e) => { setView(e.target.value); setHover(null); }}>
-            {VIEWS.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
-          </select>
-        </label>
+        {!fixedView && (
+          <label className="deck-tool">
+            <span>View by</span>
+            <select value={view} onChange={(e) => { setView(e.target.value); setHover(null); }}>
+              {VIEWS.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
+            </select>
+          </label>
+        )}
         <label className="deck-tool">
           <span>Group by</span>
           {/* Da telefono New section è l'ultima voce di Group by (la tendina resta sul raggruppamento attuale); da desktop il +. */}
@@ -647,7 +662,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
           </ErrorBoundary>
         </section>
         {/* La mano di prova solo da desktop: da telefono non è pratica (scelta dell'utente). */}
-        {tab === 'stats' && (
+        {tab === 'stats' && !touch && (
           <section aria-labelledby="deck-hand-head">
             <h3 className="deck-analysis-head" id="deck-hand-head">Sample hand</h3>
             <SampleHand deck={deck} />

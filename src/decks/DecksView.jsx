@@ -17,6 +17,7 @@ import DeckHelp from './DeckHelp';
 import ProfilePage, { PublicProfilePage } from './ProfilePage';
 import SettingsPage from './SettingsPage';
 import { GroupListsSection, GroupListPage, JoinGroupList } from './GroupLists';
+import TeamPage from './TeamPage';
 import { listenFollowingIds, listenAnswered, listenReplied, listenDilemmaFeed, listenHelpFeed } from './deckStore';
 import { countUnanswered } from './deckModel';
 import { setBadges } from '../hooks/useBadges';
@@ -54,7 +55,7 @@ function Badges({ uid }) {
 // #/dilemmas/:mazzo/:dilemma per quello aperto e #/dilemmas/play per il gioco, #/help con #/help/:mazzo/:richiesta),
 // editor (#/decks/:id, #/decks/:id/help sulla scheda Help), mazzo della Community
 // (#/community/:id), liste di gruppo (#/decks/list/:id, invito #/decks/join/:id/:codice; in My decks la sezione sotto i
-// mazzi), profilo (#/profile, o #/profile/:uid per la pagina pubblica di un altro) o impostazioni. Avatar e ? (con il tutorial della pagina; nell'editor anche tasti e gesti)
+// mazzi), Team Trios (#/decks/team/:id, nella stessa sezione), profilo (#/profile, o #/profile/:uid per la pagina pubblica di un altro) o impostazioni. Avatar e ? (con il tutorial della pagina; nell'editor anche tasti e gesti)
 // vanno nell'header dell'app, in headerSlot.
 export default function DecksView({ route, notify, printQueueCount, onPrintDeck, headerSlot }) {
   const { user, profile, photo, rerender } = useAccount();
@@ -79,6 +80,7 @@ export default function DecksView({ route, notify, printQueueCount, onPrintDeck,
         : area === 'help' ? <DeckList uid={user.uid} notify={notify} tab="help" />
         : group && id === 'list' && sub ? <GroupListPage key={sub} uid={user.uid} id={sub} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} />
         : group && sub && extra ? <JoinGroupList key={sub} uid={user.uid} id={sub} code={extra} />
+        : area === 'decks' && id === 'team' && sub ? <TeamPage key={sub} uid={user.uid} id={sub} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} />
         : area === 'decks' && id === 'folder' ? <DeckList uid={user.uid} notify={notify} tab="mine" folder={sub} />
         : community && id ? <CommunityDeck key={id} uid={user.uid} id={id} notify={notify} />
         : id ? <DeckEditor key={id} uid={user.uid} id={id} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} initialTab={sub} owner={profile?.nickname} />

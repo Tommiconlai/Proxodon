@@ -5,7 +5,7 @@ import {
 } from './deckStore';
 import {
   FORMATS, duplicateDeck, deckIdentity, deckCover, coverRow, deckTags, scryfallImg, formatLabel, deckBracket, searchTerms, deckMatches, rid,
-  MAX_ROWS, MAX_QTY,
+  importNote,
 } from './deckModel';
 import { navigate } from '../hooks/useHashRoute';
 import { useLongPress, menuPoint } from '../hooks/useLongPress';
@@ -441,13 +441,7 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
           onCreate={(deck, notFound, left = 0) => {
             setDialog(null);
             const id = create({ ...deck, folder: openFolder ? { id: openFolder.id, name: openFolder.name } : null });
-            if (deck.cards.length) {
-              const parts = [
-                notFound.length && `Not found: ${notFound.slice(0, 5).join(', ')}${notFound.length > 5 ? ` and ${notFound.length - 5} more` : ''}.`,
-                left > 0 && `${left} ${left === 1 ? 'copy' : 'copies'} left out (at most ${MAX_ROWS} rows and ${MAX_QTY} copies per row).`,
-              ].filter(Boolean);
-              notify(parts.length ? `Imported. ${parts.join(' ')}` : 'Deck imported', parts.length ? 'error' : 'success');
-            }
+            if (deck.cards.length) notify(...importNote(notFound, left));
             navigate(`/decks/${id}`);
           }} />
       )}
