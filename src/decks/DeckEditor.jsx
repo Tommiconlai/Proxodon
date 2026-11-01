@@ -3,7 +3,7 @@ import { useDeck, useScryfallRefresh, syncText } from './useDeck';
 import { usePrintDeck } from './usePrintDeck';
 import { unpublishDeck, changedMs, countLikes } from './deckStore';
 import { useCount } from './useCount';
-import { FORMATS, boardCounts, addCard, toPrintEntries, coverRow, deckTags, searchIdentity } from './deckModel';
+import { FORMATS, boardCounts, addCard, toPrintEntries, coverRow, deckTab, deckTags, searchIdentity } from './deckModel';
 import { navigate, replaceRoute } from '../hooks/useHashRoute';
 import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
@@ -50,8 +50,8 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   const [helpAsk, setHelpAsk] = useState(null); // Ask for help dal menu delle carte: le carte in focus della nuova richiesta
   const [advOpen, setAdvOpen] = useState(false); // pannello della ricerca avanzata (desktop)
   const [stuck, setStuck] = useState(false); // la testata è uscita: la fascia ricerca ha lo sfondo
-  // Schede della testata: deck | stats | dilemmas | help; #/decks/:id/help (le proprie richieste dal feed Help) apre Help.
-  const [tab, setTab] = useState(initialTab === 'help' ? 'help' : 'deck');
+  // Schede della testata: deck | stats | power | dilemmas | help; #/decks/:id/help (le proprie richieste dal feed Help) apre Help.
+  const [tabPick, setTab] = useState(initialTab === 'help' ? 'help' : 'deck');
   // #/decks/:id/help (le proprie richieste dal feed Help): da telefono, appena c'è il mazzo, scende fino a Help.
   const loaded = !!deck;
   useEffect(() => { if (mobile && loaded && initialTab === 'help') toHelp(); }, [mobile, loaded, initialTab]);
@@ -105,6 +105,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
   }
   if (!deck) return <div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>;
 
+  const tab = deckTab(tabPick, deck);
   const c = boardCounts(deck);
   const cover = coverRow(deck);
   const savedAt = changedMs(deck); // ultimo cambio di carte (changedAt): Public, edizioni, prezzi non contano
@@ -194,7 +195,7 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
       {mobile ? (
         <DeckTopBar deck={deck} scrollRef={scrollRef} onFilters={() => setAdvOpen(true)} filtersOpen={advOpen}
           search={<CardSearch format={deck.format} identity={searchIdentity(deck)} onAdd={add} notify={notify} noAdvanced />} />
-      ) : <DeckBand tab={tab} onTab={setTab} format={format} />}
+      ) : <DeckBand tab={tab} onTab={setTab} format={format} power={deck.format === 'commander'} />}
       <div className="deck-body">
         <section className="deck-main">
           {!mobile && advOpen && (

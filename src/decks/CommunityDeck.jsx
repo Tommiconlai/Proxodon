@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { listenPublicDeck, listenHelp, createDeck, countLikes, hasLiked, setLiked, listenFollowing } from './deckStore';
-import { duplicateDeck, coverRow, formatLabel, refreshSnapshots } from './deckModel';
+import { duplicateDeck, coverRow, deckTab, formatLabel, refreshSnapshots } from './deckModel';
 import { cardsByIds } from './scryfallSearch';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { navigate } from '../hooks/useHashRoute';
@@ -26,7 +26,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
   useEffect(() => (helpId ? listenHelp(id, helpId, setHelp, () => setHelp(null)) : undefined), [id, helpId]);
   const [exportOpen, setExportOpen] = useState(false);
   const [groupRows, setGroupRows] = useState(null); // To group list dal menu delle carte
-  const [tab, setTab] = useState('deck');
+  const [tabPick, setTab] = useState('deck');
   const heroRef = useRef(null);
   const scrollRef = useRef(null); // .deck-scroll: Back to top della barra in cima (DeckTopBar, telefono)
   const [stuck, setStuck] = useState(false); // la testata è uscita: la barra delle schede ha lo sfondo
@@ -77,6 +77,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
       </div>
     );
   }
+  const tab = deckTab(tabPick, deck);
   const cover = coverRow(deck);
   const copy = () => {
     const { id: nid, done } = createDeck(uid, { ...duplicateDeck(deck), name: deck.name });
@@ -97,7 +98,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
   );
   // La pagina di una richiesta non ha barra né fascia: nome e formato restano nella testata anche da desktop.
   const inHero = mobile || helpId;
-  // Da desktop una scheda alla volta, da telefono tutto in fila (carte, Stats, Dilemmas, Help).
+  // Da desktop una scheda alla volta, da telefono tutto in fila (carte, Stats, Power, Dilemmas, Help).
   const cards = (t) => <DeckSections deck={deck} update={update} touch={mobile} readOnly tab={t} onTab={mobile ? undefined : setTab} onGroup={setGroupRows} />;
   const dilemmas = <DeckDilemmas deck={deck} uid={uid} mine={false} notify={notify} />;
   const helps = <DeckHelps deck={deck} uid={uid} mine={deck.uid === uid} notify={notify} />;
@@ -145,7 +146,7 @@ export default function CommunityDeck({ uid, id, notify, helpId }) {
           {cover?.card.art && cover.card.artist && <span className="deck-hero-credit">Art by {cover.card.artist} · © Wizards of the Coast</span>}
         </header>
         {!helpId && (mobile ? <DeckTopBar deck={deck} scrollRef={scrollRef} />
-          : <DeckBand tab={tab} onTab={setTab} format={<span className="deck-format-static">{formatLabel(deck.format)}</span>} />)}
+          : <DeckBand tab={tab} onTab={setTab} format={<span className="deck-format-static">{formatLabel(deck.format)}</span>} power={deck.format === 'commander'} />)}
         <div className="deck-body">
           <section className="deck-main">
             {helpId ? (

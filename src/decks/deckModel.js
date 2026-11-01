@@ -535,6 +535,8 @@ export const autoBracket = (d) => { const n = gameChangers(d); return n === 0 ? 
 // Bracket da mostrare: solo nei mazzi Commander, null se spento.
 export const deckBracket = (d) => (d.format !== 'commander' || d.bracket === 0 ? null
   : okBracket(d.bracket) ? d.bracket : autoBracket(d));
+// La scheda da mostrare: Power c'è solo in Commander, e il formato può cambiare anche da un altro dispositivo.
+export const deckTab = (tab, d) => (tab === 'power' && d.format !== 'commander' ? 'stats' : tab);
 export const boardRows = (deck, board, sort) => deck.cards.filter((r) => r.board === board).sort(sorter(sort));
 
 const bucket = (rows, keyOf) => {

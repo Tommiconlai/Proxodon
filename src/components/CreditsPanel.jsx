@@ -39,6 +39,7 @@ const CREDITS = [
     ['formulaWidget', LAND.widget, 'an open implementation of that formula: what counts as cheap draw and ramp, and other deck sizes.'],
     ['Kelvin Chen', LAND.chen, 'How To Build A Manabase For Singleton Formats (Canadian Highlander): MDFCs and fast mana taken off the land count.'],
     ['FreeMully', LAND.freemully, 'How many lands does a Commander deck need?: cheap up to mana value 3, the Commander default.'],
+    ['Commander Spellbook', 'https://commanderspellbook.com', 'the combos counted by the Power tab: a copy of its public list, those of two or three cards that are infinite or win the game.'],
   ]],
   ['Print', [
     ['European Color Initiative', 'https://www.eci.org', 'ICC profiles ISO Coated v2 (© 2000-2006 Heidelberger Druckmaschinen AG), PSO Coated v3 and PSO Uncoated v3 (FOGRA52, © 2015 Heidelberger Druckmaschinen AG), made available by ECI with permission of Heidelberg.'],

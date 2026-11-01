@@ -6,6 +6,7 @@ import { badgeText } from '../hooks/useBadges';
 import { useSettings } from '../utils/settings';
 
 const TABS = [['deck', 'Deck'], ['stats', 'Stats'], ['dilemmas', 'Dilemmas'], ['help', 'Help']];
+const POWER_TABS = [['deck', 'Deck'], ['stats', 'Stats'], ['power', 'Power'], ['dilemmas', 'Dilemmas'], ['help', 'Help']];
 
 // Schede a trapezio da desktop (Figma "Proxodon" 47:108 e 52:275): larghe 168 a passi di 132.67, si
 // sovrappongono e più una scheda è vicina a quella aperta più sta sopra (aperta = piena del gradiente, in cima;
@@ -24,7 +25,7 @@ function TabStrip({ items, current, onTab, label }) {
   const near = (i) => items.length - Math.abs(i - open); // più vicina alla scheda aperta = più in alto
   const order = items.map((_, i) => i).sort((a, b) => near(a) - near(b));
   return (
-    <nav className="deck-tabs in-band" aria-label={label}>
+    <nav className={`deck-tabs in-band${items.length === 5 ? ' five' : ''}`} aria-label={label}>
       {items.map(([t, text, href, n], i) => {
         const props = {
           className: `decks-tab${n ? ' has-n' : ''}`, style: { left: i * SLOT, zIndex: near(i) },
@@ -71,9 +72,9 @@ function TabStrip({ items, current, onTab, label }) {
 }
 
 // Fascia del mazzo da desktop (Figma 47:108): la linea sfumata con l'incavo a sinistra (format = il formato) e
-// al centro le schede Deck / Stats / Dilemmas / Help (items: altre schede, Team Trios). Sticky sotto la barra del nome,
-// col fondo quando è attaccata (.solid).
-export function DeckBand({ tab, onTab, format, items = TABS }) {
+// al centro le schede Deck / Stats / Dilemmas / Help, con power anche Power (items: altre schede, Team Trios). Sticky
+// sotto la barra del nome, col fondo quando è attaccata (.solid).
+export function DeckBand({ tab, onTab, format, power, items = power ? POWER_TABS : TABS }) {
   const ref = useRef(null);
   const [solid, setSolid] = useState(false);
   useEffect(() => {
@@ -182,7 +183,7 @@ export function DeckCount({ deck, plain }) {
 // Telefono e tablet: barra ferma in cima sotto la testata (sticky, col fondo quando è attaccata, .solid): la ricerca
 // delle carte sempre aperta e larga quanto la barra (search, solo nell'editor), sotto il conteggio senza chip a sinistra
 // e a destra Back to top (dopo 600 px di scorrimento, scrollRef = .deck-scroll) e il tasto filtri, come nelle liste:
-// apre Advanced search (onFilters, filtersOpen). Niente schede: carte, Stats, Dilemmas e Help stanno in fila nella pagina.
+// apre Advanced search (onFilters, filtersOpen). Niente schede: carte, Stats, Power, Dilemmas e Help stanno in fila nella pagina.
 export function DeckTopBar({ deck, scrollRef, search, onFilters, filtersOpen }) {
   const ref = useRef(null);
   const [solid, setSolid] = useState(false);

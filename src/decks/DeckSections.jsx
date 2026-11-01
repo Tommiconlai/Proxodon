@@ -13,6 +13,7 @@ import {
 } from './deckModel';
 import DeckStats from './DeckStats';
 import LandPanel from './LandPanel';
+import PowerPanel from './PowerPanel';
 import ErrorBoundary from '../components/ErrorBoundary';
 import SampleHand from './SampleHand';
 import CardImg from './CardImg';
@@ -94,8 +95,8 @@ const SPLIT_MAX = 300;
 // Senza onCut (il mazzo di un altro, non una help request) niente selezione né selezione ad area: da desktop il click
 // non fa nulla, da telefono il tocco seleziona quella carta e la apre (CardView, si chiude toccando fuori).
 // onCut(rows) (help request, anche in sola lettura): Suggest cut nel menu e carte trascinabili verso la zona Cuts.
-// tab (schede di DeckBand da desktop): 'deck' = barra e carte, 'stats' = statistiche e mano di prova; 'all' (telefono, una
-// sola pagina) = le carte e sotto le statistiche, senza la mano di prova.
+// tab (schede di DeckBand da desktop): 'deck' = barra e carte, 'stats' = statistiche e mano di prova, 'power' = potenza
+// (Commander); 'all' (telefono, una sola pagina) = le carte e sotto statistiche e potenza, senza la mano di prova.
 // onPrint(rows): Print nel menu, porta le righe scelte (anche una sola) nella stampa.
 // notify(msg, kind, action): Remove e − sull'ultima copia tolgono subito, con Undo nel toast.
 // View card (menu, anche in sola lettura): la carta a tutto schermo, per leggerla da telefono.
@@ -133,6 +134,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
   const setSort = (v) => deck.id && setDeckView(deck.id, { sort: v });
   const previewW = PREVIEW[settings.preview] ?? PREVIEW.medium;
   const [allCopies, setAllCopies] = useState(false); // Split oltre SPLIT_MAX copie, chiesto da chi guarda
+  const noCards = tab === 'stats' || tab === 'power';
   const [dialog, setDialog] = useState(null); // { id?, name?, moveIds? } nuova sezione o rinomina
   const [edition, setEdition] = useState(null); // { ids, name, current } righe a cui cambiare edizione
   const [viewing, setViewing] = useState(null); // carta aperta con View card
@@ -578,10 +580,10 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
     : Math.max(STACK_MIN, Math.min(STACK_MAX, Math.floor((areaW - (n0 - 1) * COL_GAP) / n0)));
   const stackCols = touch ? splitPiles(pileN.map((n) => pileHeight(n, stackW, TOUCH_STRIP) + STACK_GAP), touchCols) : pack(stackW);
   return (
-    <div className={`deck-sections ${tab === 'stats' ? 'tab-stats' : `view-${layout}`}${settings.density === 'compact' ? ' density-compact' : ''}`} ref={rootRef} {...marqueeHandlers}
+    <div className={`deck-sections ${noCards ? 'tab-stats' : `view-${layout}`}${settings.density === 'compact' ? ' density-compact' : ''}`} ref={rootRef} {...marqueeHandlers}
       onKeyDown={(e) => { if (e.key === 'Escape' && sel.size && !menu) { e.stopPropagation(); setSel(new Set()); } }}>
       {marquee && <div className="marquee" style={marquee} aria-hidden="true" />}
-      {tab !== 'stats' && <>
+      {!noCards && <>
       {view !== 'list' && <CardFrameDefs />}
       <div className="deck-toolbar">
         <label className="deck-tool">
@@ -647,20 +649,33 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
       </>}
       {/* Scheda Stats: statistiche e mano di prova; da telefono sotto le carte, solo le statistiche. */}
       {tab !== 'deck' && <div className="deck-analysis">
-        <section aria-labelledby="deck-stats-head">
-          <h3 className="deck-analysis-head" id="deck-stats-head">Stats</h3>
-          {/* Un dato strano in un mazzo altrui spegne solo le statistiche, non tutta la pagina. */}
-          <ErrorBoundary fallback={<p className="field-hint">Stats could not be computed for this deck.</p>}>
-            <DeckStats deck={deck} onSelect={pick} />
-          </ErrorBoundary>
-        </section>
+        {tab !== 'power' && (
+          <section aria-labelledby="deck-stats-head">
+            <h3 className="deck-analysis-head" id="deck-stats-head">Stats</h3>
+            {/* Un dato strano in un mazzo altrui spegne solo le statistiche, non tutta la pagina. */}
+            <ErrorBoundary fallback={<p className="field-hint">Stats could not be computed for this deck.</p>}>
+              <DeckStats deck={deck} onSelect={pick} />
+            </ErrorBoundary>
+          </section>
+        )}
         {/* Analisi delle terre: in Community gli override cambiano solo la vista (update locale). */}
-        <section aria-labelledby="deck-lands-head">
-          <h3 className="deck-analysis-head" id="deck-lands-head">Land analysis</h3>
-          <ErrorBoundary fallback={<p className="field-hint">The land analysis could not be computed for this deck.</p>}>
-            <LandPanel deck={deck} update={update} />
-          </ErrorBoundary>
-        </section>
+        {tab !== 'power' && (
+          <section aria-labelledby="deck-lands-head">
+            <h3 className="deck-analysis-head" id="deck-lands-head">Land analysis</h3>
+            <ErrorBoundary fallback={<p className="field-hint">The land analysis could not be computed for this deck.</p>}>
+              <LandPanel deck={deck} update={update} />
+            </ErrorBoundary>
+          </section>
+        )}
+        {/* Potenza: scheda da desktop, da telefono sotto le terre. Solo Commander. */}
+        {tab !== 'stats' && deck.format === 'commander' && (
+          <section className="power-section" aria-labelledby="deck-power-head">
+            <h3 className="deck-analysis-head" id="deck-power-head">Power</h3>
+            <ErrorBoundary fallback={<p className="field-hint">The power could not be computed for this deck.</p>}>
+              <PowerPanel deck={deck} />
+            </ErrorBoundary>
+          </section>
+        )}
         {/* La mano di prova solo da desktop: da telefono non è pratica (scelta dell'utente). */}
         {tab === 'stats' && !touch && (
           <section aria-labelledby="deck-hand-head">
@@ -736,7 +751,7 @@ export default function DeckSections({ deck, update, touch, readOnly, tab = 'dec
       {viewing && <CardView card={viewing} onClose={() => { setViewing(null); if (noSelect) setSel(new Set()); }} />}
       {/* Telefono: − / + della carta selezionata, grandi, sopra la barra in basso (sulla carta non
           stanno a 44 px nella fascia scoperta degli stack). */}
-      {touch && !readOnly && view !== 'list' && tab !== 'stats' && selected.length === 1 && (() => {
+      {touch && !readOnly && view !== 'list' && !noCards && selected.length === 1 && (() => {
         const r = deck.cards.find((x) => x.id === selected[0]);
         return r && createPortal(
           <div className="deck-sel-bar" role="group" aria-label={`${r.card.name}, ${r.qty} ${r.qty === 1 ? 'copy' : 'copies'}`}>

@@ -199,6 +199,12 @@ Model architecture: Xintao Wang et al., ESRGAN: Enhanced Super-Resolution Genera
 https://arxiv.org/abs/1809.00219
 
 ------------------------------------------------------------------------------
+Commander Spellbook, https://commanderspellbook.com
+Used in: public/combos.json (Power tab), a filtered copy of the public list of combos.
+
+Combo data by the Commander Spellbook contributors.
+
+------------------------------------------------------------------------------
 Firebase JavaScript SDK (firebase, @firebase/*) and TensorFlow.js (@tensorflow/*)
 Listed below without a license file: the packages only name their license. Their source files carry
 "Copyright <year> Google LLC" notices and the Apache License, Version 2.0 (full text at the end of this part).

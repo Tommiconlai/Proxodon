@@ -11,6 +11,10 @@ export const DEFAULTS = {
   deckSort: 'name', // ordine di default dei mazzi
   deckViews: {}, // id del mazzo → { view?, sort? } scelti dentro quel mazzo, solo se diversi dal default
   brackets: true, // Commander bracket nei mazzi, in Community e nei profili
+  powerWeights: {}, // scheda Power: pesi dei fattori cambiati a mano ({ S, I, C, W, M }), in tutti i mazzi
+  powerFixes: {}, // scheda Power: nome della carta → { add, del, cmc, land } correzioni dei ruoli, in tutti i mazzi
+  powerDecks: {}, // scheda Power: id del mazzo → { strength?, mode?, extra? } scelti per quel mazzo
+  powerSpellbook: true, // scheda Power: conta anche le combo di Commander Spellbook
   printSide: false, // Print deck: sideboard inclusa di default
   printAdd: false, // Print deck: aggiunge alla coda invece di sostituirla
   cardLang: 'en', // lingua delle immagini delle carte (se Scryfall ha la stampa)
@@ -26,6 +30,7 @@ export const DEFAULTS = {
 };
 export const MAX_DECK_VIEWS = 300; // mazzi con vista propria: oltre, escono i più vecchi
 export const MAX_FAV_PRINTS = 1000;
+export const MAX_POWER_FIXES = 1000;
 export const MAX_PREF_SETS = 30;
 
 // localStorage che non lancia (storage bloccato, navigazione privata, pieno): null in lettura, niente in scrittura.

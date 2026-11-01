@@ -147,7 +147,7 @@ function DeckStage({ apiRef, mobile, mode, step }) {
             </div>
           </header>
           {!help && (mobile ? <DeckTopBar deck={deck} scrollRef={scrollRef} search={editor ? <FakeSearch q={q} active={active} adv={false} /> : null} onFilters={editor ? noop : undefined} />
-            : <DeckBand tab={tab} onTab={setTab} format={format} />)}
+            : <DeckBand tab={tab} onTab={setTab} format={format} power={deck.format === 'commander'} />)}
           <div className="deck-body">
             <section className="deck-main">
               {help ? <HelpReplyDemo deck={deck} update={update} mobile={mobile} cut={cut} add={add} q={q} why={why} over={over} />
@@ -517,25 +517,26 @@ function editorSteps(mobile) {
     text: `Group by type, subtype, mana value, color, rarity, set, artist or your own sections${mobile ? ' (New section is the last option of Group by)' : ''}. The deck keeps the Sort and View you pick; the defaults are in Settings.`,
     play: (g) => g.click('.deck-toolbar .deck-tool:nth-of-type(3) select', mobile ? 'Tap' : 'Group by', () => g.api.update((d) => ({ ...d, groupBy: 'mv' }))),
   };
-  // Da telefono niente schede: Stats, Dilemmas e Help stanno sotto le carte, si scende fino alla sezione.
-  const PART = ['', '.deck-analysis', '.deck-part-dilemmas', '.deck-part-help'];
-  const tabStep = (n, title, text) => ({
-    target: mobile ? PART[n - 1] : '.deck-tabs', title, text,
+  // Da telefono niente schede: Stats, Power, Dilemmas e Help stanno sotto le carte, si scende fino alla sezione.
+  const PART = { stats: '.deck-analysis', power: '.power-section', dilemmas: '.deck-part-dilemmas', help: '.deck-part-help' };
+  const ORDER = ['deck', 'stats', 'power', 'dilemmas', 'help']; // il mazzo della demo è Commander
+  const tabStep = (t, title, text) => ({
+    target: mobile ? PART[t] : '.deck-tabs', title, text,
     play: async (g) => {
       if (mobile) {
-        g.el(PART[n - 1]).scrollIntoView({ block: 'start' }); // in cima, sotto la barra ferma (uno smooth lo fermerebbe move)
+        g.el(PART[t]).scrollIntoView({ block: 'start' }); // in cima, sotto la barra ferma (uno smooth lo fermerebbe move)
         await g.wait(300);
-        await g.move(`${PART[n - 1]} .deck-analysis-head`);
-        g.spot(PART[n - 1]);
+        await g.move(`${PART[t]} .deck-analysis-head`);
+        g.spot(PART[t]);
       } else {
-        await g.click(`.deck-tabs .decks-tab:nth-child(${n})`, tap, () => g.api.tab(['deck', 'stats', 'dilemmas', 'help'][n - 1]));
+        await g.click(`.deck-tabs .decks-tab:nth-child(${ORDER.indexOf(t) + 1})`, tap, () => g.api.tab(t));
         g.spot('.deck-main');
       }
       await g.wait(1600);
     },
   });
   const tabs = [
-    tabStep(2, 'Stats', 'Mana curve, colors, card types, prices and the cards that need attention. A bar selects its cards in the deck.'),
+    tabStep('stats', 'Stats', 'Mana curve, colors, card types, prices and the cards that need attention. A bar selects its cards in the deck.'),
     // La mano di prova c'è solo da desktop.
     ...(mobile ? [] : [{
       target: '.deck-tabs', side: 'above', title: 'Sample hand',
@@ -549,8 +550,9 @@ function editorSteps(mobile) {
         await g.wait(1200);
       },
     }]),
-    tabStep(3, 'Dilemmas', 'Ask the community which card fits better: pick 2 to 4 cards (also from the card menu, Dilemma) and write the question. The deck must be public.'),
-    tabStep(4, 'Help', 'Ask for help on the whole deck (cuts, upgrades, budget, mana base): players suggest cards to cut and to add, you apply them in one click.'),
+    tabStep('power', 'Power', 'Commander decks only: an index from 0 to 10 and the bracket to declare at the table, from five factors and the official rules. You can change weights, commander strength and card roles.'),
+    tabStep('dilemmas', 'Dilemmas', 'Ask the community which card fits better: pick 2 to 4 cards (also from the card menu, Dilemma) and write the question. The deck must be public.'),
+    tabStep('help', 'Help', 'Ask for help on the whole deck (cuts, upgrades, budget, mana base): players suggest cards to cut and to add, you apply them in one click.'),
   ];
   const tokens = {
     target: '.deck-tokens', scroll: true, title: 'Tokens',
@@ -605,8 +607,8 @@ function communitySteps(mobile) {
     text: `Group, sort and view change only your screen, and the cards cannot be selected. ${mobile ? 'Tap a card to see it big (tap outside to close), or long-press it.' : 'Right-click a card to see it full screen.'}`,
     play: (g) => g.menu(rowSel('r13'), { title: 'Counterspell', items: [[IconEye, 'View card'], [IconUsers, 'To group list']] }, mobile ? { text: 'Long press', hold: true } : {}),
   }, {
-    target: mobile ? '.deck-analysis' : '.deck-tabs', title: 'Stats, Dilemmas, Help',
-    text: `The deck’s Stats, its Dilemmas to vote on and its Help requests to answer.${mobile ? ' On the phone they follow the cards, further down.' : ''}`,
+    target: mobile ? '.deck-analysis' : '.deck-tabs', title: 'Stats, Power, Dilemmas, Help',
+    text: `The deck’s Stats and Power, its Dilemmas to vote on and its Help requests to answer.${mobile ? ' On the phone they follow the cards, further down.' : ''}`,
     play: mobile ? (g) => g.move('.deck-analysis .deck-analysis-head') : undefined,
   }];
 }

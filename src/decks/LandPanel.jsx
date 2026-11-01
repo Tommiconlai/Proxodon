@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { StatFrame } from './DeckStats';
-import { cachedOracle, fetchOracle } from './scryfallSearch';
+import { useOracle } from './useOracle';
 import { landModel, karsten, landOdds, filterText, parseFilter, ROLES, ROLE_LABEL, LAND_FORMATS } from './landAnalysis';
 import { LandSources } from '../components/CreditsPanel';
 import { simInput, simParams } from './landSim';
@@ -16,24 +16,6 @@ const pct = (p) => `${(p * 100).toFixed(1)}%`;
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const GROUPS = ['ramp', 'draw', 'mdfc', 'spell', 'land'];
 const GROUP_LABEL = { ramp: 'Ramp', draw: 'Draw', mdfc: 'MDFCs (spell // land)', spell: 'Other spells', land: 'Lands' };
-
-// Dati Oracle delle righe (maybeboard esclusa): subito quelli in cache; gli id delle stampe che mancano in una chiave,
-// scaricati una volta (settled = la chiave finita, con l'errore se c'è stato). Carte che Scryfall non trova: un secondo
-// giro e poi restano fuori dall'analisi.
-function useOracle(cards) {
-  const [settled, setSettled] = useState({ key: '', error: null });
-  const rows = cards.filter((r) => r.board !== 'maybe');
-  const oracle = cachedOracle(rows);
-  const missing = [...new Set(rows.filter((r) => !oracle.has(r.card.oid)).map((r) => r.card.sid))].sort().join(',');
-  useEffect(() => {
-    if (!missing) return undefined;
-    let live = true;
-    fetchOracle(missing.split(',').map((sid) => ({ card: { sid } })))
-      .then(() => live && setSettled({ key: missing, error: null }), (e) => live && setSettled({ key: missing, error: e.message }));
-    return () => { live = false; };
-  }, [missing]);
-  return { oracle, loading: !!missing && settled.key !== missing, error: settled.key === missing ? settled.error : null };
-}
 
 function Tile({ label, value, sub, children }) {
   return (
@@ -243,7 +225,7 @@ function useSim(key) {
   return { result, outdated: !fresh && !!result, running: state.progress != null, progress: state.progress, error: state.error, start, stop };
 }
 
-function NumField({ label, value, min, max, step = 1, onChange }) {
+export function NumField({ label, value, min, max, step = 1, onChange }) {
   return (
     <label className="stat-odds-field">
       <span>{label}</span>

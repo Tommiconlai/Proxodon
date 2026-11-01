@@ -111,10 +111,15 @@ function rememberOracle(c) {
 }
 // Le carte delle righe già in cache: Map oracle id → dati Oracle.
 export const cachedOracle = (rows) => new Map(rows.filter((r) => oracle[r.card.oid]).map((r) => [r.card.oid, oracle[r.card.oid]]));
-// Scarica (per id della stampa) quelle che mancano; finito, cachedOracle le ha.
+// Scarica (per id della stampa) quelle che mancano; finito, cachedOracle le ha. Gli stessi id già in arrivo (telefono:
+// terre e Power nella stessa pagina) non si chiedono due volte.
+const oracleFetches = new Map();
 export function fetchOracle(rows) {
   const missing = rows.filter((r) => !oracle[r.card.oid]).map((r) => r.card.sid);
-  return missing.length ? cardsByIds(missing) : Promise.resolve();
+  if (!missing.length) return Promise.resolve();
+  const key = missing.join();
+  if (!oracleFetches.has(key)) oracleFetches.set(key, cardsByIds(missing).finally(() => oracleFetches.delete(key)));
+  return oracleFetches.get(key);
 }
 
 // Stampa preferita di una carta aggiunta dalla ricerca (Settings, Preferred printing): quella scelta per la carta
