@@ -1,8 +1,8 @@
 import { pointAt } from './control';
 
 // Passi del tutorial di Team Trios (TeamStage in TeamTour): la squadra, i tre posti, il posto libero, il limite di
-// squadra, Stats. La demo non salva niente: i gesti indicano i pulsanti che scrivono (Add player, New deck, Delete)
-// senza premerli.
+// squadra, Stats. La demo non salva niente: i gesti indicano i pulsanti che scrivono (Public, Add player, New deck,
+// Delete) senza premerli.
 const slot = (i) => `.team-deck[aria-labelledby="team-deck-${i}"]`;
 const select = (el) => el.click();
 const pickOption = (v) => (el) => { el.value = String(v); el.dispatchEvent(new Event('change', { bubbles: true })); }; // React sente il change
@@ -12,8 +12,8 @@ export function teamSteps(mobile) {
   const chart = 'A bar of the charts selects its cards in that deck.';
   return [{
     target: '.team-bar', title: 'Your team',
-    text: `A demo team: three decks for three players, for a team tournament. Nothing here changes your teams. The leader ${mobile ? 'taps' : 'clicks'} the name to rename the team and deletes it for everyone; a player leaves it instead, and their deck stays in the team.`,
-    play: (g) => pointAt(g, [['.team-bar .folder-name', 'Rename'], ['.team-bar [aria-label="Delete the team"]', 'Delete']]),
+    text: `A demo team: three decks for three players, for a team tournament. Nothing here changes your teams. The leader ${mobile ? 'taps' : 'clicks'} the name to rename the team, makes it public with the globe (anyone with its link sees it, even without an account) and deletes it for everyone; a player leaves it instead, and their deck stays in the team.`,
+    play: (g) => pointAt(g, [['.team-bar .folder-name', 'Rename'], ['.team-bar [aria-label="Public team"]', 'Public'], ['.team-bar [aria-label="Delete the team"]', 'Delete']]),
   }, {
     target: `${slot(0)} .team-deck-head`, title: 'Three slots',
     text: 'One deck per slot, each with its own format. The crown marks the leader, here you: the leader edits all three decks and removes a player with the X, the deck stays. A player edits only their own deck and sees the other two read only.',

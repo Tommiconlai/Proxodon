@@ -2,12 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   signIn, signInEmail, signUpEmail, resetPassword, authMessage, signOut,
-  needsVerification, sendVerification, checkVerified, deleteUnverifiedAccount,
+  sendVerification, checkVerified, deleteUnverifiedAccount,
 } from './firebase';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { PrivacyButton } from '../components/PrivacyPanel';
 import { CreditsButton } from '../components/CreditsPanel';
-import { IconTrash } from '../components/icons';
+import { IconTrash, IconUser, IconX } from '../components/icons';
+import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 import AccountMenu from './AccountMenu';
 import { useAccount } from './useAccount';
 import DeckList from './DeckList';
@@ -57,14 +58,36 @@ function Badges({ uid }) {
 // (#/community/:id), liste di gruppo (#/decks/list/:id, invito #/decks/join/:id/:codice; in My decks la sezione sotto i
 // mazzi), Team Trios (#/decks/team/:id, nella stessa sezione), profilo (#/profile, o #/profile/:uid per la pagina pubblica di un altro) o impostazioni. Avatar e ? (con il tutorial della pagina; nell'editor anche tasti e gesti)
 // vanno nell'header dell'app, in headerSlot.
+// Senza account (o con l'email ancora da confermare) si aprono solo i link condivisi: Community (elenco e ricerca), i
+// suoi mazzi e le squadre pubbliche, in sola lettura; al posto dell'avatar Sign in apre l'accesso sopra la pagina.
+// Il resto chiede di entrare.
 export default function DecksView({ route, notify, printQueueCount, onPrintDeck, headerSlot }) {
-  const { user, profile, photo, rerender } = useAccount();
+  const { user, profile, photo, ready, rerender } = useAccount();
+  const [signInOpen, setSignInOpen] = useState(false);
+  if (ready && signInOpen) setSignInOpen(false); // entrato: l'accesso sopra la pagina si chiude da sé
   if (user === undefined) return <div className="decks-root decks-center"><span className="import-spinner" aria-label="Loading" /></div>;
-  if (!user) return <SignInPanel />;
-  if (needsVerification(user)) return <VerifyEmailPanel email={user.email} onVerified={rerender} notify={notify} />;
   const [, area, id, sub, extra] = route.split('/');
   const group = area === 'decks' && (id === 'list' || id === 'join'); // liste di gruppo: #/decks/list/:id, #/decks/join/:id/:codice
   const community = area === 'community';
+  const teamId = area === 'decks' && id === 'team' && sub;
+  if (!ready) {
+    const verify = (onClose) => <VerifyEmailPanel email={user.email} onVerified={rerender} notify={notify} onClose={onClose} />;
+    if (!community && !teamId) return user ? verify() : <SignInPanel />;
+    const signIn = () => setSignInOpen(true);
+    const close = () => setSignInOpen(false);
+    return (
+      <>
+        {headerSlot && createPortal(
+          <><DeckHelp editor={!!teamId} team={!!teamId} /><button type="button" className="account-btn" onClick={signIn} aria-label="Sign in" title="Sign in"><IconUser size={16} /></button></>,
+          headerSlot,
+        )}
+        {teamId ? <TeamPage key={teamId} id={teamId} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} onSignIn={signIn} />
+          : id ? <CommunityDeck key={id} id={id} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} onSignIn={signIn} />
+            : <DeckList notify={notify} tab="community" />}
+        {signInOpen && (user ? verify(close) : <SignInPanel onClose={close} />)}
+      </>
+    );
+  }
   return (
     <>
       <Badges uid={user.uid} />
@@ -76,21 +99,36 @@ export default function DecksView({ route, notify, printQueueCount, onPrintDeck,
         : area === 'profile' && id ? <PublicProfilePage key={id} uid={id} viewer={user.uid} notify={notify} />
         : route === '/settings' ? <SettingsPage user={user} notify={notify} />
         : area === 'dilemmas' ? <DeckList uid={user.uid} notify={notify} tab="dilemmas" open={id && sub ? { deckId: id, id: sub } : null} play={id === 'play'} />
-        : area === 'help' && id && sub ? <CommunityDeck key={`${id}/${sub}`} uid={user.uid} id={id} helpId={sub} notify={notify} />
+        : area === 'help' && id && sub ? <CommunityDeck key={`${id}/${sub}`} uid={user.uid} id={id} helpId={sub} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} />
         : area === 'help' ? <DeckList uid={user.uid} notify={notify} tab="help" />
         : group && id === 'list' && sub ? <GroupListPage key={sub} uid={user.uid} id={sub} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} />
         : group && sub && extra ? <JoinGroupList key={sub} uid={user.uid} id={sub} code={extra} />
-        : area === 'decks' && id === 'team' && sub ? <TeamPage key={sub} uid={user.uid} id={sub} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} />
+        : teamId ? <TeamPage key={sub} uid={user.uid} id={sub} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} />
         : area === 'decks' && id === 'folder' ? <DeckList uid={user.uid} notify={notify} tab="mine" folder={sub} />
-        : community && id ? <CommunityDeck key={id} uid={user.uid} id={id} notify={notify} />
+        : community && id ? <CommunityDeck key={id} uid={user.uid} id={id} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} />
         : id ? <DeckEditor key={id} uid={user.uid} id={id} notify={notify} printQueueCount={printQueueCount} onPrintDeck={onPrintDeck} initialTab={sub} owner={profile?.nickname} />
           : <DeckList uid={user.uid} notify={notify} tab={community ? 'community' : 'mine'} after={community ? null : <GroupListsSection uid={user.uid} notify={notify} />} />}
     </>
   );
 }
 
+// Pagina al centro (l'area chiede l'accesso) o, con onClose, finestra sopra un link condiviso aperto senza account.
+function SignInFrame({ label, onClose, children }) {
+  const ref = useOverlayDismiss(onClose, !!onClose, { focusContainer: false });
+  if (!onClose) return <div className="decks-root decks-center">{children}</div>;
+  return createPortal(
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="signin-dialog" ref={ref} role="dialog" aria-modal="true" aria-label={label} onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="modal-close signin-close" onClick={onClose} aria-label="Close" title="Close"><IconX size={18} /></button>
+        {children}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 // Login: Google oppure email + password (accedi / crea account / reimposta password).
-function SignInPanel() {
+function SignInPanel({ onClose }) {
   const [busy, setBusy] = useState(null); // 'google' | 'email' | 'reset'
   const [error, setError] = useState(null);
   const [info, setInfo] = useState(null);
@@ -117,10 +155,11 @@ function SignInPanel() {
   };
 
   return (
-    <div className="decks-root decks-center">
+    <SignInFrame label="Sign in" onClose={onClose}>
       <div className="signin-panel">
-        <h2 className="decks-title">Your decks</h2>
-        <p>Sign in to keep your deck lists and sync them between your computer and your phone.</p>
+        <h2 className="decks-title">{onClose ? 'Sign in' : 'Your decks'}</h2>
+        <p>{onClose ? 'Sign in to copy decks to your own, like them and join dilemmas and help requests. Your deck lists sync between your computer and your phone.'
+          : 'Sign in to keep your deck lists and sync them between your computer and your phone.'}</p>
         <button type="button" className="btn-generate" onClick={() => run('google', signIn)} disabled={!!busy}>
           {busy === 'google' && <span className="spinner" />} Sign in with Google
         </button>
@@ -150,13 +189,13 @@ function SignInPanel() {
           <PrivacyButton />
         </div>
       </div>
-    </div>
+    </SignInFrame>
   );
 }
 
 // Account email appena creato: niente mazzi finché l'indirizzo non è confermato dal link. Chi non lo vuole più (email
 // sbagliata, account di prova) lo cancella da qui: Settings non la vede.
-function VerifyEmailPanel({ email, onVerified, notify }) {
+function VerifyEmailPanel({ email, onVerified, notify, onClose }) {
   const [busy, setBusy] = useState(null); // 'check' | 'send' | 'delete'
   const [error, setError] = useState(null);
   const [info, setInfo] = useState(null);
@@ -185,7 +224,7 @@ function VerifyEmailPanel({ email, onVerified, notify }) {
   };
 
   return (
-    <div className="decks-root decks-center">
+    <SignInFrame label="Verify your email" onClose={onClose}>
       <div className="signin-panel">
         <h2 className="decks-title">Verify your email</h2>
         <p>We sent a link to <b>{email}</b>. Open it to confirm the address, then come back here.</p>
@@ -216,6 +255,6 @@ function VerifyEmailPanel({ email, onVerified, notify }) {
           }} />,
         document.body,
       )}
-    </div>
+    </SignInFrame>
   );
 }

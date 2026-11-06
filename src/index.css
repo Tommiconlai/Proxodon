@@ -2310,6 +2310,12 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 .signin-panel p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; }
 .signin-panel p b { color: var(--text-primary); font-weight: 600; overflow-wrap: anywhere; }
+/* Accesso sopra un link condiviso aperto senza account (SignInFrame): lo stesso pannello, con la X in alto a destra. */
+.signin-dialog { position: relative; width: min(380px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; border-radius: var(--radius-lg); }
+.signin-dialog .signin-panel { max-width: none; }
+.signin-close { position: absolute; top: 14px; right: 14px; }
+/* Invito a entrare (squadra non disponibile, Dilemmas e Help senza account): il pulsante sotto il testo. */
+.decks-empty > .deck-icon-btn { margin-top: 12px; }
 /* Separatore "or" tra Google ed email: linee magenta → ciano come il bordo del bottone. */
 .signin-or {
   display: flex; align-items: center; gap: 10px;
@@ -3939,14 +3945,16 @@ span.deck-hero-art { cursor: default; }
    area da desktop) né fondo da 110, che lasciavano centinaia di px vuoti; il fondo per il menu lo dà .deck-body. */
 .deck-editor.is-mobile .deck-sections { padding: 14px 14px 0; min-height: 0; }
 .deck-editor.is-mobile .deck-columns { columns: auto; }
-/* Tags / Print / Export / Public (Community: Copy / Export) in alto a destra della testata; il nome lascia lo
-   spazio. Desktop: il gruppo non c'è (display: contents), i pulsanti restano nella riga in basso. */
+/* Tags / Print / Export / Public / Copy link (Community: Copy / Print / Export / Copy link) in alto a destra della
+   testata; il nome lascia lo spazio. Desktop: il gruppo non c'è (display: contents), i pulsanti restano nella riga in basso. */
 .deck-hero-actions { display: contents; }
 .deck-editor.is-mobile .deck-hero-actions { position: absolute; top: 0; right: 0; display: flex; gap: 8px; }
 .deck-editor.is-mobile .deck-hero-title { padding-right: 156px; flex-wrap: wrap; row-gap: 2px; } /* bracket a capo sotto il nome */
 .deck-editor.is-mobile button.deck-bracket::after { inset: 0 0 -18px; } /* tocco alto 44 px verso il basso, non sopra il nome */
 /* Editor: quattro pulsanti (Tags in più), 4 x 44 + 3 x 8. */
 .deck-editor.is-mobile .deck-hero-content:has(.deck-hero-actions > :nth-child(4)) .deck-hero-title { padding-right: 208px; }
+/* Mazzo pubblico nell'editor: cinque (Copy link in più), 5 x 44 + 4 x 8 + 8. */
+.deck-editor.is-mobile .deck-hero-content:has(.deck-hero-actions > :nth-child(5)) .deck-hero-title { padding-right: 260px; }
 /* Ordina / Vista / Raggruppa (+ nuova sezione) in una riga: etichetta piccola sopra, menu stretti. */
 .deck-editor.is-mobile .deck-toolbar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 8px; } /* New section sta in Group by */
 .deck-editor.is-mobile .deck-tool { flex-direction: column; align-items: stretch; gap: 4px; min-width: 0; font-size: 0.75rem; letter-spacing: 0.06em; }

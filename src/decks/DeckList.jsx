@@ -252,7 +252,8 @@ export default function DeckList({ uid, notify, tab = 'mine', open, play, folder
   // Listener fallito (regole, quota): il messaggio al posto dello spinner. Si riprova tornando sulla pagina.
   const [loadError, setLoadError] = useState(null);
   // ensureIndexed: i mazzi pubblici di prima dell'indice della Community ci entrano (una volta per sessione).
-  useEffect(() => listenDecks(uid, (d) => { setDecks(d); setLoadError(null); ensureIndexed(uid, d); }, setLoadError), [uid]);
+  // Senza account (uid assente) solo la Community: nessun mazzo proprio da ascoltare.
+  useEffect(() => (uid ? listenDecks(uid, (d) => { setDecks(d); setLoadError(null); ensureIndexed(uid, d); }, setLoadError) : undefined), [uid]);
 
   const writeError = (e) => notify(`Sync error: ${e.message}`, 'error');
   const create = (deck) => {

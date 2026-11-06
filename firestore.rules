@@ -36,10 +36,10 @@ service cloud.firestore {
     }
     // Cancellare il profilo libera anche il nickname (stessa scrittura, deleteUserData): sennò, ricreato il profilo con
     // un altro nome, l'account firmerebbe ancora col vecchio.
-    // Il profilo (nickname, foto, sfondo, iscrizione: niente email) lo legge chi ha un account, per la pagina pubblica;
-    // l'elenco degli utenti no.
+    // Il profilo (nickname, foto, sfondo, iscrizione: niente email) lo legge chiunque ne conosca l'id, anche senza
+    // account (i nomi dei giocatori nei link condivisi); l'elenco degli utenti no.
     match /users/{uid} {
-      allow get: if verified();
+      allow get: if true;
       allow delete: if owner(uid) && (resource == null || resource.data.get('nickname', null) == null
         || !existsAfter(/databases/$(db)/documents/usernames/$(resource.data.nickname.lower())));
       allow create: if owner(uid) && validProfile(uid, request.resource.data);
@@ -264,10 +264,12 @@ service cloud.firestore {
     function autoId(id) {
       return id.matches('[A-Za-z0-9]{20}');
     }
+    // Community e mazzi pubblici: li legge chiunque, anche senza account (i link condivisi); elenchi al massimo 60
+    // alla volta, senza limite solo le proprie copie.
     match /publicIndex/{deckId} {
-      allow get: if verified();
-      allow list: if verified() && ((request.query.limit != null && request.query.limit <= 60)
-        || resource.data.uid == request.auth.uid);
+      allow get: if true;
+      allow list: if (request.query.limit != null && request.query.limit <= 60)
+        || (verified() && resource.data.uid == request.auth.uid);
       allow create: if verified() && autoId(deckId) && validIndex(request.resource.data) && stillPublic(deckId) && ownCopy(deckId);
       allow update: if verified() && resource.data.uid == request.auth.uid && validIndex(request.resource.data)
         && stillPublic(deckId) && ownCopy(deckId) && request.resource.data.createdAt <= resource.data.createdAt;
@@ -278,7 +280,7 @@ service cloud.firestore {
       return added.size() == 0 || (added.size() == 1 && added[0] is string && added[0].size() <= 100);
     }
     match /publicDecks/{deckId} {
-      allow get: if verified();
+      allow get: if true;
       // Elenchi: al massimo 60 alla volta (la Community), oppure solo le proprie copie (firma nuova, cancellazione dell'account).
       allow list: if verified() && ((request.query.limit != null && request.query.limit <= 60)
         || resource.data.uid == request.auth.uid);
@@ -425,16 +427,17 @@ service cloud.firestore {
       }
     }
     // Team Trios (My decks): teams/{id} = { owner (il team leader), name, members (al massimo 3, il leader sempre
-    // dentro), slots: i tre posti mazzo (uid di un membro o null; il posto 0 è del leader), deleted?, createdAt,
-    // updatedAt }. La legge chi è tra i membri. Il leader rinomina, dà e toglie i posti (coi membri) e la elimina: prima
-    // deleted, poi via i mazzi, poi la squadra. Un membro esce togliendo solo sé stesso, dai membri e dal suo posto.
+    // dentro), slots: i tre posti mazzo (uid di un membro o null; il posto 0 è del leader), public?, deleted?, createdAt,
+    // updatedAt }. La legge chi è tra i membri e, se il leader la rende pubblica (public, nasce privata), chiunque abbia
+    // il link, anche senza account; in elenco mai. Il leader rinomina, dà e toglie i posti (coi membri) e la elimina:
+    // prima deleted, poi via i mazzi, poi la squadra. Un membro esce togliendo solo sé stesso, dai membri e dal suo posto.
     function validTeam(d) {
-      return d.keys().hasOnly(['owner', 'name', 'members', 'slots', 'deleted', 'createdAt', 'updatedAt'])
+      return d.keys().hasOnly(['owner', 'name', 'members', 'slots', 'public', 'deleted', 'createdAt', 'updatedAt'])
         && d.owner is string && d.name is string && d.name.size() > 0 && d.name.size() <= 80
         && d.members is list && d.members.size() <= 3 && d.owner in d.members
         && d.slots is list && d.slots.size() == 3 && d.slots[0] == d.owner
         && (d.slots[1] == null || d.slots[1] in d.members) && (d.slots[2] == null || d.slots[2] in d.members)
-        && d.get('deleted', false) is bool
+        && d.get('public', false) is bool && d.get('deleted', false) is bool
         && d.createdAt is timestamp && d.updatedAt == request.time;
     }
     match /teams/{teamId} {
@@ -443,11 +446,13 @@ service cloud.firestore {
         return (resource.data.slots[i] == request.auth.uid && request.resource.data.slots[i] == null)
           || (resource.data.slots[i] != request.auth.uid && request.resource.data.slots[i] == resource.data.slots[i]);
       }
-      allow read: if verified() && request.auth.uid in resource.data.members;
+      allow get: if (verified() && request.auth.uid in resource.data.members) || resource.data.get('public', false) == true;
+      allow list: if verified() && request.auth.uid in resource.data.members;
       allow create: if verified() && autoId(teamId) && validTeam(request.resource.data)
         && request.resource.data.owner == request.auth.uid && request.resource.data.members == [request.auth.uid]
         && request.resource.data.slots == [request.auth.uid, null, null]
-        && request.resource.data.createdAt == request.time && request.resource.data.get('deleted', false) == false;
+        && request.resource.data.createdAt == request.time && request.resource.data.get('deleted', false) == false
+        && request.resource.data.get('public', false) == false;
       allow update: if verified() && validTeam(request.resource.data)
         && request.resource.data.owner == resource.data.owner && request.resource.data.createdAt == resource.data.createdAt
         && (resource.data.owner == request.auth.uid
@@ -456,8 +461,9 @@ service cloud.firestore {
             && request.resource.data.members.toSet() == resource.data.members.toSet().difference([request.auth.uid].toSet())
             && left(0) && left(1) && left(2)));
       allow delete: if verified() && resource.data.owner == request.auth.uid;
-      // Mazzi: teams/{id}/decks/{0|1|2}, come i mazzi personali (validDeck, rev e ver) ma mai pubblici. Li legge ogni
-      // membro; li crea e cambia il leader o il giocatore di quel posto (non in una squadra in eliminazione), che li toglie.
+      // Mazzi: teams/{id}/decks/{0|1|2}, come i mazzi personali (validDeck, rev e ver) ma mai nella Community. Li legge
+      // ogni membro, e chiunque se la squadra è pubblica; li crea e cambia il leader o il giocatore di quel posto (non in
+      // una squadra in eliminazione), che li toglie.
       match /decks/{slot} {
         function team() {
           return get(/databases/$(db)/documents/teams/$(teamId)).data;
@@ -465,7 +471,7 @@ service cloud.firestore {
         function editor() {
           return verified() && (team().owner == request.auth.uid || team().slots[int(slot)] == request.auth.uid);
         }
-        allow read: if verified() && request.auth.uid in team().members;
+        allow read: if (verified() && request.auth.uid in team().members) || team().get('public', false) == true;
         allow create: if slot in ['0', '1', '2'] && editor() && team().get('deleted', false) == false
           && validDeck(request.resource.data) && request.resource.data.get('rev', 0) == 1
           && request.resource.data.get('public', false) == false;

@@ -50,6 +50,7 @@ export default function DeckHelp({ editor, team }) {
           <li><b>Add cards</b>. {touch ? 'Type a name in the search bar of a deck, then tap a result.'
             : <>Type a name in the search bar of a deck and pick it with ↑↓. <b>Enter</b> adds 1, <b>Shift+Enter</b> 4, <b>Alt+Enter</b> goes to the sideboard.</>}</li>
           <li><b>Stats</b>. {touch ? 'Under the decks' : 'In their tab'}, for the deck you pick.</li>
+          <li><b>Share</b>. The leader turns on <b>Public</b>, the globe: anyone with the team’s link sees its three decks, even without an account. The link button next to it shares the link.</li>
         </ol>
       ) : !editor ? null : touch ? (
         <ol>

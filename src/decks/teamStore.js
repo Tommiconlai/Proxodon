@@ -1,8 +1,9 @@
 /**
  * Team Trios (My decks, con le liste di gruppo): teams/{id} = { owner (il team leader), name, members (al massimo 3),
- * slots: i tre posti mazzo, ognuno l'uid di un membro o null (il posto 0 è del leader), deleted?, createdAt, updatedAt }.
- * I mazzi in teams/{id}/decks/{0|1|2}: documenti come i mazzi personali (deckStore, useDeck, rev e ver), mai pubblici.
- * Li leggono i membri; il leader cambia squadra e mazzi, un giocatore solo il mazzo del suo posto (regole).
+ * slots: i tre posti mazzo, ognuno l'uid di un membro o null (il posto 0 è del leader), public?, deleted?, createdAt,
+ * updatedAt }. I mazzi in teams/{id}/decks/{0|1|2}: documenti come i mazzi personali (deckStore, useDeck, rev e ver),
+ * mai nella Community. Li leggono i membri e, con public (lo accende solo il leader), chiunque abbia il link, anche
+ * senza account; il leader cambia squadra e mazzi, un giocatore solo il mazzo del suo posto (regole).
  */
 import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, getDoc, getDocs, query, where, arrayUnion, arrayRemove,
@@ -25,7 +26,7 @@ const fromTeam = (s) => {
   return {
     id: s.id, owner: String(d.owner || ''), name: String(d.name || '').slice(0, 80) || 'Team',
     members: Array.isArray(d.members) ? d.members.filter((m) => typeof m === 'string') : [],
-    slots: SLOTS.map((_, i) => (typeof d.slots?.[i] === 'string' ? d.slots[i] : null)), deleted: d.deleted === true,
+    slots: SLOTS.map((_, i) => (typeof d.slots?.[i] === 'string' ? d.slots[i] : null)), public: d.public === true, deleted: d.deleted === true,
   };
 };
 
@@ -42,6 +43,8 @@ export function createTeam(uid, name) {
   return { id: ref.id, done: setDoc(ref, { owner: uid, name, members: [uid], slots: [uid, null, null], createdAt: serverTimestamp(), ...now() }) };
 }
 export const renameTeam = (id, name) => updateDoc(teamDoc(id), { name, ...now() });
+// Pubblica (solo il leader): chiunque abbia il link la vede, anche senza account; mai in un elenco.
+export const setTeamPublic = (id, on) => updateDoc(teamDoc(id), { public: on, ...now() });
 
 // Il leader dà il posto libero i a un giocatore, per nickname: entra tra i membri e nel posto insieme.
 export async function assignPlayer(team, i, nickname) {

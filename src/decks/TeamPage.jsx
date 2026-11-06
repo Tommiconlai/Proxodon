@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useDeck, useScryfallRefresh, syncText } from './useDeck';
 import { usePrintDeck } from './usePrintDeck';
 import { useNames, errorText } from './useNames';
-import { listenTeam, teamDecks, renameTeam, assignPlayer, removePlayer, deleteTeam, createSlotDeck, deleteSlotDeck } from './teamStore';
+import { listenTeam, teamDecks, renameTeam, setTeamPublic, assignPlayer, removePlayer, deleteTeam, createSlotDeck, deleteSlotDeck } from './teamStore';
 import { listenDecks } from './deckStore';
 import { teamOverLimit, addCard, boardCounts, toPrintEntries, formatLabel, importNote } from './deckModel';
 import { TEAM_FORMATS } from './formats';
@@ -17,21 +17,26 @@ import { DeckBand, DeckCount } from './DeckTabs';
 import { ListName } from './GroupLists';
 import { ExportDeckDialog, NameFormatDialog } from './dialogs';
 import ConfirmDialog from '../components/ConfirmDialog';
+import ShareLink from './ShareLink';
 import {
   IconArrowLeft, IconTrash, IconLogOut, IconUsers, IconCrown, IconX, IconUserPlus, IconPlus, IconCopy, IconPencil, IconDeckPrint, IconDeckExport,
+  IconGlobe, IconUser,
 } from '../components/icons';
 
 const TEAM_TABS = [['deck', 'Decks'], ['stats', 'Stats']];
 const CONFLICT = 'This deck changed (another player or device): your last change was not saved. You now see the saved version.';
 
 // Team Trios (#/decks/team/:id): i tre mazzi di una squadra per un torneo a squadre. Testata ferma: indietro, nome della
-// squadra (il leader lo rinomina sul posto), Delete (leader) o Leave. Da desktop la fascia con Decks e Stats.
+// squadra (il leader lo rinomina sul posto), Public (leader), Copy link (squadra pubblica), Delete (leader) o Leave.
+// Squadra pubblica: chi non ne fa parte, anche senza account (uid assente), la vede tutta in sola lettura (Print ed
+// Export restano). Da desktop la fascia con Decks e Stats.
 // Decks: i tre mazzi uno sotto l'altro, sempre in Stacks, ognuno col nome tra [ ] e sotto formato, giocatore (o posto
 // libero), conteggio e icone. Un mazzo lo modifica il leader o il giocatore del suo posto (ricerca sopra le carte), gli
 // altri lo vedono in sola lettura. Limite di squadra: 4 copie di una carta sui tre mazzi (teamOverLimit), segnato sulle
 // carte di ogni mazzo che le ha, mai bloccante. Stats: un menu sceglie il mazzo. Telefono: niente schede, i mazzi e
 // sotto le statistiche del mazzo scelto (senza la mano di prova).
-export default function TeamPage({ uid, id, notify, printQueueCount, onPrintDeck }) {
+// onSignIn = l'accesso sopra la pagina, per chi la apre senza account (DecksView).
+export default function TeamPage({ uid, id, notify, printQueueCount, onPrintDeck, onSignIn }) {
   const [team, setTeam] = useState(undefined); // undefined = caricamento, null = eliminata o non se ne fa più parte
   const [err, setErr] = useState(null);
   useEffect(() => listenTeam(id, setTeam, (e) => { setTeam(null); setErr(e); }), [id]);
@@ -41,7 +46,9 @@ export default function TeamPage({ uid, id, notify, printQueueCount, onPrintDeck
       <div className="decks-root decks-center">
         <div className="decks-empty">
           <p className="decks-empty-title">This team is not available</p>
-          <p className="field-hint">{err?.code === 'permission-denied' ? 'You are not in it any more, or it was deleted.' : 'It was deleted.'} <a href="#/decks">Back to My decks</a></p>
+          {uid ? <p className="field-hint">{err?.code === 'permission-denied' ? 'It is private, you are not in it any more, or it was deleted.' : 'It was deleted.'} <a href="#/decks">Back to My decks</a></p>
+            : <p className="field-hint">It is private, or it was deleted. Sign in if you play in it.</p>}
+          {!uid && <button type="button" className="btn-secondary deck-icon-btn" onClick={onSignIn} aria-label="Sign in" title="Sign in"><IconUser size={16} /></button>}
         </div>
       </div>
     );
@@ -91,6 +98,7 @@ export function TeamBody({ team, uid, slots, nameOf, notify, printQueueCount, on
   const [a, b, c] = slots.map((s) => s.deck || null);
   const over = useMemo(() => teamOverLimit([a, b, c]), [a, b, c]);
   const leader = team.owner === uid;
+  const member = !!uid && team.members.includes(uid); // fuori squadra = squadra pubblica, in sola lettura
   const fail = (e) => notify(errorText(e), 'error');
   const ready = [0, 1, 2].filter((i) => slots[i].deck);
   const shown = ready.includes(pick) ? pick : ready[0];
@@ -183,13 +191,22 @@ export function TeamBody({ team, uid, slots, nameOf, notify, printQueueCount, on
     <div className={`deck-editor team-page${mobile ? ' is-mobile' : ''}`}>
       <div className="deck-scroll" ref={scrollRef}>
         <div className="folder-head group-head team-bar">
-          <button type="button" className="btn-secondary deck-icon-btn" onClick={() => navigate('/decks')} aria-label="My decks" title="My decks"><IconArrowLeft size={18} /></button>
+          {uid && <button type="button" className="btn-secondary deck-icon-btn" onClick={() => navigate('/decks')} aria-label="My decks" title="My decks"><IconArrowLeft size={18} /></button>}
           <IconUsers size={20} />
           {leader ? <ListName name={team.name} what="team" onRename={(name) => renameTeam(team.id, name).catch(fail)} /> : <h2 className="group-name">{team.name}</h2>}
           <span className="group-actions">
+            {leader && (
+              <button type="button" className={`btn-secondary deck-icon-btn${team.public ? ' on' : ''}`} aria-pressed={!!team.public} aria-label="Public team"
+                title={team.public ? 'Public: anyone with the link sees the team, even without an account. Click to make it private' : 'Private: only its players see it. Click to make it public'}
+                onClick={() => setTeamPublic(team.id, !team.public)
+                  .then(() => notify(team.public ? 'Private: only its players see the team' : 'Public: anyone with the link sees the team'), fail)}>
+                <IconGlobe size={17} />
+              </button>
+            )}
+            {team.public && <ShareLink path={`/decks/team/${team.id}`} title={team.name} notify={notify} />}
             {leader
               ? <button type="button" className="btn-secondary deck-icon-btn settings-delete" onClick={() => setAsk('delete')} aria-label="Delete the team" title="Delete the team"><IconTrash size={18} /></button>
-              : <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setAsk('leave')} aria-label="Leave the team" title="Leave the team"><IconLogOut size={18} /></button>}
+              : member && <button type="button" className="btn-secondary deck-icon-btn" onClick={() => setAsk('leave')} aria-label="Leave the team" title="Leave the team"><IconLogOut size={18} /></button>}
           </span>
         </div>
         {!mobile && <DeckBand tab={tab} onTab={onTab} items={TEAM_TABS} format={<span className="deck-format-static">Team Trios</span>} />}

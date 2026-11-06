@@ -9,6 +9,7 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import DeckSections from './DeckSections';
 import DeckTokens from './DeckTokens';
 import { ToGroupListDialog } from './GroupLists';
+import ShareLink from './ShareLink';
 import { DeckBand, DeckTitle, DeckCount, DeckTopBar, DeckTagList, DeckBracket } from './DeckTabs';
 import { DeckDilemmas } from './Dilemmas';
 import { DeckHelps } from './HelpRequests';
@@ -184,6 +185,8 @@ export default function DeckEditor({ uid, id, notify, printQueueCount, onPrintDe
                 if (!on) unpublishDeck(uid, id).catch((e) => notify(`Sync error: ${e.message}`, 'error'));
                 notify(on ? 'Shared in Community' : 'Removed from Community, with its dilemmas and help requests');
               }}><IconDeckPublic /></button>
+            {/* Link della copia in Community: lo apre anche chi non ha un account. */}
+            {deck.public && <ShareLink path={`/community/${id}`} title={deck.name} notify={notify} />}
             </span>
             <span className={`deck-sync${online ? '' : ' offline'}`}>{sync}</span>
             {/* Annuncia solo i cambi di stato, non il "minutes ago" che si aggiorna da solo. */}
