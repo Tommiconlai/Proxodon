@@ -104,9 +104,11 @@ export default function CommunityDeck({ uid, id, notify, helpId, printQueueCount
     </button>
   ) : <button type="button" className="deck-like" onClick={onSignIn} aria-label="Sign in to like" title="Sign in to like"><IconDeckHeart /></button>;
   const copyLabel = uid ? 'Copy to my decks' : 'Sign in to copy it to your decks';
-  // Dilemmas e Help senza account: l'invito a entrare al posto delle schede.
-  const signInFor = (what) => (
-    <div className="decks-empty">
+  // Dilemmas e Help senza account: titolo e invito a entrare al posto delle schede, nella cornice della sezione vera
+  // (deck-sections: margini e titolo come DeckDilemmas e DeckHelps).
+  const signInFor = (title, what) => (
+    <div className="deck-sections deck-signin">
+      <h3 className="deck-analysis-head">{title}</h3>
       <p className="field-hint">Sign in to see {what} and join in.</p>
       <button type="button" className="btn-secondary deck-icon-btn" onClick={onSignIn} aria-label="Sign in" title="Sign in"><IconUser size={16} /></button>
     </div>
@@ -115,8 +117,8 @@ export default function CommunityDeck({ uid, id, notify, helpId, printQueueCount
   const inHero = mobile || helpId;
   // Da desktop una scheda alla volta, da telefono tutto in fila (carte, Stats, Power, Dilemmas, Help).
   const cards = (t) => <DeckSections deck={deck} update={update} touch={mobile} readOnly tab={t} onTab={mobile ? undefined : setTab} onGroup={uid ? setGroupRows : undefined} />;
-  const dilemmas = uid ? <DeckDilemmas deck={deck} uid={uid} mine={false} notify={notify} /> : signInFor('the dilemmas of this deck');
-  const helps = uid ? <DeckHelps deck={deck} uid={uid} mine={deck.uid === uid} notify={notify} /> : signInFor('the help requests of this deck');
+  const dilemmas = uid ? <DeckDilemmas deck={deck} uid={uid} mine={false} notify={notify} /> : signInFor('Dilemmas', 'the dilemmas of this deck');
+  const helps = uid ? <DeckHelps deck={deck} uid={uid} mine={deck.uid === uid} notify={notify} /> : signInFor('Help requests', 'the help requests of this deck');
   return (
     <div className={`deck-editor${mobile ? ' is-mobile' : ''}`}>
       <div className="deck-scroll" ref={scrollRef} onScroll={mobile ? undefined : (e) => setStuck(e.currentTarget.scrollTop > (heroRef.current?.offsetHeight || 0) - STUCK_AT)}>
@@ -172,7 +174,7 @@ export default function CommunityDeck({ uid, id, notify, helpId, printQueueCount
                 : help === null ? <div className="help-page"><p className="field-hint">This help request is no longer available. <a href="#/help">All help requests</a></p></div>
                   : <HelpReply deck={deck} help={help} uid={uid} notify={notify} update={update} touch={mobile} />
             ) : mobile ? <>{cards('all')}{uid ? <><div className="deck-part">{dilemmas}</div><div className="deck-part">{helps}</div></>
-              : <div className="deck-part">{signInFor('the dilemmas and help requests of this deck')}</div>}</>
+              : <div className="deck-part">{signInFor('Dilemmas and help requests', 'the dilemmas and help requests of this deck')}</div>}</>
               : tab === 'dilemmas' ? dilemmas : tab === 'help' ? helps : cards(tab)}
           </section>
         </div>

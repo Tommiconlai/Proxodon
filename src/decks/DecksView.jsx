@@ -159,7 +159,7 @@ function SignInPanel({ onClose }) {
       <div className="signin-panel">
         <h2 className="decks-title">{onClose ? 'Sign in' : 'Your decks'}</h2>
         <p>{onClose ? 'Sign in to copy decks to your own, like them and join dilemmas and help requests. Your deck lists sync between your computer and your phone.'
-          : 'Sign in to keep your deck lists and sync them between your computer and your phone.'}</p>
+          : <>Sign in to keep your deck lists and sync them between your computer and your phone. Without an account you can still browse <a href="#/community">Community</a>.</>}</p>
         <button type="button" className="btn-generate" onClick={() => run('google', signIn)} disabled={!!busy}>
           {busy === 'google' && <span className="spinner" />} Sign in with Google
         </button>

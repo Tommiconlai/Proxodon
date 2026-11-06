@@ -75,7 +75,8 @@ export function TileFrame({ cuts, dashed, children }) {
 // una help request aperta, in basso a destra i like. Sull'arte il formato col punto ciano sfocato e a destra,
 // dentro il bordo, il globo (pubblico, fuori dalla Community); in basso il nome grande, i tag, autore (by, nella Community) e ultima
 // modifica. Bordo sfumato pieno solo con una help request aperta (.helping), altrimenti al 30%. props vanno
-// sul pulsante. stats = { likes, help } già noti (demo del tutorial): niente letture dal server.
+// sul pulsante. stats = { likes, help } già noti (demo del tutorial): niente letture dal server; likes null = niente
+// cuore (Community senza account).
 export function DeckTile({ deck: d, by, stats, ...props }) {
   // Voce dell'indice della Community (cleanIndex): copertina e identità già pronte, niente righe.
   const cover = scryfallImg(d.art ?? deckCover(d));
@@ -94,7 +95,7 @@ export function DeckTile({ deck: d, by, stats, ...props }) {
   // Voce dell'indice: già calcolato. Bracket spenti in Settings: niente.
   const bracket = useSettings().brackets && (Array.isArray(d.cards) ? deckBracket(d) : d.bracket);
   // Pillola dei simboli: 13.5 l'uno a passi di 18.5, 7 di margine; tasca = pillola + 4 di vuoto.
-  const cuts = { tl: [18.5 * n + 13, 26], br: [48, 26], ...(helping ? { tr: [32, 32] } : {}) };
+  const cuts = { tl: [18.5 * n + 13, 26], ...(likes != null ? { br: [48, 26] } : {}), ...(helping ? { tr: [32, 32] } : {}) };
   return (
     <button type="button" className={`deck-tile${helping ? ' helping' : ''}`} title={artist ? `Art by ${artist}` : undefined} {...props}>
       <TileFrame cuts={cuts}>
@@ -116,7 +117,7 @@ export function DeckTile({ deck: d, by, stats, ...props }) {
       {/* Dopo il nome nel DOM (lo screen reader legge "nome, public, open help request"), in alto a destra a vista. */}
       {d.public && !by && <span className="deck-tile-public" title="Public, in Community"><IconGlobe size={12} /><span className="sr-only">, public</span></span>}
       {helping && <span className="deck-tile-help" title="Open help request"><IconWrench size={12} /><span className="sr-only">, open help request</span></span>}
-      <span className="deck-tile-likes"><IconHeart size={12} /> {likes}<span className="sr-only"> likes</span></span>
+      {likes != null && <span className="deck-tile-likes"><IconHeart size={12} /> {likes}<span className="sr-only"> likes</span></span>}
     </button>
   );
 }
@@ -189,7 +190,9 @@ const Empty = ({ title, hint }) => (
 );
 
 // Community: gli ultimi 20 mazzi pubblici degli altri (i propri stanno in My decks) che passano ricerca e
-// filtri. La query cerca la prima parola (300 ms dopo l'ultimo tasto), il resto lo filtra deckMatches.
+// filtri. La query cerca la prima parola (300 ms dopo l'ultimo tasto), il resto lo filtra deckMatches. Senza account
+// niente conteggi (NO_COUNTS): like e help request li contano solo gli account entrati (regole).
+const NO_COUNTS = { likes: null, help: false };
 function CommunityGrid({ uid, terms, filters }) {
   const [decks, setDecks] = useState(null);
   const [error, setError] = useState(null);
@@ -214,7 +217,7 @@ function CommunityGrid({ uid, terms, filters }) {
     <ul className="deck-grid">
       {shown.map((d) => (
         <li key={d.id} className="deck-tile-wrap">
-          <DeckTile deck={d} by={d.owner || 'a player'} onClick={() => navigate(`/community/${d.id}`)} />
+          <DeckTile deck={d} by={d.owner || 'a player'} stats={uid ? undefined : NO_COUNTS} onClick={() => navigate(`/community/${d.id}`)} />
         </li>
       ))}
     </ul>

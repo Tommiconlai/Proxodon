@@ -2310,12 +2310,14 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 .signin-panel p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; }
 .signin-panel p b { color: var(--text-primary); font-weight: 600; overflow-wrap: anywhere; }
+.signin-panel p a { color: var(--cyan-soft); }
 /* Accesso sopra un link condiviso aperto senza account (SignInFrame): lo stesso pannello, con la X in alto a destra. */
 .signin-dialog { position: relative; width: min(380px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; border-radius: var(--radius-lg); }
 .signin-dialog .signin-panel { max-width: none; }
 .signin-close { position: absolute; top: 14px; right: 14px; }
 /* Invito a entrare (squadra non disponibile, Dilemmas e Help senza account): il pulsante sotto il testo. */
-.decks-empty > .deck-icon-btn { margin-top: 12px; }
+:is(.decks-empty, .deck-signin) > .deck-icon-btn { margin-top: 12px; width: 40px; height: 40px; padding: 0; justify-content: center; }
+.mobile :is(.decks-empty, .deck-signin) > .deck-icon-btn { width: 44px; height: 44px; }
 /* Separatore "or" tra Google ed email: linee magenta → ciano come il bordo del bottone. */
 .signin-or {
   display: flex; align-items: center; gap: 10px;
